@@ -522,7 +522,7 @@
             <div class="metric"><strong>길이</strong><span id="durationText">-</span></div>
             <div class="metric"><strong>해상도</strong><span id="resolutionText">-</span></div>
             <div class="metric"><strong>Pose 감지율</strong><span id="detectRateText">-</span></div>
-            <div class="metric"><strong>파워·맺음 평균</strong><span id="powerScoreText">-</span></div>
+            <div class="metric"><strong>전체/평균</strong><span id="powerScoreText">-</span></div>
           </div>
           <div style="margin-top: 16px;">
             <progress id="progress" value="0" max="100"></progress>
@@ -672,6 +672,7 @@
       let isAnalyzing = false;
       let loadModelPromise = null;
       let replayRange = null;
+      let analysisTimestampOffsetMs = 0;
       const SEEK_EPSILON_SECONDS = 0.025;
       const SEEK_TIMEOUT_MS = 1500;
 
@@ -830,7 +831,7 @@
         resultPageContent.innerHTML = `
           <div class="result-grid">
             <div class="metric"><strong>품새</strong><span>${escapeHtml(latestReport.poomsae?.name || currentPoomsae().name)}</span></div>
-            <div class="metric"><strong>평균</strong><span>${escapeHtml(latestReport.summary.average_power_finish_score)}</span></div>
+            <div class="metric"><strong>전체/평균</strong><span>${escapeHtml(latestReport.summary.total_score)} / ${escapeHtml(latestReport.summary.average_power_finish_score)}</span></div>
             <div class="metric"><strong>Pose 감지율</strong><span>${Math.round(latestReport.summary.detection_rate * 100)}%</span></div>
             <div class="metric"><strong>구간 수</strong><span>${latestReport.segments.length}</span></div>
           </div>
@@ -886,7 +887,7 @@
         lines.push(`영상: ${latestReport.file?.name || "-"}`);
         lines.push(`해상도: ${latestReport.video.width} x ${latestReport.video.height}`);
         lines.push(`길이: ${latestReport.video.duration_seconds}초`);
-        lines.push(`평균 점수: ${latestReport.summary.average_power_finish_score}`);
+        lines.push(`전체/평균: ${latestReport.summary.total_score} / ${latestReport.summary.average_power_finish_score}`);
         lines.push(`Pose 감지율: ${Math.round(latestReport.summary.detection_rate * 100)}%`);
         lines.push("");
         lines.push("[구간별 결과]");
@@ -978,7 +979,7 @@
         rr(70, 305, 1260, 245, 18, "#ffffff", "#d9dee8");
         text("분석 대상", 110, 342, 30, "#111827", "800");
         metric("품새", poomsaeName, 110, 395, 270);
-        metric("평균 점수", avg, 410, 395, 270);
+        metric("전체/평균", `${latestReport.summary.total_score}/${avg}`, 410, 395, 270);
         metric("Pose 감지율", `${detectRate}%`, 710, 395, 270);
         metric("구간 수", latestReport.segments.length, 1010, 395, 270);
 
@@ -987,9 +988,11 @@
         const speedAvg = Math.round(latestReport.segments.reduce((s, r) => s + r.velocityScore, 0) / latestReport.segments.length);
         const snapAvg = Math.round(latestReport.segments.reduce((s, r) => s + r.snapScore, 0) / latestReport.segments.length);
         const stillAvg = Math.round(latestReport.segments.reduce((s, r) => s + r.stillnessScore, 0) / latestReport.segments.length);
+        const stanceAvg = Math.round(latestReport.segments.reduce((s, r) => s + r.stanceScore, 0) / latestReport.segments.length);
         bar("속도 표현", speedAvg, 110, 700, 790);
         bar("맺음", snapAvg, 110, 765, 790);
         bar("정지 안정성", stillAvg, 110, 830, 790);
+        bar("서기 안정성", stanceAvg, 110, 895, 790);
 
         rr(70, 970, 1260, 520, 18, "#ffffff", "#d9dee8");
         text("우선 보완할 구간", 110, 1010, 30, "#111827", "800");
@@ -1245,6 +1248,37 @@
         const tolerance = type === "kick_punch" ? .18 : .12;
         return stableRound(clamp(100 - (endJitter / tolerance) * 100, 0, 100));
       }
+      function scoreStance(frames) {
+        const detected = frames.filter((f) => f.landmarks);
+        if (!detected.length) return 0;
+        const widths = [];
+        const centerXs = [];
+        const hipYs = [];
+        let visible = 0;
+        for (const frame of detected) {
+          const leftAnkle = getPoint(frame.landmarks, 27);
+          const rightAnkle = getPoint(frame.landmarks, 28);
+          const leftHip = getPoint(frame.landmarks, 23);
+          const rightHip = getPoint(frame.landmarks, 24);
+          if (!leftAnkle || !rightAnkle || !leftHip || !rightHip) continue;
+          visible += 1;
+          widths.push(Math.abs(leftAnkle.x - rightAnkle.x));
+          centerXs.push((leftHip.x + rightHip.x + leftAnkle.x + rightAnkle.x) / 4);
+          hipYs.push((leftHip.y + rightHip.y) / 2);
+        }
+        if (!visible) return 0;
+        const widthAvg = trimmedMean(widths);
+        const widthVar = trimmedMean(widths.map((value) => Math.abs(value - widthAvg)));
+        const centerAvg = trimmedMean(centerXs);
+        const centerVar = trimmedMean(centerXs.map((value) => Math.abs(value - centerAvg)));
+        const hipAvg = trimmedMean(hipYs);
+        const hipVar = trimmedMean(hipYs.map((value) => Math.abs(value - hipAvg)));
+        const visibilityPart = clamp((visible / detected.length) * 100, 0, 100);
+        const widthPart = clamp(100 - widthVar * 900, 0, 100);
+        const centerPart = clamp(100 - centerVar * 850, 0, 100);
+        const heightPart = clamp(100 - hipVar * 850, 0, 100);
+        return stableRound(visibilityPart * .22 + widthPart * .28 + centerPart * .25 + heightPart * .25);
+      }
       function labelFor(score) {
         if (score >= 78) return { type: "good", label: "좋음" };
         if (score >= 55) return { type: "caution", label: "주의" };
@@ -1256,8 +1290,9 @@
         if (metrics.velocityScore < 55 && movement.type !== "hold") notes.push("속도 표현이 약하게 추정됩니다");
         if (metrics.snapScore < 55) notes.push("끝에서 끊고 멈추는 맺음이 약합니다");
         if (metrics.stillnessScore < 55) notes.push("마무리 후 흔들림이 큽니다");
-        if (!notes.length) return "속도 변화와 마무리 정지가 안정적으로 추정됩니다.";
-        return `${notes.join(", ")}. ${movement.name}의 끝 지점에서 자세를 더 분명히 고정해 보세요.`;
+        if (metrics.stanceScore < 55) notes.push("서기 폭과 중심 안정성을 확인하세요");
+        if (!notes.length) return "서기, 속도 변화, 맺음, 마무리 정지가 안정적으로 추정됩니다.";
+        return `${notes.join(", ")}. ${movement.name}의 끝 지점에서 서기와 자세를 더 분명히 고정해 보세요.`;
       }
       function evaluateSegment(movement, frames) {
         const detectedFrames = frames.filter((f) => f.landmarks);
@@ -1273,12 +1308,14 @@
         const velocityScore = scoreVelocity(peakSpeed, movement.type);
         const snapScore = scoreSnap(peakSpeed, finalSpeed, movement.type);
         const stillnessScore = scoreStillness(endJitter, movement.type);
+        const stanceScore = scoreStance(frames);
         const visibilityScore = stableRound(visibility * 100);
         const powerScore = stableRound(
-          visibilityScore * .18 +
-          velocityScore * .28 +
-          snapScore * .30 +
-          stillnessScore * .24
+          visibilityScore * .12 +
+          velocityScore * .22 +
+          snapScore * .24 +
+          stillnessScore * .20 +
+          stanceScore * .22
         );
         const verdict = labelFor(powerScore);
         return {
@@ -1287,13 +1324,14 @@
           velocityScore,
           snapScore,
           stillnessScore,
+          stanceScore,
           powerScore,
           peakSpeed: Number(peakSpeed.toFixed(4)),
           finalSpeed: Number(finalSpeed.toFixed(4)),
           endJitter: Number(endJitter.toFixed(4)),
           type: verdict.type,
           label: verdict.label,
-          feedback: feedbackFor(movement, { visibilityScore, velocityScore, snapScore, stillnessScore })
+          feedback: feedbackFor(movement, { visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore })
         };
       }
       function bar(label, value) {
@@ -1326,6 +1364,7 @@
                 ${bar("속도", result.velocityScore)}
                 ${bar("맺음", result.snapScore)}
                 ${bar("정지", result.stillnessScore)}
+                ${bar("서기", result.stanceScore)}
               </div>
             </div>
             <div>
@@ -1338,6 +1377,7 @@
         }
       }
       function summarize(results) {
+        const total = results.reduce((sum, r) => sum + r.powerScore, 0);
         const avg = results.reduce((sum, r) => sum + r.powerScore, 0) / Math.max(results.length, 1);
         const detected = results.filter((r) => r.detected).length;
         const detectRate = detected / Math.max(results.length, 1);
@@ -1351,12 +1391,18 @@
         else items.push({ type: "caution", text: `${totalSegments}개 구간 중 ${detected}개 구간에서 관절 데이터가 감지됐습니다. 손과 발이 화면 안에 들어오도록 촬영하세요.` });
         if (weak.length) items.push({ type: "bad", text: `우선 보완할 구간: ${weak.map((r) => `${r.order}.${r.name}`).join(", ")}` });
         items.push({ type: "caution", text: "영상만으로 실제 타격 힘은 직접 측정할 수 없으므로, 이 평가는 속도와 마무리 안정성 기반의 코칭 지표입니다." });
-        return { avg, detectRate, type, label, items };
+        return { total, avg, detectRate, type, label, items };
       }
       async function analyzePower() {
         if (!poseLandmarker || !selectedFile || !Number.isFinite(video.duration)) return;
-        if (isAnalyzing) return;
+        if (isAnalyzing) {
+          setProgress(Number(progress.value || 0), "이미 분석 중입니다. 잠시만 기다려 주세요.");
+          return;
+        }
         isAnalyzing = true;
+        const timestampBaseMs = analysisTimestampOffsetMs;
+        analysisTimestampOffsetMs += Math.ceil(video.duration * 1000) + 10000;
+        try {
         analyzeBtn.disabled = true;
         downloadBtn.disabled = true;
         showReportBtn.disabled = true;
@@ -1384,7 +1430,7 @@
             const time = segmentStart + (segmentEnd - segmentStart) * samplePositions[j];
             await waitForSeek(time);
             if (j === 3) snapshot = captureVideoSnapshot();
-            const result = poseLandmarker.detectForVideo(video, Math.round(time * 1000));
+            const result = poseLandmarker.detectForVideo(video, timestampBaseMs + Math.round(time * 1000));
             const landmarks = result.landmarks && result.landmarks[0] ? result.landmarks[0] : null;
             frames.push({ time, landmarks });
           }
@@ -1411,7 +1457,7 @@
         renderSegments(results);
         const summary = summarize(results);
         detectRateText.textContent = `${(summary.detectRate * 100).toFixed(0)}%`;
-        powerScoreText.textContent = `${summary.avg.toFixed(1)}`;
+        powerScoreText.textContent = `${summary.total.toFixed(0)} / ${summary.avg.toFixed(1)}`;
         setPill(overallStatus, summary.type, summary.label);
         renderReport(summary.items);
         setProgress(100, "파워·맺음 평가 완료");
@@ -1436,6 +1482,7 @@
           video: { duration_seconds: Number(video.duration.toFixed(3)), width: video.videoWidth, height: video.videoHeight },
           summary: {
             label: summary.label,
+            total_score: Number(summary.total.toFixed(0)),
             average_power_finish_score: Number(summary.avg.toFixed(2)),
             detection_rate: Number(summary.detectRate.toFixed(4))
           },
@@ -1450,7 +1497,26 @@
         replayAllBtn.disabled = false;
         replayWeakBtn.disabled = false;
         reportOutput.value = formatReportText();
-        isAnalyzing = false;
+        } catch (error) {
+          console.error(error);
+          const hadReport = !!latestReport;
+          setProgress(0, "분석 중 오류가 발생했습니다. 다시 분석 시작을 눌러 재시도하세요.");
+          renderReport([
+            { type: "bad", text: "분석 중 오류가 발생했습니다. 같은 영상을 다시 분석할 수 있도록 복구했습니다." },
+            { type: "caution", text: "오류가 반복되면 영상을 짧게 자르거나, 브라우저를 새로고침한 뒤 다시 시도하세요." }
+          ]);
+          if (!hadReport) reportOutput.value = "";
+        } finally {
+          isAnalyzing = false;
+          const canAnalyze = !!poseLandmarker && !!selectedFile && Number.isFinite(video.duration);
+          const hasReport = !!latestReport;
+          analyzeBtn.disabled = !canAnalyze;
+          downloadBtn.disabled = !hasReport;
+          showReportBtn.disabled = !hasReport;
+          jpgBtn.disabled = !hasReport;
+          replayAllBtn.disabled = !hasReport;
+          replayWeakBtn.disabled = !hasReport;
+        }
       }
       setupLayout();
 
