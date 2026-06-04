@@ -96,9 +96,11 @@ function assertNotContainsInFiles(token, files, label) {
 
 const webHtml = readUtf8(webIndexPath);
 const androidHtml = readUtf8(androidIndexPath);
+const hasAndroidProject = fs.existsSync(path.join(root, "android"));
 
 if (!webHtml) fail("www/index.html 파일을 읽을 수 없습니다.");
-if (!androidHtml) fail("Android public index.html 파일을 읽을 수 없습니다. npm run android:sync가 필요합니다.");
+if (!androidHtml && hasAndroidProject) fail("Android public index.html 파일을 읽을 수 없습니다. npm run android:sync가 필요합니다.");
+if (!androidHtml && !hasAndroidProject) warn("GitHub/Cloudflare 업로드용 폴더라 Android assets 검사를 건너뜁니다.");
 
 if (webHtml && androidHtml) {
   if (webHtml === androidHtml) pass("웹 index.html과 Android assets index.html 일치");
