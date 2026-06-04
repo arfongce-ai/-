@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI 품새 코치 태극 1~8장 테스트</title>
+    <title>품새 AI 분석 태극 1~8장 테스트</title>
     <style>
       :root {
         --bg: #f7f8fb;
@@ -305,6 +305,25 @@
         padding: 6px 10px;
         font-size: 14px;
       }
+      .primary-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .primary-actions button {
+        min-height: 64px;
+        font-size: 16px;
+      }
+      .utility-actions {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .utility-actions button {
+        min-height: 52px;
+      }
       .result-page {
         display: grid;
         gap: 18px;
@@ -345,10 +364,15 @@
       @media (max-width: 920px) {
         .grid { grid-template-columns: 1fr; }
         .video-dock {
-          position: static;
+          position: sticky;
+          top: 0;
+          z-index: 30;
           max-height: none;
           overflow: visible;
+          border-radius: 0 0 8px 8px;
+          box-shadow: 0 10px 28px rgba(15, 23, 42, .16);
         }
+        video { max-height: 34vh; }
         .sticky-note {
           display: block;
           margin-top: 8px;
@@ -356,13 +380,15 @@
           font-size: 13px;
         }
         .segments {
-          max-height: none;
-          overflow: visible;
+          max-height: 46vh;
+          overflow: auto;
         }
         .result-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .segment { grid-template-columns: 1fr; }
         .control-grid { grid-template-columns: 1fr; }
-        button, select, input[type="file"] { min-height: 48px; }
+        .primary-actions { grid-template-columns: 1fr; }
+        .utility-actions { grid-template-columns: 1fr 1fr; }
+        button, select, input[type="file"] { min-height: 56px; }
         header .wrap {
           flex-direction: column;
           align-items: flex-start;
@@ -374,10 +400,10 @@
     <header>
       <div class="wrap">
         <div>
-          <h1>AI 품새 코치 태극 1~8장 테스트</h1>
+          <h1>품새 AI 분석 태극 1~8장 테스트</h1>
           <p class="small">PC, 폰, 태블릿에서 영상 업로드 후 속도, 맺음, 정지 안정성을 평가합니다.</p>
         </div>
-        <span class="badge">태극 1장~8장</span>
+        <span class="badge">태극 1장~8장 · v2</span>
       </div>
     </header>
 
@@ -399,12 +425,14 @@
             </select>
             <input id="fileInput" type="file" accept="video/mp4,video/*" />
           </div>
-          <div class="row" style="margin-top: 12px;">
+          <div class="primary-actions">
             <button id="loadModelBtn">모델 준비</button>
-            <button id="analyzeBtn" disabled>파워·맺음 평가 시작</button>
-            <button id="downloadBtn" class="secondary" disabled>평가 JSON 저장</button>
-            <button id="showReportBtn" class="secondary" disabled>리포트 화면 출력</button>
-            <button id="jpgBtn" class="secondary" disabled>JPG 결과지 저장</button>
+            <button id="analyzeBtn" disabled>분석 시작</button>
+          </div>
+          <div class="utility-actions">
+            <button id="downloadBtn" class="secondary" disabled>JSON 저장</button>
+            <button id="showReportBtn" class="secondary" disabled>결과지 보기</button>
+            <button id="jpgBtn" class="secondary" disabled>JPG 저장</button>
             <button id="resetBtn" class="secondary">초기화</button>
           </div>
           <div class="code" style="margin-top: 14px;">
@@ -759,7 +787,7 @@
       function formatReportText() {
         if (!latestReport) return "";
         const lines = [];
-        lines.push("AI 품새 코치 평가 리포트");
+        lines.push("품새 AI 분석 평가 리포트");
         lines.push(`생성일: ${new Date(latestReport.created_at).toLocaleString()}`);
         lines.push(`품새: ${latestReport.poomsae?.name || currentPoomsae().name}`);
         lines.push(`영상: ${latestReport.file?.name || "-"}`);
@@ -850,7 +878,7 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "#173f8a";
         ctx.fillRect(0, 0, canvas.width, 250);
-        text("AI 품새 코치", 90, 56, 34, "#dbeafe", "800");
+        text("품새 AI 분석", 90, 56, 34, "#dbeafe", "800");
         text(`${poomsaeName} 결과지`, 90, 108, 58, "#ffffff", "800");
         text("영상 기반 수련 피드백 · 공식 심사 대체 아님", 90, 184, 28, "#dbeafe", "700");
 
@@ -1270,7 +1298,7 @@
         renderReport(summary.items);
         setProgress(100, "파워·맺음 평가 완료");
         latestReport = {
-          app: "AI 품새 코치 파워·맺음 테스트",
+          app: "품새 AI 분석 태극 1~8장 테스트",
           created_at: new Date().toISOString(),
           mode: "power_snap_stillness_estimation",
           note: "영상 관절 좌표 기반 추정치이며 실제 물리적 힘을 직접 측정하지 않는다.",

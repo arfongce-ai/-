@@ -1,0 +1,22 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(self), microphone=(self), fullscreen=(self)
+
+/index.html
+  Cache-Control: no-store
+
+/health.html
+  Cache-Control: no-store
+
+/www/index.html
+  Cache-Control: no-store
+
+/www/health.html
+  Cache-Control: no-store
+
+/www/models/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/www/vendor/*
+  Cache-Control: public, max-age=31536000, immutable
