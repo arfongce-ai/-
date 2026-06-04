@@ -1,4 +1,4 @@
-# AI 품새 코치 APK 프로젝트
+# 품새 AI 분석 APK 프로젝트
 
 이 폴더는 `poomsae-coach-power-prototype.html`을 APK로 감싸기 위한 Capacitor 프로젝트다.
 
