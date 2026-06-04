@@ -191,7 +191,7 @@
       }
       .segment {
         display: grid;
-        grid-template-columns: 88px minmax(0, 1fr) 124px;
+        grid-template-columns: 148px minmax(0, 1fr) 124px;
         gap: 12px;
         align-items: center;
         border: 1px solid var(--line);
@@ -357,6 +357,61 @@
         color: var(--muted);
         font-weight: 700;
       }
+      .result-section-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: end;
+        margin: 18px 0 10px;
+      }
+      .result-section-title p {
+        margin: 0;
+      }
+      .scene-list {
+        display: grid;
+        gap: 10px;
+      }
+      .scene-card {
+        display: grid;
+        grid-template-columns: 132px minmax(0, 1fr);
+        gap: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: #fff;
+      }
+      .scene-card.priority {
+        border-color: #f2b84b;
+        background: #fffaf0;
+      }
+      .scene-shot {
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        border: 1px solid #cfd7e6;
+        border-radius: 8px;
+        background: #111827;
+        object-fit: cover;
+      }
+      .scene-placeholder {
+        display: grid;
+        place-items: center;
+        color: #94a3b8;
+        font-size: 12px;
+      }
+      .scene-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 6px 0;
+      }
+      .scene-meta span {
+        border-radius: 999px;
+        padding: 4px 8px;
+        background: #eef2f7;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 800;
+      }
       progress {
         width: 100%;
         height: 14px;
@@ -384,6 +439,7 @@
           overflow: auto;
         }
         .result-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .scene-card { grid-template-columns: 104px minmax(0, 1fr); }
         .segment { grid-template-columns: 1fr; }
         .control-grid { grid-template-columns: 1fr; }
         .primary-actions { grid-template-columns: 1fr; }
@@ -741,6 +797,25 @@
         if (resultPage) resultPage.hidden = false;
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
+      function renderSceneCard(segment, isPriority = false) {
+        const shot = segment.snapshot
+          ? `<img class="scene-shot" src="${segment.snapshot}" alt="${escapeHtml(segment.order)}번 구간 장면" loading="lazy" />`
+          : `<div class="scene-shot scene-placeholder">장면 없음</div>`;
+        return `
+          <article class="scene-card ${isPriority ? "priority" : ""}">
+            ${shot}
+            <div>
+              <strong>${segment.order}. ${escapeHtml(segment.name)}</strong>
+              <div class="scene-meta">
+                <span>${segment.startTime.toFixed(1)}-${segment.endTime.toFixed(1)}초</span>
+                <span>${escapeHtml(segment.label)}</span>
+                <span>${segment.powerScore}점</span>
+              </div>
+              <p class="small">${escapeHtml(segment.feedback)}</p>
+            </div>
+          </article>
+        `;
+      }
       function renderResultPage() {
         if (!resultPageContent) return;
         if (!latestReport) {
@@ -766,10 +841,28 @@
             </ul>
           </div>
           <div class="result-card" style="margin-top:14px;">
-            <h3>우선 확인할 구간</h3>
-            <ul class="list">
-              ${weak.map((segment) => `<li class="${borderClass(segment.type)}">${segment.order}. ${escapeHtml(segment.name)} - ${escapeHtml(segment.label)} (${segment.powerScore}점)<br><span class="small">${escapeHtml(segment.feedback)}</span></li>`).join("")}
-            </ul>
+            <div class="result-section-title">
+              <div>
+                <h3>우선 확인할 부분</h3>
+                <p class="small">점수가 낮은 구간부터 먼저 확인하세요.</p>
+              </div>
+              <span class="badge">${weak.length}개</span>
+            </div>
+            <div class="scene-list">
+              ${weak.map((segment) => renderSceneCard(segment, true)).join("")}
+            </div>
+          </div>
+          <div class="result-card" style="margin-top:14px;">
+            <div class="result-section-title">
+              <div>
+                <h3>전체 부분</h3>
+                <p class="small">전체 동작 흐름을 순서대로 확인하세요.</p>
+              </div>
+              <span class="badge">${latestReport.segments.length}개</span>
+            </div>
+            <div class="scene-list">
+              ${latestReport.segments.map((segment) => renderSceneCard(segment, false)).join("")}
+            </div>
           </div>
         `;
       }
@@ -935,6 +1028,24 @@
       }
       function formatDuration(seconds) {
         return Number.isFinite(seconds) ? `${seconds.toFixed(1)}초` : "-";
+      }
+      function captureVideoSnapshot() {
+        try {
+          const sourceWidth = video.videoWidth || 640;
+          const sourceHeight = video.videoHeight || 360;
+          const targetWidth = 360;
+          const targetHeight = Math.max(1, Math.round(sourceHeight / sourceWidth * targetWidth));
+          const canvas = document.createElement("canvas");
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return "";
+          ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+          return canvas.toDataURL("image/jpeg", 0.62);
+        } catch (error) {
+          console.warn("Snapshot capture failed.", error);
+          return "";
+        }
       }
       function waitForSeek(time) {
         return new Promise((resolve) => {
@@ -1199,10 +1310,14 @@
         for (const result of results) {
           const row = document.createElement("div");
           row.className = `segment ${borderClass(result.type)}`;
+          const shot = result.snapshot
+            ? `<img class="scene-shot" src="${result.snapshot}" alt="${escapeHtml(result.order)}번 구간 장면" loading="lazy" />`
+            : `<div class="scene-shot scene-placeholder">장면 없음</div>`;
           row.innerHTML = `
             <div>
               <strong>${String(result.order).padStart(2, "0")}</strong>
               <span>${result.startTime.toFixed(1)}-${result.endTime.toFixed(1)}초</span>
+              <div style="margin-top:8px;">${shot}</div>
             </div>
             <div>
               <strong>${result.name}</strong>
@@ -1263,10 +1378,12 @@
           const segmentStart = video.duration * (i / movements.length);
           const segmentEnd = video.duration * ((i + 1) / movements.length);
           const frames = [];
+          let snapshot = "";
           const samplePositions = [.14, .24, .34, .44, .54, .64, .74, .84];
           for (let j = 0; j < samplePositions.length; j += 1) {
             const time = segmentStart + (segmentEnd - segmentStart) * samplePositions[j];
             await waitForSeek(time);
+            if (j === 3) snapshot = captureVideoSnapshot();
             const result = poseLandmarker.detectForVideo(video, Math.round(time * 1000));
             const landmarks = result.landmarks && result.landmarks[0] ? result.landmarks[0] : null;
             frames.push({ time, landmarks });
@@ -1279,6 +1396,7 @@
             movementType: movement.type,
             startTime: Number(segmentStart.toFixed(3)),
             endTime: Number(segmentEnd.toFixed(3)),
+            snapshot,
             ...metrics
           };
           results.push(row);
