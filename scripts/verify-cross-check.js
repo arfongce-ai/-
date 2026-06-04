@@ -153,12 +153,28 @@ assertContains(webHtml, "createPoseLandmarkerWithFallback", "GPU 실패 시 CPU 
 assertContains(webHtml, "delegate)", "PoseLandmarker delegate 파라미터화");
 assertContains(webHtml, "const totalSegments = results.length", "리포트 구간 수 동적 계산");
 assertContains(webHtml, "setupLayout()", "UI 레이아웃 초기화 호출 존재");
+assertContains(webHtml, "setupQuickNav()", "빠른 이동 UI 초기화 호출 존재");
+assertContains(webHtml, "data-jump=\"video\"", "빠른 이동 영상 버튼 존재");
+assertContains(webHtml, "data-jump=\"segments\"", "빠른 이동 전체 구간 버튼 존재");
+assertContains(webHtml, "data-jump=\"result\"", "빠른 이동 결과지 버튼 존재");
 assertContains(webHtml, "resultPage", "결과지 별도 페이지 구조 존재");
 assertContains(webHtml, "video-dock", "리플레이 고정 패널 CSS/DOM 구조 존재");
 assertContains(webHtml, "side-panel", "우측 작업 패널 CSS/DOM 구조 존재");
+assertContains(webHtml, "품새 AI 분석", "앱 이름 '품새 AI 분석' 적용");
+assertContains(webHtml, "전체/평균", "전체/평균 점수 표기 존재");
+assertContains(webHtml, "total_score", "전체 점수 데이터 존재");
+assertContains(webHtml, "scoreStance", "서기 안정성 평가 함수 존재");
+assertContains(webHtml, "stanceScore", "서기 안정성 점수 데이터 존재");
+assertContains(webHtml, "captureVideoSnapshot", "구간 장면 사진 캡처 함수 존재");
+assertContains(webHtml, "우선 확인할 부분", "결과지 우선 확인 영역 존재");
+assertContains(webHtml, "전체 부분", "결과지 전체 영역 존재");
+assertContains(webHtml, "analysisTimestampOffsetMs", "재분석 MediaPipe 타임스탬프 보정 존재");
+assertContains(webHtml, "이미 분석 중입니다", "분석 중 중복 클릭 방지 안내 존재");
 
 assertNotContainsInFiles("18개 구간", [webIndexPath, androidIndexPath], "고정 문구 '18개 구간' 제거");
 assertNotContainsInFiles("C:\\Users\\MOMGAGYM", [webIndexPath, androidIndexPath, buildStepsPath], "배포 코드/문서의 개인 PC 샘플 경로 제거");
+assertNotContainsInFiles("AI 품새 코치", [webIndexPath, androidIndexPath], "이전 앱 이름 'AI 품새 코치' 제거");
+assertNotContainsInFiles("품새 분석 AI플그램", [webIndexPath, androidIndexPath], "오타 앱 이름 '품새 분석 AI플그램' 제거");
 
 if (failures.length) {
   console.error(`\nCross-check failed: ${failures.length} issue(s)`);
