@@ -1,0 +1,1449 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI 품새 코치 태극 1~8장 테스트</title>
+    <style>
+      :root {
+        --bg: #f7f8fb;
+        --panel: #fff;
+        --text: #111827;
+        --muted: #6b7280;
+        --line: #d9dee8;
+        --brand: #1665d8;
+        --good: #137a3a;
+        --caution: #a15c00;
+        --bad: #b42318;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Arial, "Malgun Gothic", sans-serif;
+      }
+      header {
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+      }
+      .wrap {
+        width: min(1240px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+      header .wrap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        padding: 18px 0;
+      }
+      h1, h2, h3 { margin: 0; }
+      h1 { font-size: 22px; }
+      h2 { margin-bottom: 12px; font-size: 18px; }
+      h3 { font-size: 15px; }
+      p {
+        margin: 0 0 12px;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+      main { padding: 24px 0 36px; }
+      .app-view[hidden] { display: none !important; }
+      section {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 18px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(360px, .92fr) minmax(0, 1.08fr);
+        gap: 18px;
+        align-items: start;
+      }
+      .video-dock {
+        position: sticky;
+        top: 12px;
+        max-height: calc(100vh - 24px);
+        overflow: auto;
+      }
+      .side-panel {
+        display: grid;
+        gap: 18px;
+      }
+      .side-panel > section {
+        margin-top: 0 !important;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .badge {
+        border: 1px solid #b8c7e6;
+        border-radius: 999px;
+        padding: 6px 10px;
+        color: #174ea6;
+        background: #eef4ff;
+        font-size: 13px;
+        font-weight: 800;
+      }
+      input[type="file"] {
+        width: 100%;
+        border: 1px dashed #aab5c6;
+        border-radius: 8px;
+        padding: 16px;
+        background: #fbfcff;
+      }
+      select {
+        width: 100%;
+        border: 1px solid #aab5c6;
+        border-radius: 8px;
+        padding: 14px 16px;
+        background: #fff;
+        color: var(--text);
+        font: 800 16px Arial, "Malgun Gothic", sans-serif;
+      }
+      button {
+        border: 0;
+        border-radius: 8px;
+        padding: 12px 14px;
+        background: var(--brand);
+        color: #fff;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #eef2f7;
+        color: #1f2937;
+      }
+      button:disabled {
+        cursor: not-allowed;
+        opacity: .45;
+      }
+      #downloadBtn {
+        display: none;
+      }
+      video {
+        width: 100%;
+        max-height: 42vh;
+        background: #050505;
+        border: 1px solid #111827;
+        border-radius: 8px;
+      }
+      .sticky-note { display: none; }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .metric {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcff;
+      }
+      .metric strong {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .metric span {
+        font-size: 20px;
+        font-weight: 800;
+      }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 5px 9px;
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .good { color: var(--good); background: #eaf8ef; }
+      .caution { color: var(--caution); background: #fff4df; }
+      .bad { color: var(--bad); background: #fff0ee; }
+      .list {
+        display: grid;
+        gap: 8px;
+        padding: 0;
+        margin: 0;
+        list-style: none;
+      }
+      .list li {
+        border-left: 4px solid #cad3e1;
+        background: #fbfcff;
+        padding: 10px 11px;
+        border-radius: 6px;
+        line-height: 1.45;
+      }
+      .good-border { border-color: var(--good) !important; }
+      .caution-border { border-color: var(--caution) !important; }
+      .bad-border { border-color: var(--bad) !important; }
+      .segments {
+        display: grid;
+        gap: 10px;
+        max-height: 68vh;
+        overflow: auto;
+        padding-right: 4px;
+      }
+      .segment {
+        display: grid;
+        grid-template-columns: 88px minmax(0, 1fr) 124px;
+        gap: 12px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcff;
+      }
+      .segment strong { display: block; margin-bottom: 4px; }
+      .segment span, .small {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .bars {
+        display: grid;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .barline {
+        display: grid;
+        grid-template-columns: 56px minmax(0, 1fr) 36px;
+        gap: 8px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .bar {
+        overflow: hidden;
+        height: 7px;
+        border-radius: 999px;
+        background: #e5e7eb;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        border-radius: 999px;
+        background: var(--brand);
+      }
+      .code {
+        display: block;
+        overflow-wrap: anywhere;
+        padding: 10px;
+        border-radius: 8px;
+        background: #f0f3f8;
+        color: #374151;
+        font-size: 13px;
+      }
+      .report-box {
+        display: grid;
+        gap: 10px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 220px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcff;
+        color: var(--text);
+        font: 13px Consolas, "Malgun Gothic", monospace;
+        resize: vertical;
+      }
+      .jpg-preview {
+        display: none;
+        gap: 10px;
+      }
+      .jpg-preview img {
+        width: 100%;
+        max-width: 520px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+      .jpg-preview a {
+        display: inline-flex;
+        width: fit-content;
+        border-radius: 8px;
+        padding: 10px 12px;
+        background: #eef2f7;
+        color: #1f2937;
+        font-weight: 800;
+        text-decoration: none;
+      }
+      .control-grid {
+        display: grid;
+        grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+        gap: 12px;
+      }
+      .player-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-top: 10px;
+      }
+      .player-controls label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: #fbfcff;
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .player-controls select {
+        width: auto;
+        min-height: 36px;
+        padding: 6px 10px;
+        font-size: 14px;
+      }
+      .result-page {
+        display: grid;
+        gap: 18px;
+      }
+      .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      .result-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .result-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+        background: #fbfcff;
+      }
+      .result-card h3 {
+        margin-bottom: 10px;
+      }
+      .result-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .result-empty {
+        color: var(--muted);
+        font-weight: 700;
+      }
+      progress {
+        width: 100%;
+        height: 14px;
+      }
+      @media (max-width: 920px) {
+        .grid { grid-template-columns: 1fr; }
+        .video-dock {
+          position: static;
+          max-height: none;
+          overflow: visible;
+        }
+        .sticky-note {
+          display: block;
+          margin-top: 8px;
+          color: var(--muted);
+          font-size: 13px;
+        }
+        .segments {
+          max-height: none;
+          overflow: visible;
+        }
+        .result-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .segment { grid-template-columns: 1fr; }
+        .control-grid { grid-template-columns: 1fr; }
+        button, select, input[type="file"] { min-height: 48px; }
+        header .wrap {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <div>
+          <h1>AI 품새 코치 태극 1~8장 테스트</h1>
+          <p class="small">PC, 폰, 태블릿에서 영상 업로드 후 속도, 맺음, 정지 안정성을 평가합니다.</p>
+        </div>
+        <span class="badge">태극 1장~8장</span>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div class="grid">
+        <section>
+          <h2>1. 품새, 영상, 모델 준비</h2>
+          <p>태극 품새를 선택하고 영상을 업로드하세요. 폰/태블릿에서는 파일 선택 시 바로 촬영한 영상도 사용할 수 있습니다.</p>
+          <div class="control-grid">
+            <select id="poomsaeSelect" aria-label="품새 선택">
+              <option value="taegeuk_1">태극 1장 · 18동작</option>
+              <option value="taegeuk_2">태극 2장 · 18동작</option>
+              <option value="taegeuk_3">태극 3장 · 20동작</option>
+              <option value="taegeuk_4">태극 4장 · 20동작</option>
+              <option value="taegeuk_5">태극 5장 · 20동작</option>
+              <option value="taegeuk_6">태극 6장 · 19동작</option>
+              <option value="taegeuk_7">태극 7장 · 24동작</option>
+              <option value="taegeuk_8">태극 8장 · 24동작</option>
+            </select>
+            <input id="fileInput" type="file" accept="video/mp4,video/*" />
+          </div>
+          <div class="row" style="margin-top: 12px;">
+            <button id="loadModelBtn">모델 준비</button>
+            <button id="analyzeBtn" disabled>파워·맺음 평가 시작</button>
+            <button id="downloadBtn" class="secondary" disabled>평가 JSON 저장</button>
+            <button id="showReportBtn" class="secondary" disabled>리포트 화면 출력</button>
+            <button id="jpgBtn" class="secondary" disabled>JPG 결과지 저장</button>
+            <button id="resetBtn" class="secondary">초기화</button>
+          </div>
+          <div class="code" style="margin-top: 14px;">
+            이 기기에서 품새 영상을 선택한 뒤 모델 준비와 분석을 실행하세요.<br>
+            권장 촬영: 가로 영상, 정면, 전신, 카메라 고정
+          </div>
+          <div style="margin-top: 18px;">
+            <video id="video" controls muted playsinline></video>
+            <div class="player-controls">
+              <label>
+                속도
+                <select id="speedSelect" aria-label="영상 재생 속도">
+                  <option value="0.5">0.5x</option>
+                  <option value="0.75">0.75x</option>
+                  <option value="1" selected>1.0x</option>
+                  <option value="1.25">1.25x</option>
+                  <option value="1.5">1.5x</option>
+                </select>
+              </label>
+              <label><input id="loopVideoToggle" type="checkbox" /> 전체 반복</label>
+              <label><input id="loopSegmentToggle" type="checkbox" checked /> 선택 구간 반복</label>
+              <button id="replayAllBtn" class="secondary" type="button" disabled>전체 리플레이</button>
+              <button id="replayWeakBtn" class="secondary" type="button" disabled>최저점 구간 리플레이</button>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>2. 상태</h2>
+          <div class="metrics">
+            <div class="metric"><strong>길이</strong><span id="durationText">-</span></div>
+            <div class="metric"><strong>해상도</strong><span id="resolutionText">-</span></div>
+            <div class="metric"><strong>Pose 감지율</strong><span id="detectRateText">-</span></div>
+            <div class="metric"><strong>파워·맺음 평균</strong><span id="powerScoreText">-</span></div>
+          </div>
+          <div style="margin-top: 16px;">
+            <progress id="progress" value="0" max="100"></progress>
+            <p id="progressText" class="small">모델 준비를 누르면 MediaPipe를 불러옵니다.</p>
+          </div>
+          <div class="row" style="margin-top: 10px;">
+            <span id="modelStatus" class="status caution">모델 대기</span>
+            <span id="overallStatus" class="status caution">분석 전</span>
+          </div>
+        </section>
+      </div>
+
+      <section style="margin-top: 18px;">
+        <h2>3. 전체 리포트</h2>
+        <ul id="reportList" class="list">
+          <li>영상 선택 후 모델을 준비하고 파워·맺음 평가를 시작하세요.</li>
+        </ul>
+      </section>
+
+      <section style="margin-top: 18px;">
+        <h2>4. 리포트 출력</h2>
+        <p>저장 버튼이 모바일 브라우저에서 막힐 때는 아래 출력 내용을 길게 눌러 복사할 수 있습니다.</p>
+        <div class="report-box">
+          <textarea id="reportOutput" readonly placeholder="분석 후 리포트 화면 출력 버튼을 누르면 결과가 여기에 표시됩니다."></textarea>
+          <div id="jpgPreviewBox" class="jpg-preview">
+            <p>JPG 결과지가 아래에 생성됩니다. 폰에서는 이미지를 길게 눌러 저장하거나, `새 탭으로 열기`를 눌러 저장하세요.</p>
+            <img id="jpgPreview" alt="품새 결과지 미리보기" />
+            <a id="jpgOpenLink" href="#" target="_blank" rel="noopener">JPG 새 탭으로 열기</a>
+          </div>
+        </div>
+      </section>
+
+      <section style="margin-top: 18px;">
+        <h2 id="segmentTitle">5. 태극 1장 구간별 파워·맺음 평가</h2>
+        <p id="segmentDescription">구간마다 5개 프레임을 분석합니다. 최고 속도, 끝 정지, 마무리 흔들림을 합쳐 추정 점수를 냅니다.</p>
+        <div id="segments" class="segments"></div>
+      </section>
+    </main>
+
+    <script type="module">
+      const LOCAL_MODEL_URL = "./models/pose_landmarker_lite.task";
+      const REMOTE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task";
+      const LOCAL_WASM_URL = "./vendor/mediapipe/tasks-vision/wasm";
+      const REMOTE_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm";
+      const MODULE_URLS = [
+        "./vendor/mediapipe/tasks-vision/vision_bundle.mjs",
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest",
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs"
+      ];
+
+      const poomsaeData = {
+        taegeuk_1: {
+          name: "태극 1장",
+          count: 18,
+          note: "MVP 상세 데이터",
+          movements: [
+            ["ready_stance", "준비서기", "hold"],
+            ["left_turn_low_block", "왼쪽 아래막기", "block"],
+            ["middle_punch_1", "몸통지르기", "punch"],
+            ["right_turn_low_block", "오른쪽 아래막기", "block"],
+            ["middle_punch_2", "몸통지르기", "punch"],
+            ["front_low_block", "전방 아래막기", "block"],
+            ["front_middle_punch", "전방 몸통지르기", "punch"],
+            ["left_inside_block", "왼쪽 몸통막기", "block"],
+            ["middle_punch_3", "몸통지르기", "punch"],
+            ["right_inside_block", "오른쪽 몸통막기", "block"],
+            ["middle_punch_4", "몸통지르기", "punch"],
+            ["front_low_block_2", "전방 아래막기", "block"],
+            ["front_middle_punch_2", "전방 몸통지르기", "punch"],
+            ["left_high_block", "왼쪽 얼굴막기", "block"],
+            ["front_kick_punch_1", "앞차기 후 몸통지르기", "kick_punch"],
+            ["right_high_block", "오른쪽 얼굴막기", "block"],
+            ["front_kick_punch_2", "앞차기 후 몸통지르기", "kick_punch"],
+            ["final_front_punch_kihap", "전방 몸통지르기 및 기합", "punch"]
+          ].map(([id, name, type]) => ({ id, name, type }))
+        },
+        taegeuk_2: { name: "태극 2장", count: 18, note: "동작 수 기반 MVP 데이터", pattern: ["block", "punch", "block", "punch", "block", "punch", "block", "kick_punch", "punch", "block", "punch", "block", "kick_punch", "block", "punch", "block", "punch", "hold"] },
+        taegeuk_3: { name: "태극 3장", count: 20, note: "동작 수 기반 MVP 데이터", pattern: ["block", "punch", "punch", "block", "punch", "punch", "block", "kick_punch", "punch", "block", "kick_punch", "punch", "block", "punch", "block", "punch", "block", "punch", "punch", "hold"] },
+        taegeuk_4: { name: "태극 4장", count: 20, note: "동작 수 기반 MVP 데이터", pattern: ["block", "strike", "block", "strike", "block", "kick_punch", "block", "punch", "block", "punch", "block", "kick_punch", "punch", "block", "strike", "block", "strike", "punch", "punch", "hold"] },
+        taegeuk_5: { name: "태극 5장", count: 20, note: "동작 수 기반 MVP 데이터", pattern: ["block", "strike", "block", "strike", "block", "kick_punch", "punch", "block", "strike", "block", "kick_punch", "punch", "block", "strike", "block", "strike", "punch", "punch", "punch", "hold"] },
+        taegeuk_6: { name: "태극 6장", count: 19, note: "동작 수 기반 MVP 데이터", pattern: ["block", "kick_punch", "block", "kick_punch", "block", "punch", "block", "punch", "block", "kick_punch", "block", "kick_punch", "block", "punch", "block", "punch", "block", "punch", "hold"] },
+        taegeuk_7: { name: "태극 7장", count: 24, note: "동작 수 기반 MVP 데이터", pattern: ["block", "strike", "block", "strike", "block", "punch", "block", "punch", "kick_punch", "block", "strike", "block", "strike", "block", "punch", "block", "punch", "kick_punch", "block", "strike", "punch", "block", "punch", "hold"] },
+        taegeuk_8: { name: "태극 8장", count: 24, note: "동작 수 기반 MVP 데이터", pattern: ["block", "kick_punch", "punch", "block", "kick_punch", "punch", "block", "strike", "block", "punch", "kick_punch", "block", "strike", "block", "punch", "kick_punch", "block", "punch", "block", "strike", "punch", "punch", "punch", "hold"] }
+      };
+
+      function buildGenericMovements(dataKey) {
+        const data = poomsaeData[dataKey];
+        if (data.movements) return data.movements;
+        const labelByType = {
+          hold: "마무리/정지",
+          block: "막기 계열 동작",
+          punch: "지르기 계열 동작",
+          strike: "치기/손날 계열 동작",
+          kick_punch: "차기 후 연결 동작"
+        };
+        return data.pattern.slice(0, data.count).map((type, index) => ({
+          id: `${dataKey}_movement_${index + 1}`,
+          name: `${labelByType[type] || "품새 동작"} ${index + 1}`,
+          type
+        }));
+      }
+
+      let selectedPoomsaeKey = "taegeuk_1";
+      let movements = buildGenericMovements(selectedPoomsaeKey);
+
+      const fileInput = document.getElementById("fileInput");
+      const poomsaeSelect = document.getElementById("poomsaeSelect");
+      const loadModelBtn = document.getElementById("loadModelBtn");
+      const analyzeBtn = document.getElementById("analyzeBtn");
+      const downloadBtn = document.getElementById("downloadBtn");
+      const showReportBtn = document.getElementById("showReportBtn");
+      const jpgBtn = document.getElementById("jpgBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const video = document.getElementById("video");
+      const speedSelect = document.getElementById("speedSelect");
+      const loopVideoToggle = document.getElementById("loopVideoToggle");
+      const loopSegmentToggle = document.getElementById("loopSegmentToggle");
+      const replayAllBtn = document.getElementById("replayAllBtn");
+      const replayWeakBtn = document.getElementById("replayWeakBtn");
+      const durationText = document.getElementById("durationText");
+      const resolutionText = document.getElementById("resolutionText");
+      const detectRateText = document.getElementById("detectRateText");
+      const powerScoreText = document.getElementById("powerScoreText");
+      const progress = document.getElementById("progress");
+      const progressText = document.getElementById("progressText");
+      const modelStatus = document.getElementById("modelStatus");
+      const overallStatus = document.getElementById("overallStatus");
+      const reportList = document.getElementById("reportList");
+      const reportOutput = document.getElementById("reportOutput");
+      const jpgPreviewBox = document.getElementById("jpgPreviewBox");
+      const jpgPreview = document.getElementById("jpgPreview");
+      const jpgOpenLink = document.getElementById("jpgOpenLink");
+      const segmentsEl = document.getElementById("segments");
+      const segmentTitle = document.getElementById("segmentTitle");
+      const segmentDescription = document.getElementById("segmentDescription");
+      let trainingPage = null;
+      let resultPage = null;
+      let resultPageContent = null;
+      let backToTrainingBtn = null;
+      let resultJpgBtn = null;
+
+      let objectUrl = null;
+      let selectedFile = null;
+      let poseLandmarker = null;
+      let latestReport = null;
+      let autoAnalyzePending = false;
+      let isAnalyzing = false;
+      let loadModelPromise = null;
+      let replayRange = null;
+      const SEEK_EPSILON_SECONDS = 0.025;
+      const SEEK_TIMEOUT_MS = 1500;
+
+      const keyIndexesByType = {
+        hold: [11, 12, 23, 24, 27, 28],
+        block: [13, 14, 15, 16, 23, 24],
+        strike: [13, 14, 15, 16, 11, 12, 23, 24],
+        punch: [15, 16, 11, 12, 23, 24],
+        kick_punch: [15, 16, 25, 26, 27, 28, 23, 24]
+      };
+      const requiredIndexes = [11,12,13,14,15,16,23,24,25,26,27,28];
+
+      function setProgress(value, text) {
+        progress.value = value;
+        progressText.textContent = text;
+      }
+      function currentPoomsae() {
+        return poomsaeData[selectedPoomsaeKey];
+      }
+      function updatePoomsaeView() {
+        movements = buildGenericMovements(selectedPoomsaeKey);
+        const poomsae = currentPoomsae();
+        segmentTitle.textContent = `4. ${poomsae.name} ${movements.length}개 구간별 파워·맺음 평가`;
+        segmentDescription.textContent = `${poomsae.name}은 현재 ${movements.length}개 구간으로 나누어 평가합니다. ${poomsae.note}이며, 태극 2~8장 세부 동작명은 지도자 검수 후 더 정확하게 보정할 수 있습니다.`;
+      }
+      function setPill(el, type, text) {
+        el.className = `status ${type}`;
+        el.textContent = text;
+      }
+      function borderClass(type) {
+        if (type === "good") return "good-border";
+        if (type === "bad") return "bad-border";
+        return "caution-border";
+      }
+      function renderReport(items) {
+        reportList.innerHTML = "";
+        for (const item of items) {
+          const li = document.createElement("li");
+          li.className = borderClass(item.type);
+          li.textContent = item.text;
+          reportList.appendChild(li);
+        }
+      }
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+      function setupLayout() {
+        trainingPage = document.querySelector("main.wrap");
+        const grid = trainingPage ? trainingPage.querySelector(".grid") : null;
+        const videoSection = grid ? grid.children[0] : null;
+        const statusSection = grid ? grid.children[1] : null;
+        const reportSection = reportList.closest("section");
+        const outputSection = reportOutput.closest("section");
+        const segmentsSection = segmentsEl.closest("section");
+        if (trainingPage) {
+          trainingPage.id = "trainingPage";
+          trainingPage.classList.add("app-view");
+        }
+        if (videoSection) {
+          videoSection.classList.add("video-dock");
+          const note = document.createElement("p");
+          note.className = "sticky-note";
+          note.textContent = "태블릿/PC에서는 영상 영역이 고정되어 구간 리플레이를 바로 확인할 수 있습니다.";
+          videoSection.appendChild(note);
+        }
+        if (grid && statusSection && reportSection && segmentsSection) {
+          const sidePanel = document.createElement("div");
+          sidePanel.className = "side-panel";
+          grid.appendChild(sidePanel);
+          sidePanel.appendChild(statusSection);
+          sidePanel.appendChild(reportSection);
+          sidePanel.appendChild(segmentsSection);
+        }
+        if (showReportBtn) showReportBtn.textContent = "결과지 보기";
+        if (outputSection) outputSection.hidden = true;
+
+        resultPage = document.createElement("main");
+        resultPage.id = "resultPage";
+        resultPage.className = "wrap app-view result-page";
+        resultPage.hidden = true;
+        resultPage.innerHTML = `
+          <section>
+            <div class="result-header">
+              <div>
+                <h2>결과지</h2>
+                <p>영상 분석 결과를 한 화면에서 확인하고 저장할 수 있습니다.</p>
+              </div>
+              <button id="backToTrainingBtn" class="secondary" type="button">훈련 화면으로</button>
+            </div>
+          </section>
+          <section id="resultPageContent" class="result-card">
+            <p class="result-empty">아직 생성된 결과지가 없습니다. 먼저 평가를 실행하세요.</p>
+          </section>
+          <section class="result-card">
+            <h3>JPG 결과지</h3>
+            <p>저장 버튼을 누르면 아래에 이미지가 생성됩니다. 폰에서는 이미지를 길게 눌러 저장하거나 새 탭으로 열어 저장하세요.</p>
+            <div class="result-actions">
+              <button id="resultJpgBtn" type="button">JPG 결과지 생성</button>
+            </div>
+          </section>
+        `;
+        document.body.appendChild(resultPage);
+        resultPageContent = document.getElementById("resultPageContent");
+        backToTrainingBtn = document.getElementById("backToTrainingBtn");
+        resultJpgBtn = document.getElementById("resultJpgBtn");
+        const jpgSection = resultPage.querySelector(".result-card:last-child");
+        if (jpgSection && jpgPreviewBox) jpgSection.appendChild(jpgPreviewBox);
+        if (backToTrainingBtn) backToTrainingBtn.addEventListener("click", showTrainingPage);
+        if (resultJpgBtn) resultJpgBtn.addEventListener("click", saveJpgReport);
+      }
+      function showTrainingPage() {
+        if (trainingPage) trainingPage.hidden = false;
+        if (resultPage) resultPage.hidden = true;
+      }
+      function showResultPage() {
+        renderResultPage();
+        if (trainingPage) trainingPage.hidden = true;
+        if (resultPage) resultPage.hidden = false;
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      function renderResultPage() {
+        if (!resultPageContent) return;
+        if (!latestReport) {
+          resultPageContent.innerHTML = `<p class="result-empty">아직 생성된 결과지가 없습니다. 먼저 평가를 실행하세요.</p>`;
+          return;
+        }
+        const weak = latestReport.segments
+          .slice()
+          .sort((a, b) => a.powerScore - b.powerScore)
+          .slice(0, 5);
+        const summaryItems = latestReport.summary.items || [];
+        resultPageContent.innerHTML = `
+          <div class="result-grid">
+            <div class="metric"><strong>품새</strong><span>${escapeHtml(latestReport.poomsae?.name || currentPoomsae().name)}</span></div>
+            <div class="metric"><strong>평균</strong><span>${escapeHtml(latestReport.summary.average_power_finish_score)}</span></div>
+            <div class="metric"><strong>Pose 감지율</strong><span>${Math.round(latestReport.summary.detection_rate * 100)}%</span></div>
+            <div class="metric"><strong>구간 수</strong><span>${latestReport.segments.length}</span></div>
+          </div>
+          <div class="result-card" style="margin-top:14px;">
+            <h3>연습 포인트 요약</h3>
+            <ul class="list">
+              ${summaryItems.map((item) => `<li class="${borderClass(item.type)}">${escapeHtml(item.text)}</li>`).join("")}
+            </ul>
+          </div>
+          <div class="result-card" style="margin-top:14px;">
+            <h3>우선 확인할 구간</h3>
+            <ul class="list">
+              ${weak.map((segment) => `<li class="${borderClass(segment.type)}">${segment.order}. ${escapeHtml(segment.name)} - ${escapeHtml(segment.label)} (${segment.powerScore}점)<br><span class="small">${escapeHtml(segment.feedback)}</span></li>`).join("")}
+            </ul>
+          </div>
+        `;
+      }
+      function saveBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1200);
+      }
+      function formatReportText() {
+        if (!latestReport) return "";
+        const lines = [];
+        lines.push("AI 품새 코치 평가 리포트");
+        lines.push(`생성일: ${new Date(latestReport.created_at).toLocaleString()}`);
+        lines.push(`품새: ${latestReport.poomsae?.name || currentPoomsae().name}`);
+        lines.push(`영상: ${latestReport.file?.name || "-"}`);
+        lines.push(`해상도: ${latestReport.video.width} x ${latestReport.video.height}`);
+        lines.push(`길이: ${latestReport.video.duration_seconds}초`);
+        lines.push(`평균 점수: ${latestReport.summary.average_power_finish_score}`);
+        lines.push(`Pose 감지율: ${Math.round(latestReport.summary.detection_rate * 100)}%`);
+        lines.push("");
+        lines.push("[구간별 결과]");
+        for (const segment of latestReport.segments) {
+          lines.push(`${segment.order}. ${segment.name} - ${segment.label} (${segment.powerScore}점)`);
+          lines.push(`   속도 ${segment.velocityScore} / 맺음 ${segment.snapScore} / 정지 ${segment.stillnessScore}`);
+          lines.push(`   ${segment.feedback}`);
+        }
+        return lines.join("\n");
+      }
+      function showReportOutput() {
+        const text = formatReportText();
+        reportOutput.value = text || "아직 생성된 리포트가 없습니다. 먼저 평가를 실행하세요.";
+        showResultPage();
+      }
+      function saveJpgReport() {
+        if (!latestReport) return;
+        const canvas = document.createElement("canvas");
+        canvas.width = 1400;
+        canvas.height = 1900;
+        const ctx = canvas.getContext("2d");
+        const poomsaeName = latestReport.poomsae?.name || currentPoomsae().name;
+        const avg = latestReport.summary.average_power_finish_score;
+        const detectRate = Math.round(latestReport.summary.detection_rate * 100);
+        const topWeak = latestReport.segments
+          .slice()
+          .sort((a, b) => a.powerScore - b.powerScore)
+          .slice(0, 4);
+
+        function rr(x, y, w, h, r, fill, stroke) {
+          ctx.beginPath();
+          ctx.moveTo(x + r, y);
+          ctx.lineTo(x + w - r, y);
+          ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+          ctx.lineTo(x + w, y + h - r);
+          ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+          ctx.lineTo(x + r, y + h);
+          ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+          ctx.lineTo(x, y + r);
+          ctx.quadraticCurveTo(x, y, x + r, y);
+          ctx.closePath();
+          if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+          if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.stroke(); }
+        }
+        function text(value, x, y, size, color = "#111827", weight = "400") {
+          ctx.fillStyle = color;
+          ctx.font = `${weight} ${size}px Arial, "Malgun Gothic", sans-serif`;
+          ctx.textBaseline = "top";
+          ctx.fillText(value, x, y);
+        }
+        function wrap(value, x, y, w, size, color = "#374151") {
+          ctx.font = `400 ${size}px Arial, "Malgun Gothic", sans-serif`;
+          ctx.fillStyle = color;
+          let line = "";
+          let yy = y;
+          for (const ch of value) {
+            const test = line + ch;
+            if (ctx.measureText(test).width > w && line) {
+              ctx.fillText(line, x, yy);
+              line = ch;
+              yy += size * 1.45;
+            } else {
+              line = test;
+            }
+          }
+          if (line) ctx.fillText(line, x, yy);
+          return yy + size * 1.45;
+        }
+        function metric(label, value, x, y, w) {
+          rr(x, y, w, 124, 16, "#ffffff", "#d9dee8");
+          text(label, x + 22, y + 22, 23, "#6b7280", "700");
+          text(String(value), x + 22, y + 62, 36, "#111827", "800");
+        }
+        function bar(label, value, x, y, w) {
+          text(label, x, y, 24, "#374151", "700");
+          rr(x + 150, y + 7, w, 20, 10, "#e5e7eb");
+          rr(x + 150, y + 7, Math.max(0, Math.min(w, w * value / 100)), 20, 10, "#1665d8");
+          text(String(value), x + 150 + w + 20, y - 2, 26, "#111827", "800");
+        }
+
+        ctx.fillStyle = "#f7f8fb";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#173f8a";
+        ctx.fillRect(0, 0, canvas.width, 250);
+        text("AI 품새 코치", 90, 56, 34, "#dbeafe", "800");
+        text(`${poomsaeName} 결과지`, 90, 108, 58, "#ffffff", "800");
+        text("영상 기반 수련 피드백 · 공식 심사 대체 아님", 90, 184, 28, "#dbeafe", "700");
+
+        rr(70, 305, 1260, 245, 18, "#ffffff", "#d9dee8");
+        text("분석 대상", 110, 342, 30, "#111827", "800");
+        metric("품새", poomsaeName, 110, 395, 270);
+        metric("평균 점수", avg, 410, 395, 270);
+        metric("Pose 감지율", `${detectRate}%`, 710, 395, 270);
+        metric("구간 수", latestReport.segments.length, 1010, 395, 270);
+
+        rr(70, 590, 1260, 340, 18, "#ffffff", "#d9dee8");
+        text("평가 항목", 110, 630, 30, "#111827", "800");
+        const speedAvg = Math.round(latestReport.segments.reduce((s, r) => s + r.velocityScore, 0) / latestReport.segments.length);
+        const snapAvg = Math.round(latestReport.segments.reduce((s, r) => s + r.snapScore, 0) / latestReport.segments.length);
+        const stillAvg = Math.round(latestReport.segments.reduce((s, r) => s + r.stillnessScore, 0) / latestReport.segments.length);
+        bar("속도 표현", speedAvg, 110, 700, 790);
+        bar("맺음", snapAvg, 110, 765, 790);
+        bar("정지 안정성", stillAvg, 110, 830, 790);
+
+        rr(70, 970, 1260, 520, 18, "#ffffff", "#d9dee8");
+        text("우선 보완할 구간", 110, 1010, 30, "#111827", "800");
+        let y = 1070;
+        topWeak.forEach((segment, index) => {
+          rr(110, y, 72, 52, 12, "#eef4ff");
+          text(String(index + 1), 138, y + 9, 28, "#174ea6", "800");
+          text(`${segment.order}. ${segment.name} (${segment.powerScore}점)`, 210, y, 27, "#111827", "800");
+          wrap(segment.feedback, 210, y + 38, 1060, 22, "#6b7280");
+          y += 108;
+        });
+
+        rr(70, 1530, 1260, 170, 18, "#fff4df", "#f4c56a");
+        text("안내", 110, 1565, 28, "#92400e", "800");
+        wrap("이 결과는 영상 관절 좌표 기반 수련 피드백입니다. 실제 물리적 힘이나 공식 심사 판정을 직접 측정하지 않습니다.", 110, 1608, 1160, 24, "#78350f");
+        text(`Generated · ${new Date().toLocaleString()}`, 70, 1780, 22, "#6b7280");
+
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+        jpgPreview.src = dataUrl;
+        jpgOpenLink.href = dataUrl;
+        jpgPreviewBox.style.display = "grid";
+
+        try {
+          const a = document.createElement("a");
+          a.href = dataUrl;
+          a.download = `poomsae-${latestReport.poomsae?.id || "report"}-result.jpg`;
+          a.rel = "noopener";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        } catch (error) {
+          console.warn("JPG download was blocked by the browser.", error);
+        }
+
+        reportOutput.value = "JPG 결과지가 화면 아래에 생성되었습니다.\n\nPC: 자동 저장이 안 되면 `JPG 새 탭으로 열기`를 눌러 저장하세요.\n폰/태블릿: 이미지를 길게 눌러 사진으로 저장하세요.";
+      }
+      function formatDuration(seconds) {
+        return Number.isFinite(seconds) ? `${seconds.toFixed(1)}초` : "-";
+      }
+      function waitForSeek(time) {
+        return new Promise((resolve) => {
+          const target = Math.min(Math.max(time, 0), Math.max(video.duration - 0.1, 0));
+          if (!Number.isFinite(target) || Math.abs(video.currentTime - target) <= SEEK_EPSILON_SECONDS) {
+            video.currentTime = Number.isFinite(target) ? target : 0;
+            resolve();
+            return;
+          }
+          let settled = false;
+          let timer = null;
+          const cleanup = () => {
+            if (settled) return;
+            settled = true;
+            if (timer) clearTimeout(timer);
+            video.removeEventListener("seeked", onSeeked);
+          };
+          const onSeeked = () => {
+            cleanup();
+            resolve();
+          };
+          timer = setTimeout(() => {
+            cleanup();
+            resolve();
+          }, SEEK_TIMEOUT_MS);
+          video.addEventListener("seeked", onSeeked);
+          try {
+            video.currentTime = target;
+          } catch (error) {
+            console.warn("Video seek failed; continuing analysis.", error);
+            cleanup();
+            resolve();
+          }
+        });
+      }
+      function clearReplayRange() {
+        replayRange = null;
+      }
+      function playRange(start, end) {
+        if (!Number.isFinite(video.duration)) return;
+        replayRange = {
+          start: Math.max(0, start),
+          end: Math.min(Math.max(end, start + 0.2), video.duration)
+        };
+        video.currentTime = replayRange.start;
+        video.playbackRate = Number(speedSelect.value || 1);
+        video.play().catch(() => {});
+      }
+      function replayWholeVideo() {
+        clearReplayRange();
+        video.loop = loopVideoToggle.checked;
+        video.currentTime = 0;
+        video.playbackRate = Number(speedSelect.value || 1);
+        video.play().catch(() => {});
+      }
+      function replayWeakestSegment() {
+        if (!latestReport || !latestReport.segments.length) return;
+        const weakest = latestReport.segments.slice().sort((a, b) => a.powerScore - b.powerScore)[0];
+        playRange(weakest.startTime, weakest.endTime);
+      }
+      async function autoAnalyzeFromFile() {
+        if (!autoAnalyzePending || !selectedFile || !Number.isFinite(video.duration) || isAnalyzing) return;
+        autoAnalyzePending = false;
+        if (!poseLandmarker) {
+          await loadModel();
+        }
+        if (poseLandmarker) {
+          await analyzePower();
+        }
+      }
+      async function importMediaPipe() {
+        let lastError = null;
+        for (const url of MODULE_URLS) {
+          try { return await import(url); } catch (error) { lastError = error; }
+        }
+        throw lastError || new Error("MediaPipe import failed");
+      }
+      async function createPoseLandmarker(PoseLandmarker, vision, modelUrl, delegate) {
+        return PoseLandmarker.createFromOptions(vision, {
+          baseOptions: { modelAssetPath: modelUrl, delegate },
+          runningMode: "VIDEO",
+          numPoses: 1,
+          minPoseDetectionConfidence: 0.45,
+          minPosePresenceConfidence: 0.45,
+          minTrackingConfidence: 0.45
+        });
+      }
+      async function createPoseLandmarkerWithFallback(PoseLandmarker, vision, modelUrl) {
+        try {
+          return await createPoseLandmarker(PoseLandmarker, vision, modelUrl, "GPU");
+        } catch (gpuError) {
+          console.warn("GPU delegate failed; retrying PoseLandmarker with CPU delegate.", gpuError);
+          setProgress(45, "GPU delegate failed. Retrying with CPU delegate for device compatibility.");
+          return createPoseLandmarker(PoseLandmarker, vision, modelUrl, "CPU");
+        }
+      }
+      async function loadModel() {
+        if (poseLandmarker) return poseLandmarker;
+        if (loadModelPromise) return loadModelPromise;
+        loadModelBtn.disabled = true;
+        setPill(modelStatus, "caution", "모델 로딩");
+        setProgress(10, "MediaPipe 모델을 불러오는 중입니다. 오프라인 패키지에서는 앱 내부 파일을 사용합니다.");
+        loadModelPromise = (async () => {
+        try {
+          const { FilesetResolver, PoseLandmarker } = await importMediaPipe();
+          setProgress(38, "WASM과 Pose Landmarker를 준비하는 중입니다.");
+          try {
+            const vision = await FilesetResolver.forVisionTasks(LOCAL_WASM_URL);
+            poseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, LOCAL_MODEL_URL);
+          } catch (localError) {
+            console.warn("Local MediaPipe assets unavailable, trying online fallback.", localError);
+            const vision = await FilesetResolver.forVisionTasks(REMOTE_WASM_URL);
+            poseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, REMOTE_MODEL_URL);
+          }
+          setPill(modelStatus, "good", "모델 준비 완료");
+          setProgress(100, "모델 준비 완료. 영상을 선택하고 평가를 시작하세요.");
+          if (selectedFile && Number.isFinite(video.duration)) analyzeBtn.disabled = false;
+          await autoAnalyzeFromFile();
+          return poseLandmarker;
+        } catch (error) {
+          console.error(error);
+          setPill(modelStatus, "bad", "모델 실패");
+          setProgress(0, "모델 로딩 실패. 인터넷 연결 또는 브라우저 보안 설정을 확인하세요.");
+          renderReport([
+            { type: "bad", text: "MediaPipe 모델을 불러오지 못했습니다. CDN 또는 Google 모델 저장소 접속이 필요합니다." },
+            { type: "caution", text: "Chrome 또는 Edge에서 다시 열고 인터넷 연결 상태를 확인해 주세요." }
+          ]);
+          loadModelBtn.disabled = false;
+          return null;
+        } finally {
+          loadModelPromise = null;
+        }
+        })();
+        return loadModelPromise;
+      }
+      function getPoint(landmarks, index) {
+        const p = landmarks && landmarks[index];
+        if (!p || (p.visibility ?? 1) < .35) return null;
+        return { x: p.x, y: p.y, z: p.z || 0, visibility: p.visibility ?? 1 };
+      }
+      function distance(a, b) {
+        if (!a || !b) return 0;
+        return Math.hypot(a.x - b.x, a.y - b.y);
+      }
+      function vectorSpeed(prev, next, indexes, dt) {
+        if (!prev || !next || dt <= 0) return 0;
+        let total = 0;
+        let count = 0;
+        for (const index of indexes) {
+          const a = getPoint(prev, index);
+          const b = getPoint(next, index);
+          if (!a || !b) continue;
+          total += distance(a, b) / dt;
+          count += 1;
+        }
+        return count ? total / count : 0;
+      }
+      function landmarkVisibility(landmarks) {
+        if (!landmarks) return 0;
+        let count = 0;
+        for (const index of requiredIndexes) {
+          if (getPoint(landmarks, index)) count += 1;
+        }
+        return count / requiredIndexes.length;
+      }
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+      function median(values) {
+        if (!values.length) return 0;
+        const sorted = values.slice().sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+      }
+      function trimmedMean(values) {
+        if (!values.length) return 0;
+        if (values.length <= 4) return values.reduce((sum, value) => sum + value, 0) / values.length;
+        const sorted = values.slice().sort((a, b) => a - b);
+        const trimmed = sorted.slice(1, -1);
+        return trimmed.reduce((sum, value) => sum + value, 0) / trimmed.length;
+      }
+      function stableRound(value, step = 5) {
+        return Math.round(value / step) * step;
+      }
+      function scoreVelocity(peakSpeed, type) {
+        const target = type === "hold" ? .25 : type === "kick_punch" ? 1.55 : 1.15;
+        const raw = type === "hold" ? clamp(100 - peakSpeed * 180, 0, 100) : clamp((peakSpeed / target) * 100, 0, 100);
+        return stableRound(raw);
+      }
+      function scoreSnap(peakSpeed, finalSpeed, type) {
+        if (type === "hold") return stableRound(clamp(100 - finalSpeed * 220, 0, 100));
+        if (peakSpeed <= 0) return 0;
+        const ratio = finalSpeed / peakSpeed;
+        return stableRound(clamp((1 - ratio) * 115, 0, 100));
+      }
+      function scoreStillness(endJitter, type) {
+        const tolerance = type === "kick_punch" ? .18 : .12;
+        return stableRound(clamp(100 - (endJitter / tolerance) * 100, 0, 100));
+      }
+      function labelFor(score) {
+        if (score >= 78) return { type: "good", label: "좋음" };
+        if (score >= 55) return { type: "caution", label: "주의" };
+        return { type: "bad", label: "수정 필요" };
+      }
+      function feedbackFor(movement, metrics) {
+        const notes = [];
+        if (metrics.visibilityScore < 70) notes.push("관절 감지율이 낮습니다");
+        if (metrics.velocityScore < 55 && movement.type !== "hold") notes.push("속도 표현이 약하게 추정됩니다");
+        if (metrics.snapScore < 55) notes.push("끝에서 끊고 멈추는 맺음이 약합니다");
+        if (metrics.stillnessScore < 55) notes.push("마무리 후 흔들림이 큽니다");
+        if (!notes.length) return "속도 변화와 마무리 정지가 안정적으로 추정됩니다.";
+        return `${notes.join(", ")}. ${movement.name}의 끝 지점에서 자세를 더 분명히 고정해 보세요.`;
+      }
+      function evaluateSegment(movement, frames) {
+        const detectedFrames = frames.filter((f) => f.landmarks);
+        const visibility = detectedFrames.reduce((sum, f) => sum + landmarkVisibility(f.landmarks), 0) / Math.max(detectedFrames.length, 1);
+        const indexes = keyIndexesByType[movement.type] || keyIndexesByType.punch;
+        const speeds = [];
+        for (let i = 1; i < frames.length; i += 1) {
+          speeds.push(vectorSpeed(frames[i - 1].landmarks, frames[i].landmarks, indexes, frames[i].time - frames[i - 1].time));
+        }
+        const peakSpeed = speeds.length ? Math.max(median(speeds), trimmedMean(speeds), 0) : 0;
+        const finalSpeed = speeds.length ? trimmedMean(speeds.slice(-3)) : 0;
+        const endJitter = speeds.length ? trimmedMean(speeds.slice(-4)) : 0;
+        const velocityScore = scoreVelocity(peakSpeed, movement.type);
+        const snapScore = scoreSnap(peakSpeed, finalSpeed, movement.type);
+        const stillnessScore = scoreStillness(endJitter, movement.type);
+        const visibilityScore = stableRound(visibility * 100);
+        const powerScore = stableRound(
+          visibilityScore * .18 +
+          velocityScore * .28 +
+          snapScore * .30 +
+          stillnessScore * .24
+        );
+        const verdict = labelFor(powerScore);
+        return {
+          detected: detectedFrames.length > 0,
+          visibilityScore,
+          velocityScore,
+          snapScore,
+          stillnessScore,
+          powerScore,
+          peakSpeed: Number(peakSpeed.toFixed(4)),
+          finalSpeed: Number(finalSpeed.toFixed(4)),
+          endJitter: Number(endJitter.toFixed(4)),
+          type: verdict.type,
+          label: verdict.label,
+          feedback: feedbackFor(movement, { visibilityScore, velocityScore, snapScore, stillnessScore })
+        };
+      }
+      function bar(label, value) {
+        return `
+          <div class="barline">
+            <span>${label}</span>
+            <div class="bar"><i style="width:${value}%"></i></div>
+            <span>${value}</span>
+          </div>
+        `;
+      }
+      function renderSegments(results) {
+        segmentsEl.innerHTML = "";
+        for (const result of results) {
+          const row = document.createElement("div");
+          row.className = `segment ${borderClass(result.type)}`;
+          row.innerHTML = `
+            <div>
+              <strong>${String(result.order).padStart(2, "0")}</strong>
+              <span>${result.startTime.toFixed(1)}-${result.endTime.toFixed(1)}초</span>
+            </div>
+            <div>
+              <strong>${result.name}</strong>
+              <span>${result.feedback}</span>
+              <div class="bars">
+                ${bar("속도", result.velocityScore)}
+                ${bar("맺음", result.snapScore)}
+                ${bar("정지", result.stillnessScore)}
+              </div>
+            </div>
+            <div>
+              <span class="status ${result.type}">${result.label}</span>
+              <div style="margin-top:8px;font-size:22px;font-weight:800;">${result.powerScore}</div>
+              <button class="secondary replay-segment" type="button" data-start="${result.startTime}" data-end="${result.endTime}" style="margin-top:8px;padding:8px 10px;">리플레이</button>
+            </div>
+          `;
+          segmentsEl.appendChild(row);
+        }
+      }
+      function summarize(results) {
+        const avg = results.reduce((sum, r) => sum + r.powerScore, 0) / Math.max(results.length, 1);
+        const detected = results.filter((r) => r.detected).length;
+        const detectRate = detected / Math.max(results.length, 1);
+        const weak = results.filter((r) => r.powerScore < 55).slice(0, 3);
+        const type = avg >= 78 && detectRate >= .8 ? "good" : avg >= 55 && detectRate >= .5 ? "caution" : "bad";
+        const label = type === "good" ? "파워·맺음 양호" : type === "caution" ? "보완 필요" : "촬영/동작 확인";
+        const items = [];
+        const totalSegments = results.length;
+        items.push({ type, text: `파워·맺음 평균은 ${avg.toFixed(1)}점입니다. 이 점수는 실제 힘이 아니라 속도 변화, 끝 정지, 흔들림 기반 추정치입니다.` });
+        if (detectRate >= .8) items.push({ type: "good", text: `${totalSegments}개 구간 중 ${detected}개 구간에서 관절 데이터가 감지됐습니다.` });
+        else items.push({ type: "caution", text: `${totalSegments}개 구간 중 ${detected}개 구간에서 관절 데이터가 감지됐습니다. 손과 발이 화면 안에 들어오도록 촬영하세요.` });
+        if (weak.length) items.push({ type: "bad", text: `우선 보완할 구간: ${weak.map((r) => `${r.order}.${r.name}`).join(", ")}` });
+        items.push({ type: "caution", text: "영상만으로 실제 타격 힘은 직접 측정할 수 없으므로, 이 평가는 속도와 마무리 안정성 기반의 코칭 지표입니다." });
+        return { avg, detectRate, type, label, items };
+      }
+      async function analyzePower() {
+        if (!poseLandmarker || !selectedFile || !Number.isFinite(video.duration)) return;
+        if (isAnalyzing) return;
+        isAnalyzing = true;
+        analyzeBtn.disabled = true;
+        downloadBtn.disabled = true;
+        showReportBtn.disabled = true;
+        jpgBtn.disabled = true;
+        replayAllBtn.disabled = true;
+        replayWeakBtn.disabled = true;
+        latestReport = null;
+        reportOutput.value = "";
+        jpgPreviewBox.style.display = "none";
+        jpgPreview.removeAttribute("src");
+        jpgOpenLink.href = "#";
+        segmentsEl.innerHTML = "";
+        video.pause();
+        setProgress(5, "파워·맺음 평가를 시작합니다.");
+        const results = [];
+        const frameSamples = [];
+        for (let i = 0; i < movements.length; i += 1) {
+          const movement = movements[i];
+          const segmentStart = video.duration * (i / movements.length);
+          const segmentEnd = video.duration * ((i + 1) / movements.length);
+          const frames = [];
+          const samplePositions = [.14, .24, .34, .44, .54, .64, .74, .84];
+          for (let j = 0; j < samplePositions.length; j += 1) {
+            const time = segmentStart + (segmentEnd - segmentStart) * samplePositions[j];
+            await waitForSeek(time);
+            const result = poseLandmarker.detectForVideo(video, Math.round(time * 1000));
+            const landmarks = result.landmarks && result.landmarks[0] ? result.landmarks[0] : null;
+            frames.push({ time, landmarks });
+          }
+          const metrics = evaluateSegment(movement, frames);
+          const row = {
+            order: i + 1,
+            id: movement.id,
+            name: movement.name,
+            movementType: movement.type,
+            startTime: Number(segmentStart.toFixed(3)),
+            endTime: Number(segmentEnd.toFixed(3)),
+            ...metrics
+          };
+          results.push(row);
+          frameSamples.push({
+            segment_id: movement.id,
+            times: frames.map((f) => Number(f.time.toFixed(3))),
+            detected_frames: frames.filter((f) => f.landmarks).length
+          });
+          setProgress(5 + Math.round(((i + 1) / movements.length) * 82), `파워·맺음 평가 중... ${i + 1}/${movements.length}`);
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+        renderSegments(results);
+        const summary = summarize(results);
+        detectRateText.textContent = `${(summary.detectRate * 100).toFixed(0)}%`;
+        powerScoreText.textContent = `${summary.avg.toFixed(1)}`;
+        setPill(overallStatus, summary.type, summary.label);
+        renderReport(summary.items);
+        setProgress(100, "파워·맺음 평가 완료");
+        latestReport = {
+          app: "AI 품새 코치 파워·맺음 테스트",
+          created_at: new Date().toISOString(),
+          mode: "power_snap_stillness_estimation",
+          note: "영상 관절 좌표 기반 추정치이며 실제 물리적 힘을 직접 측정하지 않는다.",
+          scoring_stability: {
+            segment_samples: 8,
+            speed_aggregation: "median_and_trimmed_mean",
+            score_rounding_step: 5,
+            note: "동일 영상 재측정 시 흔들림을 줄이기 위해 구간별 샘플 수를 늘리고 중앙값/절사평균/5점 단위 반올림을 적용한다."
+          },
+          poomsae: {
+            id: selectedPoomsaeKey,
+            name: currentPoomsae().name,
+            movement_count: movements.length,
+            data_note: currentPoomsae().note
+          },
+          file: selectedFile ? { name: selectedFile.name, size_bytes: selectedFile.size, type: selectedFile.type } : null,
+          video: { duration_seconds: Number(video.duration.toFixed(3)), width: video.videoWidth, height: video.videoHeight },
+          summary: {
+            label: summary.label,
+            average_power_finish_score: Number(summary.avg.toFixed(2)),
+            detection_rate: Number(summary.detectRate.toFixed(4))
+          },
+          segments: results,
+          frame_samples: frameSamples,
+          next_step: "관절 속도 피크와 정지점으로 실제 동작 전환점을 자동 감지하고, 지르기/막기/차기별 궤적 정확도 규칙을 연결"
+        };
+        analyzeBtn.disabled = false;
+        downloadBtn.disabled = false;
+        showReportBtn.disabled = false;
+        jpgBtn.disabled = false;
+        replayAllBtn.disabled = false;
+        replayWeakBtn.disabled = false;
+        reportOutput.value = formatReportText();
+        isAnalyzing = false;
+      }
+      setupLayout();
+
+      fileInput.addEventListener("change", () => {
+        showTrainingPage();
+        selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+        latestReport = null;
+        autoAnalyzePending = Boolean(selectedFile);
+        clearReplayRange();
+        downloadBtn.disabled = true;
+        showReportBtn.disabled = true;
+        jpgBtn.disabled = true;
+        replayAllBtn.disabled = true;
+        replayWeakBtn.disabled = true;
+        reportOutput.value = "";
+        jpgPreviewBox.style.display = "none";
+        jpgPreview.removeAttribute("src");
+        jpgOpenLink.href = "#";
+        segmentsEl.innerHTML = "";
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        if (!selectedFile) {
+          video.removeAttribute("src");
+          analyzeBtn.disabled = true;
+          return;
+        }
+        objectUrl = URL.createObjectURL(selectedFile);
+        video.src = objectUrl;
+        video.load();
+        setProgress(0, "영상 메타데이터를 읽는 중입니다. 준비되면 자동으로 측정을 시작합니다.");
+      });
+      video.addEventListener("loadedmetadata", () => {
+        durationText.textContent = formatDuration(video.duration);
+        resolutionText.textContent = `${video.videoWidth}x${video.videoHeight}`;
+        video.playbackRate = Number(speedSelect.value || 1);
+        video.loop = loopVideoToggle.checked;
+        setProgress(0, poseLandmarker ? "영상 준비 완료. 자동 측정을 시작합니다." : "영상 준비 완료. 모델 준비 후 자동 측정을 시작합니다.");
+        analyzeBtn.disabled = !poseLandmarker;
+        autoAnalyzeFromFile();
+      });
+      poomsaeSelect.addEventListener("change", () => {
+        showTrainingPage();
+        selectedPoomsaeKey = poomsaeSelect.value;
+        updatePoomsaeView();
+        latestReport = null;
+        clearReplayRange();
+        downloadBtn.disabled = true;
+        showReportBtn.disabled = true;
+        jpgBtn.disabled = true;
+        replayAllBtn.disabled = true;
+        replayWeakBtn.disabled = true;
+        reportOutput.value = "";
+        jpgPreviewBox.style.display = "none";
+        jpgPreview.removeAttribute("src");
+        jpgOpenLink.href = "#";
+        segmentsEl.innerHTML = "";
+        detectRateText.textContent = "-";
+        powerScoreText.textContent = "-";
+        setPill(overallStatus, "caution", "분석 전");
+        renderReport([{ type: "caution", text: `${currentPoomsae().name} 선택 완료. 영상 선택 후 평가를 시작하세요.` }]);
+      });
+      loadModelBtn.addEventListener("click", loadModel);
+      analyzeBtn.addEventListener("click", analyzePower);
+      speedSelect.addEventListener("change", () => {
+        video.playbackRate = Number(speedSelect.value || 1);
+      });
+      loopVideoToggle.addEventListener("change", () => {
+        video.loop = loopVideoToggle.checked && !replayRange;
+      });
+      video.addEventListener("timeupdate", () => {
+        if (!replayRange) return;
+        if (video.currentTime >= replayRange.end) {
+          if (loopSegmentToggle.checked) {
+            video.currentTime = replayRange.start;
+            video.play().catch(() => {});
+          } else {
+            video.pause();
+            clearReplayRange();
+          }
+        }
+      });
+      video.addEventListener("play", () => {
+        video.playbackRate = Number(speedSelect.value || 1);
+      });
+      replayAllBtn.addEventListener("click", replayWholeVideo);
+      replayWeakBtn.addEventListener("click", replayWeakestSegment);
+      segmentsEl.addEventListener("click", (event) => {
+        const button = event.target.closest(".replay-segment");
+        if (!button) return;
+        const start = Number(button.dataset.start);
+        const end = Number(button.dataset.end);
+        playRange(start, end);
+      });
+      downloadBtn.addEventListener("click", () => {
+        if (!latestReport) return;
+        const blob = new Blob([JSON.stringify(latestReport, null, 2)], { type: "application/json" });
+        saveBlob(blob, "poomsae-power-finish-report.json");
+      });
+      showReportBtn.addEventListener("click", showReportOutput);
+      jpgBtn.addEventListener("click", () => {
+        showResultPage();
+        saveJpgReport();
+      });
+      resetBtn.addEventListener("click", () => {
+        showTrainingPage();
+        fileInput.value = "";
+        selectedFile = null;
+        latestReport = null;
+        autoAnalyzePending = false;
+        isAnalyzing = false;
+        clearReplayRange();
+        downloadBtn.disabled = true;
+        showReportBtn.disabled = true;
+        jpgBtn.disabled = true;
+        replayAllBtn.disabled = true;
+        replayWeakBtn.disabled = true;
+        analyzeBtn.disabled = true;
+        segmentsEl.innerHTML = "";
+        reportOutput.value = "";
+        jpgPreviewBox.style.display = "none";
+        jpgPreview.removeAttribute("src");
+        jpgOpenLink.href = "#";
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
+        video.removeAttribute("src");
+        video.load();
+        durationText.textContent = "-";
+        resolutionText.textContent = "-";
+        detectRateText.textContent = "-";
+        powerScoreText.textContent = "-";
+        speedSelect.value = "1";
+        video.playbackRate = 1;
+        loopVideoToggle.checked = false;
+        loopSegmentToggle.checked = true;
+        video.loop = false;
+        setPill(overallStatus, "caution", "분석 전");
+        renderReport([{ type: "caution", text: "영상 선택 후 모델을 준비하고 파워·맺음 평가를 시작하세요." }]);
+        setProgress(0, poseLandmarker ? "모델 준비 완료. 영상을 선택하세요." : "모델 준비를 누르면 MediaPipe를 불러옵니다.");
+      });
+      updatePoomsaeView();
+    </script>
+  </body>
+</html>

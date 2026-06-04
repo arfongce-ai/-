@@ -1,0 +1,11 @@
+{
+  "appId": "com.poomsaecoach.app",
+  "appName": "AI 품새 코치",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
