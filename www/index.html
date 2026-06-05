@@ -42,13 +42,17 @@
         justify-content: space-between;
         align-items: center;
         gap: 16px;
-        padding: 18px 0;
+        padding: 14px 0;
       }
       h1, h2, h3 { margin: 0; }
       h1 { font-size: 24px; letter-spacing: 0; }
       h2 { margin-bottom: 12px; font-size: 19px; letter-spacing: 0; }
       h3 { font-size: 16px; letter-spacing: 0; }
       header p { color: #c7d0dc; }
+      header p.small {
+        margin: 4px 0 0;
+        font-size: 12px;
+      }
       header .badge {
         border-color: #399e9b;
         background: #213e43;
@@ -60,6 +64,25 @@
         line-height: 1.55;
       }
       main { padding: 24px 0 36px; }
+      .setup-copy {
+        margin-bottom: 14px;
+        max-width: 720px;
+      }
+      .field-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 16px 0 8px;
+        color: var(--navy);
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .field-label span {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+      }
       .quick-nav {
         position: sticky;
         top: 0;
@@ -78,6 +101,11 @@
         color: var(--navy);
         border: 1px solid #c8d2df;
         box-shadow: 0 2px 8px rgba(23, 32, 43, .04);
+      }
+      .quick-nav button.active {
+        border-color: #9fc6c4;
+        background: #eaf7f6;
+        color: var(--brand-strong);
       }
       .app-view[hidden] { display: none !important; }
       section {
@@ -138,8 +166,20 @@
         width: 100%;
         border: 1px dashed #8ba3b9;
         border-radius: 8px;
-        padding: 16px;
+        padding: 10px;
         background: #f8fafb;
+        color: var(--muted);
+        font-weight: 700;
+      }
+      input[type="file"]::file-selector-button {
+        min-height: 42px;
+        margin-right: 10px;
+        border: 0;
+        border-radius: 7px;
+        padding: 8px 14px;
+        background: var(--navy);
+        color: #fff;
+        font-weight: 800;
       }
       select {
         width: 100%;
@@ -463,13 +503,19 @@
       }
       .primary-actions {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: minmax(0, 1.45fr) minmax(0, .55fr);
         gap: 10px;
         margin-top: 12px;
       }
       .primary-actions button {
-        min-height: 64px;
+        min-height: 58px;
         font-size: 16px;
+      }
+      #analyzeBtn:not(:disabled) {
+        box-shadow: 0 8px 18px rgba(8, 122, 120, .22);
+      }
+      #reanalyzeBtn {
+        background: #fff;
       }
       .utility-actions {
         display: grid;
@@ -577,6 +623,25 @@
       @media (max-width: 920px) {
         body { padding-bottom: 88px; }
         .wrap { width: min(100% - 24px, 1240px); }
+        header .wrap {
+          flex-direction: row;
+          align-items: center;
+          padding: 11px 0;
+        }
+        header h1 { font-size: 19px; }
+        header p.small {
+          max-width: 250px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 10px;
+        }
+        header .badge {
+          flex: 0 0 auto;
+          padding: 5px 8px;
+          font-size: 10px;
+        }
+        main { padding: 12px 0 24px; }
         .quick-nav {
           position: fixed;
           left: 0;
@@ -604,15 +669,18 @@
           background: #edf4f6;
           box-shadow: none;
         }
+        .quick-nav button.active {
+          border-color: transparent;
+          background: #eaf7f6;
+          color: var(--brand-strong);
+          box-shadow: inset 0 3px 0 var(--brand);
+        }
         .grid { grid-template-columns: 1fr; }
         .video-dock {
-          position: sticky;
-          top: 0;
-          z-index: 30;
+          position: static;
           max-height: none;
           overflow: visible;
-          border-radius: 0 0 8px 8px;
-          box-shadow: 0 10px 28px rgba(15, 23, 42, .16);
+          box-shadow: var(--shadow);
         }
         video { max-height: 34vh; }
         .sticky-note {
@@ -628,22 +696,22 @@
         .result-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .scene-card { grid-template-columns: 104px minmax(0, 1fr); }
         .segment { grid-template-columns: 1fr; }
-        section { padding: 16px; }
-        .mode-tab { min-height: 84px; padding: 12px; }
+        section { padding: 14px; }
+        section > h2 { font-size: 18px; }
+        .setup-copy { font-size: 13px; line-height: 1.45; }
+        .mode-tabs { gap: 8px; }
+        .mode-tab { min-height: 72px; padding: 10px; }
         .mode-tab strong { font-size: 16px; }
         .mode-tab span { font-size: 11px; }
         .control-grid { grid-template-columns: 1fr; }
-        .primary-actions { grid-template-columns: 1fr; }
+        .primary-actions { grid-template-columns: minmax(0, 1.35fr) minmax(0, .65fr); }
+        .primary-actions button { min-height: 56px; padding: 10px; }
         .utility-actions { grid-template-columns: 1fr 1fr; }
         .playback-settings { grid-template-columns: 1fr; }
         .repeat-options,
         .replay-actions { grid-template-columns: 1fr 1fr; }
-        button, select, input[type="file"] { min-height: 56px; }
-        header .wrap {
-          flex-direction: column;
-          align-items: flex-start;
-          padding: 16px 0;
-        }
+        button, select { min-height: 52px; }
+        input[type="file"] { min-height: 64px; }
       }
     </style>
   </head>
@@ -658,17 +726,18 @@
       </div>
     </header>
     <nav class="quick-nav wrap" aria-label="빠른 이동">
+      <button type="button" data-jump="setup" class="active">설정</button>
       <button type="button" data-jump="video">영상</button>
-      <button type="button" data-jump="segments">전체 구간</button>
+      <button type="button" data-jump="segments">구간</button>
       <button type="button" data-jump="result">결과지</button>
-      <button type="button" data-jump="top">맨위</button>
     </nav>
 
     <main class="wrap">
       <div class="grid">
         <section>
-          <h2>1. 품새와 영상 선택</h2>
-          <p>탭은 품새를 쉽게 찾기 위한 분류입니다. 품새를 먼저 골라도, 영상을 먼저 넣어도 됩니다. 둘 다 준비되면 분석 시작을 누르세요.</p>
+          <h2>훈련 시작</h2>
+          <p class="setup-copy">훈련 목적과 품새를 고른 뒤 수련 영상을 선택하세요. 선택 순서는 자유롭습니다.</p>
+          <div class="field-label">훈련 목적 <span>결과지의 분석 방식이 달라집니다</span></div>
           <div class="poomsae-tabs mode-tabs" role="tablist" aria-label="훈련 목적">
             <button type="button" class="poomsae-tab mode-tab" data-mode="exam">
               <strong>수련품새</strong>
@@ -682,6 +751,7 @@
           <div class="code" id="modeHelp" style="margin-top: 10px;">
             경기품새: 100점/평균과 필요 훈련을 함께 확인합니다.
           </div>
+          <div class="field-label">품새 선택 <span>분류를 고른 뒤 품새를 선택하세요</span></div>
           <div class="poomsae-tabs" role="tablist" aria-label="품새 구분">
             <button type="button" class="poomsae-tab active" data-group="yugeup">유급자</button>
             <button type="button" class="poomsae-tab" data-group="yupum">유품자</button>
@@ -692,6 +762,7 @@
             </select>
             <input id="fileInput" type="file" accept="video/mp4,video/*" />
           </div>
+          <div class="field-label">분석 실행 <span>영상이 준비되면 시작할 수 있습니다</span></div>
           <div class="primary-actions">
             <button id="analyzeBtn" disabled>분석 시작</button>
             <button id="reanalyzeBtn" class="secondary" disabled>재분석(초기화)</button>
@@ -702,11 +773,10 @@
             <button id="showReportBtn" class="secondary" disabled hidden>결과지 보기</button>
             <button id="jpgBtn" class="secondary" disabled hidden>JPG 저장</button>
           </div>
-          <div class="code" style="margin-top: 14px;">
-            순서 자유: 품새 선택과 영상 선택을 마친 뒤 분석 시작을 누르세요.<br>
-            권장 촬영: 가로 영상, 정면, 전신, 카메라 고정
+          <div class="code" style="margin-top: 12px;">
+            권장 촬영: 가로 영상 · 정면 · 전신 · 카메라 고정
           </div>
-          <div style="margin-top: 18px;">
+          <div style="margin-top: 16px;">
             <video id="video" controls muted playsinline></video>
             <div class="player-controls">
               <div class="playback-settings">
@@ -734,7 +804,7 @@
         </section>
 
         <section>
-          <h2>2. 상태</h2>
+          <h2>분석 상태</h2>
           <div class="metrics">
             <div class="metric"><strong>길이</strong><span id="durationText">-</span></div>
             <div class="metric"><strong>해상도</strong><span id="resolutionText">-</span></div>
@@ -753,14 +823,14 @@
       </div>
 
       <section style="margin-top: 18px;">
-        <h2>3. 전체 리포트</h2>
+        <h2>분석 요약</h2>
         <ul id="reportList" class="list">
           <li>훈련 목적과 품새, 영상을 선택한 뒤 분석 시작을 누르세요.</li>
         </ul>
       </section>
 
       <section style="margin-top: 18px;">
-        <h2>4. 리포트 출력</h2>
+        <h2>리포트 출력</h2>
         <p>저장 버튼이 모바일 브라우저에서 막힐 때는 아래 출력 내용을 길게 눌러 복사할 수 있습니다.</p>
         <div class="report-box">
           <textarea id="reportOutput" readonly placeholder="분석 후 리포트 화면 출력 버튼을 누르면 결과가 여기에 표시됩니다."></textarea>
@@ -773,7 +843,7 @@
       </section>
 
       <section style="margin-top: 18px;">
-        <h2 id="segmentTitle">5. 태극 1장 구간별 파워·맺음 평가</h2>
+        <h2 id="segmentTitle">태극 1장 구간별 파워·맺음 평가</h2>
         <p id="segmentDescription">구간마다 여러 프레임을 분석해 속도, 맺음, 정지 안정성, 서기 안정성을 확인합니다.</p>
         <div id="segments" class="segments"></div>
       </section>
@@ -992,7 +1062,7 @@
       function updatePoomsaeView() {
         movements = buildGenericMovements(selectedPoomsaeKey);
         const poomsae = currentPoomsae();
-        segmentTitle.textContent = `4. ${poomsae.name} ${movements.length}개 구간별 파워·맺음 평가`;
+        segmentTitle.textContent = `${poomsae.name} ${movements.length}개 구간 분석`;
         segmentDescription.textContent = `${poomsae.name}은 현재 ${movements.length}개 구간으로 나누어 평가합니다. ${poomsae.note}입니다. 세부 동작명은 지도자 검수 후 더 정확하게 보정할 수 있습니다.`;
       }
       function setPill(el, type, text) {
@@ -1049,6 +1119,7 @@
           sidePanel.appendChild(segmentsSection);
         }
         if (showReportBtn) showReportBtn.textContent = "결과지 보기";
+        if (reportSection) reportSection.hidden = true;
         if (outputSection) outputSection.hidden = true;
 
         resultPage = document.createElement("main");
@@ -1105,13 +1176,14 @@
         document.querySelectorAll("[data-jump]").forEach((button) => {
           button.addEventListener("click", () => {
             const target = button.dataset.jump;
-            if (target === "top") {
+            document.querySelectorAll("[data-jump]").forEach((item) => item.classList.toggle("active", item === button));
+            if (target === "setup") {
               showTrainingPage();
               window.scrollTo({ top: 0, behavior: "smooth" });
               return;
             }
             if (target === "video") {
-              scrollToTrainingElement(video.closest("section"));
+              scrollToTrainingElement(video);
               return;
             }
             if (target === "segments") {
@@ -1120,7 +1192,7 @@
             }
             if (target === "result") {
               if (latestReport) showResultPage();
-              else scrollToTrainingElement(reportList.closest("section"));
+              else scrollToTrainingElement(overallStatus.closest("section"));
             }
           });
         });
