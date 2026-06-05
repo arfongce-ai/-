@@ -184,6 +184,10 @@ assertContains(webHtml, "resultPage", "결과지 별도 페이지 구조 존재"
 assertContains(webHtml, "video-dock", "리플레이 고정 패널 CSS/DOM 구조 존재");
 assertContains(webHtml, "side-panel", "우측 작업 패널 CSS/DOM 구조 존재");
 assertContains(webHtml, "품새 AI 분석", "앱 이름 '품새 AI 분석' 적용");
+assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
+assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
+assertContains(webHtml, "심사 준비 · 시합 준비", "헤더 훈련 목적 배지 적용");
+assertContains(webHtml, "영상 기반 품새 훈련 도구", "헤더 설명 문구 적용");
 assertContains(webHtml, "data-mode=\"exam\"", "심사 준비 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "시합 준비 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");

@@ -6,27 +6,32 @@
     <title>품새 AI 분석</title>
     <style>
       :root {
-        --bg: #f7f8fb;
-        --panel: #fff;
-        --text: #111827;
-        --muted: #6b7280;
-        --line: #d9dee8;
-        --brand: #1665d8;
-        --good: #137a3a;
-        --caution: #a15c00;
+        --bg: #f3f5f7;
+        --panel: #ffffff;
+        --text: #17202b;
+        --muted: #667085;
+        --line: #d7dde5;
+        --brand: #087a78;
+        --brand-strong: #075e5d;
+        --navy: #183153;
+        --blue-soft: #edf4fc;
+        --good: #147a4a;
+        --caution: #9a6100;
         --bad: #b42318;
+        --shadow: 0 8px 24px rgba(23, 32, 43, .07);
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
         background: var(--bg);
         color: var(--text);
-        font-family: Arial, "Malgun Gothic", sans-serif;
+        font-family: "Pretendard", "Noto Sans KR", Arial, "Malgun Gothic", sans-serif;
         padding-bottom: 0;
       }
       header {
-        background: var(--panel);
-        border-bottom: 1px solid var(--line);
+        background: #17202b;
+        border-bottom: 3px solid var(--brand);
+        color: #fff;
       }
       .wrap {
         width: min(1240px, calc(100% - 32px));
@@ -40,9 +45,15 @@
         padding: 18px 0;
       }
       h1, h2, h3 { margin: 0; }
-      h1 { font-size: 22px; }
-      h2 { margin-bottom: 12px; font-size: 18px; }
-      h3 { font-size: 15px; }
+      h1 { font-size: 24px; letter-spacing: 0; }
+      h2 { margin-bottom: 12px; font-size: 19px; letter-spacing: 0; }
+      h3 { font-size: 16px; letter-spacing: 0; }
+      header p { color: #c7d0dc; }
+      header .badge {
+        border-color: #399e9b;
+        background: #213e43;
+        color: #d7fffd;
+      }
       p {
         margin: 0 0 12px;
         color: var(--muted);
@@ -64,15 +75,30 @@
         min-height: 48px;
         padding: 10px;
         background: #ffffff;
-        color: #174ea6;
-        border: 1px solid #b8c7e6;
+        color: var(--navy);
+        border: 1px solid #c8d2df;
+        box-shadow: 0 2px 8px rgba(23, 32, 43, .04);
       }
       .app-view[hidden] { display: none !important; }
       section {
         background: var(--panel);
         border: 1px solid var(--line);
         border-radius: 8px;
-        padding: 18px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+      }
+      section > h2 {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--navy);
+      }
+      section > h2::before {
+        content: "";
+        width: 5px;
+        height: 20px;
+        border-radius: 3px;
+        background: var(--brand);
       }
       .grid {
         display: grid;
@@ -100,24 +126,24 @@
         align-items: center;
       }
       .badge {
-        border: 1px solid #b8c7e6;
+        border: 1px solid #b9c9da;
         border-radius: 999px;
         padding: 6px 10px;
-        color: #174ea6;
-        background: #eef4ff;
+        color: var(--navy);
+        background: var(--blue-soft);
         font-size: 13px;
         font-weight: 800;
       }
       input[type="file"] {
         width: 100%;
-        border: 1px dashed #aab5c6;
+        border: 1px dashed #8ba3b9;
         border-radius: 8px;
         padding: 16px;
-        background: #fbfcff;
+        background: #f8fafb;
       }
       select {
         width: 100%;
-        border: 1px solid #aab5c6;
+        border: 1px solid #aebdca;
         border-radius: 8px;
         padding: 14px 16px;
         background: #fff;
@@ -132,10 +158,17 @@
         color: #fff;
         font-weight: 800;
         cursor: pointer;
+        transition: background-color .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease;
       }
+      button:not(:disabled):hover {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 14px rgba(8, 122, 120, .18);
+      }
+      button:not(:disabled):active { transform: translateY(0); }
       button.secondary {
-        background: #eef2f7;
-        color: #1f2937;
+        border: 1px solid #cbd5df;
+        background: #f4f6f8;
+        color: var(--navy);
       }
       button:disabled {
         cursor: not-allowed;
@@ -148,7 +181,7 @@
         width: 100%;
         max-height: 42vh;
         background: #050505;
-        border: 1px solid #111827;
+        border: 2px solid #263748;
         border-radius: 8px;
       }
       .sticky-note { display: none; }
@@ -160,8 +193,8 @@
       .metric {
         border: 1px solid var(--line);
         border-radius: 8px;
-        padding: 12px;
-        background: #fbfcff;
+        padding: 14px;
+        background: #f8fafb;
       }
       .metric strong {
         display: block;
@@ -170,8 +203,9 @@
         font-size: 13px;
       }
       .metric span {
-        font-size: 20px;
+        font-size: 21px;
         font-weight: 800;
+        color: var(--navy);
       }
       .status {
         display: inline-flex;
@@ -193,8 +227,8 @@
       }
       .list li {
         border-left: 4px solid #cad3e1;
-        background: #fbfcff;
-        padding: 10px 11px;
+        background: #f8fafb;
+        padding: 12px 13px;
         border-radius: 6px;
         line-height: 1.45;
       }
@@ -216,7 +250,8 @@
         border: 1px solid var(--line);
         border-radius: 8px;
         padding: 12px;
-        background: #fbfcff;
+        background: #f8fafb;
+        box-shadow: 0 3px 10px rgba(23, 32, 43, .04);
       }
       .segment strong { display: block; margin-bottom: 4px; }
       .segment span, .small {
@@ -253,8 +288,9 @@
         overflow-wrap: anywhere;
         padding: 10px;
         border-radius: 8px;
-        background: #f0f3f8;
-        color: #374151;
+        border-left: 4px solid #9eb7ce;
+        background: #f1f5f8;
+        color: #3f4d5c;
         font-size: 13px;
       }
       .report-box {
@@ -316,10 +352,10 @@
         color: #334155;
       }
       .poomsae-tab.active {
-        border-color: #2563eb;
-        background: #dbeafe;
-        color: #1e3a8a;
-        box-shadow: inset 0 0 0 1px #2563eb;
+        border-color: #315f91;
+        background: #edf4fc;
+        color: #183f69;
+        box-shadow: inset 0 0 0 1px #315f91;
       }
       .mode-tab {
         min-height: 72px;
@@ -343,13 +379,13 @@
         line-height: 1.35;
       }
       .mode-tab.active {
-        border-color: #174ea6;
-        background: #eef4ff;
-        color: #123b7a;
-        box-shadow: inset 0 0 0 1px #174ea6;
+        border-color: var(--brand);
+        background: #eaf7f6;
+        color: var(--brand-strong);
+        box-shadow: inset 0 0 0 1px var(--brand), 0 6px 16px rgba(8, 122, 120, .10);
       }
       .mode-tab.active span {
-        color: #315a94;
+        color: #327472;
       }
       .player-controls {
         display: flex;
@@ -414,8 +450,8 @@
       .result-card {
         border: 1px solid var(--line);
         border-radius: 8px;
-        padding: 14px;
-        background: #fbfcff;
+        padding: 16px;
+        background: #f8fafb;
       }
       .result-card h3 {
         margin-bottom: 10px;
@@ -451,10 +487,11 @@
         border-radius: 8px;
         padding: 10px;
         background: #fff;
+        box-shadow: 0 4px 14px rgba(23, 32, 43, .05);
       }
       .scene-card.priority {
-        border-color: #f2b84b;
-        background: #fffaf0;
+        border-color: #dca83c;
+        background: #fffbf2;
       }
       .scene-shot {
         width: 100%;
@@ -487,9 +524,11 @@
       progress {
         width: 100%;
         height: 14px;
+        accent-color: var(--brand);
       }
       @media (max-width: 920px) {
-        body { padding-bottom: 76px; }
+        body { padding-bottom: 88px; }
+        .wrap { width: min(100% - 24px, 1240px); }
         .quick-nav {
           position: fixed;
           left: 0;
@@ -497,13 +536,25 @@
           bottom: 0;
           top: auto;
           width: 100%;
-          padding: 10px 12px;
+          gap: 6px;
+          padding: 9px 10px calc(9px + env(safe-area-inset-bottom));
           border-top: 1px solid var(--line);
-          box-shadow: 0 -10px 28px rgba(15, 23, 42, .14);
+          background: rgba(255, 255, 255, .97);
+          box-shadow: 0 -8px 24px rgba(23, 32, 43, .12);
         }
         .quick-nav button {
-          min-height: 54px;
+          min-height: 58px;
+          padding: 8px 4px;
+          border-color: transparent;
+          background: transparent;
+          color: #31506f;
           font-size: 14px;
+          box-shadow: none;
+        }
+        .quick-nav button:not(:disabled):hover {
+          transform: none;
+          background: #edf4f6;
+          box-shadow: none;
         }
         .grid { grid-template-columns: 1fr; }
         .video-dock {
@@ -529,6 +580,10 @@
         .result-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .scene-card { grid-template-columns: 104px minmax(0, 1fr); }
         .segment { grid-template-columns: 1fr; }
+        section { padding: 16px; }
+        .mode-tab { min-height: 84px; padding: 12px; }
+        .mode-tab strong { font-size: 16px; }
+        .mode-tab span { font-size: 11px; }
         .control-grid { grid-template-columns: 1fr; }
         .primary-actions { grid-template-columns: 1fr; }
         .utility-actions { grid-template-columns: 1fr 1fr; }
@@ -536,6 +591,7 @@
         header .wrap {
           flex-direction: column;
           align-items: flex-start;
+          padding: 16px 0;
         }
       }
     </style>
@@ -545,9 +601,9 @@
       <div class="wrap">
         <div>
           <h1>품새 AI 분석</h1>
-          <p class="small">PC, 폰, 태블릿에서 영상 업로드 후 속도, 맺음, 정지 안정성을 평가합니다.</p>
+          <p class="small">심사 준비와 시합 준비를 위한 영상 기반 품새 훈련 도구</p>
         </div>
-        <span class="badge">유급자 · 유품자 · 유단자 · v3</span>
+        <span class="badge">심사 준비 · 시합 준비</span>
       </div>
     </header>
     <nav class="quick-nav wrap" aria-label="빠른 이동">
@@ -642,7 +698,7 @@
       <section style="margin-top: 18px;">
         <h2>3. 전체 리포트</h2>
         <ul id="reportList" class="list">
-          <li>영상 선택 후 모델을 준비하고 파워·맺음 평가를 시작하세요.</li>
+          <li>훈련 목적과 품새, 영상을 선택한 뒤 분석 시작을 누르세요.</li>
         </ul>
       </section>
 
