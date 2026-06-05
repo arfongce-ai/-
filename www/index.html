@@ -277,21 +277,78 @@
       .bad-border { border-color: var(--bad) !important; }
       .segments {
         display: grid;
-        gap: 10px;
+        gap: 8px;
         max-height: 68vh;
         overflow: auto;
         padding-right: 4px;
       }
       .segment {
         display: grid;
-        grid-template-columns: 148px minmax(0, 1fr) 124px;
-        gap: 12px;
-        align-items: center;
+        grid-template-columns: 132px minmax(0, 1fr) 76px;
+        gap: 10px;
+        align-items: start;
         border: 1px solid var(--line);
         border-radius: 8px;
-        padding: 12px;
+        padding: 10px;
         background: #f8fafb;
         box-shadow: 0 3px 10px rgba(23, 32, 43, .04);
+        cursor: pointer;
+      }
+      .segment:hover,
+      .segment:focus-visible {
+        border-color: var(--brand);
+        background: #f1f9f8;
+        outline: none;
+      }
+      .segment-head {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .segment-head strong {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin: 0;
+        color: var(--navy);
+        line-height: 1.3;
+      }
+      .segment-number {
+        flex: 0 0 auto;
+        color: var(--brand);
+        font-size: 13px;
+      }
+      .segment-media {
+        display: grid;
+        gap: 5px;
+      }
+      .segment-media .scene-shot {
+        aspect-ratio: 16 / 9;
+      }
+      .segment-body {
+        min-width: 0;
+      }
+      .segment-feedback {
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        line-height: 1.45;
+      }
+      .segment-score {
+        display: grid;
+        justify-items: center;
+        gap: 6px;
+        color: var(--navy);
+        font-size: 20px;
+        font-weight: 800;
+      }
+      .segment-hint {
+        color: var(--brand-strong);
+        font-size: 11px;
+        font-weight: 800;
       }
       .segment strong { display: block; margin-bottom: 4px; }
       .segment span, .small {
@@ -582,6 +639,12 @@
         padding: 10px;
         background: #fff;
         box-shadow: 0 4px 14px rgba(23, 32, 43, .05);
+        cursor: pointer;
+      }
+      .scene-card:hover,
+      .scene-card:focus-visible {
+        border-color: var(--brand);
+        outline: none;
       }
       .scene-card.priority {
         border-color: #dca83c;
@@ -695,7 +758,21 @@
         }
         .result-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .scene-card { grid-template-columns: 104px minmax(0, 1fr); }
-        .segment { grid-template-columns: 1fr; }
+        .segments {
+          max-height: none;
+          overflow: visible;
+        }
+        .segment {
+          grid-template-columns: 108px minmax(0, 1fr) 54px;
+          gap: 8px;
+          padding: 9px;
+        }
+        .segment-head strong { font-size: 14px; }
+        .segment-head .status { padding: 4px 7px; font-size: 10px; }
+        .segment-feedback { -webkit-line-clamp: 2; font-size: 11px; }
+        .segment .bars { display: none; }
+        .segment-score { font-size: 16px; }
+        .segment-hint { font-size: 9px; }
         section { padding: 14px; }
         section > h2 { font-size: 18px; }
         .setup-copy { font-size: 13px; line-height: 1.45; }
@@ -765,7 +842,7 @@
           <div class="field-label">분석 실행 <span>영상이 준비되면 시작할 수 있습니다</span></div>
           <div class="primary-actions">
             <button id="analyzeBtn" disabled>분석 시작</button>
-            <button id="reanalyzeBtn" class="secondary" disabled>재분석(초기화)</button>
+            <button id="reanalyzeBtn" class="secondary" disabled>초기화</button>
             <button id="loadModelBtn" type="button" hidden>모델 준비</button>
           </div>
           <div class="utility-actions" hidden>
@@ -1155,6 +1232,18 @@
         if (jpgSection && jpgPreviewBox) jpgSection.appendChild(jpgPreviewBox);
         if (backToTrainingBtn) backToTrainingBtn.addEventListener("click", showTrainingPage);
         if (resultJpgBtn) resultJpgBtn.addEventListener("click", saveJpgReport);
+        resultPage.addEventListener("click", (event) => {
+          const card = event.target.closest(".scene-card");
+          if (!card) return;
+          openVideoReplay(Number(card.dataset.start), Number(card.dataset.end));
+        });
+        resultPage.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          const card = event.target.closest(".scene-card");
+          if (!card) return;
+          event.preventDefault();
+          openVideoReplay(Number(card.dataset.start), Number(card.dataset.end));
+        });
       }
       function showTrainingPage() {
         if (trainingPage) trainingPage.hidden = false;
@@ -1203,7 +1292,7 @@
           : `<div class="scene-shot scene-placeholder">장면 없음</div>`;
         const scoreMeta = trainingMode === "exam" ? "" : `<span>${segment.powerScore}점</span>`;
         return `
-          <article class="scene-card ${isPriority ? "priority" : ""}">
+          <article class="scene-card ${isPriority ? "priority" : ""}" role="button" tabindex="0" data-start="${segment.startTime}" data-end="${segment.endTime}" aria-label="${escapeHtml(segment.order)}번 ${escapeHtml(segment.name)} 리플레이">
             ${shot}
             <div>
               <strong>${segment.order}. ${escapeHtml(segment.name)}</strong>
@@ -1533,6 +1622,12 @@
         video.playbackRate = Number(speedSelect.value || 1);
         video.play().catch(() => {});
       }
+      function openVideoReplay(start, end) {
+        showTrainingPage();
+        playRange(start, end);
+        document.querySelectorAll("[data-jump]").forEach((item) => item.classList.toggle("active", item.dataset.jump === "video"));
+        requestAnimationFrame(() => video.scrollIntoView({ behavior: "smooth", block: "center" }));
+      }
       function replayWholeVideo() {
         clearReplayRange();
         video.loop = loopVideoToggle.checked;
@@ -1819,21 +1914,27 @@
           const shot = result.snapshot
             ? `<img class="scene-shot" src="${result.snapshot}" alt="${escapeHtml(result.order)}번 구간 장면" loading="lazy" />`
             : `<div class="scene-shot scene-placeholder">장면 없음</div>`;
+          row.dataset.start = String(result.startTime);
+          row.dataset.end = String(result.endTime);
+          row.tabIndex = 0;
+          row.setAttribute("role", "button");
+          row.setAttribute("aria-label", `${result.order}번 ${result.name} 리플레이`);
           row.innerHTML = `
-            <div>
-              <strong>${String(result.order).padStart(2, "0")}</strong>
-              <span>${result.startTime.toFixed(1)}-${result.endTime.toFixed(1)}초</span>
-              <div style="margin-top:8px;">${shot}</div>
+            <div class="segment-head">
+              <strong><span class="segment-number">${String(result.order).padStart(2, "0")}.</span>${result.name}</strong>
+              <span class="status ${result.type}">${result.label}</span>
             </div>
-            <div>
-              <strong>${result.name}</strong>
-              <span>${result.feedback}</span>
+            <div class="segment-media">
+              ${shot}
+              <span>${result.startTime.toFixed(1)}-${result.endTime.toFixed(1)}초</span>
+            </div>
+            <div class="segment-body">
+              <span class="segment-feedback">${result.feedback}</span>
               ${scoreBars}
             </div>
-            <div>
-              <span class="status ${result.type}">${result.label}</span>
-              <div style="margin-top:8px;font-size:22px;font-weight:800;">${trainingMode === "exam" ? "확인" : result.powerScore}</div>
-              <button class="secondary replay-segment" type="button" data-start="${result.startTime}" data-end="${result.endTime}" style="margin-top:8px;padding:8px 10px;">리플레이</button>
+            <div class="segment-score">
+              <span>${trainingMode === "exam" ? "확인" : result.powerScore}</span>
+              <span class="segment-hint">눌러 재생</span>
             </div>
           `;
           segmentsEl.appendChild(row);
@@ -2038,8 +2139,14 @@
           return;
         }
         showTrainingPage();
+        const cacheKey = currentAnalysisCacheKey();
+        if (cacheKey) stableAnalysisCache.delete(cacheKey);
+        video.pause();
+        video.currentTime = 0;
         clearAnalysisOnly();
-        await startAnalysis();
+        setProgress(0, "초기화했습니다. 같은 영상으로 다시 분석하려면 분석 시작을 누르세요.");
+        analyzeBtn.disabled = !selectedFile || !Number.isFinite(video.duration);
+        requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
       }
       async function analyzePower() {
         if (!poseLandmarker || !selectedFile || !Number.isFinite(video.duration)) return;
@@ -2246,11 +2353,16 @@
       replayAllBtn.addEventListener("click", replayWholeVideo);
       replayWeakBtn.addEventListener("click", replayWeakestSegment);
       segmentsEl.addEventListener("click", (event) => {
-        const button = event.target.closest(".replay-segment");
-        if (!button) return;
-        const start = Number(button.dataset.start);
-        const end = Number(button.dataset.end);
-        playRange(start, end);
+        const row = event.target.closest(".segment");
+        if (!row) return;
+        openVideoReplay(Number(row.dataset.start), Number(row.dataset.end));
+      });
+      segmentsEl.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        const row = event.target.closest(".segment");
+        if (!row) return;
+        event.preventDefault();
+        openVideoReplay(Number(row.dataset.start), Number(row.dataset.end));
       });
       downloadBtn.addEventListener("click", () => {
         if (!latestReport) return;

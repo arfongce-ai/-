@@ -191,6 +191,11 @@ assertContains(webHtml, "playback-settings", "영상 아래 재생 설정 그룹
 assertContains(webHtml, "repeat-options", "영상 아래 반복 설정 그룹 존재");
 assertContains(webHtml, "replay-actions", "분석 후 재생 버튼 그룹 존재");
 assertContains(webHtml, ".replay-actions button:disabled", "사용 불가능한 재생 버튼 숨김");
+assertContains(webHtml, "segment-head", "구간 번호와 기술명 상단 배치 구조 존재");
+assertContains(webHtml, "segment-feedback", "모바일 구간 피드백 축약 구조 존재");
+assertContains(webHtml, "openVideoReplay", "구간 클릭 시 영상 리플레이 이동 함수 존재");
+assertContains(webHtml, "event.target.closest(\".segment\")", "구간 카드 전체 클릭 리플레이 존재");
+assertContains(webHtml, "event.target.closest(\".scene-card\")", "결과지 장면 클릭 리플레이 존재");
 assertContains(webHtml, "resultPage", "결과지 별도 페이지 구조 존재");
 assertContains(webHtml, "video-dock", "리플레이 고정 패널 CSS/DOM 구조 존재");
 assertContains(webHtml, "side-panel", "우측 작업 패널 CSS/DOM 구조 존재");
@@ -230,6 +235,8 @@ assertContains(webHtml, "inferMovementType", "기술명 기반 분석 타입 추
 assertContains(webHtml, "koryo", "유품자 고려 데이터 존재");
 assertContains(webHtml, "pyongwon", "유단자 평원 데이터 존재");
 assertContains(webHtml, "reanalyzeBtn", "재분석(초기화) 버튼 로직 존재");
+assertContains(webHtml, "stableAnalysisCache.delete(cacheKey)", "초기화 시 기존 안정화 결과 제거");
+assertContains(webHtml, "초기화했습니다. 같은 영상으로 다시 분석하려면 분석 시작을 누르세요.", "초기화 완료 안내 문구 존재");
 assertContains(webHtml, "startAnalysis", "분석 시작 시 모델 자동 준비 로직 존재");
 assertContains(webHtml, "hidden>모델 준비", "모델 준비 버튼은 사용자 화면에서 숨김");
 assertContains(webHtml, "showReportBtn.addEventListener(\"click\", showResultPage)", "결과지 보기 버튼은 결과지 페이지로 이동");
