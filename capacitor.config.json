@@ -1,6 +1,6 @@
 {
   "appId": "com.poomsaecoach.app",
-  "appName": "품새 AI 분석",
+  "appName": "태권도 품새 수련 훈련",
   "webDir": "www",
   "server": {
     "androidScheme": "https"

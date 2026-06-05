@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>품새 AI 분석</title>
+    <title>태권도 품새 수련 훈련</title>
     <style>
       :root {
         --bg: #f3f5f7;
@@ -651,10 +651,10 @@
     <header>
       <div class="wrap">
         <div>
-          <h1>품새 AI 분석</h1>
-          <p class="small">심사 준비와 시합 준비를 위한 영상 기반 품새 훈련 도구</p>
+          <h1>태권도 품새 수련 훈련</h1>
+          <p class="small">태권도 품새 수련인들을 위한 영상기반 품새 AI훈련 도구</p>
         </div>
-        <span class="badge">심사 준비 · 시합 준비</span>
+        <span class="badge">수련품새 · 경기품새</span>
       </div>
     </header>
     <nav class="quick-nav wrap" aria-label="빠른 이동">
@@ -671,16 +671,16 @@
           <p>탭은 품새를 쉽게 찾기 위한 분류입니다. 품새를 먼저 골라도, 영상을 먼저 넣어도 됩니다. 둘 다 준비되면 분석 시작을 누르세요.</p>
           <div class="poomsae-tabs mode-tabs" role="tablist" aria-label="훈련 목적">
             <button type="button" class="poomsae-tab mode-tab" data-mode="exam">
-              <strong>심사 준비</strong>
+              <strong>수련품새</strong>
               <span>점수 없이 문제점과 수정 포인트 확인</span>
             </button>
             <button type="button" class="poomsae-tab mode-tab active" data-mode="competition">
-              <strong>시합 준비</strong>
+              <strong>경기품새</strong>
               <span>100점/평균, 반복 문제, 필요 훈련 확인</span>
             </button>
           </div>
           <div class="code" id="modeHelp" style="margin-top: 10px;">
-            시합 준비: 100점/평균과 필요 훈련을 함께 확인합니다.
+            경기품새: 100점/평균과 필요 훈련을 함께 확인합니다.
           </div>
           <div class="poomsae-tabs" role="tablist" aria-label="품새 구분">
             <button type="button" class="poomsae-tab active" data-group="yugeup">유급자</button>
@@ -1146,7 +1146,7 @@
         `;
       }
       function modeLabel() {
-        return trainingMode === "exam" ? "심사 준비" : "시합 준비";
+        return trainingMode === "exam" ? "수련품새" : "경기품새";
       }
       function updateTrainingModeUi() {
         document.querySelectorAll("[data-mode]").forEach((tab) => {
@@ -1155,8 +1155,8 @@
         });
         if (modeHelp) {
           modeHelp.textContent = trainingMode === "exam"
-            ? "심사 준비: 점수 없이 문제점 확인과 수정 포인트를 중심으로 결과지를 만듭니다."
-            : "시합 준비: 100점/평균, 반복 문제, 필요 훈련을 함께 확인합니다.";
+            ? "수련품새: 점수 없이 문제점 확인과 수정 포인트를 중심으로 결과지를 만듭니다."
+            : "경기품새: 100점/평균, 반복 문제, 필요 훈련을 함께 확인합니다.";
         }
         powerScoreText.closest(".metric").querySelector("strong").textContent = trainingMode === "exam" ? "결과 방식" : "100점/평균";
         if (!latestReport) powerScoreText.textContent = trainingMode === "exam" ? "문제점 확인" : "-";
@@ -1228,7 +1228,7 @@
       function formatReportText() {
         if (!latestReport) return "";
         const lines = [];
-        lines.push(`품새 AI 분석 ${modeLabel()} 리포트`);
+        lines.push(`태권도 품새 수련 훈련 · ${modeLabel()} 리포트`);
         lines.push(`생성일: ${new Date(latestReport.created_at).toLocaleString()}`);
         lines.push(`모드: ${modeLabel()}`);
         lines.push(`품새: ${latestReport.poomsae?.name || currentPoomsae().name}`);
@@ -1328,7 +1328,7 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "#173f8a";
         ctx.fillRect(0, 0, canvas.width, 250);
-        text(`품새 AI 분석 · ${modeLabel()}`, 90, 56, 34, "#dbeafe", "800");
+        text(`태권도 품새 수련 훈련 · ${modeLabel()}`, 90, 56, 34, "#dbeafe", "800");
         text(`${poomsaeName} 결과지`, 90, 108, 58, "#ffffff", "800");
         text("영상 기반 수련 피드백 · 공식 심사 대체 아님", 90, 184, 28, "#dbeafe", "700");
 
@@ -1818,7 +1818,7 @@
         const issueCounts = summarizeRepeatedIssues(results);
         const neededTraining = neededTrainingFromIssues(issueCounts);
         if (trainingMode === "exam") {
-          items.push({ type, text: "심사 준비 결과입니다. 점수는 표시하지 않고 수정할 부분만 확인합니다." });
+          items.push({ type, text: "수련품새 결과입니다. 점수는 표시하지 않고 수정할 부분만 확인합니다." });
           if (issueCounts.length) {
             items.push({ type: "caution", text: `먼저 볼 문제: ${issueCounts.slice(0, 2).map((item) => `${item.label} ${item.count}회`).join(", ")}.` });
             items.push({ type: "caution", text: `수정 방법: ${issueCounts[0].practice}` });
@@ -1893,14 +1893,14 @@
         renderReport(summary.items);
         setProgress(100, cacheHit ? "동일 영상 안정화 결과를 불러왔습니다." : (trainingMode === "exam" ? "문제점 확인 완료" : "파워·맺음 평가 완료"));
         latestReport = {
-          app: "품새 AI 분석",
+          app: "태권도 품새 수련 훈련",
           created_at: new Date().toISOString(),
           training_mode: trainingMode,
           training_mode_label: modeLabel(),
           mode: "power_snap_stillness_estimation",
           note: trainingMode === "exam"
-            ? "심사 준비 결과지는 점수 없이 문제점 확인 및 수정 포인트 중심으로 표시한다."
-          : "시합 준비 결과지는 100점/평균 점수와 필요 훈련을 함께 표시한다. 영상 관절 좌표 기반 추정치이며 실제 물리적 힘을 직접 측정하지 않는다.",
+            ? "수련품새 결과지는 점수 없이 문제점 확인 및 수정 포인트 중심으로 표시한다."
+          : "경기품새 결과지는 100점/평균 점수와 필요 훈련을 함께 표시한다. 영상 관절 좌표 기반 추정치이며 실제 물리적 힘을 직접 측정하지 않는다.",
           scoring_stability: {
             segment_samples: 8,
             speed_aggregation: "median_and_trimmed_mean",
