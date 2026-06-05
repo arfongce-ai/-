@@ -22,7 +22,7 @@ Root directory: 프로젝트 루트
 프로젝트 루트:
 
 ```text
-C:\Users\MOMGAGYM\Documents\Codex\2026-06-02\https-www-youtube-com-watch-v\outputs\poomsae-coach-apk
+업로드 폴더 최상단 (이 README가 있는 위치)
 ```
 
 배포 대상 폴더:

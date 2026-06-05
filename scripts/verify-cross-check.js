@@ -203,7 +203,7 @@ assertContains(webHtml, "태권도 품새 수련 훈련", "앱 이름 '태권도
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련품새 · 경기품새", "헤더 훈련 목적 배지 적용");
-assertContains(webHtml, "태권도 품새 수련인들을 위한 영상기반 품새 AI훈련 도구", "헤더 설명 문구 적용");
+assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.15", "헤더 설명 문구 적용");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
@@ -220,6 +220,10 @@ assertContains(webHtml, "latestReport.summary.average_power_finish_score)}</span
 assertContains(webHtml, "score_100", "100점 기준 점수 데이터 존재");
 assertContains(webHtml, "scoreStance", "서기 안정성 평가 함수 존재");
 assertContains(webHtml, "stanceScore", "서기 안정성 점수 데이터 존재");
+assertContains(webHtml, "scoreStillness(finalSpeed, endJitter, type)", "정지 안정성은 잔여 속도와 흔들림을 함께 평가");
+assertContains(webHtml, "remainingMotion = finalSpeed + endJitter * 0.5", "일정 속도 연속 움직임의 정지 오판 방지");
+assertContains(webHtml, "chooseSampleCount(segmentLength)", "저사양 보호 분석 표본 제한 함수 존재");
+assertContains(webHtml, "getPoint(landmarks, 11)", "신체 크기 계산 시 랜드마크 신뢰도 확인");
 assertContains(webHtml, "captureVideoSnapshot", "구간 장면 사진 캡처 함수 존재");
 assertContains(webHtml, "우선 확인할 부분", "결과지 우선 확인 영역 존재");
 assertContains(webHtml, "전체 부분", "결과지 전체 영역 존재");
@@ -235,6 +239,7 @@ assertContains(webHtml, "inferMovementType", "기술명 기반 분석 타입 추
 assertContains(webHtml, "koryo", "유품자 고려 데이터 존재");
 assertContains(webHtml, "pyongwon", "유단자 평원 데이터 존재");
 assertContains(webHtml, "reanalyzeBtn", "재분석(초기화) 버튼 로직 존재");
+assertContains(webHtml, ">재분석(초기화)</button>", "재분석과 초기화를 합친 버튼 문구 존재");
 assertContains(webHtml, "stableAnalysisCache.delete(cacheKey)", "초기화 시 기존 안정화 결과 제거");
 assertContains(webHtml, "초기화했습니다. 같은 영상으로 다시 분석하려면 분석 시작을 누르세요.", "초기화 완료 안내 문구 존재");
 assertContains(webHtml, "startAnalysis", "분석 시작 시 모델 자동 준비 로직 존재");

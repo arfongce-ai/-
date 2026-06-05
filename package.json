@@ -6,6 +6,9 @@
   "scripts": {
     "assets:check": "node scripts/check-offline-assets.js",
     "verify:cross": "node scripts/verify-cross-check.js",
+    "test:engine": "node scripts/test-analysis-engine.js",
+    "test:all": "npm run assets:check && npm run verify:cross && npm run test:engine",
+    "serve:test": "node scripts/serve-static.js",
     "assets:download": "node scripts/download-offline-assets.js",
     "android:add": "npx cap add android",
     "android:sync": "npx cap sync android",

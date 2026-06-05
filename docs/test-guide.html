@@ -3,101 +3,154 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>품새 AI 분석 테스트 가이드</title>
+    <title>태권도 품새 수련 훈련 v3.15 테스트 가이드</title>
     <style>
       :root {
-        --bg: #f6f7fb;
-        --panel: #ffffff;
-        --text: #111827;
-        --muted: #667085;
-        --line: #d7deea;
-        --brand: #1665d8;
-        --good: #137a3a;
-        --warn: #9a5a00;
+        --bg: #0e1116;
+        --bg-grad-1: #11161d;
+        --bg-grad-2: #0b0e13;
+        --panel: #161c25;
+        --panel-2: #1c232e;
+        --line: #2a3440;
+        --text: #eef2f7;
+        --muted: #93a1b3;
+        --brand: #2f9e96;
+        --brand-strong: #46c2b8;
+        --brand-soft: #11302e;
+        --accent: #d64550;
+        --accent-soft: #2a1416;
+        --good: #3ecf8e;
+        --good-soft: #0f2a20;
+        --caution: #e0a32e;
+        --caution-soft: #2c2310;
+        --navy: #0b1a2e;
+        --radius: 16px;
+        --radius-sm: 11px;
+        --shadow: 0 14px 40px rgba(0,0,0,.45);
+        --font: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        background: var(--bg);
+        background:
+          radial-gradient(1200px 600px at 80% -10%, rgba(47,158,150,.10), transparent 60%),
+          radial-gradient(900px 500px at -10% 110%, rgba(214,69,80,.08), transparent 55%),
+          linear-gradient(180deg, var(--bg-grad-1), var(--bg-grad-2));
+        background-attachment: fixed;
         color: var(--text);
-        font-family: Arial, "Malgun Gothic", sans-serif;
+        font-family: var(--font);
+        -webkit-font-smoothing: antialiased;
+        line-height: 1.55;
       }
       header {
-        background: var(--panel);
+        position: relative;
+        background: linear-gradient(180deg, rgba(255,255,255,.03), transparent), #0c1117;
         border-bottom: 1px solid var(--line);
-        padding: 18px 20px;
+        padding: 22px 20px 24px;
+        overflow: hidden;
       }
-      main {
-        width: min(1080px, calc(100% - 28px));
-        margin: 18px auto 36px;
-        display: grid;
-        gap: 14px;
+      header::after {
+        content: "";
+        position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+        background: linear-gradient(90deg, var(--brand) 0%, var(--brand-strong) 45%, var(--accent) 100%);
       }
+      .wrap { width: min(1080px, calc(100% - 28px)); margin: 0 auto; }
+      header h1 {
+        margin: 0;
+        display: flex; align-items: center; gap: 11px;
+        font-size: 22px; font-weight: 800; letter-spacing: -.3px;
+      }
+      header h1::before {
+        content: "跆";
+        display: inline-grid; place-items: center;
+        width: 34px; height: 34px; border-radius: 9px;
+        font-size: 19px; color: var(--brand-strong);
+        background: var(--brand-soft); border: 1px solid rgba(70,194,184,.28);
+      }
+      header p { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+      header .ver {
+        display: inline-block; margin-top: 12px;
+        padding: 5px 12px; border-radius: 999px;
+        background: var(--brand-soft); color: var(--brand-strong);
+        border: 1px solid rgba(70,194,184,.3); font-weight: 700; font-size: 13px;
+      }
+      main { padding: 20px 0 48px; display: grid; gap: 16px; }
       section {
-        background: var(--panel);
+        background: linear-gradient(180deg, rgba(255,255,255,.018), transparent), var(--panel);
         border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 16px;
+        border-radius: var(--radius);
+        padding: 20px;
+        box-shadow: var(--shadow);
       }
-      h1, h2 { margin: 0; }
-      h1 { font-size: 24px; }
-      h2 { font-size: 18px; margin-bottom: 10px; }
-      p { color: var(--muted); line-height: 1.55; }
+      h2 {
+        margin: 0 0 14px; font-size: 17px; font-weight: 800;
+        display: flex; align-items: center; gap: 9px;
+      }
+      h2::before {
+        content: ""; width: 4px; height: 18px; border-radius: 3px;
+        background: linear-gradient(180deg, var(--brand-strong), var(--brand));
+      }
+      p { color: var(--muted); margin: 0 0 10px; }
+      strong { color: var(--text); }
       code, pre {
-        background: #eef2f7;
-        border-radius: 6px;
-      }
-      code { padding: 2px 6px; }
-      pre {
-        overflow: auto;
-        padding: 12px;
-      }
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px;
-      }
-      .checklist {
-        display: grid;
-        gap: 8px;
-      }
-      label {
-        display: flex;
-        gap: 10px;
-        align-items: flex-start;
-        padding: 10px;
+        background: var(--navy);
         border: 1px solid var(--line);
         border-radius: 8px;
-        background: #fbfcff;
+        color: #b7c6d6;
+        font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
       }
-      input { width: 20px; height: 20px; }
+      code { padding: 2px 7px; font-size: 13px; }
+      pre { overflow: auto; padding: 14px; border-left: 3px solid var(--brand); font-size: 13px; }
+      .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+      .checklist { display: grid; gap: 8px; }
+      label {
+        display: flex; gap: 11px; align-items: flex-start;
+        padding: 11px 13px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        background: var(--panel-2);
+        color: var(--text); font-size: 14px;
+        cursor: pointer; transition: border-color .15s ease, background .15s ease;
+      }
+      label:hover { border-color: var(--brand); }
+      label:has(input:checked) { background: var(--brand-soft); border-color: rgba(70,194,184,.4); }
+      input[type="checkbox"] { width: 19px; height: 19px; margin-top: 1px; accent-color: var(--brand); flex: none; }
       .badge {
-        display: inline-flex;
-        padding: 6px 10px;
-        border-radius: 999px;
-        background: #eaf8ef;
-        color: var(--good);
-        font-weight: 800;
+        display: inline-flex; padding: 5px 12px; border-radius: 999px;
+        background: var(--good-soft); color: var(--good);
+        border: 1px solid rgba(62,207,142,.3); font-weight: 700; font-size: 13px;
+        margin-bottom: 8px;
       }
-      .warn {
-        background: #fff4df;
-        color: var(--warn);
-      }
+      .badge.warn { background: var(--caution-soft); color: var(--caution); border-color: rgba(224,163,46,.3); }
+      .badge.new { background: var(--accent-soft); color: var(--accent); border-color: rgba(214,69,80,.32); }
       .path {
-        word-break: break-all;
-        font-weight: 800;
+        word-break: break-all; font-weight: 700; color: var(--text);
+        background: var(--navy); border: 1px solid var(--line);
+        border-radius: 8px; padding: 8px 11px; margin: 0 0 14px;
+        font-family: ui-monospace, Menlo, monospace; font-size: 13px;
       }
-      @media (max-width: 760px) {
-        .grid { grid-template-columns: 1fr; }
+      .note {
+        border-left: 3px solid var(--accent);
+        background: var(--accent-soft);
+        border-radius: 8px; padding: 12px 14px; margin: 0 0 10px;
+        color: #e9c4c7; font-size: 13.5px;
       }
+      .qa p { margin: 0 0 12px; }
+      .qa p:last-child { margin-bottom: 0; }
+      a { color: var(--brand-strong); }
+      @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body>
     <header>
-      <h1>품새 AI 분석 테스트 가이드</h1>
-      <p>설치, 기능 확인, UI/UX 변경 확인을 한 번에 점검하는 문서입니다.</p>
+      <div class="wrap">
+        <h1>태권도 품새 수련 훈련 테스트 가이드</h1>
+        <p>설치, 기능 확인, UI/UX 변경 확인, 실기기 점검을 한 번에 진행하는 문서입니다.</p>
+        <span class="ver">v3.15</span>
+      </div>
     </header>
-    <main>
+    <main class="wrap">
+
       <section>
         <h2>테스트 APK 위치</h2>
         <p class="badge">테스트용 APK 사본</p>
@@ -106,39 +159,75 @@
         <p class="path">android/app/build/outputs/apk/debug/app-debug.apk</p>
       </section>
 
+      <section>
+        <h2>이번 v3.15에서 새로 확인할 점</h2>
+        <p class="note"><strong>분석 정확도:</strong> 촬영 거리에 영향을 덜 받도록 좌표를 몸통 길이 기준으로 정규화하고, 떨림 보정과 적응형 구간 분석을 적용했습니다. 같은 영상을 멀리/가까이서 찍어도 점수가 비슷하게 나오는지 확인해 보세요.</p>
+        <div class="checklist">
+          <label><input type="checkbox" /> 화면이 다크 도장 테마로 표시됨 (먹빛 바탕, 청록·홍 포인트)</label>
+          <label><input type="checkbox" /> <strong>분석 진행 중에는 영상 컨트롤이 잠김</strong> (영상이 살짝 흐려지고 조작 불가)</label>
+          <label><input type="checkbox" /> 분석이 끝나면 영상 컨트롤이 다시 켜짐</label>
+          <label><input type="checkbox" /> 동작 수가 다른 품새(태극 3·6·7장)에서 구간 수가 올바르게 표시됨</label>
+          <label><input type="checkbox" /> 같은 영상을 다른 거리에서 촬영해도 점수 차이가 크지 않음</label>
+        </div>
+      </section>
+
       <div class="grid">
         <section>
-          <h2>설치 체크</h2>
+          <h2>설치 전 확인</h2>
           <div class="checklist">
-            <label><input type="checkbox" /> 기존 품새 AI 분석 앱 삭제</label>
-            <label><input type="checkbox" /> APK를 USB 또는 Google Drive로 휴대폰에 복사</label>
-            <label><input type="checkbox" /> 알 수 없는 앱 설치 허용</label>
-            <label><input type="checkbox" /> Play 프로텍트 경고에서 세부정보 더보기 후 설치 진행</label>
+            <label><input type="checkbox" /> 기존에 설치된 앱이 있으면 먼저 삭제</label>
+            <label><input type="checkbox" /> 휴대폰 설정에서 알 수 없는 앱 설치 허용</label>
+            <label><input type="checkbox" /> 카카오톡 전송이 막히면 USB 또는 Google Drive로 이동</label>
+            <label><input type="checkbox" /> Play 프로텍트 경고는 debug APK 정상 경고로 확인</label>
           </div>
         </section>
         <section>
-          <h2>기본 기능 체크</h2>
+          <h2>빠른 기능 테스트</h2>
           <div class="checklist">
             <label><input type="checkbox" /> 앱 실행</label>
             <label><input type="checkbox" /> 품새 선택</label>
             <label><input type="checkbox" /> 영상 파일 선택</label>
-            <label><input type="checkbox" /> 모델 준비</label>
-            <label><input type="checkbox" /> 평가 시작</label>
-            <label><input type="checkbox" /> 0.5x, 0.75x, 1.0x 속도 확인</label>
+            <label><input type="checkbox" /> 분석 시작과 모델 자동 준비</label>
+            <label><input type="checkbox" /> 분석 완료 확인</label>
+            <label><input type="checkbox" /> 구간 카드 또는 사진 클릭 재생</label>
+            <label><input type="checkbox" /> 왼쪽 영상이 바로 재생되는지 확인</label>
+            <label><input type="checkbox" /> 속도 0.5x · 0.75x · 1.0x 확인</label>
+            <label><input type="checkbox" /> 하단 결과지 메뉴 이동</label>
+            <label><input type="checkbox" /> 결과지 별도 화면 확인</label>
+            <label><input type="checkbox" /> 훈련 화면으로 버튼 클릭</label>
+            <label><input type="checkbox" /> JPG 결과지 생성 확인</label>
           </div>
         </section>
       </div>
 
       <section>
-        <h2>이번 UI/UX 변경 확인</h2>
+        <h2>UI/UX 변경 확인</h2>
         <div class="checklist">
-          <label><input type="checkbox" /> 영상/리플레이 영역이 왼쪽에 유지됨</label>
-          <label><input type="checkbox" /> 구간 목록을 보면서 리플레이 영상을 바로 확인 가능</label>
-          <label><input type="checkbox" /> 메인 화면에 긴 출력 textarea가 보이지 않음</label>
-          <label><input type="checkbox" /> 결과지 보기 버튼이 별도 결과지 화면으로 이동</label>
-          <label><input type="checkbox" /> 훈련 화면으로 버튼이 정상 동작</label>
-          <label><input type="checkbox" /> JPG 결과지 생성 후 미리보기 표시</label>
+          <label><input type="checkbox" /> 영상 영역이 왼쪽에 유지됨</label>
+          <label><input type="checkbox" /> 구간별 평가 목록을 스크롤해도 영상 확인이 쉬움</label>
+          <label><input type="checkbox" /> 리포트 출력 textarea가 메인 화면에 보이지 않음</label>
+          <label><input type="checkbox" /> 결과지가 별도 페이지로 열림</label>
+          <label><input type="checkbox" /> JPG 결과지 생성 후 미리보기가 결과지 화면에 표시됨</label>
         </div>
+      </section>
+
+      <section>
+        <h2>Android 실기기 체크</h2>
+        <div class="checklist">
+          <label><input type="checkbox" /> 카메라/파일 권한 요청이 정상</label>
+          <label><input type="checkbox" /> 앱 실행 후 WebView 화면이 깨지지 않음</label>
+          <label><input type="checkbox" /> 90초 이하 영상에서 분석이 끝까지 진행됨</label>
+          <label><input type="checkbox" /> 모델 준비 실패 시 오류 문구가 표시됨</label>
+          <label><input type="checkbox" /> GPU 실패 기기에서 CPU 폴백으로 모델 준비 재시도됨</label>
+        </div>
+      </section>
+
+      <section class="qa">
+        <h2>문제가 생길 때</h2>
+        <p><strong>앱 설치가 안 됨:</strong> 기존 앱 삭제 후 다시 설치합니다. APK를 카카오톡이 아닌 USB 또는 Google Drive로 옮깁니다. Play 프로텍트에서 세부정보 더보기 후 무시하고 설치를 선택합니다.</p>
+        <p><strong>분석 중 멈춤:</strong> 같은 시간 seek 데드락 방지 패치가 들어가 있습니다. 그래도 멈추면 영상 길이와 파일 형식을 바꿔 테스트합니다. MP4 · 30초 내외 영상으로 먼저 확인합니다.</p>
+        <p><strong>모델 준비 실패:</strong> 오프라인 자산이 포함되어 있는지 확인합니다. 아래 명령으로 자산 상태를 점검합니다.</p>
+        <pre><code>npm.cmd run assets:check</code></pre>
       </section>
 
       <section>
@@ -150,12 +239,6 @@ $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
 .\gradlew.bat assembleDebug</code></pre>
       </section>
 
-      <section>
-        <h2>문제 해결</h2>
-        <p><strong>설치가 안 됨:</strong> 기존 앱 삭제 후 USB 또는 Google Drive로 APK를 다시 옮겨 설치합니다.</p>
-        <p><strong>분석 중 멈춤:</strong> 30초 내외 MP4 영상으로 먼저 테스트합니다.</p>
-        <p><strong>모델 준비 실패:</strong> 오프라인 자산 체크 명령을 실행합니다.</p>
-      </section>
     </main>
   </body>
 </html>
