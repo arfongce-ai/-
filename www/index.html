@@ -304,6 +304,11 @@
         gap: 8px;
         margin: 14px 0 12px;
       }
+      .mode-tabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
       .poomsae-tab {
         min-height: 58px;
         border: 1px solid var(--line);
@@ -315,6 +320,36 @@
         background: #dbeafe;
         color: #1e3a8a;
         box-shadow: inset 0 0 0 1px #2563eb;
+      }
+      .mode-tab {
+        min-height: 72px;
+        text-align: left;
+        padding: 12px 14px;
+        border: 1px solid #c6d3e6;
+        background: #ffffff;
+        color: #1f2937;
+      }
+      .mode-tab strong,
+      .mode-tab span {
+        display: block;
+      }
+      .mode-tab strong {
+        font-size: 17px;
+        margin-bottom: 4px;
+      }
+      .mode-tab span {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      .mode-tab.active {
+        border-color: #174ea6;
+        background: #eef4ff;
+        color: #123b7a;
+        box-shadow: inset 0 0 0 1px #174ea6;
+      }
+      .mode-tab.active span {
+        color: #315a94;
       }
       .player-controls {
         display: flex;
@@ -525,8 +560,21 @@
     <main class="wrap">
       <div class="grid">
         <section>
-          <h2>1. 품새, 영상, 모델 준비</h2>
-          <p>품새 구분을 선택하고 영상을 업로드하세요. 폰/태블릿에서는 파일 선택 시 바로 촬영한 영상도 사용할 수 있습니다.</p>
+          <h2>1. 품새와 영상 선택</h2>
+          <p>탭은 품새를 쉽게 찾기 위한 분류입니다. 품새를 먼저 골라도, 영상을 먼저 넣어도 됩니다. 둘 다 준비되면 분석 시작을 누르세요.</p>
+          <div class="poomsae-tabs mode-tabs" role="tablist" aria-label="훈련 목적">
+            <button type="button" class="poomsae-tab mode-tab" data-mode="exam">
+              <strong>심사 준비</strong>
+              <span>점수 없이 문제점과 수정 포인트 확인</span>
+            </button>
+            <button type="button" class="poomsae-tab mode-tab active" data-mode="competition">
+              <strong>시합 준비</strong>
+              <span>100점 기준, 반복 문제, 필요 훈련 확인</span>
+            </button>
+          </div>
+          <div class="code" id="modeHelp" style="margin-top: 10px;">
+            시합 준비: 100점 기준 점수와 필요 훈련을 함께 확인합니다.
+          </div>
           <div class="poomsae-tabs" role="tablist" aria-label="품새 구분">
             <button type="button" class="poomsae-tab active" data-group="yugeup">유급자</button>
             <button type="button" class="poomsae-tab" data-group="yupum">유품자</button>
@@ -548,7 +596,7 @@
             <button id="jpgBtn" class="secondary" disabled hidden>JPG 저장</button>
           </div>
           <div class="code" style="margin-top: 14px;">
-            이 기기에서 품새 영상을 선택한 뒤 분석 시작을 누르세요.<br>
+            순서 자유: 품새 선택과 영상 선택을 마친 뒤 분석 시작을 누르세요.<br>
             권장 촬영: 가로 영상, 정면, 전신, 카메라 고정
           </div>
           <div style="margin-top: 18px;">
@@ -567,7 +615,7 @@
               <label><input id="loopVideoToggle" type="checkbox" /> 전체 반복</label>
               <label><input id="loopSegmentToggle" type="checkbox" checked /> 선택 구간 반복</label>
               <button id="replayAllBtn" class="secondary" type="button" disabled>전체 리플레이</button>
-              <button id="replayWeakBtn" class="secondary" type="button" disabled>최저점 구간 리플레이</button>
+              <button id="replayWeakBtn" class="secondary" type="button" disabled>우선 구간 리플레이</button>
             </div>
           </div>
         </section>
@@ -578,11 +626,11 @@
             <div class="metric"><strong>길이</strong><span id="durationText">-</span></div>
             <div class="metric"><strong>해상도</strong><span id="resolutionText">-</span></div>
             <div class="metric"><strong>Pose 감지율</strong><span id="detectRateText">-</span></div>
-            <div class="metric"><strong>전체/평균</strong><span id="powerScoreText">-</span></div>
+            <div class="metric"><strong>100점 기준/평균</strong><span id="powerScoreText">-</span></div>
           </div>
           <div style="margin-top: 16px;">
             <progress id="progress" value="0" max="100"></progress>
-            <p id="progressText" class="small">모델 준비를 누르면 MediaPipe를 불러옵니다.</p>
+            <p id="progressText" class="small">품새와 영상을 준비한 뒤 분석 시작을 누르세요.</p>
           </div>
           <div class="row" style="margin-top: 10px;">
             <span id="modelStatus" class="status caution">모델 대기</span>
@@ -613,7 +661,7 @@
 
       <section style="margin-top: 18px;">
         <h2 id="segmentTitle">5. 태극 1장 구간별 파워·맺음 평가</h2>
-        <p id="segmentDescription">구간마다 5개 프레임을 분석합니다. 최고 속도, 끝 정지, 마무리 흔들림을 합쳐 추정 점수를 냅니다.</p>
+        <p id="segmentDescription">구간마다 여러 프레임을 분석해 속도, 맺음, 정지 안정성, 서기 안정성을 확인합니다.</p>
         <div id="segments" class="segments"></div>
       </section>
     </main>
@@ -742,6 +790,7 @@
 
       let selectedPoomsaeGroup = "yugeup";
       let selectedPoomsaeKey = "taegeuk_1";
+      let trainingMode = "competition";
       let movements = buildGenericMovements(selectedPoomsaeKey);
 
       const fileInput = document.getElementById("fileInput");
@@ -762,6 +811,7 @@
       const resolutionText = document.getElementById("resolutionText");
       const detectRateText = document.getElementById("detectRateText");
       const powerScoreText = document.getElementById("powerScoreText");
+      const modeHelp = document.getElementById("modeHelp");
       const progress = document.getElementById("progress");
       const progressText = document.getElementById("progressText");
       const modelStatus = document.getElementById("modelStatus");
@@ -784,7 +834,7 @@
       let selectedFile = null;
       let poseLandmarker = null;
       let latestReport = null;
-      let autoAnalyzePending = false;
+      const stableAnalysisCache = new Map();
       let isAnalyzing = false;
       let loadModelPromise = null;
       let replayRange = null;
@@ -821,7 +871,7 @@
         }
         selectedPoomsaeKey = group.keys.includes(preferredKey) ? preferredKey : group.keys[0];
         poomsaeSelect.value = selectedPoomsaeKey;
-        document.querySelectorAll(".poomsae-tab").forEach((tab) => {
+        document.querySelectorAll("[data-group]").forEach((tab) => {
           tab.classList.toggle("active", tab.dataset.group === groupKey);
           tab.setAttribute("aria-selected", tab.dataset.group === groupKey ? "true" : "false");
         });
@@ -966,6 +1016,7 @@
         const shot = segment.snapshot
           ? `<img class="scene-shot" src="${segment.snapshot}" alt="${escapeHtml(segment.order)}번 구간 장면" loading="lazy" />`
           : `<div class="scene-shot scene-placeholder">장면 없음</div>`;
+        const scoreMeta = trainingMode === "exam" ? "" : `<span>${segment.powerScore}점</span>`;
         return `
           <article class="scene-card ${isPriority ? "priority" : ""}">
             ${shot}
@@ -974,12 +1025,28 @@
               <div class="scene-meta">
                 <span>${segment.startTime.toFixed(1)}-${segment.endTime.toFixed(1)}초</span>
                 <span>${escapeHtml(segment.label)}</span>
-                <span>${segment.powerScore}점</span>
+                ${scoreMeta}
               </div>
               <p class="small">${escapeHtml(segment.feedback)}</p>
             </div>
           </article>
         `;
+      }
+      function modeLabel() {
+        return trainingMode === "exam" ? "심사 준비" : "시합 준비";
+      }
+      function updateTrainingModeUi() {
+        document.querySelectorAll("[data-mode]").forEach((tab) => {
+          tab.classList.toggle("active", tab.dataset.mode === trainingMode);
+          tab.setAttribute("aria-selected", tab.dataset.mode === trainingMode ? "true" : "false");
+        });
+        if (modeHelp) {
+          modeHelp.textContent = trainingMode === "exam"
+            ? "심사 준비: 점수 없이 문제점 확인과 수정 포인트를 중심으로 결과지를 만듭니다."
+            : "시합 준비: 100점 기준 점수, 반복 문제, 필요 훈련을 함께 확인합니다.";
+        }
+        powerScoreText.closest(".metric").querySelector("strong").textContent = trainingMode === "exam" ? "결과 방식" : "100점 기준/평균";
+        if (!latestReport) powerScoreText.textContent = trainingMode === "exam" ? "문제점 확인" : "-";
       }
       function renderResultPage() {
         if (!resultPageContent) return;
@@ -992,10 +1059,13 @@
           .sort((a, b) => a.powerScore - b.powerScore)
           .slice(0, 5);
         const summaryItems = latestReport.summary.items || [];
+        const scoreMetric = trainingMode === "exam"
+          ? `<div class="metric"><strong>결과 방식</strong><span>문제점 확인</span></div>`
+          : `<div class="metric"><strong>100점 기준/평균</strong><span>${escapeHtml(latestReport.summary.score_100)} / ${escapeHtml(latestReport.summary.average_power_finish_score)}</span></div>`;
         resultPageContent.innerHTML = `
           <div class="result-grid">
             <div class="metric"><strong>품새</strong><span>${escapeHtml(latestReport.poomsae?.name || currentPoomsae().name)}</span></div>
-            <div class="metric"><strong>전체/평균</strong><span>${escapeHtml(latestReport.summary.total_score)} / ${escapeHtml(latestReport.summary.average_power_finish_score)}</span></div>
+            ${scoreMetric}
             <div class="metric"><strong>Pose 감지율</strong><span>${Math.round(latestReport.summary.detection_rate * 100)}%</span></div>
             <div class="metric"><strong>구간 수</strong><span>${latestReport.segments.length}</span></div>
           </div>
@@ -1009,7 +1079,7 @@
             <div class="result-section-title">
               <div>
                 <h3>우선 확인할 부분</h3>
-                <p class="small">점수가 낮은 구간부터 먼저 확인하세요.</p>
+                <p class="small">${trainingMode === "exam" ? "문제 가능성이 높은 구간부터 먼저 확인하세요." : "점수가 낮은 구간부터 먼저 확인하세요."}</p>
               </div>
               <span class="badge">${weak.length}개</span>
             </div>
@@ -1045,19 +1115,27 @@
       function formatReportText() {
         if (!latestReport) return "";
         const lines = [];
-        lines.push("품새 AI 분석 평가 리포트");
+        lines.push(`품새 AI 분석 ${modeLabel()} 리포트`);
         lines.push(`생성일: ${new Date(latestReport.created_at).toLocaleString()}`);
+        lines.push(`모드: ${modeLabel()}`);
         lines.push(`품새: ${latestReport.poomsae?.name || currentPoomsae().name}`);
         lines.push(`영상: ${latestReport.file?.name || "-"}`);
         lines.push(`해상도: ${latestReport.video.width} x ${latestReport.video.height}`);
         lines.push(`길이: ${latestReport.video.duration_seconds}초`);
-        lines.push(`전체/평균: ${latestReport.summary.total_score} / ${latestReport.summary.average_power_finish_score}`);
+        if (trainingMode !== "exam") lines.push(`100점 기준/평균: ${latestReport.summary.score_100} / ${latestReport.summary.average_power_finish_score}`);
+        else lines.push("결과 방식: 점수 없이 문제점 확인 및 수정 중심");
         lines.push(`Pose 감지율: ${Math.round(latestReport.summary.detection_rate * 100)}%`);
+        if (latestReport.summary.needed_training?.length) {
+          lines.push("");
+          lines.push("[필요 훈련]");
+          latestReport.summary.needed_training.forEach((item) => lines.push(`- ${item}`));
+        }
         lines.push("");
         lines.push("[구간별 결과]");
         for (const segment of latestReport.segments) {
-          lines.push(`${segment.order}. ${segment.name} - ${segment.label} (${segment.powerScore}점)`);
-          lines.push(`   속도 ${segment.velocityScore} / 맺음 ${segment.snapScore} / 정지 ${segment.stillnessScore}`);
+          const scoreText = trainingMode === "exam" ? "" : ` (${segment.powerScore}점)`;
+          lines.push(`${segment.order}. ${segment.name} - ${segment.label}${scoreText}`);
+          if (trainingMode !== "exam") lines.push(`   속도 ${segment.velocityScore} / 맺음 ${segment.snapScore} / 정지 ${segment.stillnessScore}`);
           lines.push(`   ${segment.feedback}`);
         }
         return lines.join("\n");
@@ -1076,6 +1154,7 @@
         const poomsaeName = latestReport.poomsae?.name || currentPoomsae().name;
         const avg = latestReport.summary.average_power_finish_score;
         const detectRate = Math.round(latestReport.summary.detection_rate * 100);
+        const issueCounts = latestReport.summary.issue_counts || [];
         const topWeak = latestReport.segments
           .slice()
           .sort((a, b) => a.powerScore - b.powerScore)
@@ -1136,27 +1215,34 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "#173f8a";
         ctx.fillRect(0, 0, canvas.width, 250);
-        text("품새 AI 분석", 90, 56, 34, "#dbeafe", "800");
+        text(`품새 AI 분석 · ${modeLabel()}`, 90, 56, 34, "#dbeafe", "800");
         text(`${poomsaeName} 결과지`, 90, 108, 58, "#ffffff", "800");
         text("영상 기반 수련 피드백 · 공식 심사 대체 아님", 90, 184, 28, "#dbeafe", "700");
 
         rr(70, 305, 1260, 245, 18, "#ffffff", "#d9dee8");
         text("분석 대상", 110, 342, 30, "#111827", "800");
         metric("품새", poomsaeName, 110, 395, 270);
-        metric("전체/평균", `${latestReport.summary.total_score}/${avg}`, 410, 395, 270);
+        metric(trainingMode === "exam" ? "결과 방식" : "100점 기준/평균", trainingMode === "exam" ? "문제점 확인" : `${latestReport.summary.score_100}/${avg}`, 410, 395, 270);
         metric("Pose 감지율", `${detectRate}%`, 710, 395, 270);
         metric("구간 수", latestReport.segments.length, 1010, 395, 270);
 
         rr(70, 590, 1260, 340, 18, "#ffffff", "#d9dee8");
-        text("평가 항목", 110, 630, 30, "#111827", "800");
+        text(trainingMode === "exam" ? "주요 수정 포인트" : "평가 항목", 110, 630, 30, "#111827", "800");
         const speedAvg = Math.round(latestReport.segments.reduce((s, r) => s + r.velocityScore, 0) / latestReport.segments.length);
         const snapAvg = Math.round(latestReport.segments.reduce((s, r) => s + r.snapScore, 0) / latestReport.segments.length);
         const stillAvg = Math.round(latestReport.segments.reduce((s, r) => s + r.stillnessScore, 0) / latestReport.segments.length);
         const stanceAvg = Math.round(latestReport.segments.reduce((s, r) => s + r.stanceScore, 0) / latestReport.segments.length);
-        bar("속도 표현", speedAvg, 110, 700, 790);
-        bar("맺음", snapAvg, 110, 765, 790);
-        bar("정지 안정성", stillAvg, 110, 830, 790);
-        bar("서기 안정성", stanceAvg, 110, 895, 790);
+        if (trainingMode === "exam") {
+          const examLines = issueCounts.length
+            ? issueCounts.slice(0, 4).map((item) => `${item.label}: ${item.count}회 확인 필요`)
+            : ["큰 반복 문제는 적습니다.", "마무리 자세와 기합 위치를 지도자와 함께 확인하세요."];
+          examLines.forEach((line, idx) => wrap(`- ${line}`, 110, 700 + idx * 62, 1100, 26, "#374151"));
+        } else {
+          bar("속도 표현", speedAvg, 110, 700, 790);
+          bar("맺음", snapAvg, 110, 765, 790);
+          bar("정지 안정성", stillAvg, 110, 830, 790);
+          bar("서기 안정성", stanceAvg, 110, 895, 790);
+        }
 
         rr(70, 970, 1260, 520, 18, "#ffffff", "#d9dee8");
         text("우선 보완할 구간", 110, 1010, 30, "#111827", "800");
@@ -1164,7 +1250,8 @@
         topWeak.forEach((segment, index) => {
           rr(110, y, 72, 52, 12, "#eef4ff");
           text(String(index + 1), 138, y + 9, 28, "#174ea6", "800");
-          text(`${segment.order}. ${segment.name} (${segment.powerScore}점)`, 210, y, 27, "#111827", "800");
+          const segmentTitle = trainingMode === "exam" ? `${segment.order}. ${segment.name}` : `${segment.order}. ${segment.name} (${segment.powerScore}점)`;
+          text(segmentTitle, 210, y, 27, "#111827", "800");
           wrap(segment.feedback, 210, y + 38, 1060, 22, "#6b7280");
           y += 108;
         });
@@ -1273,16 +1360,6 @@
         const weakest = latestReport.segments.slice().sort((a, b) => a.powerScore - b.powerScore)[0];
         playRange(weakest.startTime, weakest.endTime);
       }
-      async function autoAnalyzeFromFile() {
-        if (!autoAnalyzePending || !selectedFile || !Number.isFinite(video.duration) || isAnalyzing) return;
-        autoAnalyzePending = false;
-        if (!poseLandmarker) {
-          await loadModel();
-        }
-        if (poseLandmarker) {
-          await analyzePower();
-        }
-      }
       async function importMediaPipe() {
         let lastError = null;
         for (const url of MODULE_URLS) {
@@ -1328,9 +1405,8 @@
             poseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, REMOTE_MODEL_URL);
           }
           setPill(modelStatus, "good", "모델 준비 완료");
-          setProgress(100, "모델 준비 완료. 영상을 선택하고 평가를 시작하세요.");
+          setProgress(100, "모델 준비 완료. 품새와 영상을 확인한 뒤 분석 시작을 누르세요.");
           if (selectedFile && Number.isFinite(video.duration)) analyzeBtn.disabled = false;
-          await autoAnalyzeFromFile();
           return poseLandmarker;
         } catch (error) {
           console.error(error);
@@ -1547,6 +1623,14 @@
         for (const result of results) {
           const row = document.createElement("div");
           row.className = `segment ${borderClass(result.type)}`;
+          const scoreBars = trainingMode === "exam" ? "" : `
+              <div class="bars">
+                ${bar("속도", result.velocityScore)}
+                ${bar("맺음", result.snapScore)}
+                ${bar("정지", result.stillnessScore)}
+                ${bar("서기", result.stanceScore)}
+              </div>
+          `;
           const shot = result.snapshot
             ? `<img class="scene-shot" src="${result.snapshot}" alt="${escapeHtml(result.order)}번 구간 장면" loading="lazy" />`
             : `<div class="scene-shot scene-placeholder">장면 없음</div>`;
@@ -1559,38 +1643,99 @@
             <div>
               <strong>${result.name}</strong>
               <span>${result.feedback}</span>
-              <div class="bars">
-                ${bar("속도", result.velocityScore)}
-                ${bar("맺음", result.snapScore)}
-                ${bar("정지", result.stillnessScore)}
-                ${bar("서기", result.stanceScore)}
-              </div>
+              ${scoreBars}
             </div>
             <div>
               <span class="status ${result.type}">${result.label}</span>
-              <div style="margin-top:8px;font-size:22px;font-weight:800;">${result.powerScore}</div>
+              <div style="margin-top:8px;font-size:22px;font-weight:800;">${trainingMode === "exam" ? "확인" : result.powerScore}</div>
               <button class="secondary replay-segment" type="button" data-start="${result.startTime}" data-end="${result.endTime}" style="margin-top:8px;padding:8px 10px;">리플레이</button>
             </div>
           `;
           segmentsEl.appendChild(row);
         }
       }
+      function repeatedIssueFor(result) {
+        const metrics = [
+          { key: "visibility", label: "촬영 구도", score: result.visibilityScore, practice: "전신이 화면 안에 들어오도록 카메라 거리와 높이를 다시 맞추세요." },
+          { key: "velocity", label: "속도 표현", score: result.velocityScore, practice: "준비 동작은 여유 있게, 끝 동작은 짧고 분명하게 구분하세요." },
+          { key: "snap", label: "맺음", score: result.snapScore, practice: "각 동작 끝에서 0.5초 정도 멈춰 자세가 무너지지 않게 하세요." },
+          { key: "stillness", label: "마무리 흔들림", score: result.stillnessScore, practice: "동작 후 발바닥 압력과 상체 중심을 유지하세요." },
+          { key: "stance", label: "서기 안정성", score: result.stanceScore, practice: "무릎 방향, 발끝 방향, 중심 높이를 먼저 고정한 뒤 손기술을 연결하세요." }
+        ];
+        metrics.sort((a, b) => a.score - b.score);
+        return metrics[0];
+      }
+      function summarizeRepeatedIssues(results) {
+        const issueMap = new Map();
+        results.forEach((result) => {
+          if (result.powerScore >= 78) return;
+          const issue = repeatedIssueFor(result);
+          const prev = issueMap.get(issue.key) || { ...issue, count: 0, examples: [] };
+          prev.count += 1;
+          if (prev.examples.length < 3) prev.examples.push(`${result.order}.${result.name}`);
+          issueMap.set(issue.key, prev);
+        });
+        return Array.from(issueMap.values()).sort((a, b) => b.count - a.count || a.score - b.score);
+      }
+      function neededTrainingFromIssues(issueCounts) {
+        const fallback = trainingMode === "exam"
+          ? ["전체 동작 순서와 준비서기, 마무리 자세를 지도자와 함께 확인하세요."]
+          : ["전체 품새를 70% 속도로 2회 반복한 뒤, 약한 구간만 3회 분리 훈련하세요."];
+        if (!issueCounts.length) return fallback;
+        return issueCounts.slice(0, 3).map((item) => {
+          if (item.key === "stance") return "서기 고정 훈련: 각 구간 끝에서 발끝 방향, 무릎 방향, 중심 높이를 2초간 유지하세요.";
+          if (item.key === "snap") return "맺음 훈련: 동작 끝 지점에서 호흡을 짧게 끊고 0.5초 멈춘 뒤 다음 동작으로 연결하세요.";
+          if (item.key === "velocity") return "리듬 훈련: 준비 동작은 부드럽게, 마지막 20% 구간은 빠르고 분명하게 마무리하세요.";
+          if (item.key === "stillness") return "정지 안정성 훈련: 동작 후 상체가 흔들리지 않도록 발바닥 압력과 골반 위치를 고정하세요.";
+          return "촬영 구도 점검: 머리, 양손, 양발이 화면 안에 들어오도록 카메라를 더 멀리 고정하세요.";
+        });
+      }
       function summarize(results) {
-        const total = results.reduce((sum, r) => sum + r.powerScore, 0);
         const avg = results.reduce((sum, r) => sum + r.powerScore, 0) / Math.max(results.length, 1);
+        const score100 = avg;
         const detected = results.filter((r) => r.detected).length;
         const detectRate = detected / Math.max(results.length, 1);
         const weak = results.filter((r) => r.powerScore < 55).slice(0, 3);
         const type = avg >= 78 && detectRate >= .8 ? "good" : avg >= 55 && detectRate >= .5 ? "caution" : "bad";
-        const label = type === "good" ? "파워·맺음 양호" : type === "caution" ? "보완 필요" : "촬영/동작 확인";
+        const label = trainingMode === "exam"
+          ? (type === "good" ? "큰 문제 적음" : type === "caution" ? "수정 필요" : "지도자 확인")
+          : (type === "good" ? "파워·맺음 양호" : type === "caution" ? "보완 필요" : "촬영/동작 확인");
         const items = [];
         const totalSegments = results.length;
-        items.push({ type, text: `파워·맺음 평균은 ${avg.toFixed(1)}점입니다. 이 점수는 실제 힘이 아니라 속도 변화, 끝 정지, 흔들림 기반 추정치입니다.` });
+        const issueCounts = summarizeRepeatedIssues(results);
+        const neededTraining = neededTrainingFromIssues(issueCounts);
+        if (trainingMode === "exam") {
+          items.push({ type, text: "심사 준비 결과입니다. 점수보다 동작 순서, 자세 안정성, 손발 위치의 문제점을 우선 확인하세요." });
+        } else {
+          items.push({ type, text: `100점 기준 점수는 ${score100.toFixed(1)}점이고, 구간 평균도 ${avg.toFixed(1)}점입니다. 이 점수는 실제 힘이 아니라 속도 변화, 끝 정지, 흔들림 기반 추정치입니다.` });
+        }
         if (detectRate >= .8) items.push({ type: "good", text: `${totalSegments}개 구간 중 ${detected}개 구간에서 관절 데이터가 감지됐습니다.` });
         else items.push({ type: "caution", text: `${totalSegments}개 구간 중 ${detected}개 구간에서 관절 데이터가 감지됐습니다. 손과 발이 화면 안에 들어오도록 촬영하세요.` });
+        if (issueCounts.length) {
+          items.push({ type: "caution", text: `반복해서 보이는 문제: ${issueCounts.slice(0, 3).map((item) => `${item.label} ${item.count}회`).join(", ")}.` });
+          items.push({ type: "caution", text: `연습포인트 요약: ${issueCounts.slice(0, 2).map((item) => item.practice).join(" / ")}` });
+        }
+        if (trainingMode === "competition") {
+          items.push({ type: "caution", text: `필요 훈련: ${neededTraining.join(" / ")}` });
+        }
         if (weak.length) items.push({ type: "bad", text: `우선 보완할 구간: ${weak.map((r) => `${r.order}.${r.name}`).join(", ")}` });
         items.push({ type: "caution", text: "영상만으로 실제 타격 힘은 직접 측정할 수 없으므로, 이 평가는 속도와 마무리 안정성 기반의 코칭 지표입니다." });
-        return { total, avg, detectRate, type, label, items };
+        return { score100, avg, detectRate, type, label, items, issueCounts, neededTraining };
+      }
+      function currentAnalysisCacheKey() {
+        if (!selectedFile || !Number.isFinite(video.duration)) return "";
+        return [
+          selectedPoomsaeKey,
+          selectedFile.name,
+          selectedFile.size,
+          selectedFile.lastModified || 0,
+          video.duration.toFixed(3),
+          video.videoWidth,
+          video.videoHeight
+        ].join("|");
+      }
+      function cloneStableData(value) {
+        return JSON.parse(JSON.stringify(value));
       }
       function clearAnalysisOnly() {
         latestReport = null;
@@ -1608,8 +1753,71 @@
         jpgOpenLink.href = "#";
         segmentsEl.innerHTML = "";
         detectRateText.textContent = "-";
-        powerScoreText.textContent = "-";
+        powerScoreText.textContent = trainingMode === "exam" ? "문제점 확인" : "-";
         setPill(overallStatus, "caution", "분석 전");
+      }
+      function completeAnalysis(results, frameSamples, cacheHit = false) {
+        renderSegments(results);
+        const summary = summarize(results);
+        const issueTotal = summary.issueCounts.reduce((sum, item) => sum + item.count, 0);
+        detectRateText.textContent = `${(summary.detectRate * 100).toFixed(0)}%`;
+        powerScoreText.textContent = trainingMode === "exam"
+          ? `문제점 ${issueTotal}회`
+          : `${summary.score100.toFixed(1)} / ${summary.avg.toFixed(1)}`;
+        setPill(overallStatus, summary.type, summary.label);
+        renderReport(summary.items);
+        setProgress(100, cacheHit ? "동일 영상 안정화 결과를 불러왔습니다." : (trainingMode === "exam" ? "문제점 확인 완료" : "파워·맺음 평가 완료"));
+        latestReport = {
+          app: "품새 AI 분석",
+          created_at: new Date().toISOString(),
+          training_mode: trainingMode,
+          training_mode_label: modeLabel(),
+          mode: "power_snap_stillness_estimation",
+          note: trainingMode === "exam"
+            ? "심사 준비 결과지는 점수 없이 문제점 확인 및 수정 포인트 중심으로 표시한다."
+            : "시합 준비 결과지는 100점 기준 점수와 필요 훈련을 함께 표시한다. 영상 관절 좌표 기반 추정치이며 실제 물리적 힘을 직접 측정하지 않는다.",
+          scoring_stability: {
+            segment_samples: 8,
+            speed_aggregation: "median_and_trimmed_mean",
+            score_rounding_step: 5,
+            cache_key_strategy: "same_file_same_poomsae_reuses_segment_metrics",
+            cache_hit: cacheHit,
+            note: "같은 영상과 같은 품새를 반복 측정하면 세션 내 캐시된 구간 분석값을 재사용해 점수 흔들림을 줄인다."
+          },
+          poomsae: {
+            id: selectedPoomsaeKey,
+            name: currentPoomsae().name,
+            movement_count: movements.length,
+            data_note: currentPoomsae().note
+          },
+          file: selectedFile ? { name: selectedFile.name, size_bytes: selectedFile.size, type: selectedFile.type } : null,
+          video: { duration_seconds: Number(video.duration.toFixed(3)), width: video.videoWidth, height: video.videoHeight },
+          summary: {
+            label: summary.label,
+            score_100: Number(summary.score100.toFixed(2)),
+            average_power_finish_score: Number(summary.avg.toFixed(2)),
+            detection_rate: Number(summary.detectRate.toFixed(4)),
+            issue_counts: summary.issueCounts.map((item) => ({
+              key: item.key,
+              label: item.label,
+              count: item.count,
+              examples: item.examples
+            })),
+            needed_training: summary.neededTraining,
+            items: summary.items
+          },
+          segments: results,
+          frame_samples: frameSamples,
+          next_step: "관절 속도 피크와 정지점으로 실제 동작 전환점을 자동 감지하고, 지르기/막기/차기별 궤적 정확도 규칙을 연결"
+        };
+        analyzeBtn.disabled = false;
+        reanalyzeBtn.disabled = false;
+        downloadBtn.disabled = false;
+        showReportBtn.disabled = false;
+        jpgBtn.disabled = false;
+        replayAllBtn.disabled = false;
+        replayWeakBtn.disabled = false;
+        reportOutput.value = formatReportText();
       }
       async function startAnalysis() {
         if (isAnalyzing) {
@@ -1660,7 +1868,13 @@
         jpgOpenLink.href = "#";
         segmentsEl.innerHTML = "";
         video.pause();
-        setProgress(5, "파워·맺음 평가를 시작합니다.");
+        const cacheKey = currentAnalysisCacheKey();
+        const cached = cacheKey ? stableAnalysisCache.get(cacheKey) : null;
+        if (cached) {
+          completeAnalysis(cloneStableData(cached.results), cloneStableData(cached.frameSamples), true);
+          return;
+        }
+        setProgress(5, trainingMode === "exam" ? "문제점 확인 분석을 시작합니다." : "파워·맺음 평가를 시작합니다.");
         const results = [];
         const frameSamples = [];
         for (let i = 0; i < movements.length; i += 1) {
@@ -1695,53 +1909,11 @@
             times: frames.map((f) => Number(f.time.toFixed(3))),
             detected_frames: frames.filter((f) => f.landmarks).length
           });
-          setProgress(5 + Math.round(((i + 1) / movements.length) * 82), `파워·맺음 평가 중... ${i + 1}/${movements.length}`);
+          setProgress(5 + Math.round(((i + 1) / movements.length) * 82), `${trainingMode === "exam" ? "문제점 확인 중" : "파워·맺음 평가 중"}... ${i + 1}/${movements.length}`);
           await new Promise((resolve) => setTimeout(resolve, 10));
         }
-        renderSegments(results);
-        const summary = summarize(results);
-        detectRateText.textContent = `${(summary.detectRate * 100).toFixed(0)}%`;
-        powerScoreText.textContent = `${summary.total.toFixed(0)} / ${summary.avg.toFixed(1)}`;
-        setPill(overallStatus, summary.type, summary.label);
-        renderReport(summary.items);
-        setProgress(100, "파워·맺음 평가 완료");
-        latestReport = {
-          app: "품새 AI 분석",
-          created_at: new Date().toISOString(),
-          mode: "power_snap_stillness_estimation",
-          note: "영상 관절 좌표 기반 추정치이며 실제 물리적 힘을 직접 측정하지 않는다.",
-          scoring_stability: {
-            segment_samples: 8,
-            speed_aggregation: "median_and_trimmed_mean",
-            score_rounding_step: 5,
-            note: "동일 영상 재측정 시 흔들림을 줄이기 위해 구간별 샘플 수를 늘리고 중앙값/절사평균/5점 단위 반올림을 적용한다."
-          },
-          poomsae: {
-            id: selectedPoomsaeKey,
-            name: currentPoomsae().name,
-            movement_count: movements.length,
-            data_note: currentPoomsae().note
-          },
-          file: selectedFile ? { name: selectedFile.name, size_bytes: selectedFile.size, type: selectedFile.type } : null,
-          video: { duration_seconds: Number(video.duration.toFixed(3)), width: video.videoWidth, height: video.videoHeight },
-          summary: {
-            label: summary.label,
-            total_score: Number(summary.total.toFixed(0)),
-            average_power_finish_score: Number(summary.avg.toFixed(2)),
-            detection_rate: Number(summary.detectRate.toFixed(4))
-          },
-          segments: results,
-          frame_samples: frameSamples,
-          next_step: "관절 속도 피크와 정지점으로 실제 동작 전환점을 자동 감지하고, 지르기/막기/차기별 궤적 정확도 규칙을 연결"
-        };
-        analyzeBtn.disabled = false;
-        reanalyzeBtn.disabled = false;
-        downloadBtn.disabled = false;
-        showReportBtn.disabled = false;
-        jpgBtn.disabled = false;
-        replayAllBtn.disabled = false;
-        replayWeakBtn.disabled = false;
-        reportOutput.value = formatReportText();
+        if (cacheKey) stableAnalysisCache.set(cacheKey, cloneStableData({ results, frameSamples }));
+        completeAnalysis(results, frameSamples, false);
         } catch (error) {
           console.error(error);
           const hadReport = !!latestReport;
@@ -1766,6 +1938,7 @@
       }
       renderPoomsaeOptions(selectedPoomsaeGroup, selectedPoomsaeKey);
       updatePoomsaeView();
+      updateTrainingModeUi();
       setupLayout();
       setupQuickNav();
 
@@ -1773,7 +1946,6 @@
         showTrainingPage();
         selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
         latestReport = null;
-        autoAnalyzePending = Boolean(selectedFile);
         clearReplayRange();
         downloadBtn.disabled = true;
         showReportBtn.disabled = true;
@@ -1795,17 +1967,16 @@
         objectUrl = URL.createObjectURL(selectedFile);
         video.src = objectUrl;
         video.load();
-        setProgress(0, "영상 메타데이터를 읽는 중입니다. 준비되면 자동으로 측정을 시작합니다.");
+        setProgress(0, "영상 메타데이터를 읽는 중입니다. 준비되면 분석 시작을 눌러 주세요.");
       });
       video.addEventListener("loadedmetadata", () => {
         durationText.textContent = formatDuration(video.duration);
         resolutionText.textContent = `${video.videoWidth}x${video.videoHeight}`;
         video.playbackRate = Number(speedSelect.value || 1);
         video.loop = loopVideoToggle.checked;
-        setProgress(0, poseLandmarker ? "영상 준비 완료. 자동 측정을 시작합니다." : "영상 준비 완료. 모델 준비 후 자동 측정을 시작합니다.");
+        setProgress(0, poseLandmarker ? "영상 준비 완료. 분석 시작을 누르세요." : "영상 준비 완료. 분석 시작을 누르면 모델을 불러온 뒤 평가합니다.");
         analyzeBtn.disabled = false;
         reanalyzeBtn.disabled = false;
-        autoAnalyzeFromFile();
       });
       poomsaeSelect.addEventListener("change", () => {
         showTrainingPage();
@@ -1816,6 +1987,7 @@
         downloadBtn.disabled = true;
         showReportBtn.disabled = true;
         jpgBtn.disabled = true;
+        analyzeBtn.disabled = !selectedFile || !Number.isFinite(video.duration);
         reanalyzeBtn.disabled = !selectedFile || !Number.isFinite(video.duration);
         replayAllBtn.disabled = true;
         replayWeakBtn.disabled = true;
@@ -1825,11 +1997,23 @@
         jpgOpenLink.href = "#";
         segmentsEl.innerHTML = "";
         detectRateText.textContent = "-";
-        powerScoreText.textContent = "-";
+        powerScoreText.textContent = trainingMode === "exam" ? "문제점 확인" : "-";
         setPill(overallStatus, "caution", "분석 전");
         renderReport([{ type: "caution", text: `${currentPoomsae().name} 선택 완료. 영상 선택 후 평가를 시작하세요.` }]);
       });
-      document.querySelectorAll(".poomsae-tab").forEach((tab) => {
+      document.querySelectorAll("[data-mode]").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          showTrainingPage();
+          trainingMode = tab.dataset.mode || "competition";
+          updateTrainingModeUi();
+          if (latestReport?.segments?.length) {
+            completeAnalysis(cloneStableData(latestReport.segments), cloneStableData(latestReport.frame_samples || []), true);
+          } else {
+            renderReport([{ type: "caution", text: `${modeLabel()} 모드를 선택했습니다. 품새와 영상을 준비한 뒤 분석 시작을 누르세요.` }]);
+          }
+        });
+      });
+      document.querySelectorAll("[data-group]").forEach((tab) => {
         tab.addEventListener("click", () => {
           showTrainingPage();
           renderPoomsaeOptions(tab.dataset.group || "yugeup");
