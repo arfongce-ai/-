@@ -569,11 +569,11 @@
             </button>
             <button type="button" class="poomsae-tab mode-tab active" data-mode="competition">
               <strong>시합 준비</strong>
-              <span>100점 기준, 반복 문제, 필요 훈련 확인</span>
+              <span>100점/평균, 반복 문제, 필요 훈련 확인</span>
             </button>
           </div>
           <div class="code" id="modeHelp" style="margin-top: 10px;">
-            시합 준비: 100점 기준 점수와 필요 훈련을 함께 확인합니다.
+            시합 준비: 100점/평균과 필요 훈련을 함께 확인합니다.
           </div>
           <div class="poomsae-tabs" role="tablist" aria-label="품새 구분">
             <button type="button" class="poomsae-tab active" data-group="yugeup">유급자</button>
@@ -626,7 +626,7 @@
             <div class="metric"><strong>길이</strong><span id="durationText">-</span></div>
             <div class="metric"><strong>해상도</strong><span id="resolutionText">-</span></div>
             <div class="metric"><strong>Pose 감지율</strong><span id="detectRateText">-</span></div>
-            <div class="metric"><strong>100점 기준/평균</strong><span id="powerScoreText">-</span></div>
+            <div class="metric"><strong>100점/평균</strong><span id="powerScoreText">-</span></div>
           </div>
           <div style="margin-top: 16px;">
             <progress id="progress" value="0" max="100"></progress>
@@ -1043,9 +1043,9 @@
         if (modeHelp) {
           modeHelp.textContent = trainingMode === "exam"
             ? "심사 준비: 점수 없이 문제점 확인과 수정 포인트를 중심으로 결과지를 만듭니다."
-            : "시합 준비: 100점 기준 점수, 반복 문제, 필요 훈련을 함께 확인합니다.";
+            : "시합 준비: 100점/평균, 반복 문제, 필요 훈련을 함께 확인합니다.";
         }
-        powerScoreText.closest(".metric").querySelector("strong").textContent = trainingMode === "exam" ? "결과 방식" : "100점 기준/평균";
+        powerScoreText.closest(".metric").querySelector("strong").textContent = trainingMode === "exam" ? "결과 방식" : "100점/평균";
         if (!latestReport) powerScoreText.textContent = trainingMode === "exam" ? "문제점 확인" : "-";
       }
       function renderResultPage() {
@@ -1061,7 +1061,7 @@
         const summaryItems = latestReport.summary.items || [];
         const scoreMetric = trainingMode === "exam"
           ? `<div class="metric"><strong>결과 방식</strong><span>문제점 확인</span></div>`
-          : `<div class="metric"><strong>100점 기준/평균</strong><span>${escapeHtml(latestReport.summary.score_100)} / ${escapeHtml(latestReport.summary.average_power_finish_score)}</span></div>`;
+          : `<div class="metric"><strong>100점/평균</strong><span>${escapeHtml(latestReport.summary.average_power_finish_score)}</span></div>`;
         resultPageContent.innerHTML = `
           <div class="result-grid">
             <div class="metric"><strong>품새</strong><span>${escapeHtml(latestReport.poomsae?.name || currentPoomsae().name)}</span></div>
@@ -1079,7 +1079,7 @@
             <div class="result-section-title">
               <div>
                 <h3>우선 확인할 부분</h3>
-                <p class="small">${trainingMode === "exam" ? "문제 가능성이 높은 구간부터 먼저 확인하세요." : "점수가 낮은 구간부터 먼저 확인하세요."}</p>
+                <p class="small">${trainingMode === "exam" ? "문제 가능성이 높은 구간부터 먼저 확인하세요." : "점수가 낮은 구간을 먼저 보고, 필요 훈련과 연결해 반복하세요."}</p>
               </div>
               <span class="badge">${weak.length}개</span>
             </div>
@@ -1122,7 +1122,7 @@
         lines.push(`영상: ${latestReport.file?.name || "-"}`);
         lines.push(`해상도: ${latestReport.video.width} x ${latestReport.video.height}`);
         lines.push(`길이: ${latestReport.video.duration_seconds}초`);
-        if (trainingMode !== "exam") lines.push(`100점 기준/평균: ${latestReport.summary.score_100} / ${latestReport.summary.average_power_finish_score}`);
+        if (trainingMode !== "exam") lines.push(`100점/평균: ${latestReport.summary.average_power_finish_score}`);
         else lines.push("결과 방식: 점수 없이 문제점 확인 및 수정 중심");
         lines.push(`Pose 감지율: ${Math.round(latestReport.summary.detection_rate * 100)}%`);
         if (latestReport.summary.needed_training?.length) {
@@ -1222,7 +1222,7 @@
         rr(70, 305, 1260, 245, 18, "#ffffff", "#d9dee8");
         text("분석 대상", 110, 342, 30, "#111827", "800");
         metric("품새", poomsaeName, 110, 395, 270);
-        metric(trainingMode === "exam" ? "결과 방식" : "100점 기준/평균", trainingMode === "exam" ? "문제점 확인" : `${latestReport.summary.score_100}/${avg}`, 410, 395, 270);
+        metric(trainingMode === "exam" ? "결과 방식" : "100점/평균", trainingMode === "exam" ? "문제점 확인" : `${avg}`, 410, 395, 270);
         metric("Pose 감지율", `${detectRate}%`, 710, 395, 270);
         metric("구간 수", latestReport.segments.length, 1010, 395, 270);
 
@@ -1705,21 +1705,33 @@
         const issueCounts = summarizeRepeatedIssues(results);
         const neededTraining = neededTrainingFromIssues(issueCounts);
         if (trainingMode === "exam") {
-          items.push({ type, text: "심사 준비 결과입니다. 점수보다 동작 순서, 자세 안정성, 손발 위치의 문제점을 우선 확인하세요." });
+          items.push({ type, text: "심사 준비 결과입니다. 점수는 표시하지 않고 수정할 부분만 확인합니다." });
+          if (issueCounts.length) {
+            items.push({ type: "caution", text: `먼저 볼 문제: ${issueCounts.slice(0, 2).map((item) => `${item.label} ${item.count}회`).join(", ")}.` });
+            items.push({ type: "caution", text: `수정 방법: ${issueCounts[0].practice}` });
+          } else {
+            items.push({ type: "good", text: "큰 반복 문제는 적습니다. 준비서기, 기합, 마무리 자세만 지도자와 함께 확인하세요." });
+          }
         } else {
-          items.push({ type, text: `100점 기준 점수는 ${score100.toFixed(1)}점이고, 구간 평균도 ${avg.toFixed(1)}점입니다. 이 점수는 실제 힘이 아니라 속도 변화, 끝 정지, 흔들림 기반 추정치입니다.` });
+          items.push({ type, text: `100점/평균 ${avg.toFixed(1)}점입니다. 속도 변화, 맺음, 정지 안정성, 서기 안정성을 종합한 훈련용 지표입니다.` });
+          items.push({ type: "caution", text: `점수 해석: ${avg >= 78 ? "전체 흐름은 안정적입니다. 세부 완성도와 표현성만 다듬으세요." : avg >= 55 ? "대회 전 보완이 필요합니다. 반복되는 약점을 먼저 줄이세요." : "촬영 구도 또는 동작 안정성 문제가 큽니다. 우선 구간을 짧게 나누어 다시 훈련하세요."}` });
         }
-        if (detectRate >= .8) items.push({ type: "good", text: `${totalSegments}개 구간 중 ${detected}개 구간에서 관절 데이터가 감지됐습니다.` });
-        else items.push({ type: "caution", text: `${totalSegments}개 구간 중 ${detected}개 구간에서 관절 데이터가 감지됐습니다. 손과 발이 화면 안에 들어오도록 촬영하세요.` });
+        if (detectRate >= .8) {
+          if (trainingMode === "competition") items.push({ type: "good", text: `${totalSegments}개 구간 중 ${detected}개 구간에서 관절 데이터가 감지됐습니다. 촬영 구도는 분석에 충분합니다.` });
+        } else {
+          items.push({ type: "caution", text: `${totalSegments}개 구간 중 ${detected}개 구간에서 관절 데이터가 감지됐습니다. 손과 발이 화면 안에 들어오도록 촬영하세요.` });
+        }
         if (issueCounts.length) {
-          items.push({ type: "caution", text: `반복해서 보이는 문제: ${issueCounts.slice(0, 3).map((item) => `${item.label} ${item.count}회`).join(", ")}.` });
-          items.push({ type: "caution", text: `연습포인트 요약: ${issueCounts.slice(0, 2).map((item) => item.practice).join(" / ")}` });
+          if (trainingMode === "competition") {
+            items.push({ type: "caution", text: `반복해서 보이는 문제: ${issueCounts.slice(0, 3).map((item) => `${item.label} ${item.count}회`).join(", ")}.` });
+            items.push({ type: "caution", text: `연습포인트 요약: ${issueCounts.slice(0, 2).map((item) => item.practice).join(" / ")}` });
+          }
         }
         if (trainingMode === "competition") {
           items.push({ type: "caution", text: `필요 훈련: ${neededTraining.join(" / ")}` });
         }
         if (weak.length) items.push({ type: "bad", text: `우선 보완할 구간: ${weak.map((r) => `${r.order}.${r.name}`).join(", ")}` });
-        items.push({ type: "caution", text: "영상만으로 실제 타격 힘은 직접 측정할 수 없으므로, 이 평가는 속도와 마무리 안정성 기반의 코칭 지표입니다." });
+        if (trainingMode === "competition") items.push({ type: "caution", text: "영상만으로 실제 타격 힘은 직접 측정할 수 없으므로, 이 평가는 속도와 마무리 안정성 기반의 코칭 지표입니다." });
         return { score100, avg, detectRate, type, label, items, issueCounts, neededTraining };
       }
       function currentAnalysisCacheKey() {
@@ -1763,7 +1775,7 @@
         detectRateText.textContent = `${(summary.detectRate * 100).toFixed(0)}%`;
         powerScoreText.textContent = trainingMode === "exam"
           ? `문제점 ${issueTotal}회`
-          : `${summary.score100.toFixed(1)} / ${summary.avg.toFixed(1)}`;
+          : `${summary.avg.toFixed(1)}`;
         setPill(overallStatus, summary.type, summary.label);
         renderReport(summary.items);
         setProgress(100, cacheHit ? "동일 영상 안정화 결과를 불러왔습니다." : (trainingMode === "exam" ? "문제점 확인 완료" : "파워·맺음 평가 완료"));
@@ -1775,7 +1787,7 @@
           mode: "power_snap_stillness_estimation",
           note: trainingMode === "exam"
             ? "심사 준비 결과지는 점수 없이 문제점 확인 및 수정 포인트 중심으로 표시한다."
-            : "시합 준비 결과지는 100점 기준 점수와 필요 훈련을 함께 표시한다. 영상 관절 좌표 기반 추정치이며 실제 물리적 힘을 직접 측정하지 않는다.",
+          : "시합 준비 결과지는 100점/평균 점수와 필요 훈련을 함께 표시한다. 영상 관절 좌표 기반 추정치이며 실제 물리적 힘을 직접 측정하지 않는다.",
           scoring_stability: {
             segment_samples: 8,
             speed_aggregation: "median_and_trimmed_mean",
