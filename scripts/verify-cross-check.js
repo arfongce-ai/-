@@ -194,6 +194,8 @@ assertContains(webHtml, ".replay-actions button:disabled", "사용 불가능한 
 assertContains(webHtml, "segment-head", "구간 번호와 기술명 상단 배치 구조 존재");
 assertContains(webHtml, "segment-feedback", "모바일 구간 피드백 축약 구조 존재");
 assertContains(webHtml, "openVideoReplay", "구간 클릭 시 영상 리플레이 이동 함수 존재");
+assertContains(webHtml, "replay-modal", "현재 위치에서 구간 영상을 확인하는 팝업 재생창 존재");
+assertContains(webHtml, "closeReplayModal", "구간 영상 팝업 닫기 로직 존재");
 assertContains(webHtml, "event.target.closest(\".segment\")", "구간 카드 전체 클릭 리플레이 존재");
 assertContains(webHtml, "event.target.closest(\".scene-card\")", "결과지 장면 클릭 리플레이 존재");
 assertContains(webHtml, "resultPage", "결과지 별도 페이지 구조 존재");
@@ -203,7 +205,7 @@ assertContains(webHtml, "태권도 품새 수련 훈련", "앱 이름 '태권도
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련품새 · 경기품새", "헤더 훈련 목적 배지 적용");
-assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.15", "헤더 설명 문구 적용");
+assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.16", "헤더 설명 문구 적용");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
@@ -239,7 +241,11 @@ assertContains(webHtml, "inferMovementType", "기술명 기반 분석 타입 추
 assertContains(webHtml, "koryo", "유품자 고려 데이터 존재");
 assertContains(webHtml, "pyongwon", "유단자 평원 데이터 존재");
 assertContains(webHtml, "reanalyzeBtn", "재분석(초기화) 버튼 로직 존재");
-assertContains(webHtml, ">재분석(초기화)</button>", "재분석과 초기화를 합친 버튼 문구 존재");
+assertContains(webHtml, "disabled hidden>재분석(초기화)</button>", "불필요한 재분석 버튼은 화면에서 숨김");
+assertContains(webHtml, "detectPoomsaeKeyFromFilename", "파일명에서 품새를 확인하는 함수 존재");
+assertContains(webHtml, "warnIfFilenamePoomsaeMismatch", "선택 품새와 파일명 불일치 경고 존재");
+assertContains(webHtml, "훈련 분석 요약", "결과 페이지 이름을 훈련 분석 요약으로 통일");
+assertContains(webHtml, "A4 요약 JPG 만들기", "A4 훈련 분석 요약 JPG 기능 존재");
 assertContains(webHtml, "stableAnalysisCache.delete(cacheKey)", "초기화 시 기존 안정화 결과 제거");
 assertContains(webHtml, "초기화했습니다. 같은 영상으로 다시 분석하려면 분석 시작을 누르세요.", "초기화 완료 안내 문구 존재");
 assertContains(webHtml, "startAnalysis", "분석 시작 시 모델 자동 준비 로직 존재");
@@ -262,6 +268,8 @@ assertNotContainsInFiles("score_100)} /", [webIndexPath, androidIndexPath], "결
 assertNotContainsInFiles("id=\"resetBtn\"", [webIndexPath, androidIndexPath], "독립 초기화 버튼 제거");
 assertNotContainsInFiles("resetBtn.addEventListener", [webIndexPath, androidIndexPath], "독립 초기화 로직 제거");
 assertNotContainsInFiles("JPG 결과지 생성", [webIndexPath, androidIndexPath], "이전 JPG 생성 문구 제거");
+assertNotContainsInFiles("눌러 재생", [webIndexPath, androidIndexPath], "구간 카드의 눌러 재생 문구 제거");
+assertNotContainsInFiles("video.scrollIntoView", [webIndexPath, androidIndexPath], "구간 재생 시 영상 위치로 자동 스크롤 제거");
 assertNotContainsInFiles("태극 1~8장 테스트", [webIndexPath, androidIndexPath], "이전 제목 '태극 1~8장 테스트' 제거");
 assertNotContainsInFiles("태극1~8장 테스트", [webIndexPath, androidIndexPath], "이전 제목 '태극1~8장 테스트' 제거");
 assertNotContainsInFiles("v2", [webIndexPath, androidIndexPath], "이전 버전 v2 문구 제거");

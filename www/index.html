@@ -335,7 +335,7 @@
         align-items: baseline;
         gap: 8px;
         margin: 0;
-        color: var(--navy);
+        color: var(--text);
         line-height: 1.3;
       }
       .segment-number {
@@ -597,6 +597,35 @@
       #reanalyzeBtn {
         background: var(--panel);
       }
+      .replay-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+        background: rgba(4, 10, 18, .82);
+        backdrop-filter: blur(8px);
+      }
+      .replay-modal[hidden] { display: none; }
+      .replay-dialog {
+        width: min(920px, 100%);
+        padding: 14px;
+        border: 1px solid var(--panel-line);
+        border-radius: var(--radius);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+      .replay-dialog-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+      .replay-dialog-head strong { color: var(--text); font-size: 18px; }
+      .replay-dialog-head button { min-width: 52px; min-height: 52px; padding: 0 14px; }
+      .replay-dialog video { width: 100%; max-height: 70vh; background: #000; border-radius: var(--radius-sm); }
       .utility-actions {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -814,7 +843,7 @@
         input[type="file"] { min-height: 64px; }
       }
 
-      /* ===================== v3.15 다크 도장 테마 오버라이드 ===================== */
+      /* ===================== v3.16 다크 도장 테마 오버라이드 ===================== */
       h1, h2, h3 { color: var(--text); font-weight: 800; }
       h1 { font-size: 23px; letter-spacing: -.3px; }
 
@@ -1045,7 +1074,7 @@
       .segment-number { color: var(--brand-strong); font-weight: 800; margin-right: 6px; }
       .segment-feedback { color: var(--muted); }
       .segment-score > span:first-child { color: var(--text); font-weight: 800; }
-      .segment-hint { color: var(--brand-strong); }
+      .segment-head strong { color: var(--text); }
       .scene-shot { border-radius: 9px; border: 1px solid var(--panel-line); }
       .scene-placeholder { background: var(--navy); color: var(--muted); }
 
@@ -1098,7 +1127,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련 훈련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.15</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.16</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
       </div>
@@ -1107,7 +1136,7 @@
       <button type="button" data-jump="setup" class="active">설정</button>
       <button type="button" data-jump="video">영상</button>
       <button type="button" data-jump="segments">구간</button>
-      <button type="button" data-jump="result">결과지</button>
+      <button type="button" data-jump="result">훈련 분석 요약</button>
     </nav>
 
     <main class="wrap">
@@ -1115,7 +1144,7 @@
         <section>
           <h2>훈련 시작</h2>
           <p class="setup-copy">훈련 목적과 품새를 고른 뒤 수련 영상을 선택하세요. 선택 순서는 자유롭습니다.</p>
-          <div class="field-label">훈련 목적 <span>결과지의 분석 방식이 달라집니다</span></div>
+          <div class="field-label">훈련 목적 <span>훈련 분석 요약의 방식이 달라집니다</span></div>
           <div class="poomsae-tabs mode-tabs" role="tablist" aria-label="훈련 목적">
             <button type="button" class="poomsae-tab mode-tab" data-mode="exam">
               <strong>수련품새</strong>
@@ -1143,12 +1172,12 @@
           <div class="field-label">분석 실행 <span>영상이 준비되면 시작할 수 있습니다</span></div>
           <div class="primary-actions">
             <button id="analyzeBtn" disabled>분석 시작</button>
-            <button id="reanalyzeBtn" class="secondary" disabled>재분석(초기화)</button>
+            <button id="reanalyzeBtn" class="secondary" disabled hidden>재분석(초기화)</button>
             <button id="loadModelBtn" type="button" hidden>모델 준비</button>
           </div>
           <div class="utility-actions" hidden>
             <button id="downloadBtn" class="secondary" disabled>JSON 저장</button>
-            <button id="showReportBtn" class="secondary" disabled hidden>결과지 보기</button>
+            <button id="showReportBtn" class="secondary" disabled hidden>훈련 분석 요약</button>
             <button id="jpgBtn" class="secondary" disabled hidden>JPG 저장</button>
           </div>
           <div class="code" style="margin-top: 12px;">
@@ -1213,8 +1242,8 @@
         <div class="report-box">
           <textarea id="reportOutput" readonly placeholder="분석 후 리포트 화면 출력 버튼을 누르면 결과가 여기에 표시됩니다."></textarea>
           <div id="jpgPreviewBox" class="jpg-preview">
-            <p>JPG 결과지가 아래에 생성됩니다. 폰에서는 이미지를 길게 눌러 저장하거나, `새 탭으로 열기`를 눌러 저장하세요.</p>
-            <img id="jpgPreview" alt="품새 결과지 미리보기" />
+            <p>A4 훈련 분석 요약 JPG가 아래에 생성됩니다. 폰에서는 이미지를 길게 눌러 저장하거나, `새 탭으로 열기`를 눌러 저장하세요.</p>
+            <img id="jpgPreview" alt="A4 훈련 분석 요약 JPG 미리보기" />
             <a id="jpgOpenLink" href="#" target="_blank" rel="noopener">JPG 새 탭으로 열기</a>
           </div>
         </div>
@@ -1348,6 +1377,44 @@
           type
         }));
       }
+      function detectPoomsaeKeyFromFilename(filename) {
+        const normalized = String(filename || "").toLowerCase().replace(/[\s_.\-()[\]]/g, "");
+        for (let number = 1; number <= 8; number += 1) {
+          if (
+            normalized.includes(`태극${number}장`) ||
+            normalized.includes(`태극${number}`) ||
+            normalized.includes(`taegeuk${number}`) ||
+            normalized.includes(`taeguk${number}`)
+          ) return `taegeuk_${number}`;
+        }
+        const aliases = {
+          koryo: ["고려", "koryo"],
+          keumgang: ["금강", "keumgang"],
+          taebaek: ["태백", "taebaek"],
+          pyongwon: ["평원", "pyongwon"],
+          sipjin: ["십진", "sipjin"],
+          jitae: ["지태", "jitae"],
+          cheonkwon: ["천권", "cheonkwon"],
+          hansu: ["한수", "hansu"],
+          ilyeo: ["일여", "ilyeo"]
+        };
+        for (const [key, names] of Object.entries(aliases)) {
+          if (names.some((name) => normalized.includes(name))) return key;
+        }
+        return "";
+      }
+      function warnIfFilenamePoomsaeMismatch() {
+        if (!selectedFile) return true;
+        const detectedKey = detectPoomsaeKeyFromFilename(selectedFile.name);
+        if (!detectedKey || detectedKey === selectedPoomsaeKey) return true;
+        const mismatchKey = `${selectedFile.name}|${selectedPoomsaeKey}`;
+        if (lastPoomsaeMismatchKey === mismatchKey) return true;
+        lastPoomsaeMismatchKey = mismatchKey;
+        const detectedName = poomsaeData[detectedKey]?.name || detectedKey;
+        const selectedName = currentPoomsae().name;
+        alert(`품새 선택을 확인해 주세요.\n\n선택한 품새: ${selectedName}\n파일명에서 확인된 품새: ${detectedName}\n\n영상 내용이 아니라 파일명을 기준으로 확인한 안내입니다.`);
+        return false;
+      }
 
       let selectedPoomsaeGroup = "yugeup";
       let selectedPoomsaeKey = "taegeuk_1";
@@ -1390,6 +1457,10 @@
       let resultPageContent = null;
       let backToTrainingBtn = null;
       let resultJpgBtn = null;
+      let replayModal = null;
+      let replayVideo = null;
+      let replayModalTitle = null;
+      let lastPoomsaeMismatchKey = "";
 
       let objectUrl = null;
       let selectedFile = null;
@@ -1496,7 +1567,7 @@
           sidePanel.appendChild(reportSection);
           sidePanel.appendChild(segmentsSection);
         }
-        if (showReportBtn) showReportBtn.textContent = "결과지 보기";
+        if (showReportBtn) showReportBtn.textContent = "훈련 분석 요약";
         if (reportSection) reportSection.hidden = true;
         if (outputSection) outputSection.hidden = true;
 
@@ -1508,42 +1579,73 @@
           <section>
             <div class="result-header">
               <div>
-                <h2>결과지</h2>
-                <p>영상 분석 결과를 한 화면에서 확인하고 저장할 수 있습니다.</p>
+                <h2>훈련 분석 요약</h2>
+                <p>영상 분석의 핵심 내용과 우선 훈련 부분을 한 화면에서 확인합니다.</p>
               </div>
               <button id="backToTrainingBtn" class="secondary" type="button">훈련 화면으로</button>
             </div>
           </section>
-          <section id="resultPageContent" class="result-card">
-            <p class="result-empty">아직 생성된 결과지가 없습니다. 먼저 평가를 실행하세요.</p>
-          </section>
           <section class="result-card">
-            <h3>JPG 결과지</h3>
-            <p>저장 버튼을 누르면 아래에 이미지가 생성됩니다. 폰에서는 이미지를 길게 눌러 저장하거나 새 탭으로 열어 저장하세요.</p>
+            <h3>A4 훈련 분석 요약 JPG</h3>
+            <p>핵심 결과를 A4 한 장 크기의 JPG로 만들고 저장할 수 있습니다.</p>
             <div class="result-actions">
-              <button id="resultJpgBtn" type="button">JPG 저장</button>
+              <button id="resultJpgBtn" type="button">A4 요약 JPG 만들기</button>
             </div>
+          </section>
+          <section id="resultPageContent" class="result-card">
+            <p class="result-empty">아직 생성된 훈련 분석 요약이 없습니다. 먼저 분석을 실행하세요.</p>
           </section>
         `;
         document.body.appendChild(resultPage);
         resultPageContent = document.getElementById("resultPageContent");
         backToTrainingBtn = document.getElementById("backToTrainingBtn");
         resultJpgBtn = document.getElementById("resultJpgBtn");
-        const jpgSection = resultPage.querySelector(".result-card:last-child");
+        const jpgSection = resultJpgBtn ? resultJpgBtn.closest(".result-card") : null;
         if (jpgSection && jpgPreviewBox) jpgSection.appendChild(jpgPreviewBox);
         if (backToTrainingBtn) backToTrainingBtn.addEventListener("click", showTrainingPage);
         if (resultJpgBtn) resultJpgBtn.addEventListener("click", saveJpgReport);
+        replayModal = document.createElement("div");
+        replayModal.className = "replay-modal";
+        replayModal.hidden = true;
+        replayModal.innerHTML = `
+          <div class="replay-dialog" role="dialog" aria-modal="true" aria-label="선택 구간 영상 재생">
+            <div class="replay-dialog-head">
+              <strong id="replayModalTitle">선택 구간</strong>
+              <button id="closeReplayModalBtn" class="secondary" type="button" aria-label="재생창 닫기">닫기</button>
+            </div>
+            <video id="replayModalVideo" controls muted playsinline></video>
+          </div>
+        `;
+        document.body.appendChild(replayModal);
+        replayVideo = document.getElementById("replayModalVideo");
+        replayModalTitle = document.getElementById("replayModalTitle");
+        document.getElementById("closeReplayModalBtn").addEventListener("click", closeReplayModal);
+        replayModal.addEventListener("click", (event) => {
+          if (event.target === replayModal) closeReplayModal();
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && replayModal && !replayModal.hidden) closeReplayModal();
+        });
+        replayVideo.addEventListener("timeupdate", () => {
+          if (!replayRange || replayVideo.currentTime < replayRange.end) return;
+          if (loopSegmentToggle.checked) {
+            replayVideo.currentTime = replayRange.start;
+            replayVideo.play().catch(() => {});
+          } else {
+            replayVideo.pause();
+          }
+        });
         resultPage.addEventListener("click", (event) => {
           const card = event.target.closest(".scene-card");
           if (!card) return;
-          openVideoReplay(Number(card.dataset.start), Number(card.dataset.end));
+          openVideoReplay(Number(card.dataset.start), Number(card.dataset.end), card.getAttribute("aria-label"));
         });
         resultPage.addEventListener("keydown", (event) => {
           if (event.key !== "Enter" && event.key !== " ") return;
           const card = event.target.closest(".scene-card");
           if (!card) return;
           event.preventDefault();
-          openVideoReplay(Number(card.dataset.start), Number(card.dataset.end));
+          openVideoReplay(Number(card.dataset.start), Number(card.dataset.end), card.getAttribute("aria-label"));
         });
       }
       function showTrainingPage() {
@@ -1617,7 +1719,7 @@
         });
         if (modeHelp) {
           modeHelp.textContent = trainingMode === "exam"
-            ? "수련품새: 점수 없이 문제점 확인과 수정 포인트를 중심으로 결과지를 만듭니다."
+            ? "수련품새: 점수 없이 문제점 확인과 수정 포인트를 중심으로 훈련 분석 요약을 만듭니다."
             : "경기품새: 100점/평균, 반복 문제, 필요 훈련을 함께 확인합니다.";
         }
         powerScoreText.closest(".metric").querySelector("strong").textContent = trainingMode === "exam" ? "결과 방식" : "100점/평균";
@@ -1626,7 +1728,7 @@
       function renderResultPage() {
         if (!resultPageContent) return;
         if (!latestReport) {
-          resultPageContent.innerHTML = `<p class="result-empty">아직 생성된 결과지가 없습니다. 먼저 평가를 실행하세요.</p>`;
+          resultPageContent.innerHTML = `<p class="result-empty">아직 생성된 훈련 분석 요약이 없습니다. 먼저 분석을 실행하세요.</p>`;
           return;
         }
         const weak = latestReport.segments
@@ -1791,7 +1893,7 @@
         ctx.fillStyle = "#173f8a";
         ctx.fillRect(0, 0, canvas.width, 250);
         text(`태권도 품새 수련 훈련 · ${modeLabel()}`, 90, 56, 34, "#dbeafe", "800");
-        text(`${poomsaeName} 결과지`, 90, 108, 58, "#ffffff", "800");
+        text(`${poomsaeName} 훈련 분석 요약`, 90, 108, 58, "#ffffff", "800");
         text("영상 기반 수련 피드백 · 공식 심사 대체 아님", 90, 184, 28, "#dbeafe", "700");
 
         rr(70, 305, 1260, 245, 18, "#ffffff", "#d9dee8");
@@ -1853,7 +1955,7 @@
           console.warn("JPG download was blocked by the browser.", error);
         }
 
-        reportOutput.value = "JPG 결과지가 화면 아래에 생성되었습니다.\n\nPC: 자동 저장이 안 되면 `JPG 새 탭으로 열기`를 눌러 저장하세요.\n폰/태블릿: 이미지를 길게 눌러 사진으로 저장하세요.";
+        reportOutput.value = "A4 훈련 분석 요약 JPG가 생성되었습니다.\n\nPC: 자동 저장이 안 되면 `JPG 새 탭으로 열기`를 눌러 저장하세요.\n폰/태블릿: 이미지를 길게 눌러 사진으로 저장하세요.";
       }
       function formatDuration(seconds) {
         return Number.isFinite(seconds) ? `${seconds.toFixed(1)}초` : "-";
@@ -1923,11 +2025,31 @@
         video.playbackRate = Number(speedSelect.value || 1);
         video.play().catch(() => {});
       }
-      function openVideoReplay(start, end) {
-        showTrainingPage();
-        playRange(start, end);
-        document.querySelectorAll("[data-jump]").forEach((item) => item.classList.toggle("active", item.dataset.jump === "video"));
-        requestAnimationFrame(() => video.scrollIntoView({ behavior: "smooth", block: "center" }));
+      function closeReplayModal() {
+        if (replayVideo) {
+          replayVideo.pause();
+          replayVideo.removeAttribute("src");
+          replayVideo.load();
+        }
+        if (replayModal) replayModal.hidden = true;
+        clearReplayRange();
+      }
+      function openVideoReplay(start, end, label = "선택 구간") {
+        if (!selectedFile || !replayModal || !replayVideo || !Number.isFinite(video.duration)) return;
+        replayRange = {
+          start: Math.max(0, start),
+          end: Math.min(Math.max(end, start + 0.2), video.duration)
+        };
+        replayModalTitle.textContent = String(label || "선택 구간").replace(/\s*리플레이\s*$/, "");
+        replayVideo.src = objectUrl || video.currentSrc || video.src;
+        replayVideo.playbackRate = Number(speedSelect.value || 1);
+        replayModal.hidden = false;
+        const beginReplay = () => {
+          replayVideo.currentTime = replayRange ? replayRange.start : 0;
+          replayVideo.play().catch(() => {});
+        };
+        if (replayVideo.readyState >= 1) beginReplay();
+        else replayVideo.addEventListener("loadedmetadata", beginReplay, { once: true });
       }
       function replayWholeVideo() {
         clearReplayRange();
@@ -2304,7 +2426,6 @@
             </div>
             <div class="segment-score">
               <span>${trainingMode === "exam" ? "확인" : result.powerScore}</span>
-              <span class="segment-hint">눌러 재생</span>
             </div>
           `;
           segmentsEl.appendChild(row);
@@ -2442,8 +2563,8 @@
           training_mode_label: modeLabel(),
           mode: "power_snap_stillness_estimation",
           note: trainingMode === "exam"
-            ? "수련품새 결과지는 점수 없이 문제점 확인 및 수정 포인트 중심으로 표시한다."
-          : "경기품새 결과지는 100점/평균 점수와 필요 훈련을 함께 표시한다. 영상 관절 좌표 기반 추정치이며 실제 물리적 힘을 직접 측정하지 않는다.",
+            ? "수련품새 훈련 분석 요약은 점수 없이 문제점 확인 및 수정 포인트 중심으로 표시한다."
+          : "경기품새 훈련 분석 요약은 100점/평균 점수와 필요 훈련을 함께 표시한다. 영상 관절 좌표 기반 추정치이며 실제 물리적 힘을 직접 측정하지 않는다.",
           scoring_stability: {
             segment_samples: 8,
             speed_aggregation: "median_and_trimmed_mean",
@@ -2494,6 +2615,10 @@
         }
         if (!selectedFile || !Number.isFinite(video.duration)) {
           setProgress(0, "먼저 품새 영상을 선택해 주세요.");
+          return;
+        }
+        if (!warnIfFilenamePoomsaeMismatch()) {
+          setProgress(0, "선택한 품새와 영상 파일명을 확인한 뒤 분석 시작을 다시 누르세요.");
           return;
         }
         if (!poseLandmarker) {
@@ -2629,7 +2754,9 @@
 
       fileInput.addEventListener("change", () => {
         showTrainingPage();
+        closeReplayModal();
         selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+        lastPoomsaeMismatchKey = "";
         latestReport = null;
         clearReplayRange();
         downloadBtn.disabled = true;
@@ -2662,10 +2789,12 @@
         setProgress(0, poseLandmarker ? "영상 준비 완료. 분석 시작을 누르세요." : "영상 준비 완료. 분석 시작을 누르면 모델을 불러온 뒤 평가합니다.");
         analyzeBtn.disabled = false;
         reanalyzeBtn.disabled = false;
+        warnIfFilenamePoomsaeMismatch();
       });
       poomsaeSelect.addEventListener("change", () => {
         showTrainingPage();
         selectedPoomsaeKey = poomsaeSelect.value;
+        lastPoomsaeMismatchKey = "";
         updatePoomsaeView();
         latestReport = null;
         clearReplayRange();
@@ -2684,6 +2813,7 @@
         detectRateText.textContent = "-";
         powerScoreText.textContent = trainingMode === "exam" ? "문제점 확인" : "-";
         setPill(overallStatus, "caution", "분석 전");
+        warnIfFilenamePoomsaeMismatch();
         renderReport([{ type: "caution", text: `${currentPoomsae().name} 선택 완료. 영상 선택 후 평가를 시작하세요.` }]);
       });
       document.querySelectorAll("[data-mode]").forEach((tab) => {
@@ -2736,14 +2866,14 @@
       segmentsEl.addEventListener("click", (event) => {
         const row = event.target.closest(".segment");
         if (!row) return;
-        openVideoReplay(Number(row.dataset.start), Number(row.dataset.end));
+        openVideoReplay(Number(row.dataset.start), Number(row.dataset.end), row.getAttribute("aria-label"));
       });
       segmentsEl.addEventListener("keydown", (event) => {
         if (event.key !== "Enter" && event.key !== " ") return;
         const row = event.target.closest(".segment");
         if (!row) return;
         event.preventDefault();
-        openVideoReplay(Number(row.dataset.start), Number(row.dataset.end));
+        openVideoReplay(Number(row.dataset.start), Number(row.dataset.end), row.getAttribute("aria-label"));
       });
       downloadBtn.addEventListener("click", () => {
         if (!latestReport) return;

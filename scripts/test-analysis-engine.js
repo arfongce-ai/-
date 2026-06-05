@@ -26,6 +26,7 @@ const context = {
 vm.createContext(context);
 vm.runInContext(extractFunction("scoreStillness"), context);
 vm.runInContext(extractFunction("chooseSampleCount"), context);
+vm.runInContext(extractFunction("detectPoomsaeKeyFromFilename"), context);
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -40,5 +41,8 @@ const koryoSamples = context.chooseSampleCount(90 / 30) * 30;
 assert(taegeukSamples / 60 <= 2, "60-second Taeguk analysis remains at or below 2 samples/sec");
 assert(koryoSamples / 90 <= 2, "90-second Koryo analysis remains at or below 2 samples/sec");
 assert(context.chooseSampleCount(0.5) >= 4, "short segments retain enough frames for motion comparison");
+assert(context.detectPoomsaeKeyFromFilename("태극2장-연습.mp4") === "taegeuk_2", "Korean Taeguk filename is recognized");
+assert(context.detectPoomsaeKeyFromFilename("KORYO_training.mp4") === "koryo", "English poomsae filename is recognized");
+assert(context.detectPoomsaeKeyFromFilename("practice-video.mp4") === "", "generic filename does not create a false mismatch warning");
 
 console.log("Analysis engine synthetic checks passed.");
