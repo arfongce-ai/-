@@ -1,0 +1,43 @@
+태권도 품새 수련 훈련 v3.17 - GitHub 업로드용 폴더
+
+이 폴더 자체를 올리는 것이 아닙니다.
+이 폴더를 열고, 안에 보이는 모든 파일과 폴더를 한 번에 올리면 됩니다.
+
+[아주 쉬운 업로드 방법]
+
+1. 이 폴더를 엽니다.
+2. 키보드에서 Ctrl + A를 누릅니다.
+   - 폴더 안의 모든 것이 선택됩니다.
+3. GitHub 저장소 화면을 엽니다.
+4. Add file 버튼을 누릅니다.
+5. Upload files를 누릅니다.
+6. 선택한 모든 파일과 폴더를 GitHub 업로드 칸으로 끌어놓습니다.
+7. 업로드가 끝나면 아래쪽 Commit changes 버튼을 누릅니다.
+
+[GitHub 맨 위에 보여야 하는 항목]
+
+docs
+scripts
+www
+index.html
+health.html
+package.json
+package-lock.json
+_headers
+_redirects
+
+[Cloudflare Pages 설정]
+
+Framework preset: None
+Build command: 비워 두기
+Build output directory: www
+
+[배포 후 확인 주소]
+
+https://poomsae-coach.pages.dev/health.html
+https://poomsae-coach.pages.dev/
+
+중요:
+- www 폴더 안의 내용만 따로 올리지 마세요.
+- UPLOAD_TO_GITHUB_v3_17_ALL_FILES 폴더 자체를 GitHub 안에 넣지 마세요.
+- 이 안내 파일도 함께 올려도 앱 작동에는 문제가 없습니다.

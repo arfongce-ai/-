@@ -843,7 +843,7 @@
         input[type="file"] { min-height: 64px; }
       }
 
-      /* ===================== v3.16 다크 도장 테마 오버라이드 ===================== */
+      /* ===================== v3.17 다크 도장 테마 오버라이드 ===================== */
       h1, h2, h3 { color: var(--text); font-weight: 800; }
       h1 { font-size: 23px; letter-spacing: -.3px; }
 
@@ -1127,7 +1127,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련 훈련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.16</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.17</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
       </div>
@@ -1413,7 +1413,7 @@
         const detectedName = poomsaeData[detectedKey]?.name || detectedKey;
         const selectedName = currentPoomsae().name;
         alert(`품새 선택을 확인해 주세요.\n\n선택한 품새: ${selectedName}\n파일명에서 확인된 품새: ${detectedName}\n\n영상 내용이 아니라 파일명을 기준으로 확인한 안내입니다.`);
-        return false;
+        return true;
       }
 
       let selectedPoomsaeGroup = "yugeup";
@@ -1469,7 +1469,8 @@
       const stableAnalysisCache = new Map();
       let isAnalyzing = false;
       let loadModelPromise = null;
-      let replayRange = null;
+      let mainReplayRange = null;
+      let modalReplayRange = null;
       let analysisTimestampOffsetMs = 0;
       const SEEK_EPSILON_SECONDS = 0.025;
       const SEEK_TIMEOUT_MS = 1500;
@@ -1627,12 +1628,13 @@
           if (event.key === "Escape" && replayModal && !replayModal.hidden) closeReplayModal();
         });
         replayVideo.addEventListener("timeupdate", () => {
-          if (!replayRange || replayVideo.currentTime < replayRange.end) return;
+          if (!modalReplayRange || replayVideo.currentTime < modalReplayRange.end) return;
           if (loopSegmentToggle.checked) {
-            replayVideo.currentTime = replayRange.start;
+            replayVideo.currentTime = modalReplayRange.start;
             replayVideo.play().catch(() => {});
           } else {
             replayVideo.pause();
+            modalReplayRange = null;
           }
         });
         resultPage.addEventListener("click", (event) => {
@@ -1826,7 +1828,7 @@
         if (!latestReport) return;
         const canvas = document.createElement("canvas");
         canvas.width = 1400;
-        canvas.height = 1900;
+        canvas.height = 1980;
         const ctx = canvas.getContext("2d");
         const poomsaeName = latestReport.poomsae?.name || currentPoomsae().name;
         const avg = latestReport.summary.average_power_finish_score;
@@ -2013,15 +2015,15 @@
         });
       }
       function clearReplayRange() {
-        replayRange = null;
+        mainReplayRange = null;
       }
       function playRange(start, end) {
         if (!Number.isFinite(video.duration)) return;
-        replayRange = {
+        mainReplayRange = {
           start: Math.max(0, start),
           end: Math.min(Math.max(end, start + 0.2), video.duration)
         };
-        video.currentTime = replayRange.start;
+        video.currentTime = mainReplayRange.start;
         video.playbackRate = Number(speedSelect.value || 1);
         video.play().catch(() => {});
       }
@@ -2032,11 +2034,13 @@
           replayVideo.load();
         }
         if (replayModal) replayModal.hidden = true;
-        clearReplayRange();
+        modalReplayRange = null;
       }
       function openVideoReplay(start, end, label = "선택 구간") {
         if (!selectedFile || !replayModal || !replayVideo || !Number.isFinite(video.duration)) return;
-        replayRange = {
+        video.pause();
+        clearReplayRange();
+        modalReplayRange = {
           start: Math.max(0, start),
           end: Math.min(Math.max(end, start + 0.2), video.duration)
         };
@@ -2045,7 +2049,7 @@
         replayVideo.playbackRate = Number(speedSelect.value || 1);
         replayModal.hidden = false;
         const beginReplay = () => {
-          replayVideo.currentTime = replayRange ? replayRange.start : 0;
+          replayVideo.currentTime = modalReplayRange ? modalReplayRange.start : 0;
           replayVideo.play().catch(() => {});
         };
         if (replayVideo.readyState >= 1) beginReplay();
@@ -2566,7 +2570,8 @@
             ? "수련품새 훈련 분석 요약은 점수 없이 문제점 확인 및 수정 포인트 중심으로 표시한다."
           : "경기품새 훈련 분석 요약은 100점/평균 점수와 필요 훈련을 함께 표시한다. 영상 관절 좌표 기반 추정치이며 실제 물리적 힘을 직접 측정하지 않는다.",
           scoring_stability: {
-            segment_samples: 8,
+            segment_sample_range: { min: 4, max: 8 },
+            sampling_strategy: "adaptive_device_safe",
             speed_aggregation: "median_and_trimmed_mean",
             score_rounding_step: 5,
             cache_key_strategy: "same_file_same_poomsae_reuses_segment_metrics",
@@ -2617,10 +2622,7 @@
           setProgress(0, "먼저 품새 영상을 선택해 주세요.");
           return;
         }
-        if (!warnIfFilenamePoomsaeMismatch()) {
-          setProgress(0, "선택한 품새와 영상 파일명을 확인한 뒤 분석 시작을 다시 누르세요.");
-          return;
-        }
+        warnIfFilenamePoomsaeMismatch();
         if (!poseLandmarker) {
           await loadModel();
         }
@@ -2844,13 +2846,13 @@
         video.playbackRate = Number(speedSelect.value || 1);
       });
       loopVideoToggle.addEventListener("change", () => {
-        video.loop = loopVideoToggle.checked && !replayRange;
+        video.loop = loopVideoToggle.checked && !mainReplayRange;
       });
       video.addEventListener("timeupdate", () => {
-        if (!replayRange) return;
-        if (video.currentTime >= replayRange.end) {
+        if (!mainReplayRange) return;
+        if (video.currentTime >= mainReplayRange.end) {
           if (loopSegmentToggle.checked) {
-            video.currentTime = replayRange.start;
+            video.currentTime = mainReplayRange.start;
             video.play().catch(() => {});
           } else {
             video.pause();
@@ -2884,6 +2886,14 @@
       jpgBtn.addEventListener("click", () => {
         showResultPage();
         saveJpgReport();
+      });
+      window.addEventListener("pagehide", () => {
+        closeReplayModal();
+        video.pause();
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = null;
+        }
       });
       updatePoomsaeView();
     </script>
