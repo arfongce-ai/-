@@ -388,30 +388,78 @@
         color: #327472;
       }
       .player-controls {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-        margin-top: 10px;
-      }
-      .player-controls label {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        min-height: 42px;
+        display: grid;
+        gap: 10px;
+        margin-top: 12px;
+        padding: 12px;
         border: 1px solid var(--line);
         border-radius: 8px;
-        padding: 8px 10px;
-        background: #fbfcff;
+        background: #f8fafb;
+        box-shadow: var(--shadow);
+      }
+      .playback-settings {
+        display: grid;
+        grid-template-columns: minmax(150px, .72fr) minmax(0, 1.28fr);
+        gap: 10px;
+      }
+      .speed-control,
+      .repeat-options label {
+        display: flex;
+        align-items: center;
+        min-height: 52px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 12px;
+        background: #fff;
         color: var(--text);
         font-size: 14px;
         font-weight: 700;
       }
+      .speed-control {
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .repeat-options {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .repeat-options label {
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+      }
+      .repeat-options input {
+        width: 20px;
+        height: 20px;
+        accent-color: var(--brand);
+      }
       .player-controls select {
         width: auto;
-        min-height: 36px;
-        padding: 6px 10px;
+        min-height: 40px;
+        padding: 6px 30px 6px 10px;
         font-size: 14px;
+        border-color: transparent;
+        background-color: var(--blue-soft);
+      }
+      .replay-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .replay-actions button {
+        min-height: 52px;
+      }
+      .replay-actions button:disabled {
+        display: none;
+      }
+      .replay-actions button:first-child {
+        background: #fff;
+      }
+      .replay-actions button:last-child {
+        border-color: #9fc6c4;
+        background: #eaf7f6;
+        color: var(--brand-strong);
       }
       .primary-actions {
         display: grid;
@@ -587,6 +635,9 @@
         .control-grid { grid-template-columns: 1fr; }
         .primary-actions { grid-template-columns: 1fr; }
         .utility-actions { grid-template-columns: 1fr 1fr; }
+        .playback-settings { grid-template-columns: 1fr; }
+        .repeat-options,
+        .replay-actions { grid-template-columns: 1fr 1fr; }
         button, select, input[type="file"] { min-height: 56px; }
         header .wrap {
           flex-direction: column;
@@ -646,9 +697,9 @@
             <button id="reanalyzeBtn" class="secondary" disabled>재분석(초기화)</button>
             <button id="loadModelBtn" type="button" hidden>모델 준비</button>
           </div>
-          <div class="utility-actions">
+          <div class="utility-actions" hidden>
             <button id="downloadBtn" class="secondary" disabled>JSON 저장</button>
-            <button id="showReportBtn" class="secondary" disabled>결과지 보기</button>
+            <button id="showReportBtn" class="secondary" disabled hidden>결과지 보기</button>
             <button id="jpgBtn" class="secondary" disabled hidden>JPG 저장</button>
           </div>
           <div class="code" style="margin-top: 14px;">
@@ -658,20 +709,26 @@
           <div style="margin-top: 18px;">
             <video id="video" controls muted playsinline></video>
             <div class="player-controls">
-              <label>
-                속도
-                <select id="speedSelect" aria-label="영상 재생 속도">
-                  <option value="0.5">0.5x</option>
-                  <option value="0.75">0.75x</option>
-                  <option value="1" selected>1.0x</option>
-                  <option value="1.25">1.25x</option>
-                  <option value="1.5">1.5x</option>
-                </select>
-              </label>
-              <label><input id="loopVideoToggle" type="checkbox" /> 전체 반복</label>
-              <label><input id="loopSegmentToggle" type="checkbox" checked /> 선택 구간 반복</label>
-              <button id="replayAllBtn" class="secondary" type="button" disabled>전체 리플레이</button>
-              <button id="replayWeakBtn" class="secondary" type="button" disabled>우선 구간 리플레이</button>
+              <div class="playback-settings">
+                <label class="speed-control">
+                  <span>재생 속도</span>
+                  <select id="speedSelect" aria-label="영상 재생 속도">
+                    <option value="0.5">0.5x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="1" selected>1.0x</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.5x</option>
+                  </select>
+                </label>
+                <div class="repeat-options" aria-label="반복 재생 설정">
+                  <label><input id="loopVideoToggle" type="checkbox" /> 전체 영상 반복</label>
+                  <label><input id="loopSegmentToggle" type="checkbox" checked /> 선택 구간 반복</label>
+                </div>
+              </div>
+              <div class="replay-actions">
+                <button id="replayAllBtn" class="secondary" type="button" disabled>전체 영상 재생</button>
+                <button id="replayWeakBtn" class="secondary" type="button" disabled>우선 구간 재생</button>
+              </div>
             </div>
           </div>
         </section>
