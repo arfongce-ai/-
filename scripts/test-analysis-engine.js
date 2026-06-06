@@ -27,6 +27,7 @@ vm.createContext(context);
 vm.runInContext(extractFunction("scoreStillness"), context);
 vm.runInContext(extractFunction("chooseSampleCount"), context);
 vm.runInContext(extractFunction("detectPoomsaeKeyFromFilename"), context);
+vm.runInContext(extractFunction("refineSegmentBoundaries"), context);
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -44,5 +45,24 @@ assert(context.chooseSampleCount(0.5) >= 4, "short segments retain enough frames
 assert(context.detectPoomsaeKeyFromFilename("태극2장-연습.mp4") === "taegeuk_2", "Korean Taeguk filename is recognized");
 assert(context.detectPoomsaeKeyFromFilename("KORYO_training.mp4") === "koryo", "English poomsae filename is recognized");
 assert(context.detectPoomsaeKeyFromFilename("practice-video.mp4") === "", "generic filename does not create a false mismatch warning");
+
+const syntheticMotion = Array.from({ length: 41 }, (_, index) => {
+  const time = index * 0.25;
+  const nearStop = Math.min(Math.abs(time - 2.25), Math.abs(time - 5.25), Math.abs(time - 7.75));
+  return { time, motion: nearStop < 0.15 ? 0.02 : 0.8 };
+});
+const refined = context.refineSegmentBoundaries(10, 4, syntheticMotion, 0.95);
+assert(Math.abs(refined[1] - 2.25) < 0.3, "high sensitivity moves first boundary to nearby motion stop");
+assert(Math.abs(refined[2] - 5.25) < 0.3, "high sensitivity moves middle boundary to nearby motion stop");
+assert(refined.every((value, index) => index === 0 || value > refined[index - 1]), "refined boundaries remain strictly ordered");
+const missingPoseTrap = [
+  { time: 2.0, motion: 0.01, valid: false },
+  { time: 2.25, motion: 0.3, valid: true },
+  { time: 2.5, motion: 0.6, valid: true },
+  { time: 5.0, motion: 0.02, valid: true },
+  { time: 7.5, motion: 0.02, valid: true }
+];
+const missingPoseRefined = context.refineSegmentBoundaries(10, 4, missingPoseTrap, 0.95);
+assert(missingPoseRefined[1] !== 2.0, "missing pose frame cannot be selected as a false stop boundary");
 
 console.log("Analysis engine synthetic checks passed.");

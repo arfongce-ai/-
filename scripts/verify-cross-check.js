@@ -205,7 +205,7 @@ assertContains(webHtml, "태권도 품새 수련 훈련", "앱 이름 '태권도
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련품새 · 경기품새", "헤더 훈련 목적 배지 적용");
-assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.17", "헤더 설명 문구 적용");
+assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.18", "헤더 설명 문구 적용");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
@@ -252,6 +252,15 @@ assertContains(webHtml, "video.pause();\n        clearReplayRange();\n        mo
 assertContains(webHtml, "segment_sample_range: { min: 4, max: 8 }", "적응형 샘플 수 범위 기록");
 assertContains(webHtml, "sampling_strategy: \"adaptive_device_safe\"", "적응형 샘플링 전략 기록");
 assertContains(webHtml, "window.addEventListener(\"pagehide\"", "페이지 종료 시 영상 메모리 정리");
+assertContains(webHtml, "COMPETITION_RULES_2026", "2026 경기규칙 피드백 기준 존재");
+assertContains(webHtml, "minor_error: 0.1", "정확성 경미한 오류 감점 참고값 존재");
+assertContains(webHtml, "major_error: 0.3", "정확성 큰 오류 감점 참고값 존재");
+assertContains(webHtml, "competitionRuleCue", "기술 종류별 경기규칙 확인 피드백 존재");
+assertContains(webHtml, "boundarySensitivitySelect", "구간 감지 민감도 선택 UI 존재");
+assertContains(webHtml, "detectMotionBoundaries", "영상 움직임 기반 구간 경계 탐색 존재");
+assertContains(webHtml, "refineSegmentBoundaries", "예상 경계를 가까운 정지점으로 보정하는 로직 존재");
+assertContains(webHtml, "sample.valid !== false", "관절 미검출 장면을 거짓 정지점 후보에서 제외");
+assertContains(webHtml, "boundary-motion-revision-2-", "구간 감지 방식과 민감도를 캐시 키에 반영");
 assertContains(webHtml, "stableAnalysisCache.delete(cacheKey)", "초기화 시 기존 안정화 결과 제거");
 assertContains(webHtml, "초기화했습니다. 같은 영상으로 다시 분석하려면 분석 시작을 누르세요.", "초기화 완료 안내 문구 존재");
 assertContains(webHtml, "startAnalysis", "분석 시작 시 모델 자동 준비 로직 존재");
@@ -278,6 +287,7 @@ assertNotContainsInFiles("눌러 재생", [webIndexPath, androidIndexPath], "구
 assertNotContainsInFiles("video.scrollIntoView", [webIndexPath, androidIndexPath], "구간 재생 시 영상 위치로 자동 스크롤 제거");
 assertNotContainsInFiles("segment_samples: 8", [webIndexPath, androidIndexPath], "실제 동작과 다른 고정 샘플 수 기록 제거");
 assertNotContainsInFiles("let replayRange = null", [webIndexPath, androidIndexPath], "메인 영상과 팝업 영상의 공유 재생 상태 제거");
+assertNotContainsInFiles("const segmentStart = video.duration * (i / movements.length)", [webIndexPath, androidIndexPath], "단순 균등 구간 시작값 제거");
 assertNotContainsInFiles("태극 1~8장 테스트", [webIndexPath, androidIndexPath], "이전 제목 '태극 1~8장 테스트' 제거");
 assertNotContainsInFiles("태극1~8장 테스트", [webIndexPath, androidIndexPath], "이전 제목 '태극1~8장 테스트' 제거");
 assertNotContainsInFiles("v2", [webIndexPath, androidIndexPath], "이전 버전 v2 문구 제거");

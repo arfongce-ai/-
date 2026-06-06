@@ -843,7 +843,7 @@
         input[type="file"] { min-height: 64px; }
       }
 
-      /* ===================== v3.17 다크 도장 테마 오버라이드 ===================== */
+      /* ===================== v3.18 다크 도장 테마 오버라이드 ===================== */
       h1, h2, h3 { color: var(--text); font-weight: 800; }
       h1 { font-size: 23px; letter-spacing: -.3px; }
 
@@ -1127,7 +1127,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련 훈련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.17</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.18</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
       </div>
@@ -1169,6 +1169,12 @@
             </select>
             <input id="fileInput" type="file" accept="video/mp4,video/*" />
           </div>
+          <div class="field-label">구간 감지 민감도 <span>동작 전환점이 잘못 잡히면 높여 보세요</span></div>
+          <select id="boundarySensitivitySelect" aria-label="구간 감지 민감도">
+            <option value="0.65">보통 · 경계 이동 적음</option>
+            <option value="0.82" selected>높음 · 권장</option>
+            <option value="0.95">매우 높음 · 정지점 우선</option>
+          </select>
           <div class="field-label">분석 실행 <span>영상이 준비되면 시작할 수 있습니다</span></div>
           <div class="primary-actions">
             <button id="analyzeBtn" disabled>분석 시작</button>
@@ -1284,6 +1290,27 @@
         if (/준비|서기|기합|멈추기|학다리/.test(name)) return "hold";
         return "punch";
       }
+
+      const COMPETITION_RULES_2026 = {
+        source: "2026년 태권도 품새 경기규칙",
+        scope: "경기품새 훈련 피드백 참고 기준",
+        accuracy: {
+          score: 4.0,
+          criteria: ["기본동작의 정확성", "각 품새별 세부동작의 정확성"],
+          deduction_reference: {
+            minor_error: 0.1,
+            major_error: 0.3,
+            note: "앱은 감점을 자동 확정하지 않으며 경미한 오류와 큰 오류 여부는 지도자가 확인합니다."
+          },
+          caution: "기본동작 또는 해당 품새의 세부동작과 다른 자세·궤적·목표점은 정확성 감점 위험이 있으므로 지도자 확인이 필요합니다."
+        },
+        presentation: {
+          score: 6.0,
+          criteria: ["속도와 힘", "강유·완급·리듬의 조화", "기의 표현"],
+          caution: "속도와 힘의 구분, 강유·완급·리듬, 기의 표현이 약하면 표현성 보완이 필요합니다."
+        },
+        disclaimer: "영상 좌표로 확인 가능한 훈련 보조 항목이며 실제 심판 판정을 확정하지 않습니다."
+      };
 
       const poomsaeData = {
         taegeuk_1: {
@@ -1423,6 +1450,7 @@
 
       const fileInput = document.getElementById("fileInput");
       const poomsaeSelect = document.getElementById("poomsaeSelect");
+      const boundarySensitivitySelect = document.getElementById("boundarySensitivitySelect");
       const loadModelBtn = document.getElementById("loadModelBtn");
       const analyzeBtn = document.getElementById("analyzeBtn");
       const reanalyzeBtn = document.getElementById("reanalyzeBtn");
@@ -2260,6 +2288,88 @@
         // 동작 비교에 필요한 프레임은 유지하고 전체 분석량은 보통 초당 1.5~2회 이하로 제한한다.
         return clamp(Math.round(segmentLength * 1.5), 4, 8);
       }
+      function refineSegmentBoundaries(duration, segmentCount, motionSamples, sensitivity = 0.82) {
+        const safeDuration = Math.max(Number(duration) || 0, 0);
+        const safeCount = Math.max(Math.round(segmentCount) || 1, 1);
+        if (!safeDuration || safeCount <= 1 || !motionSamples.length) {
+          return Array.from({ length: safeCount + 1 }, (_, index) => safeDuration * (index / safeCount));
+        }
+        const interval = safeDuration / safeCount;
+        const sorted = motionSamples
+          .filter((sample) => sample.valid !== false && Number.isFinite(sample.time) && Number.isFinite(sample.motion))
+          .slice()
+          .sort((a, b) => a.time - b.time);
+        const motions = sorted.map((sample) => sample.motion);
+        const motionLow = Math.min(...motions);
+        const motionHigh = Math.max(...motions);
+        const motionRange = Math.max(motionHigh - motionLow, 0.0001);
+        const boundaries = [0];
+        for (let index = 1; index < safeCount; index += 1) {
+          const expected = interval * index;
+          const searchRadius = interval * (0.25 + sensitivity * 0.25);
+          const minAllowed = boundaries[boundaries.length - 1] + interval * 0.38;
+          const maxAllowed = safeDuration - interval * (safeCount - index) * 0.38;
+          const candidates = sorted.filter((sample) =>
+            sample.time >= Math.max(expected - searchRadius, minAllowed) &&
+            sample.time <= Math.min(expected + searchRadius, maxAllowed)
+          );
+          if (!candidates.length) {
+            boundaries.push(clamp(expected, minAllowed, maxAllowed));
+            continue;
+          }
+          const best = candidates
+            .map((sample) => {
+              const motionScore = (sample.motion - motionLow) / motionRange;
+              const distanceScore = Math.abs(sample.time - expected) / Math.max(searchRadius, 0.001);
+              return {
+                ...sample,
+                boundaryScore: motionScore * (0.7 + sensitivity * 0.55) + distanceScore * (0.55 - sensitivity * 0.3)
+              };
+            })
+            .sort((a, b) => a.boundaryScore - b.boundaryScore)[0];
+          boundaries.push(clamp(best.time, minAllowed, maxAllowed));
+        }
+        boundaries.push(safeDuration);
+        return boundaries;
+      }
+      async function detectMotionBoundaries(timestampBaseMs) {
+        const count = movements.length;
+        const sensitivity = Number(boundarySensitivitySelect.value || 0.82);
+        const scanCount = clamp(Math.round(video.duration * 2), count * 3, 180);
+        const frames = [];
+        for (let index = 0; index < scanCount; index += 1) {
+          const time = Math.max(video.duration - 0.04, 0) * (index / Math.max(scanCount - 1, 1));
+          await waitForSeek(time);
+          const result = poseLandmarker.detectForVideo(video, timestampBaseMs + Math.round(time * 1000));
+          frames.push({
+            time,
+            landmarks: result.landmarks && result.landmarks[0] ? result.landmarks[0] : null
+          });
+          if (index % 8 === 0) {
+            setProgress(5 + Math.round((index / scanCount) * 12), `동작 전환점 탐색 중... ${index + 1}/${scanCount}`);
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
+        }
+        const smoothed = smoothFrames(frames, 0.62);
+        const allIndexes = Array.from(new Set(Object.values(keyIndexesByType).flat()));
+        const motionSamples = [];
+        for (let index = 1; index < smoothed.length; index += 1) {
+          const previous = smoothed[index - 1];
+          const current = smoothed[index];
+          const dt = current.time - previous.time;
+          motionSamples.push({
+            time: (previous.time + current.time) / 2,
+            motion: vectorSpeed(previous.landmarks, current.landmarks, allIndexes, dt),
+            valid: !!previous.landmarks && !!current.landmarks && bodyScale(previous.landmarks) >= 0.04 && bodyScale(current.landmarks) >= 0.04
+          });
+        }
+        return {
+          boundaries: refineSegmentBoundaries(video.duration, count, motionSamples, sensitivity),
+          scanCount,
+          sensitivity,
+          method: "motion_low_point_near_expected_boundary"
+        };
+      }
       function scoreStance(frames) {
         const detected = frames.filter((f) => f.landmarks);
         if (!detected.length) return 0;
@@ -2322,6 +2432,25 @@
         if (!cues.length) cues.push({ label: "공통", text: "이 구간은 시선, 중심 이동, 손발 동시성을 지도자와 함께 확인하세요." });
         return cues.slice(0, 2);
       }
+      function competitionRuleCue(movement) {
+        const name = movement.name || "";
+        if (/앞굽이|뒷굽이|범서기|주춤서기|학다리|꼬아서기|모아서기|나란히서기|앞서기/.test(name)) {
+          return "규정 확인: 서기의 발 위치·방향, 무릎 방향, 중심 높이와 체중 이동이 해당 품새의 정형과 다르면 정확성 감점 위험이 있습니다.";
+        }
+        if (/막기|헤쳐|산틀/.test(name)) {
+          return "규정 확인: 막기의 준비 궤적, 목표 높이, 끝 위치와 반대손 회수가 해당 품새의 정형과 다르면 정확성 감점 위험이 있습니다.";
+        }
+        if (/차기|찍기/.test(name)) {
+          return "규정 확인: 차기의 무릎 접기, 목표 높이·방향, 회수와 착지 균형이 해당 품새의 정형과 다르면 정확성 감점 위험이 있습니다.";
+        }
+        if (/지르기|찌르기|치기|밀기/.test(name)) {
+          return "규정 확인: 공격 기술의 목표점, 손목·팔꿈치 정렬, 반대손 회수와 끝 위치가 해당 품새의 정형과 다르면 정확성 감점 위험이 있습니다.";
+        }
+        if (/준비|기합|마무리/.test(name)) {
+          return "규정 확인: 준비·기합·마무리의 위치, 시선, 자세 유지와 표현이 흐트러지면 정확성 및 표현성 보완이 필요합니다.";
+        }
+        return COMPETITION_RULES_2026.accuracy.caution;
+      }
       function weakestMetric(metrics, movement) {
         const candidates = [];
         if (metrics.visibilityScore < 70) candidates.push({ score: metrics.visibilityScore, text: "전신이 화면에서 자주 벗어납니다. 머리, 손, 발이 모두 보이도록 촬영 거리를 조정하세요." });
@@ -2336,10 +2465,11 @@
         const cues = movementCue(movement);
         const weakest = weakestMetric(metrics, movement);
         const cueText = cues.map((cue) => `${cue.label}: ${cue.text}`).join(" / ");
+        const ruleCue = trainingMode === "competition" ? ` ${competitionRuleCue(movement)}` : "";
         if (weakest.score >= 78) {
-          return `${movement.name}: ${cueText} 현재 구간은 큰 흔들림 없이 안정적으로 보입니다.`;
+          return `${movement.name}: ${cueText}${ruleCue} 현재 영상에서는 큰 흔들림 없이 안정적으로 보입니다.`;
         }
-        return `${movement.name}: ${cueText} 우선 연습 포인트: ${weakest.text}`;
+        return `${movement.name}: ${cueText}${ruleCue} 우선 연습 포인트: ${weakest.text}`;
       }
       function evaluateSegment(movement, rawFrames) {
         // 좌표 떨림을 줄이기 위해 스무딩된 프레임으로 속도/안정성을 계산한다.
@@ -2509,6 +2639,7 @@
           }
         }
         if (trainingMode === "competition") {
+          items.push({ type: "caution", text: "2026 경기규칙 확인 기준: 정확성은 기본동작과 품새별 세부동작, 표현성은 속도와 힘·강유/완급/리듬·기의 표현을 중심으로 확인합니다." });
           items.push({ type: "caution", text: `필요 훈련: ${neededTraining.join(" / ")}` });
         }
         if (weak.length) items.push({ type: "bad", text: `우선 보완할 구간: ${weak.map((r) => `${r.order}.${r.name}`).join(", ")}` });
@@ -2524,7 +2655,8 @@
           selectedFile.lastModified || 0,
           video.duration.toFixed(3),
           video.videoWidth,
-          video.videoHeight
+          video.videoHeight,
+          `boundary-motion-revision-2-${boundarySensitivitySelect.value || "0.82"}`
         ].join("|");
       }
       function cloneStableData(value) {
@@ -2578,6 +2710,7 @@
             cache_hit: cacheHit,
             note: "같은 영상과 같은 품새를 반복 측정하면 세션 내 캐시된 구간 분석값을 재사용해 점수 흔들림을 줄인다."
           },
+          competition_rules_2026: trainingMode === "competition" ? COMPETITION_RULES_2026 : null,
           poomsae: {
             id: selectedPoomsaeKey,
             name: currentPoomsae().name,
@@ -2653,7 +2786,7 @@
         }
         isAnalyzing = true;
         const timestampBaseMs = analysisTimestampOffsetMs;
-        analysisTimestampOffsetMs += Math.ceil(video.duration * 1000) + 10000;
+        analysisTimestampOffsetMs += Math.ceil(video.duration * 2000) + 20000;
         try {
         analyzeBtn.disabled = true;
         reanalyzeBtn.disabled = true;
@@ -2678,17 +2811,19 @@
           completeAnalysis(cloneStableData(cached.results), cloneStableData(cached.frameSamples), true);
           return;
         }
-        setProgress(5, trainingMode === "exam" ? "문제점 확인 분석을 시작합니다." : "파워·맺음 평가를 시작합니다.");
+        setProgress(5, "동작 전환점을 먼저 찾아 구간 경계를 보정합니다.");
+        const boundaryDetection = await detectMotionBoundaries(timestampBaseMs);
+        const segmentTimestampBaseMs = timestampBaseMs + Math.ceil(video.duration * 1000) + 5000;
         const results = [];
         const frameSamples = [];
         for (let i = 0; i < movements.length; i += 1) {
           const movement = movements[i];
-          const segmentStart = video.duration * (i / movements.length);
-          const segmentEnd = video.duration * ((i + 1) / movements.length);
+          const segmentStart = boundaryDetection.boundaries[i];
+          const segmentEnd = boundaryDetection.boundaries[i + 1];
           const segmentLength = segmentEnd - segmentStart;
           const frames = [];
           let snapshot = "";
-          // 구간 길이에 비례해 샘플 수를 6~14개로 적응적으로 정한다(약 12fps 목표, 한계 내).
+          // 구간 길이에 비례해 샘플 수를 4~8개로 제한해 저사양 기기 부하를 줄인다.
           const sampleCount = chooseSampleCount(segmentLength);
           const snapshotIndex = Math.floor(sampleCount / 2);
           for (let j = 0; j < sampleCount; j += 1) {
@@ -2697,7 +2832,7 @@
             const time = segmentStart + segmentLength * ratio;
             await waitForSeek(time);
             if (j === snapshotIndex) snapshot = captureVideoSnapshot();
-            const result = poseLandmarker.detectForVideo(video, timestampBaseMs + Math.round(time * 1000));
+            const result = poseLandmarker.detectForVideo(video, segmentTimestampBaseMs + Math.round(time * 1000));
             const landmarks = result.landmarks && result.landmarks[0] ? result.landmarks[0] : null;
             frames.push({ time, landmarks });
           }
@@ -2716,7 +2851,9 @@
           frameSamples.push({
             segment_id: movement.id,
             times: frames.map((f) => Number(f.time.toFixed(3))),
-            detected_frames: frames.filter((f) => f.landmarks).length
+            detected_frames: frames.filter((f) => f.landmarks).length,
+            boundary_method: boundaryDetection.method,
+            boundary_sensitivity: boundaryDetection.sensitivity
           });
           setProgress(5 + Math.round(((i + 1) / movements.length) * 82), `${trainingMode === "exam" ? "문제점 확인 중" : "파워·맺음 평가 중"}... ${i + 1}/${movements.length}`);
           await new Promise((resolve) => setTimeout(resolve, 10));
@@ -2817,6 +2954,12 @@
         setPill(overallStatus, "caution", "분석 전");
         warnIfFilenamePoomsaeMismatch();
         renderReport([{ type: "caution", text: `${currentPoomsae().name} 선택 완료. 영상 선택 후 평가를 시작하세요.` }]);
+      });
+      boundarySensitivitySelect.addEventListener("change", () => {
+        clearAnalysisOnly();
+        analyzeBtn.disabled = !selectedFile || !Number.isFinite(video.duration);
+        const label = boundarySensitivitySelect.options[boundarySensitivitySelect.selectedIndex].textContent;
+        renderReport([{ type: "caution", text: `구간 감지 민감도를 '${label}'으로 변경했습니다. 분석 시작을 누르면 동작 전환점을 다시 찾습니다.` }]);
       });
       document.querySelectorAll("[data-mode]").forEach((tab) => {
         tab.addEventListener("click", () => {
