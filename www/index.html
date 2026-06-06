@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>태권도 품새 수련 훈련</title>
+    <title>태권도 품새 수련</title>
     <style>
       :root {
         /* 다크 도장(道場) 테마 — 먹빛 바탕에 단청 청·홍 포인트 */
@@ -105,6 +105,51 @@
         color: var(--muted);
         font-size: 11px;
         font-weight: 700;
+      }
+      .program-guide {
+        margin: 12px 0 18px;
+        border: 1px solid var(--panel-line);
+        border-radius: var(--radius-sm);
+        background: var(--panel-2);
+        overflow: hidden;
+      }
+      .program-guide summary {
+        min-height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 16px;
+        color: var(--brand-strong);
+        font-weight: 800;
+        cursor: pointer;
+        list-style: none;
+      }
+      .program-guide summary::-webkit-details-marker { display: none; }
+      .program-guide summary::after {
+        content: "+";
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--brand);
+        border-radius: 50%;
+        font-size: 20px;
+      }
+      .program-guide[open] summary::after { content: "−"; }
+      .program-guide-body {
+        padding: 0 16px 16px;
+        border-top: 1px solid var(--panel-line);
+      }
+      .program-guide-body p { margin: 14px 0 10px; }
+      .program-guide-steps {
+        margin: 0;
+        padding-left: 24px;
+        color: var(--text);
+      }
+      .program-guide-steps li {
+        margin: 8px 0;
+        padding-left: 4px;
       }
       .quick-nav {
         position: sticky;
@@ -700,17 +745,22 @@
         border-color: var(--brand);
         outline: none;
       }
-      .scene-card.priority {
+      .scene-card.priority,
+      .scene-card.competition-full {
         grid-template-columns: 1fr;
+      }
+      .scene-card.priority {
         border-color: var(--caution);
         background: var(--caution-soft);
       }
-      .scene-card.priority .scene-shot {
+      .scene-card.priority .scene-shot,
+      .scene-card.competition-full .scene-shot {
         width: min(100%, 560px);
         justify-self: center;
         aspect-ratio: 16 / 9;
       }
-      .scene-card.priority > div {
+      .scene-card.priority > div,
+      .scene-card.competition-full > div {
         width: 100%;
       }
       .scene-shot {
@@ -846,8 +896,10 @@
         .control-grid { grid-template-columns: 1fr; }
         .primary-actions { grid-template-columns: 1fr; }
         .primary-actions button { min-height: 72px; padding: 14px; font-size: 19px; }
-        .scene-card.priority { grid-template-columns: 1fr; }
-        .scene-card.priority .scene-shot { width: 100%; }
+        .scene-card.priority,
+        .scene-card.competition-full { grid-template-columns: 1fr; }
+        .scene-card.priority .scene-shot,
+        .scene-card.competition-full .scene-shot { width: 100%; }
         .utility-actions { grid-template-columns: 1fr 1fr; }
         .playback-settings { grid-template-columns: 1fr; }
         .repeat-options,
@@ -856,7 +908,7 @@
         input[type="file"] { min-height: 64px; }
       }
 
-      /* ===================== v3.19 다크 도장 테마 오버라이드 ===================== */
+      /* ===================== v3.21 다크 도장 테마 오버라이드 ===================== */
       h1, h2, h3 { color: var(--text); font-weight: 800; }
       h1 { font-size: 23px; letter-spacing: -.3px; }
 
@@ -1139,8 +1191,8 @@
     <header>
       <div class="wrap">
         <div>
-          <h1>태권도 품새 수련 훈련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.19</p>
+          <h1>태권도 품새 수련</h1>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.21</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
       </div>
@@ -1157,6 +1209,20 @@
         <section>
           <h2>훈련 시작</h2>
           <p class="setup-copy">훈련 목적과 품새를 고른 뒤 수련 영상을 선택하세요. 선택 순서는 자유롭습니다.</p>
+          <details class="program-guide">
+            <summary>프로그램 사용 설명서</summary>
+            <div class="program-guide-body">
+              <p>촬영한 품새 영상을 구간별로 나누어 동작 흐름과 연습 포인트를 확인하는 훈련 보조 프로그램입니다.</p>
+              <ol class="program-guide-steps">
+                <li><strong>훈련 목적 선택:</strong> 수련품새 또는 경기품새를 고릅니다.</li>
+                <li><strong>품새 선택:</strong> 유급자·유품자·유단자 탭에서 분석할 품새를 고릅니다.</li>
+                <li><strong>영상 선택:</strong> 가로 화면으로 전신이 보이게 촬영한 영상을 넣습니다.</li>
+                <li><strong>분석 시작:</strong> 분석이 끝날 때까지 화면을 닫지 않고 기다립니다.</li>
+                <li><strong>훈련 확인:</strong> 구간에서 장면을 재생하고, 리포트에서 우선 연습할 부분을 확인합니다.</li>
+              </ol>
+              <p class="small">권장 촬영: 정면 · 전신 · 가로 영상 · 카메라 고정 · 밝은 장소</p>
+            </div>
+          </details>
           <div class="field-label">훈련 목적 <span>리포트의 방식이 달라집니다</span></div>
           <div class="poomsae-tabs mode-tabs" role="tablist" aria-label="훈련 목적">
             <button type="button" class="poomsae-tab mode-tab" data-mode="exam">
@@ -1737,8 +1803,9 @@
           ? `<img class="scene-shot" src="${segment.snapshot}" alt="${escapeHtml(segment.order)}번 구간 장면" loading="lazy" />`
           : `<div class="scene-shot scene-placeholder">장면 없음</div>`;
         const scoreMeta = trainingMode === "exam" ? "" : `<span>${segment.powerScore}점</span>`;
+        const layoutClass = isPriority ? "priority" : trainingMode === "competition" ? "competition-full" : "";
         return `
-          <article class="scene-card ${isPriority ? "priority" : ""}" role="button" tabindex="0" data-start="${segment.startTime}" data-end="${segment.endTime}" aria-label="${escapeHtml(segment.order)}번 ${escapeHtml(segment.name)} 리플레이">
+          <article class="scene-card ${layoutClass}" role="button" tabindex="0" data-start="${segment.startTime}" data-end="${segment.endTime}" aria-label="${escapeHtml(segment.order)}번 ${escapeHtml(segment.name)} 리플레이">
             ${shot}
             <div>
               <strong>${segment.order}. ${escapeHtml(segment.name)}</strong>
@@ -1835,7 +1902,7 @@
       function formatReportText() {
         if (!latestReport) return "";
         const lines = [];
-        lines.push(`태권도 품새 수련 훈련 · ${modeLabel()} 리포트`);
+        lines.push(`태권도 품새 수련 · ${modeLabel()} 리포트`);
         lines.push(`생성일: ${new Date(latestReport.created_at).toLocaleString()}`);
         lines.push(`모드: ${modeLabel()}`);
         lines.push(`품새: ${latestReport.poomsae?.name || currentPoomsae().name}`);
@@ -1935,7 +2002,7 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "#173f8a";
         ctx.fillRect(0, 0, canvas.width, 250);
-        text(`태권도 품새 수련 훈련 · ${modeLabel()}`, 90, 56, 34, "#dbeafe", "800");
+        text(`태권도 품새 수련 · ${modeLabel()}`, 90, 56, 34, "#dbeafe", "800");
         text(`${poomsaeName} 리포트`, 90, 108, 58, "#ffffff", "800");
         text("영상 기반 수련 피드백 · 공식 심사 대체 아님", 90, 184, 28, "#dbeafe", "700");
 
@@ -2713,7 +2780,7 @@
         renderReport(summary.items);
         setProgress(100, cacheHit ? "동일 영상 안정화 결과를 불러왔습니다." : (trainingMode === "exam" ? "문제점 확인 완료" : "파워·맺음 평가 완료"));
         latestReport = {
-          app: "태권도 품새 수련 훈련",
+          app: "태권도 품새 수련",
           created_at: new Date().toISOString(),
           training_mode: trainingMode,
           training_mode_label: modeLabel(),

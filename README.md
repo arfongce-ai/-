@@ -1,4 +1,4 @@
-# 태권도 품새 수련 훈련 APK 프로젝트
+# 태권도 품새 수련 APK 프로젝트
 
 이 폴더는 `poomsae-coach-power-prototype.html`을 APK로 감싸기 위한 Capacitor 프로젝트다.
 
