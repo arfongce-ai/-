@@ -1,24 +1,14 @@
-태권도 품새 수련 훈련 v3.18 - GitHub 업로드용 폴더
-
-이 폴더를 열고 안에 보이는 모든 파일과 폴더를 한 번에 올리면 됩니다.
-
-1. 이 폴더 안에서 Ctrl + A를 누릅니다.
-2. GitHub 저장소에서 Add file → Upload files를 누릅니다.
-3. 선택된 모든 항목을 GitHub 업로드 화면으로 끌어놓습니다.
-4. 업로드가 끝나면 Commit changes를 누릅니다.
+GitHub 저장소의 기존 파일을 지운 뒤,
+이 폴더 안에 보이는 모든 파일과 폴더를 저장소의 맨 위에 올리세요.
 
 Cloudflare Pages 설정:
-- Framework preset: None
+- Production branch: main
 - Build command: 비워 두기
 - Build output directory: www
+- Root directory: 비워 두기
 
-v3.18 주요 변경:
-- 경기품새 피드백에 2026 경기규칙의 정확성·표현성 확인 기준 반영
-- 서기·막기·지르기·차기별 정확성 감점 위험 확인 항목 표시
-- 영상 움직임의 정지점을 찾아 구간 경계를 자동 보정
-- 구간 감지 민감도 보통/높음/매우 높음 선택 기능
-- 관절 미검출 장면이 거짓 정지점으로 선택되는 문제 방지
-
-중요:
-- UPLOAD_TO_GITHUB_v3_18_ALL_FILES 폴더 자체가 아니라, 폴더 안의 내용을 올리세요.
-- www, scripts, docs 폴더를 빠뜨리지 마세요.
+이번 버전: v3.19
+- 분석 시작 버튼 정리
+- 리포트 명칭 통일
+- 우선 확인 카드 사진 상단 중앙 배치
+- 구간 감지 고밀도 탐색 및 움직임 최저점 우선 선택

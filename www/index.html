@@ -583,13 +583,15 @@
       }
       .primary-actions {
         display: grid;
-        grid-template-columns: minmax(0, 1.45fr) minmax(0, .55fr);
+        grid-template-columns: 1fr;
         gap: 10px;
         margin-top: 12px;
       }
       .primary-actions button {
-        min-height: 58px;
-        font-size: 16px;
+        width: 100%;
+        min-height: 72px;
+        font-size: 20px;
+        font-weight: 800;
       }
       #analyzeBtn:not(:disabled) {
         box-shadow: 0 8px 18px rgba(8, 122, 120, .22);
@@ -699,8 +701,17 @@
         outline: none;
       }
       .scene-card.priority {
+        grid-template-columns: 1fr;
         border-color: var(--caution);
         background: var(--caution-soft);
+      }
+      .scene-card.priority .scene-shot {
+        width: min(100%, 560px);
+        justify-self: center;
+        aspect-ratio: 16 / 9;
+      }
+      .scene-card.priority > div {
+        width: 100%;
       }
       .scene-shot {
         width: 100%;
@@ -833,8 +844,10 @@
         .mode-tab strong { font-size: 16px; }
         .mode-tab span { font-size: 11px; }
         .control-grid { grid-template-columns: 1fr; }
-        .primary-actions { grid-template-columns: minmax(0, 1.35fr) minmax(0, .65fr); }
-        .primary-actions button { min-height: 56px; padding: 10px; }
+        .primary-actions { grid-template-columns: 1fr; }
+        .primary-actions button { min-height: 72px; padding: 14px; font-size: 19px; }
+        .scene-card.priority { grid-template-columns: 1fr; }
+        .scene-card.priority .scene-shot { width: 100%; }
         .utility-actions { grid-template-columns: 1fr 1fr; }
         .playback-settings { grid-template-columns: 1fr; }
         .repeat-options,
@@ -843,7 +856,7 @@
         input[type="file"] { min-height: 64px; }
       }
 
-      /* ===================== v3.18 다크 도장 테마 오버라이드 ===================== */
+      /* ===================== v3.19 다크 도장 테마 오버라이드 ===================== */
       h1, h2, h3 { color: var(--text); font-weight: 800; }
       h1 { font-size: 23px; letter-spacing: -.3px; }
 
@@ -1127,7 +1140,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련 훈련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.18</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.19</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
       </div>
@@ -1136,7 +1149,7 @@
       <button type="button" data-jump="setup" class="active">설정</button>
       <button type="button" data-jump="video">영상</button>
       <button type="button" data-jump="segments">구간</button>
-      <button type="button" data-jump="result">훈련 분석 요약</button>
+      <button type="button" data-jump="result">리포트</button>
     </nav>
 
     <main class="wrap">
@@ -1144,7 +1157,7 @@
         <section>
           <h2>훈련 시작</h2>
           <p class="setup-copy">훈련 목적과 품새를 고른 뒤 수련 영상을 선택하세요. 선택 순서는 자유롭습니다.</p>
-          <div class="field-label">훈련 목적 <span>훈련 분석 요약의 방식이 달라집니다</span></div>
+          <div class="field-label">훈련 목적 <span>리포트의 방식이 달라집니다</span></div>
           <div class="poomsae-tabs mode-tabs" role="tablist" aria-label="훈련 목적">
             <button type="button" class="poomsae-tab mode-tab" data-mode="exam">
               <strong>수련품새</strong>
@@ -1172,8 +1185,8 @@
           <div class="field-label">구간 감지 민감도 <span>동작 전환점이 잘못 잡히면 높여 보세요</span></div>
           <select id="boundarySensitivitySelect" aria-label="구간 감지 민감도">
             <option value="0.65">보통 · 경계 이동 적음</option>
-            <option value="0.82" selected>높음 · 권장</option>
-            <option value="0.95">매우 높음 · 정지점 우선</option>
+            <option value="0.82">높음 · 빠른 분석</option>
+            <option value="0.95" selected>매우 높음 · 권장</option>
           </select>
           <div class="field-label">분석 실행 <span>영상이 준비되면 시작할 수 있습니다</span></div>
           <div class="primary-actions">
@@ -1183,7 +1196,7 @@
           </div>
           <div class="utility-actions" hidden>
             <button id="downloadBtn" class="secondary" disabled>JSON 저장</button>
-            <button id="showReportBtn" class="secondary" disabled hidden>훈련 분석 요약</button>
+            <button id="showReportBtn" class="secondary" disabled hidden>리포트</button>
             <button id="jpgBtn" class="secondary" disabled hidden>JPG 저장</button>
           </div>
           <div class="code" style="margin-top: 12px;">
@@ -1248,8 +1261,8 @@
         <div class="report-box">
           <textarea id="reportOutput" readonly placeholder="분석 후 리포트 화면 출력 버튼을 누르면 결과가 여기에 표시됩니다."></textarea>
           <div id="jpgPreviewBox" class="jpg-preview">
-            <p>A4 훈련 분석 요약 JPG가 아래에 생성됩니다. 폰에서는 이미지를 길게 눌러 저장하거나, `새 탭으로 열기`를 눌러 저장하세요.</p>
-            <img id="jpgPreview" alt="A4 훈련 분석 요약 JPG 미리보기" />
+            <p>A4 리포트 JPG가 아래에 생성됩니다. 폰에서는 이미지를 길게 눌러 저장하거나, `새 탭으로 열기`를 눌러 저장하세요.</p>
+            <img id="jpgPreview" alt="A4 리포트 JPG 미리보기" />
             <a id="jpgOpenLink" href="#" target="_blank" rel="noopener">JPG 새 탭으로 열기</a>
           </div>
         </div>
@@ -1596,7 +1609,7 @@
           sidePanel.appendChild(reportSection);
           sidePanel.appendChild(segmentsSection);
         }
-        if (showReportBtn) showReportBtn.textContent = "훈련 분석 요약";
+        if (showReportBtn) showReportBtn.textContent = "리포트";
         if (reportSection) reportSection.hidden = true;
         if (outputSection) outputSection.hidden = true;
 
@@ -1608,21 +1621,21 @@
           <section>
             <div class="result-header">
               <div>
-                <h2>훈련 분석 요약</h2>
+                <h2>리포트</h2>
                 <p>영상 분석의 핵심 내용과 우선 훈련 부분을 한 화면에서 확인합니다.</p>
               </div>
               <button id="backToTrainingBtn" class="secondary" type="button">훈련 화면으로</button>
             </div>
           </section>
           <section class="result-card">
-            <h3>A4 훈련 분석 요약 JPG</h3>
+            <h3>A4 리포트 JPG</h3>
             <p>핵심 결과를 A4 한 장 크기의 JPG로 만들고 저장할 수 있습니다.</p>
             <div class="result-actions">
               <button id="resultJpgBtn" type="button">A4 요약 JPG 만들기</button>
             </div>
           </section>
           <section id="resultPageContent" class="result-card">
-            <p class="result-empty">아직 생성된 훈련 분석 요약이 없습니다. 먼저 분석을 실행하세요.</p>
+            <p class="result-empty">아직 생성된 리포트가 없습니다. 먼저 분석을 실행하세요.</p>
           </section>
         `;
         document.body.appendChild(resultPage);
@@ -1749,7 +1762,7 @@
         });
         if (modeHelp) {
           modeHelp.textContent = trainingMode === "exam"
-            ? "수련품새: 점수 없이 문제점 확인과 수정 포인트를 중심으로 훈련 분석 요약을 만듭니다."
+            ? "수련품새: 점수 없이 문제점 확인과 수정 포인트를 중심으로 리포트를 만듭니다."
             : "경기품새: 100점/평균, 반복 문제, 필요 훈련을 함께 확인합니다.";
         }
         powerScoreText.closest(".metric").querySelector("strong").textContent = trainingMode === "exam" ? "결과 방식" : "100점/평균";
@@ -1758,7 +1771,7 @@
       function renderResultPage() {
         if (!resultPageContent) return;
         if (!latestReport) {
-          resultPageContent.innerHTML = `<p class="result-empty">아직 생성된 훈련 분석 요약이 없습니다. 먼저 분석을 실행하세요.</p>`;
+          resultPageContent.innerHTML = `<p class="result-empty">아직 생성된 리포트가 없습니다. 먼저 분석을 실행하세요.</p>`;
           return;
         }
         const weak = latestReport.segments
@@ -1923,7 +1936,7 @@
         ctx.fillStyle = "#173f8a";
         ctx.fillRect(0, 0, canvas.width, 250);
         text(`태권도 품새 수련 훈련 · ${modeLabel()}`, 90, 56, 34, "#dbeafe", "800");
-        text(`${poomsaeName} 훈련 분석 요약`, 90, 108, 58, "#ffffff", "800");
+        text(`${poomsaeName} 리포트`, 90, 108, 58, "#ffffff", "800");
         text("영상 기반 수련 피드백 · 공식 심사 대체 아님", 90, 184, 28, "#dbeafe", "700");
 
         rr(70, 305, 1260, 245, 18, "#ffffff", "#d9dee8");
@@ -1985,7 +1998,7 @@
           console.warn("JPG download was blocked by the browser.", error);
         }
 
-        reportOutput.value = "A4 훈련 분석 요약 JPG가 생성되었습니다.\n\nPC: 자동 저장이 안 되면 `JPG 새 탭으로 열기`를 눌러 저장하세요.\n폰/태블릿: 이미지를 길게 눌러 사진으로 저장하세요.";
+        reportOutput.value = "A4 리포트 JPG가 생성되었습니다.\n\nPC: 자동 저장이 안 되면 `JPG 새 탭으로 열기`를 눌러 저장하세요.\n폰/태블릿: 이미지를 길게 눌러 사진으로 저장하세요.";
       }
       function formatDuration(seconds) {
         return Number.isFinite(seconds) ? `${seconds.toFixed(1)}초` : "-";
@@ -2288,7 +2301,7 @@
         // 동작 비교에 필요한 프레임은 유지하고 전체 분석량은 보통 초당 1.5~2회 이하로 제한한다.
         return clamp(Math.round(segmentLength * 1.5), 4, 8);
       }
-      function refineSegmentBoundaries(duration, segmentCount, motionSamples, sensitivity = 0.82) {
+      function refineSegmentBoundaries(duration, segmentCount, motionSamples, sensitivity = 0.95) {
         const safeDuration = Math.max(Number(duration) || 0, 0);
         const safeCount = Math.max(Math.round(segmentCount) || 1, 1);
         if (!safeDuration || safeCount <= 1 || !motionSamples.length) {
@@ -2321,9 +2334,16 @@
             .map((sample) => {
               const motionScore = (sample.motion - motionLow) / motionRange;
               const distanceScore = Math.abs(sample.time - expected) / Math.max(searchRadius, 0.001);
+              const sampleIndex = sorted.indexOf(sample);
+              const previousMotion = sorted[sampleIndex - 1]?.motion ?? Number.POSITIVE_INFINITY;
+              const nextMotion = sorted[sampleIndex + 1]?.motion ?? Number.POSITIVE_INFINITY;
+              const isLocalMinimum = sample.motion <= previousMotion && sample.motion <= nextMotion;
               return {
                 ...sample,
-                boundaryScore: motionScore * (0.7 + sensitivity * 0.55) + distanceScore * (0.55 - sensitivity * 0.3)
+                boundaryScore:
+                  motionScore * (0.7 + sensitivity * 0.55) +
+                  distanceScore * (0.55 - sensitivity * 0.3) -
+                  (isLocalMinimum ? 0.22 * sensitivity : 0)
               };
             })
             .sort((a, b) => a.boundaryScore - b.boundaryScore)[0];
@@ -2334,8 +2354,8 @@
       }
       async function detectMotionBoundaries(timestampBaseMs) {
         const count = movements.length;
-        const sensitivity = Number(boundarySensitivitySelect.value || 0.82);
-        const scanCount = clamp(Math.round(video.duration * 2), count * 3, 180);
+        const sensitivity = Number(boundarySensitivitySelect.value || 0.95);
+        const scanCount = clamp(Math.round(video.duration * 3), count * 4, 270);
         const frames = [];
         for (let index = 0; index < scanCount; index += 1) {
           const time = Math.max(video.duration - 0.04, 0) * (index / Math.max(scanCount - 1, 1));
@@ -2367,7 +2387,7 @@
           boundaries: refineSegmentBoundaries(video.duration, count, motionSamples, sensitivity),
           scanCount,
           sensitivity,
-          method: "motion_low_point_near_expected_boundary"
+          method: "high_density_local_motion_minimum_near_expected_boundary"
         };
       }
       function scoreStance(frames) {
@@ -2656,7 +2676,7 @@
           video.duration.toFixed(3),
           video.videoWidth,
           video.videoHeight,
-          `boundary-motion-revision-2-${boundarySensitivitySelect.value || "0.82"}`
+          `boundary-motion-revision-3-${boundarySensitivitySelect.value || "0.95"}`
         ].join("|");
       }
       function cloneStableData(value) {
@@ -2699,8 +2719,8 @@
           training_mode_label: modeLabel(),
           mode: "power_snap_stillness_estimation",
           note: trainingMode === "exam"
-            ? "수련품새 훈련 분석 요약은 점수 없이 문제점 확인 및 수정 포인트 중심으로 표시한다."
-          : "경기품새 훈련 분석 요약은 100점/평균 점수와 필요 훈련을 함께 표시한다. 영상 관절 좌표 기반 추정치이며 실제 물리적 힘을 직접 측정하지 않는다.",
+            ? "수련품새 리포트는 점수 없이 문제점 확인 및 수정 포인트 중심으로 표시한다."
+          : "경기품새 리포트는 100점/평균 점수와 필요 훈련을 함께 표시한다. 영상 관절 좌표 기반 추정치이며 실제 물리적 힘을 직접 측정하지 않는다.",
           scoring_stability: {
             segment_sample_range: { min: 4, max: 8 },
             sampling_strategy: "adaptive_device_safe",

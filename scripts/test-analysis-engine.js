@@ -65,4 +65,19 @@ const missingPoseTrap = [
 const missingPoseRefined = context.refineSegmentBoundaries(10, 4, missingPoseTrap, 0.95);
 assert(missingPoseRefined[1] !== 2.0, "missing pose frame cannot be selected as a false stop boundary");
 
+const localMinimumPreference = [
+  { time: 2.0, motion: 0.16, valid: true },
+  { time: 2.25, motion: 0.12, valid: true },
+  { time: 2.5, motion: 0.14, valid: true },
+  { time: 4.75, motion: 0.18, valid: true },
+  { time: 5.0, motion: 0.11, valid: true },
+  { time: 5.25, motion: 0.15, valid: true },
+  { time: 7.25, motion: 0.17, valid: true },
+  { time: 7.5, motion: 0.10, valid: true },
+  { time: 7.75, motion: 0.16, valid: true }
+];
+const localMinimumRefined = context.refineSegmentBoundaries(10, 4, localMinimumPreference, 0.95);
+assert(Math.abs(localMinimumRefined[1] - 2.25) < 0.01, "local motion minimum is preferred for the first boundary");
+assert(Math.abs(localMinimumRefined[2] - 5.0) < 0.01, "local motion minimum is preferred for the middle boundary");
+
 console.log("Analysis engine synthetic checks passed.");
