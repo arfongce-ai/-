@@ -3,7 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>품새 AI 분석</title>
+    <meta name="theme-color" content="#0e1116" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="품새 수련" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./www/assets/app-icon-1024.png" />
+    <link rel="apple-touch-icon" href="./www/assets/app-icon-1024.png" />
+    <title>태권도 품새 수련</title>
     <meta http-equiv="refresh" content="0; url=./www/index.html" />
     <style>
       body {
@@ -33,5 +39,10 @@
       <h1>품새 AI 분석으로 이동 중입니다</h1>
       <p>자동으로 이동하지 않으면 <a href="./www/index.html">여기를 누르세요</a>.</p>
     </main>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js", { scope: "./" }).catch(() => {}));
+      }
+    </script>
   </body>
 </html>

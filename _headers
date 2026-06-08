@@ -21,6 +21,12 @@
 /www/manifest.webmanifest
   Cache-Control: no-store
 
+/service-worker.js
+  Cache-Control: no-store
+
+/manifest.webmanifest
+  Cache-Control: no-store
+
 /www/models/*
   Cache-Control: public, max-age=31536000, immutable
 

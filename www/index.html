@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0e1116" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="품새 수련" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./assets/app-icon-1024.png" />
     <link rel="apple-touch-icon" href="./assets/app-icon-1024.png" />
@@ -1244,10 +1245,9 @@
         display: block;
         width: 100%;
         height: 100%;
-        max-height: 104px;
         object-fit: contain;
         margin: 0;
-        padding: 5px;
+        padding: 6px;
         border-radius: 8px;
         background: #ffffff;
       }
@@ -1262,20 +1262,20 @@
       }
       .app-footer-partners {
         display: block;
-        width: min(300px, 100%);
-        max-height: 70px;
+        grid-column: 1 / -1;
+        width: 100%;
+        max-height: 116px;
         object-fit: contain;
-        margin: 12px 0 0;
-        padding: 4px;
-        border-radius: 7px;
+        margin: 2px 0 0;
+        padding: 8px;
+        border-radius: 8px;
         background: #ffffff;
       }
       .app-footer a { color: var(--brand-strong); }
       @media (max-width: 760px) {
         .app-footer { padding-bottom: 104px; }
         .app-footer-inner { grid-template-columns: 112px minmax(0, 1fr); gap: 12px; }
-        .app-footer-main-logo { max-height: 96px; }
-        .app-footer-partners { width: min(260px, 100%); max-height: 62px; }
+        .app-footer-partners { max-height: 92px; margin-top: 4px; }
       }
 
       /* 스크롤바 */
@@ -1303,7 +1303,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.22</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.23</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
       </div>
@@ -1460,9 +1460,10 @@
           <p>제작: 울산 몸가짐운동센터</p>
           <p>제작자: 김동규 센터장</p>
           <p>인스타그램: <a href="https://www.instagram.com/posture_gym_official" target="_blank" rel="noopener">@posture_gym_official</a></p>
-          <p>블로그: <a href="https://blog.naver.com/posture_gym" target="_blank" rel="noopener">blog.naver.com/posture_gym</a> · 문의: <a href="tel:050713660466">0507-1366-0466</a></p>
-          <img class="app-footer-partners" src="./assets/partner-taekwondo-logos.png" alt="용인대 국가대표 태권도 및 Taigon 시범단 로고" loading="lazy" />
+          <p>블로그: <a href="https://blog.naver.com/posture_gym" target="_blank" rel="noopener">blog.naver.com/posture_gym</a></p>
+          <p>문의: <a href="tel:050713660466">0507-1366-0466</a></p>
         </div>
+        <img class="app-footer-partners" src="./assets/partner-taekwondo-logos.png" alt="용인대 국가대표 태권도 및 Taigon 시범단 로고" loading="lazy" />
       </div>
     </footer>
 
@@ -2293,37 +2294,70 @@
           return "";
         }
       }
+      // requestVideoFrameCallback이 있으면 실제 화면에 그려진 프레임의 mediaTime을 사용한다.
+      // seeked 이벤트만으로는 디코딩/페인트 완료가 보장되지 않아 분석 포즈와 표시 시각이 어긋난다.
+      const SUPPORTS_RVFC = typeof HTMLVideoElement !== "undefined"
+        && typeof HTMLVideoElement.prototype.requestVideoFrameCallback === "function";
+
+      // 페인트 완료를 보장하기 위한 double-rAF (rVFC 미지원 WebView 폴백)
+      function waitForPaint() {
+        return new Promise((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        });
+      }
+
+      // seek 후 실제로 디코딩/페인트된 프레임 시각을 반환한다.
+      // 반환값(actualTime)을 분석 결과 시각으로 기록하면 영상과 분석이 정확히 정렬된다.
       function waitForSeek(time) {
         return new Promise((resolve) => {
-          const target = Math.min(Math.max(time, 0), Math.max(video.duration - 0.1, 0));
-          if (!Number.isFinite(target) || Math.abs(video.currentTime - target) <= SEEK_EPSILON_SECONDS) {
-            video.currentTime = Number.isFinite(target) ? target : 0;
-            resolve();
-            return;
-          }
+          const target = Math.min(Math.max(time, 0), Math.max(video.duration - 0.05, 0));
+          const safeTarget = Number.isFinite(target) ? target : 0;
           let settled = false;
           let timer = null;
-          const cleanup = () => {
+          let frameHandle = null;
+          const finish = (actualTime) => {
             if (settled) return;
             settled = true;
             if (timer) clearTimeout(timer);
             video.removeEventListener("seeked", onSeeked);
+            const resolved = Number.isFinite(actualTime) ? actualTime : video.currentTime;
+            resolve(Number.isFinite(resolved) ? resolved : safeTarget);
           };
+          // 이미 목표 위치에 있고 별도 seek가 필요 없는 경우에도
+          // 실제 프레임 시각을 한 번 확인한 뒤 반환한다.
+          const alreadyThere = Number.isFinite(safeTarget)
+            && Math.abs(video.currentTime - safeTarget) <= SEEK_EPSILON_SECONDS;
           const onSeeked = () => {
-            cleanup();
-            resolve();
+            if (SUPPORTS_RVFC) {
+              try {
+                frameHandle = video.requestVideoFrameCallback((_now, meta) => {
+                  finish(meta && Number.isFinite(meta.mediaTime) ? meta.mediaTime : video.currentTime);
+                });
+                return;
+              } catch (error) {
+                console.warn("requestVideoFrameCallback failed; falling back.", error);
+              }
+            }
+            waitForPaint().then(() => finish(video.currentTime));
           };
           timer = setTimeout(() => {
-            cleanup();
-            resolve();
+            if (frameHandle != null && SUPPORTS_RVFC) {
+              try { video.cancelVideoFrameCallback(frameHandle); } catch (error) { /* noop */ }
+            }
+            finish(video.currentTime);
           }, SEEK_TIMEOUT_MS);
           video.addEventListener("seeked", onSeeked);
           try {
-            video.currentTime = target;
+            if (alreadyThere) {
+              // currentTime 재할당이 seeked를 발화시키지 않을 수 있으므로 직접 페인트 확인 경로로.
+              video.removeEventListener("seeked", onSeeked);
+              onSeeked();
+            } else {
+              video.currentTime = safeTarget;
+            }
           } catch (error) {
             console.warn("Video seek failed; continuing analysis.", error);
-            cleanup();
-            resolve();
+            finish(video.currentTime);
           }
         });
       }
@@ -2687,11 +2721,11 @@
         const scanCount = clamp(Math.round(video.duration * 5), count * 6, 420);
         const frames = [];
         for (let index = 0; index < scanCount; index += 1) {
-          const time = Math.max(video.duration - 0.04, 0) * (index / Math.max(scanCount - 1, 1));
-          await waitForSeek(time);
-          const result = poseLandmarker.detectForVideo(video, timestampBaseMs + Math.round(time * 1000));
+          const requestedTime = Math.max(video.duration - 0.04, 0) * (index / Math.max(scanCount - 1, 1));
+          const actualTime = await waitForSeek(requestedTime);
+          const result = poseLandmarker.detectForVideo(video, timestampBaseMs + Math.round(actualTime * 1000));
           frames.push({
-            time,
+            time: actualTime,
             landmarks: result.landmarks && result.landmarks[0] ? result.landmarks[0] : null
           });
           if (index % 8 === 0) {
@@ -3284,14 +3318,15 @@
           for (let j = 0; j < sampleCount; j += 1) {
             // 구간 양끝 8%는 인접 동작과 겹치므로 제외하고 균등 샘플.
             const ratio = 0.08 + (0.84 * j) / Math.max(sampleCount - 1, 1);
-            const time = segmentStart + segmentLength * ratio;
-            await waitForSeek(time);
-            const result = poseLandmarker.detectForVideo(video, segmentTimestampBaseMs + Math.round(time * 1000));
+            const requestedTime = segmentStart + segmentLength * ratio;
+            const actualTime = await waitForSeek(requestedTime);
+            const result = poseLandmarker.detectForVideo(video, segmentTimestampBaseMs + Math.round(actualTime * 1000));
             const landmarks = result.landmarks && result.landmarks[0] ? result.landmarks[0] : null;
-            frames.push({ time, landmarks });
+            // 원한 시각이 아니라 실제로 분석된 프레임 시각을 기록해 재생/리포트와 정렬한다.
+            frames.push({ time: actualTime, landmarks });
           }
           const completionTime = boundaryDetection.completionTimes[i] ?? segmentStart + segmentLength * 0.82;
-          await waitForSeek(completionTime);
+          const snapshotTime = await waitForSeek(completionTime);
           snapshot = captureVideoSnapshot();
           const metrics = evaluateSegment(movement, frames);
           const row = {
@@ -3311,7 +3346,7 @@
             detected_frames: frames.filter((f) => f.landmarks).length,
             boundary_method: boundaryDetection.method,
             boundary_sensitivity: boundaryDetection.sensitivity,
-            completion_snapshot_time: Number(completionTime.toFixed(3))
+            completion_snapshot_time: Number(snapshotTime.toFixed(3))
           });
           setProgress(5 + Math.round(((i + 1) / movements.length) * 82), `${trainingMode === "exam" ? "문제점 확인 중" : "파워·맺음 평가 중"}... ${i + 1}/${movements.length}`);
           await new Promise((resolve) => setTimeout(resolve, 10));

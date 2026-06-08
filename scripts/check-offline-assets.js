@@ -3,9 +3,14 @@ const path = require("path");
 
 const root = path.resolve(__dirname, "..");
 const required = [
+  "index.html",
+  "manifest.webmanifest",
+  "service-worker.js",
   "www/index.html",
   "www/assets/momgagym-logo.jpg",
   "www/assets/partner-taekwondo-logos.png",
+  "www/assets/app-icon-192.png",
+  "www/assets/app-icon-512.png",
   "www/assets/app-icon-1024.png",
   "www/manifest.webmanifest",
   "www/service-worker.js",
