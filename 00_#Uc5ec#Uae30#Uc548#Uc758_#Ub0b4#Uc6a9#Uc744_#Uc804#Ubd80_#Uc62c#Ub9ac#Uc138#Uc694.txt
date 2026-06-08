@@ -1,0 +1,13 @@
+GitHub 저장소의 기존 파일을 지운 뒤,
+이 폴더 안에 보이는 모든 파일과 폴더를 저장소의 맨 위에 올리세요.
+
+Cloudflare Pages 설정:
+- Production branch: main
+- Build command: 비워 두기
+- Build output directory: www
+- Root directory: 비워 두기
+
+이번 버전: v3.22
+- 수련품새 리포트 전체 부분을 사진 상단 중앙, 간략한 문제점 하단 구조로 변경
+- 전체 부분의 반복되는 긴 피드백을 핵심 문제점 한 줄로 정리
+- 앱 하단에 몸가짐운동센터 로고와 배포·제작자·문의 정보 추가
