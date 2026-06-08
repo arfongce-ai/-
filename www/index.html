@@ -799,6 +799,51 @@
         font-size: 12px;
         font-weight: 800;
       }
+      .scene-issues {
+        display: grid;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .scene-issue {
+        display: grid;
+        grid-template-columns: 30px minmax(0, 1fr);
+        gap: 9px;
+        padding: 10px;
+        border: 1px solid rgba(239, 68, 68, .32);
+        border-radius: 8px;
+        background: rgba(127, 29, 29, .18);
+      }
+      .scene-issue-number {
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--bad);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 900;
+      }
+      .scene-issue strong {
+        display: block;
+        margin-bottom: 3px;
+        color: #fecaca;
+      }
+      .scene-issue p {
+        margin: 3px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+      .movement-estimate-note {
+        margin: 8px 0 0;
+        padding: 8px 10px;
+        border-left: 3px solid var(--caution);
+        background: var(--caution-soft);
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
       progress {
         width: 100%;
         height: 14px;
@@ -1180,14 +1225,22 @@
         border-top: 1px solid var(--panel-line);
         background: #0b0f14;
         color: var(--muted);
-        text-align: center;
+        text-align: left;
+      }
+      .app-footer-inner {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        gap: 16px;
+        width: min(100% - 32px, 760px);
+        margin: 0 auto;
       }
       .app-footer img {
         display: block;
-        width: min(210px, 62vw);
+        width: 92px;
         height: auto;
-        margin: 0 auto 12px;
-        padding: 8px;
+        margin: 0;
+        padding: 5px;
         border-radius: 8px;
         background: #ffffff;
       }
@@ -1199,6 +1252,8 @@
       .app-footer a { color: var(--brand-strong); }
       @media (max-width: 760px) {
         .app-footer { padding-bottom: 104px; }
+        .app-footer-inner { grid-template-columns: 72px minmax(0, 1fr); gap: 12px; }
+        .app-footer img { width: 72px; }
       }
 
       /* 스크롤바 */
@@ -1375,10 +1430,14 @@
       </section>
     </main>
     <footer class="app-footer">
-      <img src="./assets/momgagym-logo.jpg" alt="몸가짐운동센터 로고" loading="lazy" />
-      <p>배포: 울산 몸가짐운동센터</p>
-      <p>제작자: 김동규 센터장</p>
-      <p>문의: <a href="mailto:momgagym@naver.com">momgagym@naver.com</a></p>
+      <div class="app-footer-inner">
+        <img src="./assets/momgagym-logo.jpg" alt="몸가짐운동센터 로고" loading="lazy" />
+        <div>
+          <p>제작: 울산 몸가짐운동센터 · 제작자: 김동규 센터장</p>
+          <p>인스타그램: <a href="https://www.instagram.com/posture_gym_official" target="_blank" rel="noopener">@posture_gym_official</a></p>
+          <p>블로그: <a href="https://blog.naver.com/posture_gym" target="_blank" rel="noopener">blog.naver.com/posture_gym</a> · 문의: <a href="tel:050713660466">0507-1366-0466</a></p>
+        </div>
+      </div>
     </footer>
 
     <script type="module">
@@ -1745,6 +1804,8 @@
           </section>
         `;
         document.body.appendChild(resultPage);
+        const appFooter = document.querySelector(".app-footer");
+        if (appFooter) document.body.appendChild(appFooter);
         resultPageContent = document.getElementById("resultPageContent");
         backToTrainingBtn = document.getElementById("backToTrainingBtn");
         resultJpgBtn = document.getElementById("resultJpgBtn");
@@ -1844,7 +1905,18 @@
           : `<div class="scene-shot scene-placeholder">장면 없음</div>`;
         const scoreMeta = trainingMode === "exam" ? "" : `<span>${segment.powerScore}점</span>`;
         const layoutClass = isPriority ? "priority" : "report-full";
-        const feedbackText = isPriority ? segment.feedback : briefIssueText(segment);
+        const issueLimit = isPriority ? 4 : 2;
+        const issues = segmentIssueDetails(segment, issueLimit);
+        const issueMarkup = issues.map((issue, index) => `
+          <div class="scene-issue">
+            <span class="scene-issue-number">${index + 1}</span>
+            <div>
+              <strong>${escapeHtml(issue.label)} · ${issue.score}점</strong>
+              <p><b>문제:</b> ${escapeHtml(issue.problem)}</p>
+              ${trainingMode === "competition" ? `<p><b>개선:</b> ${escapeHtml(issue.improvement)}</p><p><b>수련:</b> ${escapeHtml(issue.practice)}</p>` : `<p><b>수정:</b> ${escapeHtml(issue.improvement)}</p>`}
+            </div>
+          </div>
+        `).join("");
         return `
           <article class="scene-card ${layoutClass}" role="button" tabindex="0" data-start="${segment.startTime}" data-end="${segment.endTime}" aria-label="${escapeHtml(segment.order)}번 ${escapeHtml(segment.name)} 리플레이">
             ${shot}
@@ -1854,11 +1926,23 @@
                 <span>${segment.startTime.toFixed(1)}-${segment.endTime.toFixed(1)}초</span>
                 <span>${escapeHtml(segment.label)}</span>
                 ${scoreMeta}
+                <span>동작명 자동 추정</span>
               </div>
-              <p class="small">${escapeHtml(feedbackText)}</p>
+              <div class="scene-issues">${issueMarkup}</div>
+              <p class="movement-estimate-note">영상은 동작 완료 자세에 가까운 대표 장면입니다. 동작명과 장면이 다르면 구간을 재생해 확인하고 지도자가 동작 순서와 명칭을 최종 검수하세요.</p>
             </div>
           </article>
         `;
+      }
+      function segmentIssueDetails(segment, limit = 2) {
+        const issues = [
+          { label: "촬영 구도", score: segment.visibilityScore, problem: "관절 감지가 불안정하면 동작명과 평가 구간이 어긋날 수 있습니다.", improvement: "머리, 양손, 양발이 항상 화면 안에 들어오도록 카메라 거리와 높이를 조정하세요.", practice: "품새 동선 전체를 50% 속도로 1회 촬영해 화면 이탈 구간부터 점검하세요." },
+          { label: "속도·완급", score: segment.velocityScore, problem: "준비와 실행의 속도 차이가 작아 동작 전환과 힘의 표현이 흐립니다.", improvement: "준비는 여유 있게 연결하고 기술의 마지막 구간은 짧고 분명하게 마무리하세요.", practice: "느리게 2회, 정상 속도 2회로 같은 구간을 반복해 완급 차이를 만드세요." },
+          { label: "맺음", score: segment.snapScore, problem: "기술의 목표 지점에서 힘이 모이지 않고 다음 동작으로 흘러갑니다.", improvement: "손발 목표점과 반대손 회수를 동시에 맞추고 끝 지점을 선명하게 만드세요.", practice: "구간 끝 자세를 0.5초 유지하는 정지 반복을 5회 실시하세요." },
+          { label: "마무리 안정성", score: segment.stillnessScore, problem: "동작 완료 후 상체 또는 지지발 흔들림이 남습니다.", improvement: "발바닥 압력과 골반 위치를 유지하고 시선을 먼저 고정하세요.", practice: "마지막 자세를 2초 유지한 뒤 흔들림 없이 다음 동작으로 연결하는 연습을 5회 하세요." },
+          { label: "서기·중심", score: segment.stanceScore, problem: "발끝, 무릎, 골반의 정렬과 중심 높이가 일정하지 않습니다.", improvement: "서기의 발 위치와 무릎 방향을 먼저 고정한 뒤 손기술을 연결하세요.", practice: "거울 앞에서 서기만 분리해 좌우 각 5회씩 중심 이동과 끝 자세를 확인하세요." }
+        ];
+        return issues.filter((issue) => Number.isFinite(issue.score)).sort((a, b) => a.score - b.score).slice(0, limit);
       }
       function briefIssueText(segment) {
         const feedback = String(segment.feedback || "");
@@ -1897,7 +1981,7 @@
         const weak = latestReport.segments
           .slice()
           .sort((a, b) => a.powerScore - b.powerScore)
-          .slice(0, 5);
+          .slice(0, 4);
         const summaryItems = latestReport.summary.items || [];
         const scoreMetric = trainingMode === "exam"
           ? `<div class="metric"><strong>결과 방식</strong><span>문제점 확인</span></div>`
@@ -1919,7 +2003,7 @@
             <div class="result-section-title">
               <div>
                 <h3>우선 확인할 부분</h3>
-                <p class="small">${trainingMode === "exam" ? "문제 가능성이 높은 구간부터 먼저 확인하세요." : "점수가 낮은 구간을 먼저 보고, 필요 훈련과 연결해 반복하세요."}</p>
+                <p class="small">${trainingMode === "exam" ? "가장 중요한 구간 최대 4개와 구간별 핵심 문제 최대 4개를 표시합니다." : "가장 중요한 구간 최대 4개에 문제점, 개선방안, 수련방법을 함께 표시합니다."}</p>
               </div>
               <span class="badge">${weak.length}개</span>
             </div>
@@ -1931,7 +2015,7 @@
             <div class="result-section-title">
               <div>
                 <h3>전체 부분</h3>
-                <p class="small">전체 동작 흐름을 순서대로 확인하세요.</p>
+                <p class="small">전체 동작마다 가장 중요한 문제 최대 2개만 표시합니다.</p>
               </div>
               <span class="badge">${latestReport.segments.length}개</span>
             </div>
@@ -2965,7 +3049,9 @@
           let snapshot = "";
           // 구간 길이에 비례해 샘플 수를 4~8개로 제한해 저사양 기기 부하를 줄인다.
           const sampleCount = chooseSampleCount(segmentLength);
-          const snapshotIndex = Math.floor(sampleCount / 2);
+          // 정지점 사이 구간은 이전 자세에서 현재 동작 완료 자세로 이동하므로,
+          // 대표 장면은 중앙보다 끝에 가깝게 잡아 표시 동작명과의 일치도를 높인다.
+          const snapshotIndex = Math.max(0, sampleCount - 2);
           for (let j = 0; j < sampleCount; j += 1) {
             // 구간 양끝 8%는 인접 동작과 겹치므로 제외하고 균등 샘플.
             const ratio = 0.08 + (0.84 * j) / Math.max(sampleCount - 1, 1);

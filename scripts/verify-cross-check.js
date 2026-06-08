@@ -280,10 +280,16 @@ assertContains(webHtml, ".scene-card.report-full .scene-shot", "수련품새와 
 assertContains(webHtml, "isPriority ? \"priority\" : \"report-full\"", "전체 부분에 공통 세로형 카드 적용");
 assertContains(webHtml, "function briefIssueText(segment)", "전체 부분의 간략한 문제점 생성 함수 존재");
 assertContains(webHtml, "확인할 문제:", "전체 부분의 간략한 문제점 문구 존재");
+assertContains(webHtml, "function segmentIssueDetails(segment, limit = 2)", "리포트 카드 핵심 문제 선별 함수 존재");
+assertContains(webHtml, ".slice(0, 4)", "우선 확인 구간을 최대 4개로 제한");
+assertContains(webHtml, "동작명 자동 추정", "동작명과 영상 불일치 가능성 안내 존재");
+assertContains(webHtml, "const snapshotIndex = Math.max(0, sampleCount - 2)", "동작 완료 자세에 가까운 대표 장면 선택");
 assertContains(webHtml, "./assets/momgagym-logo.jpg", "앱 하단 몸가짐운동센터 로고 존재");
-assertContains(webHtml, "배포: 울산 몸가짐운동센터", "앱 하단 배포 정보 존재");
+assertContains(webHtml, "제작: 울산 몸가짐운동센터", "앱 하단 제작 정보 존재");
 assertContains(webHtml, "제작자: 김동규 센터장", "앱 하단 제작자 정보 존재");
-assertContains(webHtml, "mailto:momgagym@naver.com", "앱 하단 문의 이메일 링크 존재");
+assertContains(webHtml, "@posture_gym_official", "앱 하단 인스타그램 정보 존재");
+assertContains(webHtml, "blog.naver.com/posture_gym", "앱 하단 블로그 정보 존재");
+assertContains(webHtml, "0507-1366-0466", "앱 하단 문의 전화번호 존재");
 assertContains(webHtml, ".primary-actions button", "분석 시작 버튼 전용 정렬 구조 존재");
 assertNotContains(webHtml, "훈련 분석 요약", "이전 결과 페이지 명칭 제거");
 assertContains(webHtml, "stableAnalysisCache.delete(cacheKey)", "초기화 시 기존 안정화 결과 제거");
