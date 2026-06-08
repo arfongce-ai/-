@@ -3,6 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0e1116" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./assets/app-icon-1024.png" />
+    <link rel="apple-touch-icon" href="./assets/app-icon-1024.png" />
     <title>태권도 품새 수련</title>
     <style>
       :root {
@@ -1229,31 +1234,48 @@
       }
       .app-footer-inner {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
-        align-items: center;
-        gap: 16px;
+        grid-template-columns: 150px minmax(0, 1fr);
+        align-items: stretch;
+        gap: 18px;
         width: min(100% - 32px, 760px);
         margin: 0 auto;
       }
-      .app-footer img {
+      .app-footer-main-logo {
         display: block;
-        width: 92px;
-        height: auto;
+        width: 100%;
+        height: 100%;
+        max-height: 104px;
+        object-fit: contain;
         margin: 0;
         padding: 5px;
         border-radius: 8px;
         background: #ffffff;
+      }
+      .app-footer-copy {
+        display: grid;
+        align-content: center;
       }
       .app-footer p {
         margin: 4px 0;
         font-size: 12px;
         line-height: 1.6;
       }
+      .app-footer-partners {
+        display: block;
+        width: min(300px, 100%);
+        max-height: 70px;
+        object-fit: contain;
+        margin: 12px 0 0;
+        padding: 4px;
+        border-radius: 7px;
+        background: #ffffff;
+      }
       .app-footer a { color: var(--brand-strong); }
       @media (max-width: 760px) {
         .app-footer { padding-bottom: 104px; }
-        .app-footer-inner { grid-template-columns: 72px minmax(0, 1fr); gap: 12px; }
-        .app-footer img { width: 72px; }
+        .app-footer-inner { grid-template-columns: 112px minmax(0, 1fr); gap: 12px; }
+        .app-footer-main-logo { max-height: 96px; }
+        .app-footer-partners { width: min(260px, 100%); max-height: 62px; }
       }
 
       /* 스크롤바 */
@@ -1308,8 +1330,10 @@
                 <li><strong>영상 선택:</strong> 가로 화면으로 전신이 보이게 촬영한 영상을 넣습니다.</li>
                 <li><strong>분석 시작:</strong> 분석이 끝날 때까지 화면을 닫지 않고 기다립니다.</li>
                 <li><strong>훈련 확인:</strong> 구간에서 장면을 재생하고, 리포트에서 우선 연습할 부분을 확인합니다.</li>
+                <li><strong>홈 화면 추가:</strong> Android는 브라우저 메뉴의 앱 설치·홈 화면 추가, iPhone·iPad는 공유 메뉴의 홈 화면에 추가를 누릅니다.</li>
               </ol>
               <p class="small">권장 촬영: 정면 · 전신 · 가로 영상 · 카메라 고정 · 밝은 장소</p>
+              <p class="small">본 프로그램은 개인품새 수련을 위한 참고용입니다.</p>
             </div>
           </details>
           <div class="field-label">훈련 목적 <span>리포트의 방식이 달라집니다</span></div>
@@ -1320,11 +1344,11 @@
             </button>
             <button type="button" class="poomsae-tab mode-tab active" data-mode="competition">
               <strong>경기품새</strong>
-              <span>100점/평균, 반복 문제, 필요 훈련 확인</span>
+              <span>10점 만점 참고점수, 반복 문제, 필요 훈련 확인</span>
             </button>
           </div>
           <div class="code" id="modeHelp" style="margin-top: 10px;">
-            경기품새: 100점/평균과 필요 훈련을 함께 확인합니다.
+            경기품새: WT 공인품새 구조를 참고한 10점 만점 참고점수와 필요 훈련을 함께 확인합니다.
           </div>
           <div class="field-label">품새 선택 <span>분류를 고른 뒤 품새를 선택하세요</span></div>
           <div class="poomsae-tabs" role="tablist" aria-label="품새 구분">
@@ -1390,7 +1414,7 @@
             <div class="metric"><strong>길이</strong><span id="durationText">-</span></div>
             <div class="metric"><strong>해상도</strong><span id="resolutionText">-</span></div>
             <div class="metric"><strong>Pose 감지율</strong><span id="detectRateText">-</span></div>
-            <div class="metric"><strong>100점/평균</strong><span id="powerScoreText">-</span></div>
+            <div class="metric"><strong>경기품새 참고점수</strong><span id="powerScoreText">-</span></div>
           </div>
           <div style="margin-top: 16px;">
             <progress id="progress" value="0" max="100"></progress>
@@ -1431,11 +1455,13 @@
     </main>
     <footer class="app-footer">
       <div class="app-footer-inner">
-        <img src="./assets/momgagym-logo.jpg" alt="몸가짐운동센터 로고" loading="lazy" />
-        <div>
-          <p>제작: 울산 몸가짐운동센터 · 제작자: 김동규 센터장</p>
+        <img class="app-footer-main-logo" src="./assets/momgagym-logo.jpg" alt="몸가짐운동센터 로고" loading="lazy" />
+        <div class="app-footer-copy">
+          <p>제작: 울산 몸가짐운동센터</p>
+          <p>제작자: 김동규 센터장</p>
           <p>인스타그램: <a href="https://www.instagram.com/posture_gym_official" target="_blank" rel="noopener">@posture_gym_official</a></p>
           <p>블로그: <a href="https://blog.naver.com/posture_gym" target="_blank" rel="noopener">blog.naver.com/posture_gym</a> · 문의: <a href="tel:050713660466">0507-1366-0466</a></p>
+          <img class="app-footer-partners" src="./assets/partner-taekwondo-logos.png" alt="용인대 국가대표 태권도 및 Taigon 시범단 로고" loading="lazy" />
         </div>
       </div>
     </footer>
@@ -1474,7 +1500,7 @@
         scope: "경기품새 훈련 피드백 참고 기준",
         accuracy: {
           score: 4.0,
-          criteria: ["기본동작의 정확성", "각 품새별 세부동작의 정확성"],
+          criteria: ["기본동작의 정확성", "각 품새별 세부동작의 정확성", "동작 수행 및 연결 과정의 균형"],
           deduction_reference: {
             minor_error: 0.1,
             major_error: 0.3,
@@ -1487,7 +1513,7 @@
           criteria: ["속도와 힘", "강유·완급·리듬의 조화", "기의 표현"],
           caution: "속도와 힘의 구분, 강유·완급·리듬, 기의 표현이 약하면 표현성 보완이 필요합니다."
         },
-        disclaimer: "영상 좌표로 확인 가능한 훈련 보조 항목이며 실제 심판 판정을 확정하지 않습니다."
+        disclaimer: "영상 좌표로 확인 가능한 훈련 보조 항목이며 실제 심판 판정, 품새선, 목표 높이, 시선, 손 모양을 확정하지 않습니다."
       };
 
       const poomsaeData = {
@@ -1866,7 +1892,16 @@
         renderResultPage();
         if (trainingPage) trainingPage.hidden = true;
         if (resultPage) resultPage.hidden = false;
+        if (history.state?.appView !== "result") history.pushState({ appView: "result" }, "", location.href);
         window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      function setupBackNavigationGuard() {
+        history.replaceState({ appView: "training" }, "", location.href);
+        history.pushState({ appView: "training-guard" }, "", location.href);
+        window.addEventListener("popstate", () => {
+          if (resultPage && !resultPage.hidden) showTrainingPage();
+          history.pushState({ appView: "training-guard" }, "", location.href);
+        });
       }
       function scrollToTrainingElement(element) {
         showTrainingPage();
@@ -1903,15 +1938,19 @@
         const shot = segment.snapshot
           ? `<img class="scene-shot" src="${segment.snapshot}" alt="${escapeHtml(segment.order)}번 구간 장면" loading="lazy" />`
           : `<div class="scene-shot scene-placeholder">장면 없음</div>`;
-        const scoreMeta = trainingMode === "exam" ? "" : `<span>${segment.powerScore}점</span>`;
+        const titleScore = trainingMode === "exam" ? "" : ` <span class="status caution">${segment.competitionScore10.toFixed(1)}점</span>`;
         const layoutClass = isPriority ? "priority" : "report-full";
         const issueLimit = isPriority ? 4 : 2;
         const issues = segmentIssueDetails(segment, issueLimit);
+        const deduction = segment.referenceDeduction || { label: "판정 보류", amount: null, reason: "지도자 확인 필요" };
+        const deductionMarkup = trainingMode === "competition"
+          ? `<span class="status ${deduction.amount === 0.3 ? "bad" : deduction.amount === 0.1 ? "caution" : "good"}">${escapeHtml(deduction.label)}</span>`
+          : "";
         const issueMarkup = issues.map((issue, index) => `
           <div class="scene-issue">
             <span class="scene-issue-number">${index + 1}</span>
             <div>
-              <strong>${escapeHtml(issue.label)} · ${issue.score}점</strong>
+              <strong>${escapeHtml(issue.label)}${trainingMode === "competition" ? ` · 항목 지표 ${issue.score}` : ""}</strong>
               <p><b>문제:</b> ${escapeHtml(issue.problem)}</p>
               ${trainingMode === "competition" ? `<p><b>개선:</b> ${escapeHtml(issue.improvement)}</p><p><b>수련:</b> ${escapeHtml(issue.practice)}</p>` : `<p><b>수정:</b> ${escapeHtml(issue.improvement)}</p>`}
             </div>
@@ -1921,15 +1960,15 @@
           <article class="scene-card ${layoutClass}" role="button" tabindex="0" data-start="${segment.startTime}" data-end="${segment.endTime}" aria-label="${escapeHtml(segment.order)}번 ${escapeHtml(segment.name)} 리플레이">
             ${shot}
             <div>
-              <strong>${segment.order}. ${escapeHtml(segment.name)}</strong>
+              <strong>${segment.order}. ${escapeHtml(segment.name)}${titleScore}</strong>
               <div class="scene-meta">
                 <span>${segment.startTime.toFixed(1)}-${segment.endTime.toFixed(1)}초</span>
                 <span>${escapeHtml(segment.label)}</span>
-                ${scoreMeta}
                 <span>동작명 자동 추정</span>
+                ${deductionMarkup}
               </div>
               <div class="scene-issues">${issueMarkup}</div>
-              <p class="movement-estimate-note">영상은 동작 완료 자세에 가까운 대표 장면입니다. 동작명과 장면이 다르면 구간을 재생해 확인하고 지도자가 동작 순서와 명칭을 최종 검수하세요.</p>
+              <p class="movement-estimate-note"><b>확인 가능:</b> ${escapeHtml((segment.evidence?.observable || []).join(", "))} · <b>추정:</b> ${escapeHtml((segment.evidence?.estimated || []).join(", "))} · <b>지도자 확인 필요:</b> ${escapeHtml((segment.evidence?.coachRequired || []).join(", "))}</p>
             </div>
           </article>
         `;
@@ -1967,9 +2006,9 @@
         if (modeHelp) {
           modeHelp.textContent = trainingMode === "exam"
             ? "수련품새: 점수 없이 문제점 확인과 수정 포인트를 중심으로 리포트를 만듭니다."
-            : "경기품새: 100점/평균, 반복 문제, 필요 훈련을 함께 확인합니다.";
+            : "경기품새: WT 공인품새 구조를 참고한 10점 만점 참고점수, 반복 문제, 필요 훈련을 함께 확인합니다.";
         }
-        powerScoreText.closest(".metric").querySelector("strong").textContent = trainingMode === "exam" ? "결과 방식" : "100점/평균";
+        powerScoreText.closest(".metric").querySelector("strong").textContent = trainingMode === "exam" ? "결과 방식" : "경기품새 참고점수";
         if (!latestReport) powerScoreText.textContent = trainingMode === "exam" ? "문제점 확인" : "-";
       }
       function renderResultPage() {
@@ -1984,8 +2023,8 @@
           .slice(0, 4);
         const summaryItems = latestReport.summary.items || [];
         const scoreMetric = trainingMode === "exam"
-          ? `<div class="metric"><strong>결과 방식</strong><span>문제점 확인</span></div>`
-          : `<div class="metric"><strong>100점/평균</strong><span>${escapeHtml(latestReport.summary.average_power_finish_score)}</span></div>`;
+          ? ""
+          : `<div class="metric"><strong>경기품새 참고점수</strong><span>${escapeHtml(latestReport.summary.competition_score_10)} / 10.0</span></div>`;
         resultPageContent.innerHTML = `
           <div class="result-grid">
             <div class="metric"><strong>품새</strong><span>${escapeHtml(latestReport.poomsae?.name || currentPoomsae().name)}</span></div>
@@ -1994,7 +2033,7 @@
             <div class="metric"><strong>구간 수</strong><span>${latestReport.segments.length}</span></div>
           </div>
           <div class="result-card" style="margin-top:14px;">
-            <h3>연습 포인트 요약</h3>
+            <h3>판정 범위 및 교차검증 안내</h3>
             <ul class="list">
               ${summaryItems.map((item) => `<li class="${borderClass(item.type)}">${escapeHtml(item.text)}</li>`).join("")}
             </ul>
@@ -2002,8 +2041,8 @@
           <div class="result-card" style="margin-top:14px;">
             <div class="result-section-title">
               <div>
-                <h3>우선 확인할 부분</h3>
-                <p class="small">${trainingMode === "exam" ? "가장 중요한 구간 최대 4개와 구간별 핵심 문제 최대 4개를 표시합니다." : "가장 중요한 구간 최대 4개에 문제점, 개선방안, 수련방법을 함께 표시합니다."}</p>
+                <h3>1. 구간별 상세 분석 및 ${trainingMode === "competition" ? "참고 감점 요인" : "교정 요인"}</h3>
+                <p class="small">${trainingMode === "exam" ? "가장 중요한 구간 최대 4개와 구간별 핵심 문제 최대 4개를 표시합니다." : "KTA -0.1/-0.3 체계는 참고 가능성으로만 표시하며 실제 감점은 심판이 확정합니다."}</p>
               </div>
               <span class="badge">${weak.length}개</span>
             </div>
@@ -2014,14 +2053,34 @@
           <div class="result-card" style="margin-top:14px;">
             <div class="result-section-title">
               <div>
-                <h3>전체 부분</h3>
-                <p class="small">전체 동작마다 가장 중요한 문제 최대 2개만 표시합니다.</p>
+                <h3>2. 핵심 모션 매칭 피드백</h3>
+                <p class="small">시선, 중심·서기, 차기 회수 항목을 영상 좌표의 판정 가능 범위와 함께 표시합니다.</p>
               </div>
+              <span class="badge">교차검증</span>
+            </div>
+            <ul class="list">
+              ${keyMotionFeedback(latestReport.segments).map((item) => `<li class="${borderClass(item.type)}"><b>${escapeHtml(item.label)}:</b> ${escapeHtml(item.text)}</li>`).join("")}
+            </ul>
+          </div>
+          <div class="result-card" style="margin-top:14px;">
+            <div class="result-section-title">
+              <div>
+                <h3>3. 지도자 추천 피드백 및 훈련법</h3>
+                <p class="small">가장 반복되는 문제와 분절·균형 훈련을 우선순위로 제안합니다.</p>
+              </div>
+              <span class="badge">${latestReport.summary.needed_training?.length || 0}개</span>
+            </div>
+            <ul class="list">
+              ${(latestReport.summary.needed_training || []).map((item) => `<li class="caution">${escapeHtml(item)}</li>`).join("")}
+              <li class="caution">통증이 있거나 무릎·발목 정렬이 불안하면 반복 횟수를 늘리지 말고 지도자 또는 의료 전문가에게 확인하세요.</li>
+            </ul>
+          </div>
+          <div class="result-card" style="margin-top:14px;">
+            <div class="result-section-title">
+              <div><h3>전체 부분</h3><p class="small">전체 동작마다 가장 중요한 문제 최대 2개만 표시합니다.</p></div>
               <span class="badge">${latestReport.segments.length}개</span>
             </div>
-            <div class="scene-list">
-              ${latestReport.segments.map((segment) => renderSceneCard(segment, false)).join("")}
-            </div>
+            <div class="scene-list">${latestReport.segments.map((segment) => renderSceneCard(segment, false)).join("")}</div>
           </div>
         `;
       }
@@ -2046,7 +2105,7 @@
         lines.push(`영상: ${latestReport.file?.name || "-"}`);
         lines.push(`해상도: ${latestReport.video.width} x ${latestReport.video.height}`);
         lines.push(`길이: ${latestReport.video.duration_seconds}초`);
-        if (trainingMode !== "exam") lines.push(`100점/평균: ${latestReport.summary.average_power_finish_score}`);
+        if (trainingMode !== "exam") lines.push(`경기품새 참고점수: ${latestReport.summary.competition_score_10} / 10.0`);
         else lines.push("결과 방식: 점수 없이 문제점 확인 및 수정 중심");
         lines.push(`Pose 감지율: ${Math.round(latestReport.summary.detection_rate * 100)}%`);
         if (latestReport.summary.needed_training?.length) {
@@ -2055,13 +2114,22 @@
           latestReport.summary.needed_training.forEach((item) => lines.push(`- ${item}`));
         }
         lines.push("");
-        lines.push("[구간별 결과]");
+        lines.push("## 1. 구간별 상세 분석 및 참고 감점 요인");
         for (const segment of latestReport.segments) {
-          const scoreText = trainingMode === "exam" ? "" : ` (${segment.powerScore}점)`;
-          lines.push(`${segment.order}. ${segment.name} - ${segment.label}${scoreText}`);
+          const scoreText = trainingMode === "exam" ? "" : ` (${segment.competitionScore10.toFixed(1)}점)`;
+          lines.push(`- **${segment.order}. ${segment.name}** - ${segment.label}${scoreText}`);
+          if (trainingMode !== "exam") lines.push(`  - 참고 감점 가능성: ${segment.referenceDeduction?.label || "판정 보류"}`);
           if (trainingMode !== "exam") lines.push(`   속도 ${segment.velocityScore} / 맺음 ${segment.snapScore} / 정지 ${segment.stillnessScore}`);
-          lines.push(`   ${segment.feedback}`);
+          lines.push(`  - 분석: ${segment.feedback}`);
+          lines.push(`  - 판정 범위: 확인 가능 ${(segment.evidence?.observable || []).join(", ")} / 지도자 확인 필요 ${(segment.evidence?.coachRequired || []).join(", ")}`);
         }
+        lines.push("");
+        lines.push("## 2. 핵심 모션 매칭 피드백");
+        keyMotionFeedback(latestReport.segments).forEach((item) => lines.push(`- **${item.label}:** ${item.text}`));
+        lines.push("");
+        lines.push("## 3. 지도자 추천 피드백 및 훈련법");
+        (latestReport.summary.needed_training || []).forEach((item) => lines.push(`- ${item}`));
+        lines.push("- 통증 또는 무릎·발목 정렬 불안이 있으면 반복 수련을 중단하고 지도자 또는 의료 전문가에게 확인하세요.");
         return lines.join("\n");
       }
       function showReportOutput() {
@@ -2076,7 +2144,7 @@
         canvas.height = 1980;
         const ctx = canvas.getContext("2d");
         const poomsaeName = latestReport.poomsae?.name || currentPoomsae().name;
-        const avg = latestReport.summary.average_power_finish_score;
+        const avg = latestReport.summary.competition_score_10;
         const detectRate = Math.round(latestReport.summary.detection_rate * 100);
         const issueCounts = latestReport.summary.issue_counts || [];
         const topWeak = latestReport.segments
@@ -2146,7 +2214,7 @@
         rr(70, 305, 1260, 245, 18, "#ffffff", "#d9dee8");
         text("분석 대상", 110, 342, 30, "#111827", "800");
         metric("품새", poomsaeName, 110, 395, 270);
-        metric(trainingMode === "exam" ? "결과 방식" : "100점/평균", trainingMode === "exam" ? "문제점 확인" : `${avg}`, 410, 395, 270);
+        metric(trainingMode === "exam" ? "결과 방식" : "경기품새 참고점수", trainingMode === "exam" ? "문제점 확인" : `${avg} / 10.0`, 410, 395, 270);
         metric("Pose 감지율", `${detectRate}%`, 710, 395, 270);
         metric("구간 수", latestReport.segments.length, 1010, 395, 270);
 
@@ -2174,7 +2242,7 @@
         topWeak.forEach((segment, index) => {
           rr(110, y, 72, 52, 12, "#eef4ff");
           text(String(index + 1), 138, y + 9, 28, "#174ea6", "800");
-          const segmentTitle = trainingMode === "exam" ? `${segment.order}. ${segment.name}` : `${segment.order}. ${segment.name} (${segment.powerScore}점)`;
+          const segmentTitle = trainingMode === "exam" ? `${segment.order}. ${segment.name}` : `${segment.order}. ${segment.name} (${segment.competitionScore10.toFixed(1)}점)`;
           text(segmentTitle, 210, y, 27, "#111827", "800");
           wrap(segment.feedback, 210, y + 38, 1060, 22, "#6b7280");
           y += 108;
@@ -2505,13 +2573,70 @@
         // 동작 비교에 필요한 프레임은 유지하고 전체 분석량은 보통 초당 1.5~2회 이하로 제한한다.
         return clamp(Math.round(segmentLength * 1.5), 4, 8);
       }
-      function refineSegmentBoundaries(duration, segmentCount, motionSamples, sensitivity = 0.95) {
+      function jointAngle(landmarks, aIndex, bIndex, cIndex) {
+        const a = getPoint(landmarks, aIndex);
+        const b = getPoint(landmarks, bIndex);
+        const c = getPoint(landmarks, cIndex);
+        if (!a || !b || !c) return null;
+        const abx = a.x - b.x;
+        const aby = a.y - b.y;
+        const cbx = c.x - b.x;
+        const cby = c.y - b.y;
+        const denom = Math.hypot(abx, aby) * Math.hypot(cbx, cby);
+        if (denom < 0.0001) return null;
+        return Math.acos(clamp((abx * cbx + aby * cby) / denom, -1, 1));
+      }
+      function skeletonMotionScore(previous, current, dt) {
+        if (!previous || !current || dt <= 0) return Number.POSITIVE_INFINITY;
+        const allIndexes = Array.from(new Set(Object.values(keyIndexesByType).flat()));
+        const limbSpeed = vectorSpeed(previous, current, allIndexes, dt);
+        const centerIndexes = [11, 12, 23, 24];
+        const centerSpeed = vectorSpeed(previous, current, centerIndexes, dt);
+        const angleTriples = [
+          [11, 13, 15], [12, 14, 16], [23, 25, 27], [24, 26, 28],
+          [13, 11, 23], [14, 12, 24]
+        ];
+        const angleChanges = angleTriples.map(([a, b, c]) => {
+          const before = jointAngle(previous, a, b, c);
+          const after = jointAngle(current, a, b, c);
+          return before === null || after === null ? null : Math.abs(after - before) / dt;
+        }).filter(Number.isFinite);
+        const angleSpeed = angleChanges.length ? trimmedMean(angleChanges) : 0;
+        return limbSpeed * 0.58 + centerSpeed * 0.22 + angleSpeed * 0.20;
+      }
+      function chooseCompletionSnapshotTimes(boundaries, motionSamples) {
+        return boundaries.slice(0, -1).map((start, index) => {
+          const end = boundaries[index + 1];
+          const searchStart = start + (end - start) * 0.55;
+          const candidates = motionSamples
+            .filter((sample) => sample.valid !== false && sample.time >= searchStart && sample.time < end)
+            .sort((a, b) => a.motion - b.motion);
+          return candidates[0]?.time ?? start + (end - start) * 0.82;
+        });
+      }
+      function detectActiveMotionRange(duration, motionSamples) {
+        const valid = motionSamples.filter((sample) => sample.valid !== false && Number.isFinite(sample.motion));
+        if (valid.length < 4) return { start: 0, end: duration };
+        const motions = valid.map((sample) => sample.motion);
+        const low = Math.min(...motions);
+        const high = Math.max(...motions);
+        const threshold = low + (high - low) * 0.12;
+        const active = valid.filter((sample) => sample.motion > threshold);
+        if (active.length < 2) return { start: 0, end: duration };
+        return {
+          start: clamp(active[0].time - 0.18, 0, duration),
+          end: clamp(active[active.length - 1].time + 0.18, 0, duration)
+        };
+      }
+      function refineSegmentBoundaries(duration, segmentCount, motionSamples, sensitivity = 0.95, activeStart = 0, activeEnd = duration) {
         const safeDuration = Math.max(Number(duration) || 0, 0);
         const safeCount = Math.max(Math.round(segmentCount) || 1, 1);
+        const rangeStart = clamp(Number(activeStart) || 0, 0, safeDuration);
+        const rangeEnd = clamp(Number(activeEnd) || safeDuration, rangeStart, safeDuration);
         if (!safeDuration || safeCount <= 1 || !motionSamples.length) {
-          return Array.from({ length: safeCount + 1 }, (_, index) => safeDuration * (index / safeCount));
+          return Array.from({ length: safeCount + 1 }, (_, index) => rangeStart + (rangeEnd - rangeStart) * (index / safeCount));
         }
-        const interval = safeDuration / safeCount;
+        const interval = (rangeEnd - rangeStart) / safeCount;
         const sorted = motionSamples
           .filter((sample) => sample.valid !== false && Number.isFinite(sample.time) && Number.isFinite(sample.motion))
           .slice()
@@ -2520,12 +2645,12 @@
         const motionLow = Math.min(...motions);
         const motionHigh = Math.max(...motions);
         const motionRange = Math.max(motionHigh - motionLow, 0.0001);
-        const boundaries = [0];
+        const boundaries = [rangeStart];
         for (let index = 1; index < safeCount; index += 1) {
-          const expected = interval * index;
+          const expected = rangeStart + interval * index;
           const searchRadius = interval * (0.25 + sensitivity * 0.25);
           const minAllowed = boundaries[boundaries.length - 1] + interval * 0.38;
-          const maxAllowed = safeDuration - interval * (safeCount - index) * 0.38;
+          const maxAllowed = rangeEnd - interval * (safeCount - index) * 0.38;
           const candidates = sorted.filter((sample) =>
             sample.time >= Math.max(expected - searchRadius, minAllowed) &&
             sample.time <= Math.min(expected + searchRadius, maxAllowed)
@@ -2553,13 +2678,13 @@
             .sort((a, b) => a.boundaryScore - b.boundaryScore)[0];
           boundaries.push(clamp(best.time, minAllowed, maxAllowed));
         }
-        boundaries.push(safeDuration);
+        boundaries.push(rangeEnd);
         return boundaries;
       }
       async function detectMotionBoundaries(timestampBaseMs) {
         const count = movements.length;
         const sensitivity = Number(boundarySensitivitySelect.value || 0.95);
-        const scanCount = clamp(Math.round(video.duration * 3), count * 4, 270);
+        const scanCount = clamp(Math.round(video.duration * 5), count * 6, 420);
         const frames = [];
         for (let index = 0; index < scanCount; index += 1) {
           const time = Math.max(video.duration - 0.04, 0) * (index / Math.max(scanCount - 1, 1));
@@ -2575,7 +2700,6 @@
           }
         }
         const smoothed = smoothFrames(frames, 0.62);
-        const allIndexes = Array.from(new Set(Object.values(keyIndexesByType).flat()));
         const motionSamples = [];
         for (let index = 1; index < smoothed.length; index += 1) {
           const previous = smoothed[index - 1];
@@ -2583,15 +2707,20 @@
           const dt = current.time - previous.time;
           motionSamples.push({
             time: (previous.time + current.time) / 2,
-            motion: vectorSpeed(previous.landmarks, current.landmarks, allIndexes, dt),
+            motion: skeletonMotionScore(previous.landmarks, current.landmarks, dt),
             valid: !!previous.landmarks && !!current.landmarks && bodyScale(previous.landmarks) >= 0.04 && bodyScale(current.landmarks) >= 0.04
           });
         }
+        const activeRange = detectActiveMotionRange(video.duration, motionSamples);
+        const boundaries = refineSegmentBoundaries(video.duration, count, motionSamples, sensitivity, activeRange.start, activeRange.end);
         return {
-          boundaries: refineSegmentBoundaries(video.duration, count, motionSamples, sensitivity),
+          boundaries,
+          activeRange,
+          completionTimes: chooseCompletionSnapshotTimes(boundaries, motionSamples),
+          motionSamples,
           scanCount,
           sensitivity,
-          method: "high_density_local_motion_minimum_near_expected_boundary"
+          method: "active_range_skeleton_joint_angle_center_motion_local_minimum"
         };
       }
       function scoreStance(frames) {
@@ -2629,6 +2758,27 @@
         if (score >= 78) return { type: "good", label: "좋음" };
         if (score >= 55) return { type: "caution", label: "주의" };
         return { type: "bad", label: "수정 필요" };
+      }
+      function competitionScoreFromMetrics(metrics) {
+        // 공인품새 점수 구조 참고: 정확성 4.0 + 표현력 6.0 = 총 10.0.
+        // 영상에서 확인 가능한 항목만 훈련용 참고점수로 환산한다.
+        const accuracyScore4 = clamp(
+          ((metrics.stanceScore * 0.55 + metrics.stillnessScore * 0.30 + metrics.visibilityScore * 0.15) / 100) * 4,
+          0,
+          4
+        );
+        const speedPower2 = clamp(((metrics.velocityScore * 0.65 + metrics.snapScore * 0.35) / 100) * 2, 0, 2);
+        const rhythmTempo2 = clamp(((metrics.velocityScore * 0.45 + metrics.stillnessScore * 0.30 + metrics.snapScore * 0.25) / 100) * 2, 0, 2);
+        const energyExpression2 = clamp(((metrics.snapScore * 0.45 + metrics.stillnessScore * 0.30 + metrics.stanceScore * 0.25) / 100) * 2, 0, 2);
+        const presentationScore6 = speedPower2 + rhythmTempo2 + energyExpression2;
+        return {
+          accuracyScore4: Number(accuracyScore4.toFixed(2)),
+          presentationScore6: Number(presentationScore6.toFixed(2)),
+          speedPower2: Number(speedPower2.toFixed(2)),
+          rhythmTempo2: Number(rhythmTempo2.toFixed(2)),
+          energyExpression2: Number(energyExpression2.toFixed(2)),
+          competitionScore10: Number((accuracyScore4 + presentationScore6).toFixed(2))
+        };
       }
       function movementCue(movement) {
         const name = movement.name || "";
@@ -2674,6 +2824,74 @@
           return "규정 확인: 준비·기합·마무리의 위치, 시선, 자세 유지와 표현이 흐트러지면 정확성 및 표현성 보완이 필요합니다.";
         }
         return COMPETITION_RULES_2026.accuracy.caution;
+      }
+      function evidenceScopeFor(movement, metrics) {
+        const name = movement.name || "";
+        const observable = ["관절 감지율", "구간 내 관절 이동 속도", "동작 완료 후 흔들림"];
+        const estimated = ["몸 중심 이동", "서기 폭·높이의 일관성", "속도와 완급의 대비"];
+        const coachRequired = ["동작명·순서", "시선 선행", "품새선과 시작·종료 위치", "정확한 목표 높이", "손·주먹·발 모양", "공식 감점"];
+        if (/차기|찍기/.test(name)) estimated.push("무릎 접기·차기 후 회수");
+        if (/앞굽이|뒷굽이|범서기|주춤서기|학다리|꼬아서기|앞서기/.test(name)) {
+          estimated.push("발·무릎·골반 정렬");
+          coachRequired.push("무릎과 발끝의 전후 관계 및 통증 여부");
+        }
+        if (metrics.visibilityScore < 70) {
+          return {
+            confidence: "지도자 확인 필요",
+            observable: ["제한된 관절 감지율"],
+            estimated: [],
+            coachRequired: [...coachRequired, ...estimated, "카메라 구도 보완 후 재분석"]
+          };
+        }
+        return {
+          confidence: metrics.visibilityScore >= 85 ? "확인 가능 항목 양호" : "추정 주의",
+          observable,
+          estimated,
+          coachRequired
+        };
+      }
+      function referenceDeductionFor(metrics) {
+        if (metrics.visibilityScore < 70) {
+          return { amount: null, label: "판정 보류 · 촬영/지도자 확인", reason: "관절 감지율이 낮아 오류 크기를 분류할 수 없습니다." };
+        }
+        const measurable = [metrics.velocityScore, metrics.snapScore, metrics.stillnessScore, metrics.stanceScore];
+        const weakest = Math.min(...measurable);
+        if (weakest < 35) {
+          return { amount: 0.3, label: "큰 오류 -0.3 가능성 · 지도자 확인", reason: "영상에서 확인 가능한 지표 중 하나가 크게 불안정합니다." };
+        }
+        if (weakest < 65) {
+          return { amount: 0.1, label: "경미한 오류 -0.1 가능성 · 지도자 확인", reason: "영상에서 확인 가능한 지표 중 하나가 기준 대비 불안정합니다." };
+        }
+        return { amount: 0, label: "자동 감점 징후 적음 · 지도자 확인", reason: "측정 가능한 지표에서는 큰 오류 징후가 적습니다." };
+      }
+      function keyMotionFeedback(results) {
+        const kickResults = results.filter((item) => /차기|찍기/.test(item.name || ""));
+        const stanceAvg = results.reduce((sum, item) => sum + item.stanceScore, 0) / Math.max(results.length, 1);
+        const kickStability = kickResults.reduce((sum, item) => sum + item.stillnessScore, 0) / Math.max(kickResults.length, 1);
+        return [
+          {
+            label: "시선 처리",
+            type: "caution",
+            text: "현재 Pose 모델에는 눈동자·얼굴 방향 판정 정보가 없어 다음 목표를 먼저 바라보았는지 확정할 수 없습니다. 구간 재생으로 지도자가 확인해야 합니다."
+          },
+          {
+            label: "중심 이동 및 서기",
+            type: stanceAvg >= 70 ? "good" : "caution",
+            text: `골반·발목 좌표의 일관성 기반 서기 안정성은 평균 ${Math.round(stanceAvg)}입니다. 앞굽이·뒷굽이의 정확한 체중 분배와 발 방향은 촬영 각도의 영향을 받으므로 지도자 확인이 필요합니다.`
+          },
+          {
+            label: "차기 동작",
+            type: !kickResults.length || kickStability >= 70 ? "good" : "caution",
+            text: kickResults.length
+              ? `차기 포함 ${kickResults.length}개 구간의 착지·마무리 안정성은 평균 ${Math.round(kickStability)}입니다. 무릎을 접어 올리는 준비와 차고 난 뒤 리코일은 2D 좌표 추정이며, 발 모양과 목표 높이는 지도자가 확인해야 합니다.`
+              : "선택한 품새 구간명에서 차기 동작이 확인되지 않았습니다."
+          },
+          {
+            label: "부상 예방",
+            type: "caution",
+            text: "정면 단일 영상만으로 무릎이 발끝보다 과도하게 나가는지 확정할 수 없습니다. 통증, 무릎 안쪽 붕괴, 발목 불안이 보이면 즉시 반복을 중단하고 측면 영상과 지도자 점검을 병행하세요."
+          }
+        ];
       }
       function weakestMetric(metrics, movement) {
         const candidates = [];
@@ -2723,6 +2941,11 @@
           stanceScore * .22
         );
         const verdict = labelFor(powerScore);
+        const competitionScores = competitionScoreFromMetrics({
+          visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore
+        });
+        const evidence = evidenceScopeFor(movement, { visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore });
+        const referenceDeduction = referenceDeductionFor({ visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore });
         return {
           detected: detectedFrames.length > 0,
           visibilityScore,
@@ -2731,6 +2954,9 @@
           stillnessScore,
           stanceScore,
           powerScore,
+          ...competitionScores,
+          evidence,
+          referenceDeduction,
           peakSpeed: Number(peakSpeed.toFixed(4)),
           finalSpeed: Number(finalSpeed.toFixed(4)),
           endJitter: Number(endJitter.toFixed(4)),
@@ -2783,7 +3009,7 @@
               ${scoreBars}
             </div>
             <div class="segment-score">
-              <span>${trainingMode === "exam" ? "확인" : result.powerScore}</span>
+              <span>${trainingMode === "exam" ? "확인" : result.competitionScore10.toFixed(1)}</span>
             </div>
           `;
           segmentsEl.appendChild(row);
@@ -2827,6 +3053,9 @@
       }
       function summarize(results) {
         const avg = results.reduce((sum, r) => sum + r.powerScore, 0) / Math.max(results.length, 1);
+        const competitionScore10 = results.reduce((sum, r) => sum + r.competitionScore10, 0) / Math.max(results.length, 1);
+        const accuracyScore4 = results.reduce((sum, r) => sum + r.accuracyScore4, 0) / Math.max(results.length, 1);
+        const presentationScore6 = results.reduce((sum, r) => sum + r.presentationScore6, 0) / Math.max(results.length, 1);
         const score100 = avg;
         const detected = results.filter((r) => r.detected).length;
         const detectRate = detected / Math.max(results.length, 1);
@@ -2848,8 +3077,8 @@
             items.push({ type: "good", text: "큰 반복 문제는 적습니다. 준비서기, 기합, 마무리 자세만 지도자와 함께 확인하세요." });
           }
         } else {
-          items.push({ type, text: `100점/평균 ${avg.toFixed(1)}점입니다. 속도 변화, 맺음, 정지 안정성, 서기 안정성을 종합한 훈련용 지표입니다.` });
-          items.push({ type: "caution", text: `점수 해석: ${avg >= 78 ? "전체 흐름은 안정적입니다. 세부 완성도와 표현성만 다듬으세요." : avg >= 55 ? "대회 전 보완이 필요합니다. 반복되는 약점을 먼저 줄이세요." : "촬영 구도 또는 동작 안정성 문제가 큽니다. 우선 구간을 짧게 나누어 다시 훈련하세요."}` });
+          items.push({ type, text: `경기품새 참고점수 ${competitionScore10.toFixed(2)} / 10.0점입니다. 정확성 추정 ${accuracyScore4.toFixed(2)} / 4.0, 표현력 추정 ${presentationScore6.toFixed(2)} / 6.0입니다.` });
+          items.push({ type: "caution", text: `점수 해석: ${competitionScore10 >= 8 ? "전체 흐름은 안정적입니다. 세부 정확성과 기의 표현을 다듬으세요." : competitionScore10 >= 6 ? "대회 전 보완이 필요합니다. 반복되는 약점을 먼저 줄이세요." : "촬영 구도 또는 동작 안정성 문제가 큽니다. 우선 구간을 짧게 나누어 다시 훈련하세요."}` });
         }
         if (detectRate >= .8) {
           if (trainingMode === "competition") items.push({ type: "good", text: `${totalSegments}개 구간 중 ${detected}개 구간에서 관절 데이터가 감지됐습니다. 촬영 구도는 분석에 충분합니다.` });
@@ -2868,7 +3097,7 @@
         }
         if (weak.length) items.push({ type: "bad", text: `우선 보완할 구간: ${weak.map((r) => `${r.order}.${r.name}`).join(", ")}` });
         if (trainingMode === "competition") items.push({ type: "caution", text: "영상만으로 실제 타격 힘은 직접 측정할 수 없으므로, 이 평가는 속도와 마무리 안정성 기반의 코칭 지표입니다." });
-        return { score100, avg, detectRate, type, label, items, issueCounts, neededTraining };
+        return { score100, avg, competitionScore10, accuracyScore4, presentationScore6, detectRate, type, label, items, issueCounts, neededTraining };
       }
       function currentAnalysisCacheKey() {
         if (!selectedFile || !Number.isFinite(video.duration)) return "";
@@ -2880,7 +3109,7 @@
           video.duration.toFixed(3),
           video.videoWidth,
           video.videoHeight,
-          `boundary-motion-revision-3-${boundarySensitivitySelect.value || "0.95"}`
+          `skeleton-angle-kta-cross-validation-revision-6-${boundarySensitivitySelect.value || "0.95"}`
         ].join("|");
       }
       function cloneStableData(value) {
@@ -2912,7 +3141,7 @@
         detectRateText.textContent = `${(summary.detectRate * 100).toFixed(0)}%`;
         powerScoreText.textContent = trainingMode === "exam"
           ? `문제점 ${issueTotal}회`
-          : `${summary.avg.toFixed(1)}`;
+          : `${summary.competitionScore10.toFixed(2)} / 10.0`;
         setPill(overallStatus, summary.type, summary.label);
         renderReport(summary.items);
         setProgress(100, cacheHit ? "동일 영상 안정화 결과를 불러왔습니다." : (trainingMode === "exam" ? "문제점 확인 완료" : "파워·맺음 평가 완료"));
@@ -2924,7 +3153,7 @@
           mode: "power_snap_stillness_estimation",
           note: trainingMode === "exam"
             ? "수련품새 리포트는 점수 없이 문제점 확인 및 수정 포인트 중심으로 표시한다."
-          : "경기품새 리포트는 100점/평균 점수와 필요 훈련을 함께 표시한다. 영상 관절 좌표 기반 추정치이며 실제 물리적 힘을 직접 측정하지 않는다.",
+          : "경기품새 리포트는 공인품새의 정확성 4.0점과 표현력 6.0점 구조를 참고한 10점 만점 훈련용 참고점수를 표시한다. -0.1/-0.3은 가능성만 제시하며 공식 심판 판정이 아니다.",
           scoring_stability: {
             segment_sample_range: { min: 4, max: 8 },
             sampling_strategy: "adaptive_device_safe",
@@ -2947,6 +3176,9 @@
             label: summary.label,
             score_100: Number(summary.score100.toFixed(2)),
             average_power_finish_score: Number(summary.avg.toFixed(2)),
+            competition_score_10: Number(summary.competitionScore10.toFixed(2)),
+            accuracy_score_4: Number(summary.accuracyScore4.toFixed(2)),
+            presentation_score_6: Number(summary.presentationScore6.toFixed(2)),
             detection_rate: Number(summary.detectRate.toFixed(4)),
             issue_counts: summary.issueCounts.map((item) => ({
               key: item.key,
@@ -3049,19 +3281,18 @@
           let snapshot = "";
           // 구간 길이에 비례해 샘플 수를 4~8개로 제한해 저사양 기기 부하를 줄인다.
           const sampleCount = chooseSampleCount(segmentLength);
-          // 정지점 사이 구간은 이전 자세에서 현재 동작 완료 자세로 이동하므로,
-          // 대표 장면은 중앙보다 끝에 가깝게 잡아 표시 동작명과의 일치도를 높인다.
-          const snapshotIndex = Math.max(0, sampleCount - 2);
           for (let j = 0; j < sampleCount; j += 1) {
             // 구간 양끝 8%는 인접 동작과 겹치므로 제외하고 균등 샘플.
             const ratio = 0.08 + (0.84 * j) / Math.max(sampleCount - 1, 1);
             const time = segmentStart + segmentLength * ratio;
             await waitForSeek(time);
-            if (j === snapshotIndex) snapshot = captureVideoSnapshot();
             const result = poseLandmarker.detectForVideo(video, segmentTimestampBaseMs + Math.round(time * 1000));
             const landmarks = result.landmarks && result.landmarks[0] ? result.landmarks[0] : null;
             frames.push({ time, landmarks });
           }
+          const completionTime = boundaryDetection.completionTimes[i] ?? segmentStart + segmentLength * 0.82;
+          await waitForSeek(completionTime);
+          snapshot = captureVideoSnapshot();
           const metrics = evaluateSegment(movement, frames);
           const row = {
             order: i + 1,
@@ -3079,7 +3310,8 @@
             times: frames.map((f) => Number(f.time.toFixed(3))),
             detected_frames: frames.filter((f) => f.landmarks).length,
             boundary_method: boundaryDetection.method,
-            boundary_sensitivity: boundaryDetection.sensitivity
+            boundary_sensitivity: boundaryDetection.sensitivity,
+            completion_snapshot_time: Number(completionTime.toFixed(3))
           });
           setProgress(5 + Math.round(((i + 1) / movements.length) * 82), `${trainingMode === "exam" ? "문제점 확인 중" : "파워·맺음 평가 중"}... ${i + 1}/${movements.length}`);
           await new Promise((resolve) => setTimeout(resolve, 10));
@@ -3116,6 +3348,10 @@
       updateTrainingModeUi();
       setupLayout();
       setupQuickNav();
+      setupBackNavigationGuard();
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js").catch(() => {}));
+      }
 
       fileInput.addEventListener("change", () => {
         showTrainingPage();

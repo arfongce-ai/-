@@ -5,6 +5,10 @@ const root = path.resolve(__dirname, "..");
 const required = [
   "www/index.html",
   "www/assets/momgagym-logo.jpg",
+  "www/assets/partner-taekwondo-logos.png",
+  "www/assets/app-icon-1024.png",
+  "www/manifest.webmanifest",
+  "www/service-worker.js",
   "www/models/pose_landmarker_lite.task",
   "www/vendor/mediapipe/tasks-vision/vision_bundle.mjs",
   "www/vendor/mediapipe/tasks-vision/wasm/vision_wasm_internal.wasm",

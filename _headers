@@ -15,6 +15,12 @@
 /www/health.html
   Cache-Control: no-store
 
+/www/service-worker.js
+  Cache-Control: no-store
+
+/www/manifest.webmanifest
+  Cache-Control: no-store
+
 /www/models/*
   Cache-Control: public, max-age=31536000, immutable
 
