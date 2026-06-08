@@ -1266,10 +1266,9 @@
         display: block;
         grid-column: 1 / -1;
         width: 100%;
-        max-width: 260px;
         max-height: 64px;
         object-fit: contain;
-        margin: 6px auto 0;
+        margin: 6px 0 0;
         padding: 6px 10px;
         border-radius: 8px;
         background: #ffffff;
@@ -1279,7 +1278,7 @@
         .app-footer { padding-bottom: 104px; }
         .app-footer-inner { grid-template-columns: 96px minmax(0, 1fr); gap: 10px; }
         .app-footer p { font-size: 11px; line-height: 1.4; }
-        .app-footer-partners { max-width: 220px; max-height: 56px; margin-top: 6px; }
+        .app-footer-partners { max-height: 56px; margin-top: 6px; }
       }
 
       /* 스크롤바 */
@@ -1307,7 +1306,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.27</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.28</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
       </div>
@@ -2790,40 +2789,11 @@
         const count = movements.length;
         const sensitivity = Number(boundarySensitivitySelect.value || 0.95);
         const duration = video.duration;
-        const fullScanCount = clamp(Math.round(duration * 3.5), count * 5, 320);
+        const scanCount = clamp(Math.round(duration * 3.5), count * 5, 320);
 
-        // 1단계(거친 스캔): 전체를 초당 약 0.7회로 빠르게 훑어 움직임 활성 구간을 찾는다.
-        const coarseCount = clamp(Math.round(duration * 0.7), Math.max(count, 10), 80);
-        const coarseFrames = await collectScanFrames(0, duration, coarseCount, timestampBaseMs, 5, 4);
-        const coarseSamples = buildMotionSamples(coarseFrames);
-        const coarseRange = detectActiveMotionRange(duration, coarseSamples);
-
-        // 활성 구간 양끝에 여유 패딩을 둬 동작 시작/끝을 자르지 않는다.
-        const PAD = 0.4;
-        const fineStart = clamp(coarseRange.start - PAD, 0, duration);
-        const fineEnd = clamp(coarseRange.end + PAD, fineStart, duration);
-        const fineSpan = fineEnd - fineStart;
-
-        // 정밀 스캔 표본 수 산정: 활성 구간 안에 이미 들어온 거친 표본을 재사용해 그만큼 차감.
-        const coarseInActive = coarseFrames.filter((f) => f.time >= fineStart && f.time <= fineEnd).length;
-        const fineTarget = clamp(Math.round(fineSpan * 3.5), count * 5, 320);
-        const fineCount = Math.max(fineTarget - coarseInActive, count * 4);
-
-        // 2단계가 실제로 검출 횟수를 줄일 때만 사용. 아니면 전체 1패스 정밀 스캔으로 폴백.
-        const useTwoStage = fineSpan > 0.5 && (coarseCount + fineCount) < fullScanCount;
-
-        let motionSamples;
-        let methodLabel;
-        if (useTwoStage) {
-          const fineFrames = await collectScanFrames(fineStart, fineEnd, fineCount, timestampBaseMs, 9, 8);
-          // 거친 스캔 프레임(전체)과 정밀 프레임을 합쳐 정확도를 보존한다.
-          motionSamples = buildMotionSamples(coarseFrames.concat(fineFrames));
-          methodLabel = "two_stage_active_range_skeleton_joint_angle_center_motion_local_minimum";
-        } else {
-          const fullFrames = await collectScanFrames(0, Math.max(duration - 0.04, 0), fullScanCount, timestampBaseMs, 5, 12);
-          motionSamples = buildMotionSamples(fullFrames);
-          methodLabel = "active_range_skeleton_joint_angle_center_motion_local_minimum";
-        }
+        // 영상 전체를 초당 약 3.5회 밀도로 한 번에 정밀 스캔한다(안정성 우선).
+        const frames = await collectScanFrames(0, Math.max(duration - 0.04, 0), scanCount, timestampBaseMs, 5, 12);
+        const motionSamples = buildMotionSamples(frames);
 
         const activeRange = detectActiveMotionRange(duration, motionSamples);
         const boundaries = refineSegmentBoundaries(duration, count, motionSamples, sensitivity, activeRange.start, activeRange.end);
@@ -2832,9 +2802,9 @@
           activeRange,
           completionTimes: chooseCompletionSnapshotTimes(boundaries, motionSamples),
           motionSamples,
-          scanCount: useTwoStage ? coarseCount + fineCount : fullScanCount,
+          scanCount,
           sensitivity,
-          method: methodLabel
+          method: "active_range_skeleton_joint_angle_center_motion_local_minimum"
         };
       }
       function scoreStance(frames) {
