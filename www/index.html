@@ -1262,23 +1262,46 @@
         word-break: keep-all;
         overflow-wrap: anywhere;
       }
+      .app-footer-partner-block {
+        position: relative;
+        display: grid;
+        grid-column: 1 / -1;
+        width: 100%;
+        margin: 0 0 4px;
+      }
       .app-footer-partners {
         display: block;
-        grid-column: 1 / -1;
         width: 100%;
         max-height: 64px;
         object-fit: contain;
-        margin: 6px 0 0;
+        margin: 0;
         padding: 6px 10px;
         border-radius: 8px;
         background: #ffffff;
+      }
+      .yongin-logo-link {
+        position: absolute;
+        inset: 0 auto 22px 0;
+        width: 58%;
+        border-radius: 8px 0 0 8px;
+        color: transparent !important;
+        font-size: 0;
+      }
+      .yongin-logo-link:focus-visible {
+        outline: 3px solid var(--brand-strong);
+        outline-offset: 2px;
+      }
+      .partner-instagram {
+        margin: 4px 8px 0 !important;
+        text-align: left;
       }
       .app-footer a { color: var(--brand-strong); }
       @media (max-width: 760px) {
         .app-footer { padding-bottom: 104px; }
         .app-footer-inner { grid-template-columns: 96px minmax(0, 1fr); gap: 10px; }
         .app-footer p { font-size: 11px; line-height: 1.4; }
-        .app-footer-partners { max-height: 56px; margin-top: 6px; }
+        .app-footer-partners { max-height: 56px; }
+        .yongin-logo-link { bottom: 21px; }
       }
 
       /* 스크롤바 */
@@ -1306,7 +1329,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.28</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.29</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
       </div>
@@ -1458,15 +1481,19 @@
     </main>
     <footer class="app-footer">
       <div class="app-footer-inner">
+        <div class="app-footer-partner-block">
+          <img class="app-footer-partners" src="./assets/partner-taekwondo-logos.png" alt="용인대 국가대표 태권도 및 Taigon 시범단 로고" loading="lazy" />
+          <a class="yongin-logo-link" href="https://www.instagram.com/yongin_kr" target="_blank" rel="noopener" aria-label="용인대 국가대표태권도 인스타그램 @yongin_kr 새 창으로 열기">@yongin_kr</a>
+          <p class="partner-instagram">용인대 국가대표태권도 인스타그램: <a href="https://www.instagram.com/yongin_kr" target="_blank" rel="noopener">@yongin_kr</a></p>
+        </div>
         <img class="app-footer-main-logo" src="./assets/momgagym-logo.jpg" alt="몸가짐운동센터 로고" loading="lazy" />
         <div class="app-footer-copy">
           <p>제작: 울산 몸가짐운동센터</p>
-          <p>제작자: 김동규 센터장</p>
+          <p>제작자: <a href="https://blog.naver.com/posture_gym/222560486461" target="_blank" rel="noopener">김동규 센터장</a></p>
           <p>인스타그램: <a href="https://www.instagram.com/posture_gym_official" target="_blank" rel="noopener">@posture_gym_official</a></p>
           <p>블로그: <a href="https://blog.naver.com/posture_gym" target="_blank" rel="noopener">blog.naver.com/posture_gym</a></p>
           <p>문의: <a href="tel:050713660466">0507-1366-0466</a></p>
         </div>
-        <img class="app-footer-partners" src="./assets/partner-taekwondo-logos.png" alt="용인대 국가대표 태권도 및 Taigon 시범단 로고" loading="lazy" />
       </div>
     </footer>
 
@@ -2637,6 +2664,28 @@
         // 동작 비교에 필요한 프레임은 유지하고 전체 분석량은 보통 초당 1.5~2회 이하로 제한한다.
         return clamp(Math.round(segmentLength * 1.5), 4, 8);
       }
+      function selectReusableSegmentFrames(scanFrames, segmentStart, segmentEnd, sampleCount, maxGap = 0.18) {
+        const segmentLength = segmentEnd - segmentStart;
+        if (!(segmentLength > 0) || !Array.isArray(scanFrames) || !scanFrames.length) return [];
+        const candidates = scanFrames
+          .filter((frame) => frame.landmarks && frame.time >= segmentStart && frame.time <= segmentEnd)
+          .slice()
+          .sort((a, b) => a.time - b.time);
+        const selected = [];
+        const used = new Set();
+        for (let index = 0; index < sampleCount; index += 1) {
+          const ratio = 0.08 + (0.84 * index) / Math.max(sampleCount - 1, 1);
+          const target = segmentStart + segmentLength * ratio;
+          const nearest = candidates
+            .filter((frame) => !used.has(frame))
+            .map((frame) => ({ frame, gap: Math.abs(frame.time - target) }))
+            .sort((a, b) => a.gap - b.gap)[0];
+          if (!nearest || nearest.gap > maxGap) return [];
+          used.add(nearest.frame);
+          selected.push(nearest.frame);
+        }
+        return selected.sort((a, b) => a.time - b.time);
+      }
       function jointAngle(landmarks, aIndex, bIndex, cIndex) {
         const a = getPoint(landmarks, aIndex);
         const b = getPoint(landmarks, bIndex);
@@ -2802,6 +2851,7 @@
           activeRange,
           completionTimes: chooseCompletionSnapshotTimes(boundaries, motionSamples),
           motionSamples,
+          frames,
           scanCount,
           sensitivity,
           method: "active_range_skeleton_joint_angle_center_motion_local_minimum"
@@ -3193,7 +3243,7 @@
           video.duration.toFixed(3),
           video.videoWidth,
           video.videoHeight,
-          `skeleton-angle-kta-cross-validation-revision-6-${boundarySensitivitySelect.value || "0.95"}`
+          `skeleton-angle-kta-scan-reuse-revision-7-${boundarySensitivitySelect.value || "0.95"}`
         ].join("|");
       }
       function cloneStableData(value) {
@@ -3218,7 +3268,7 @@
         powerScoreText.textContent = trainingMode === "exam" ? "문제점 확인" : "-";
         setPill(overallStatus, "caution", "분석 전");
       }
-      function completeAnalysis(results, frameSamples, cacheHit = false) {
+      function completeAnalysis(results, frameSamples, cacheHit = false, analysisEfficiency = null) {
         renderSegments(results);
         const summary = summarize(results);
         const issueTotal = summary.issueCounts.reduce((sum, item) => sum + item.count, 0);
@@ -3275,6 +3325,7 @@
           },
           segments: results,
           frame_samples: frameSamples,
+          analysis_efficiency: analysisEfficiency,
           next_step: "관절 속도 피크와 정지점으로 실제 동작 전환점을 자동 감지하고, 지르기/막기/차기별 궤적 정확도 규칙을 연결"
         };
         analyzeBtn.disabled = false;
@@ -3325,6 +3376,7 @@
           return;
         }
         isAnalyzing = true;
+        const analysisStartedAt = performance.now();
         const timestampBaseMs = analysisTimestampOffsetMs;
         analysisTimestampOffsetMs += Math.ceil(video.duration * 2000) + 20000;
         try {
@@ -3348,7 +3400,7 @@
         const cacheKey = currentAnalysisCacheKey();
         const cached = cacheKey ? stableAnalysisCache.get(cacheKey) : null;
         if (cached) {
-          completeAnalysis(cloneStableData(cached.results), cloneStableData(cached.frameSamples), true);
+          completeAnalysis(cloneStableData(cached.results), cloneStableData(cached.frameSamples), true, cloneStableData(cached.analysisEfficiency || null));
           return;
         }
         setProgress(5, "동작 전환점을 먼저 찾아 구간 경계를 보정합니다.");
@@ -3356,6 +3408,8 @@
         const segmentTimestampBaseMs = timestampBaseMs + Math.ceil(video.duration * 1000) + 5000;
         const results = [];
         const frameSamples = [];
+        let reusedPoseFrames = 0;
+        let precisePoseFrames = 0;
         for (let i = 0; i < movements.length; i += 1) {
           const movement = movements[i];
           const segmentStart = boundaryDetection.boundaries[i];
@@ -3365,15 +3419,21 @@
           let snapshot = "";
           // 구간 길이에 비례해 샘플 수를 4~8개로 제한해 저사양 기기 부하를 줄인다.
           const sampleCount = chooseSampleCount(segmentLength);
-          for (let j = 0; j < sampleCount; j += 1) {
-            // 구간 양끝 8%는 인접 동작과 겹치므로 제외하고 균등 샘플.
-            const ratio = 0.08 + (0.84 * j) / Math.max(sampleCount - 1, 1);
-            const requestedTime = segmentStart + segmentLength * ratio;
-            const actualTime = await waitForSeek(requestedTime);
-            const result = poseLandmarker.detectForVideo(video, segmentTimestampBaseMs + Math.round(actualTime * 1000));
-            const landmarks = result.landmarks && result.landmarks[0] ? result.landmarks[0] : null;
-            // 원한 시각이 아니라 실제로 분석된 프레임 시각을 기록해 재생/리포트와 정렬한다.
-            frames.push({ time: actualTime, landmarks });
+          const reusableFrames = selectReusableSegmentFrames(boundaryDetection.frames, segmentStart, segmentEnd, sampleCount);
+          if (reusableFrames.length === sampleCount) {
+            frames.push(...reusableFrames);
+            reusedPoseFrames += reusableFrames.length;
+          } else {
+            for (let j = 0; j < sampleCount; j += 1) {
+              // 재사용 품질 기준을 만족하지 못한 구간만 기존 정밀 경로로 분석한다.
+              const ratio = 0.08 + (0.84 * j) / Math.max(sampleCount - 1, 1);
+              const requestedTime = segmentStart + segmentLength * ratio;
+              const actualTime = await waitForSeek(requestedTime);
+              const result = poseLandmarker.detectForVideo(video, segmentTimestampBaseMs + Math.round(actualTime * 1000));
+              const landmarks = result.landmarks && result.landmarks[0] ? result.landmarks[0] : null;
+              frames.push({ time: actualTime, landmarks });
+              precisePoseFrames += 1;
+            }
           }
           const completionTime = boundaryDetection.completionTimes[i] ?? segmentStart + segmentLength * 0.82;
           const snapshotTime = await waitForSeek(completionTime);
@@ -3396,13 +3456,22 @@
             detected_frames: frames.filter((f) => f.landmarks).length,
             boundary_method: boundaryDetection.method,
             boundary_sensitivity: boundaryDetection.sensitivity,
+            sample_source: reusableFrames.length === sampleCount ? "boundary_scan_reused" : "precise_fallback",
             completion_snapshot_time: Number(snapshotTime.toFixed(3))
           });
           setProgress(5 + Math.round(((i + 1) / movements.length) * 82), `${trainingMode === "exam" ? "문제점 확인 중" : "파워·맺음 평가 중"}... ${i + 1}/${movements.length}`);
           await new Promise((resolve) => setTimeout(resolve, 0));
         }
-        if (cacheKey) stableAnalysisCache.set(cacheKey, cloneStableData({ results, frameSamples }));
-        completeAnalysis(results, frameSamples, false);
+        const analysisEfficiency = {
+          boundary_pose_detections: boundaryDetection.scanCount,
+          reused_pose_frames: reusedPoseFrames,
+          precise_pose_detections: precisePoseFrames,
+          avoided_pose_detections: reusedPoseFrames,
+          total_elapsed_ms: Math.round(performance.now() - analysisStartedAt),
+          reliability_guard: "reuse only when every target has a unique detected frame within 0.18 seconds; otherwise precise fallback"
+        };
+        if (cacheKey) stableAnalysisCache.set(cacheKey, cloneStableData({ results, frameSamples, analysisEfficiency }));
+        completeAnalysis(results, frameSamples, false, analysisEfficiency);
         } catch (error) {
           console.error(error);
           const hadReport = !!latestReport;
@@ -3515,7 +3584,7 @@
           trainingMode = tab.dataset.mode || "competition";
           updateTrainingModeUi();
           if (latestReport?.segments?.length) {
-            completeAnalysis(cloneStableData(latestReport.segments), cloneStableData(latestReport.frame_samples || []), true);
+            completeAnalysis(cloneStableData(latestReport.segments), cloneStableData(latestReport.frame_samples || []), true, cloneStableData(latestReport.analysis_efficiency || null));
           } else {
             renderReport([{ type: "caution", text: `${modeLabel()} 모드를 선택했습니다. 품새와 영상을 준비한 뒤 분석 시작을 누르세요.` }]);
           }
