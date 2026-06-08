@@ -336,6 +336,8 @@ assertContains(webHtml, "<div class=\"app-footer-partner-block\">\n          <im
 assertContains(webHtml, "https://www.instagram.com/yongin_kr", "용인대 국가대표태권도 인스타그램 링크 존재");
 assertContains(webHtml, "aria-label=\"용인대 국가대표태권도 인스타그램 @yongin_kr 새 창으로 열기\"", "용인대 로고 클릭 접근성 설명 존재");
 assertContains(webHtml, ".yongin-logo-link", "용인대 국가대표태권도 로고 전용 클릭 영역 존재");
+assertNotContains(webHtml, "class=\"partner-instagram\"", "파트너 로고 아래 인스타그램 문구 제거");
+assertNotContains(webHtml, "용인대 국가대표태권도 인스타그램: <a", "파트너 로고 아래 텍스트 링크 제거");
 assertContains(webHtml, "grid-column: 1 / -1", "파트너 로고를 하단 전체 너비로 표시");
 assertContains(webHtml, ".primary-actions button", "분석 시작 버튼 전용 정렬 구조 존재");
 assertNotContains(webHtml, "훈련 분석 요약", "이전 결과 페이지 명칭 제거");
