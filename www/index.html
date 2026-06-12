@@ -1713,7 +1713,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.31</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.32</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -3212,57 +3212,125 @@
           end: clamp(active[active.length - 1].time + 0.18, 0, duration)
         };
       }
+      // 동작 경계 탐지: 움직임의 국소 최저점(valley)을 prominence(깊이)로 평가해
+      // 길이가 들쭉날쭉한 동작도 실제 정지점에서 끊는다. 균등분할을 강제하지 않는다.
+      // 뚜렷한 valley가 부족하면 부족한 만큼만 균등분할로 안전하게 메운다(절대 실패하지 않음).
+      // 반환: 경계 시각 배열. 부가 정보는 refineSegmentBoundaries.lastConfidence 에 기록.
       function refineSegmentBoundaries(duration, segmentCount, motionSamples, sensitivity = 0.95, activeStart = 0, activeEnd = duration) {
         const safeDuration = Math.max(Number(duration) || 0, 0);
         const safeCount = Math.max(Math.round(segmentCount) || 1, 1);
         const rangeStart = clamp(Number(activeStart) || 0, 0, safeDuration);
         const rangeEnd = clamp(Number(activeEnd) || safeDuration, rangeStart, safeDuration);
+        const uniform = () => Array.from({ length: safeCount + 1 }, (_, index) => rangeStart + (rangeEnd - rangeStart) * (index / safeCount));
+        refineSegmentBoundaries.lastConfidence = { strongValleys: 0, neededBoundaries: Math.max(safeCount - 1, 0), filledUniform: Math.max(safeCount - 1, 0), perBoundary: [] };
         if (!safeDuration || safeCount <= 1 || !motionSamples.length) {
-          return Array.from({ length: safeCount + 1 }, (_, index) => rangeStart + (rangeEnd - rangeStart) * (index / safeCount));
+          return uniform();
         }
         const interval = (rangeEnd - rangeStart) / safeCount;
         const sorted = motionSamples
-          .filter((sample) => sample.valid !== false && Number.isFinite(sample.time) && Number.isFinite(sample.motion))
+          .filter((sample) => sample.valid !== false && Number.isFinite(sample.time) && Number.isFinite(sample.motion)
+            && sample.time >= rangeStart && sample.time <= rangeEnd)
           .slice()
           .sort((a, b) => a.time - b.time);
-        const motions = sorted.map((sample) => sample.motion);
-        const motionLow = Math.min(...motions);
-        const motionHigh = Math.max(...motions);
-        const motionRange = Math.max(motionHigh - motionLow, 0.0001);
-        const boundaries = [rangeStart];
-        for (let index = 1; index < safeCount; index += 1) {
-          const expected = rangeStart + interval * index;
-          const searchRadius = interval * (0.25 + sensitivity * 0.25);
-          const minAllowed = boundaries[boundaries.length - 1] + interval * 0.38;
-          const maxAllowed = rangeEnd - interval * (safeCount - index) * 0.38;
-          const candidates = sorted.filter((sample) =>
-            sample.time >= Math.max(expected - searchRadius, minAllowed) &&
-            sample.time <= Math.min(expected + searchRadius, maxAllowed)
-          );
-          if (!candidates.length) {
-            boundaries.push(clamp(expected, minAllowed, maxAllowed));
-            continue;
+        if (sorted.length < safeCount + 2) {
+          return uniform();
+        }
+
+        // 1) 모든 국소 최저점(valley)을 찾는다.
+        const valleys = [];
+        for (let i = 1; i < sorted.length - 1; i += 1) {
+          if (sorted[i].motion <= sorted[i - 1].motion && sorted[i].motion <= sorted[i + 1].motion) {
+            valleys.push(i);
           }
-          const best = candidates
-            .map((sample) => {
-              const motionScore = (sample.motion - motionLow) / motionRange;
-              const distanceScore = Math.abs(sample.time - expected) / Math.max(searchRadius, 0.001);
-              const sampleIndex = sorted.indexOf(sample);
-              const previousMotion = sorted[sampleIndex - 1]?.motion ?? Number.POSITIVE_INFINITY;
-              const nextMotion = sorted[sampleIndex + 1]?.motion ?? Number.POSITIVE_INFINITY;
-              const isLocalMinimum = sample.motion <= previousMotion && sample.motion <= nextMotion;
-              return {
-                ...sample,
-                boundaryScore:
-                  motionScore * (0.7 + sensitivity * 0.55) +
-                  distanceScore * (0.55 - sensitivity * 0.3) -
-                  (isLocalMinimum ? 0.22 * sensitivity : 0)
-              };
-            })
-            .sort((a, b) => a.boundaryScore - b.boundaryScore)[0];
-          boundaries.push(clamp(best.time, minAllowed, maxAllowed));
+        }
+        if (!valleys.length) {
+          return uniform();
+        }
+        // 2) prominence: 좌우로 올라가다 더 낮은 지점을 만나기 전까지의 상승폭 중 작은 쪽.
+        //    동작 사이 '깊은 정지'일수록 prominence가 크다.
+        const prominenceOf = (vi) => {
+          const base = sorted[vi].motion;
+          let leftPeak = base;
+          for (let j = vi - 1; j >= 0; j -= 1) {
+            if (sorted[j].motion < base) break;
+            if (sorted[j].motion > leftPeak) leftPeak = sorted[j].motion;
+          }
+          let rightPeak = base;
+          for (let j = vi + 1; j < sorted.length; j += 1) {
+            if (sorted[j].motion < base) break;
+            if (sorted[j].motion > rightPeak) rightPeak = sorted[j].motion;
+          }
+          return Math.min(leftPeak, rightPeak) - base;
+        };
+        const scored = valleys.map((vi) => ({ time: sorted[vi].time, motion: sorted[vi].motion, prom: prominenceOf(vi) }));
+
+        // 3) 자동 임계(영상 적응): 가장 깊은 valley 대비 일정 비율 이상만 진짜 경계 후보로 본다.
+        //    민감도가 높을수록 더 얕은 정지도 경계로 허용(더 잘게 끊음).
+        const maxProm = scored.reduce((m, s) => Math.max(m, s.prom), 0.0001);
+        const ratio = clamp(0.12 + (1 - sensitivity) * 0.5, 0.08, 0.6);
+        const promThreshold = maxProm * ratio;
+        const strong = scored.filter((s) => s.prom >= promThreshold);
+
+        // 4) 동작수-1개의 경계를 깊은 순으로 고르되, 너무 붙지 않도록 최소 간격을 둔다.
+        const need = safeCount - 1;
+        const minGap = interval * 0.35;
+        const byProm = strong.slice().sort((a, b) => b.prom - a.prom);
+        const picked = [];
+        const confidence = [];
+        for (const v of byProm) {
+          if (picked.length >= need) break;
+          if (picked.every((p) => Math.abs(p.time - v.time) >= minGap)) {
+            picked.push(v);
+            confidence.push({ time: v.time, prominence: v.prom, source: "valley", relative: v.prom / maxProm });
+          }
+        }
+        // 5) 부족한 경계는 균등분할로 안전하게 메운다(겹치지 않는 위치에).
+        let filledUniform = 0;
+        for (let index = 1; index < safeCount && picked.length < need; index += 1) {
+          const expected = rangeStart + interval * index;
+          if (picked.every((p) => Math.abs(p.time - expected) > interval * 0.5)) {
+            picked.push({ time: expected, prom: 0 });
+            confidence.push({ time: expected, prominence: 0, source: "uniform_fill", relative: 0 });
+            filledUniform += 1;
+          }
+        }
+        // 그래도 모자라면 남은 자리를 균등으로 강제 채움.
+        let guard = 1;
+        while (picked.length < need && guard < safeCount) {
+          const expected = rangeStart + interval * guard;
+          if (picked.every((p) => Math.abs(p.time - expected) > interval * 0.2)) {
+            picked.push({ time: expected, prom: 0 });
+            confidence.push({ time: expected, prominence: 0, source: "uniform_fill", relative: 0 });
+            filledUniform += 1;
+          }
+          guard += 1;
+        }
+
+        picked.sort((a, b) => a.time - b.time);
+        confidence.sort((a, b) => a.time - b.time);
+
+        // 6) 단조 증가만 보장(균등 간격은 강제하지 않는다). 양끝 부착.
+        //    valley가 가까이 붙어 있어도 실제 정지점을 존중하되, 최소 epsilon 간격만 둔다.
+        const minSpacing = Math.max(interval * 0.04, 0.05);
+        const boundaries = [rangeStart];
+        let prev = rangeStart;
+        for (let i = 0; i < need; i += 1) {
+          const desired = picked[i] ? picked[i].time : rangeStart + interval * (i + 1);
+          // 남은 경계 수만큼 끝까지 자리가 남도록 상한만 둔다(붕괴 방지).
+          const remaining = need - i;
+          const maxAllowed = rangeEnd - minSpacing * remaining;
+          const t = clamp(desired, prev + minSpacing, Math.max(prev + minSpacing, maxAllowed));
+          boundaries.push(t);
+          prev = t;
         }
         boundaries.push(rangeEnd);
+
+        refineSegmentBoundaries.lastConfidence = {
+          strongValleys: strong.length,
+          neededBoundaries: need,
+          filledUniform,
+          perBoundary: confidence.slice(0, need)
+        };
         return boundaries;
       }
       // 주어진 구간을 sampleCount개로 스캔해 원시 프레임(time, landmarks)을 수집한다.
@@ -3320,6 +3388,7 @@
 
         const activeRange = detectActiveMotionRange(duration, motionSamples);
         const boundaries = refineSegmentBoundaries(duration, count, motionSamples, sensitivity, activeRange.start, activeRange.end);
+        const boundaryConfidence = refineSegmentBoundaries.lastConfidence || null;
         return {
           boundaries,
           activeRange,
@@ -3328,7 +3397,8 @@
           frames,
           scanCount,
           sensitivity,
-          method: "active_range_skeleton_joint_angle_center_motion_local_minimum"
+          boundaryConfidence,
+          method: "active_range_skeleton_valley_prominence_adaptive"
         };
       }
       function scoreStance(frames) {
@@ -3756,6 +3826,18 @@
       function completeAnalysis(results, frameSamples, cacheHit = false, analysisEfficiency = null) {
         renderSegments(results);
         const summary = summarize(results);
+        // 뚜렷한 정지(valley)가 동작 수에 비해 부족하면 동작명이 한 칸씩 밀렸을 수 있어 안내한다.
+        if (analysisEfficiency && Number.isFinite(analysisEfficiency.boundary_uniform_filled)
+            && Number.isFinite(analysisEfficiency.boundary_needed) && analysisEfficiency.boundary_needed > 0) {
+          const filled = analysisEfficiency.boundary_uniform_filled;
+          const need = analysisEfficiency.boundary_needed;
+          if (filled / need >= 0.34) {
+            summary.items.unshift({
+              type: "caution",
+              text: `동작 사이 멈춤이 뚜렷하지 않아 경계 ${need}곳 중 ${filled}곳을 시간 균등으로 추정했습니다. 일부 구간에서 동작명과 영상이 한 칸씩 어긋날 수 있으니, 각 동작을 끝에서 잠깐 멈춰 다시 촬영하면 정확해집니다.`
+            });
+          }
+        }
         const issueTotal = summary.issueCounts.reduce((sum, item) => sum + item.count, 0);
         detectRateText.textContent = `${(summary.detectRate * 100).toFixed(0)}%`;
         powerScoreText.textContent = trainingMode === "exam"
@@ -3937,24 +4019,31 @@
             ...metrics
           };
           results.push(row);
+          const startConf = i === 0 ? null : (boundaryDetection.boundaryConfidence?.perBoundary?.[i - 1] || null);
           frameSamples.push({
             segment_id: movement.id,
             times: frames.map((f) => Number(f.time.toFixed(3))),
             detected_frames: frames.filter((f) => f.landmarks).length,
             boundary_method: boundaryDetection.method,
             boundary_sensitivity: boundaryDetection.sensitivity,
+            boundary_source: startConf ? startConf.source : (i === 0 ? "active_range_start" : "unknown"),
+            boundary_confidence: startConf ? Number((startConf.relative || 0).toFixed(3)) : null,
             sample_source: reusableFrames.length === sampleCount ? "boundary_scan_reused" : "precise_fallback",
             completion_snapshot_time: Number(snapshotTime.toFixed(3))
           });
           setProgress(5 + Math.round(((i + 1) / movements.length) * 82), `${trainingMode === "exam" ? "문제점 확인 중" : "파워·맺음 평가 중"}... ${i + 1}/${movements.length}`);
           await new Promise((resolve) => setTimeout(resolve, 0));
         }
+        const bc = boundaryDetection.boundaryConfidence || {};
         const analysisEfficiency = {
           boundary_pose_detections: boundaryDetection.scanCount,
           reused_pose_frames: reusedPoseFrames,
           precise_pose_detections: precisePoseFrames,
           avoided_pose_detections: reusedPoseFrames,
           total_elapsed_ms: Math.round(performance.now() - analysisStartedAt),
+          boundary_strong_valleys: bc.strongValleys ?? null,
+          boundary_needed: bc.neededBoundaries ?? null,
+          boundary_uniform_filled: bc.filledUniform ?? null,
           reliability_guard: "reuse only when every target has a unique detected frame within 0.18 seconds; otherwise precise fallback"
         };
         if (cacheKey) stableAnalysisCache.set(cacheKey, cloneStableData({ results, frameSamples, analysisEfficiency }));
