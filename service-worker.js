@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-root-calligraphy-icon-v2";
+const CACHE_NAME = "poomsae-training-root-local-serif-v3";
 const APP_URL = "./www/index.html";
 const CORE_ASSETS = [
   "./",
@@ -9,7 +9,10 @@ const CORE_ASSETS = [
   "./www/assets/app-icon-512.png",
   "./www/assets/app-icon-1024.png",
   "./www/assets/momgagym-logo.jpg",
-  "./www/assets/partner-taekwondo-logos.png"
+  "./www/assets/partner-taekwondo-logos.png",
+  "./www/assets/fonts/NotoSerifKR-SemiBold.woff2",
+  "./www/assets/fonts/NotoSerifKR-Bold.woff2",
+  "./www/assets/fonts/NotoSerifKR-Black.woff2"
 ];
 
 self.addEventListener("install", (event) => {
