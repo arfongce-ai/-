@@ -1062,7 +1062,7 @@
         input[type="file"] { min-height: 64px; }
       }
 
-      /* ===================== v3.22 다크 도장 테마 오버라이드 ===================== */
+      /* ===================== 기본 다크 베이스 오버라이드 (도장 리디자인 레이어가 이후에 보강) ===================== */
       h1, h2, h3 { color: var(--text); font-weight: 800; }
       h1 { font-size: 23px; letter-spacing: -.3px; }
 
@@ -1713,7 +1713,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.29</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.31</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -2146,9 +2146,6 @@
       let analysisTimestampOffsetMs = 0;
       const SEEK_EPSILON_SECONDS = 0.025;
       const SEEK_TIMEOUT_MS = 1500;
-      // 순방향 스캔: 재생으로 자연 디코딩된 프레임이 요청 시각과 이 오차 이내면 채택한다.
-      // (무작위 seek 허용오차와 동일하게 두어 신뢰성 하한을 기존 경로와 일치시킨다.)
-      const FORWARD_SCAN_ACCEPT_SECONDS = SEEK_EPSILON_SECONDS;
 
       const keyIndexesByType = {
         hold: [11, 12, 23, 24, 27, 28],
@@ -2786,6 +2783,24 @@
       const SUPPORTS_RVFC = typeof HTMLVideoElement !== "undefined"
         && typeof HTMLVideoElement.prototype.requestVideoFrameCallback === "function";
 
+      // MediaPipe detectForVideo는 호출 간 타임스탬프가 항상 증가해야 한다.
+      // seek 오차나 재분석으로 같은/역행 타임스탬프가 들어오면 "timestamp" 오류로
+      // 분석이 중단되므로, 모든 검출을 단조 증가 타임스탬프로 감싸 그 오류를 차단한다.
+      // (제안 타임스탬프를 존중하되, 직전 값 이하이면 +1ms 보정한다.)
+      let lastDetectTimestampMs = -1;
+      function detectPoseAt(suggestedTimestampMs) {
+        let ts = Math.round(Number.isFinite(suggestedTimestampMs) ? suggestedTimestampMs : 0);
+        if (ts <= lastDetectTimestampMs) ts = lastDetectTimestampMs + 1;
+        lastDetectTimestampMs = ts;
+        try {
+          return poseLandmarker.detectForVideo(video, ts);
+        } catch (error) {
+          // 한 프레임 검출 실패가 분석 전체를 중단시키지 않도록 빈 결과로 대체한다.
+          console.warn("Pose detection skipped for one frame.", error);
+          return { landmarks: [] };
+        }
+      }
+
       // 페인트 완료를 보장하기 위한 double-rAF (rVFC 미지원 WebView 폴백)
       function waitForPaint() {
         return new Promise((resolve) => {
@@ -3250,91 +3265,21 @@
         boundaries.push(rangeEnd);
         return boundaries;
       }
-      // 순방향 재생으로 디코딩되는 프레임을 받아, 목표 시각 배열을 차례로 채운다.
-      // 각 목표 시각에 FORWARD_SCAN_ACCEPT_SECONDS 이내로 도달한 프레임만 채택하고,
-      // 못 미치면 null을 남겨 호출부가 기존 seek 경로로 정밀 보정하게 한다.
-      // 무작위 seek 없이 순차 디코딩만 하므로 같은 프레임을 훨씬 빨리 수집한다.
-      function forwardScanFrames(targetTimes, timestampBaseMs) {
-        return new Promise((resolve) => {
-          if (!SUPPORTS_RVFC || !targetTimes.length) { resolve(null); return; }
-          const out = new Array(targetTimes.length).fill(null);
-          let cursor = 0;
-          let handle = null;
-          let settled = false;
-          const lastTarget = targetTimes[targetTimes.length - 1];
-          const finish = () => {
-            if (settled) return;
-            settled = true;
-            if (handle != null) { try { video.cancelVideoFrameCallback(handle); } catch (e) { /* noop */ } }
-            video.pause();
-            resolve(out);
-          };
-          const onFrame = (_now, meta) => {
-            const t = meta && Number.isFinite(meta.mediaTime) ? meta.mediaTime : video.currentTime;
-            // 현재 재생 시각을 지나친 목표는 채택 가능 여부를 판정하고 커서를 전진시킨다.
-            while (cursor < targetTimes.length && t >= targetTimes[cursor] - FORWARD_SCAN_ACCEPT_SECONDS) {
-              if (Math.abs(t - targetTimes[cursor]) <= FORWARD_SCAN_ACCEPT_SECONDS) {
-                const result = poseLandmarker.detectForVideo(video, timestampBaseMs + Math.round(t * 1000));
-                out[cursor] = { time: t, landmarks: result.landmarks && result.landmarks[0] ? result.landmarks[0] : null };
-                cursor += 1;
-              } else if (t > targetTimes[cursor] + FORWARD_SCAN_ACCEPT_SECONDS) {
-                // 이 목표를 놓쳤다(프레임 간격이 벌어짐). null로 두고 다음 목표로.
-                cursor += 1;
-              } else {
-                break;
-              }
-            }
-            if (cursor >= targetTimes.length || t >= lastTarget) { finish(); return; }
-            handle = video.requestVideoFrameCallback(onFrame);
-          };
-          // 시작 직전으로 seek한 뒤 한 번만 재생해 순차 디코딩을 유도한다.
-          const startAt = Math.max(0, targetTimes[0] - 0.05);
-          const begin = () => {
-            video.playbackRate = 1;
-            handle = video.requestVideoFrameCallback(onFrame);
-            video.play().then(() => {}).catch(() => finish());
-          };
-          if (Math.abs(video.currentTime - startAt) <= SEEK_EPSILON_SECONDS) {
-            begin();
-          } else {
-            const onSeeked = () => { video.removeEventListener("seeked", onSeeked); begin(); };
-            video.addEventListener("seeked", onSeeked);
-            try { video.currentTime = startAt; } catch (e) { video.removeEventListener("seeked", onSeeked); begin(); }
-          }
-          // 안전장치: 영상 길이를 크게 넘는 시간 동안 콜백이 안 오면 종료.
-          setTimeout(finish, Math.max(4000, Math.ceil((lastTarget - startAt) * 1000) + 4000));
-        });
-      }
       // 주어진 구간을 sampleCount개로 스캔해 원시 프레임(time, landmarks)을 수집한다.
-      // 1차로 순방향 재생 스캔을 시도하고, 채택 못 한 목표만 기존 seek 경로로 정밀 보정한다.
-      // 채택 기준이 기존 seek 허용오차와 같으므로 결과 프레임의 시각/좌표/개수는 기존과 동일하다.
+      // 빠른 seek 경로(waitForSeek fast=true)를 사용한다: seeked 직후 페인트 대기 없이
+      // 바로 검출하므로 정확도를 유지하면서 프레임당 대기 시간을 줄인다.
+      // detectForVideo 타임스탬프는 호출부가 넘긴 단조 증가 베이스를 그대로 사용한다.
       async function collectScanFrames(startSec, endSec, sampleCount, timestampBaseMs, progressBase, progressSpan) {
         const span = Math.max(endSec - startSec, 0.001);
-        const targetTimes = [];
+        const frames = [];
         for (let index = 0; index < sampleCount; index += 1) {
-          targetTimes.push(startSec + span * (index / Math.max(sampleCount - 1, 1)));
-        }
-        let frames = null;
-        try {
-          frames = await forwardScanFrames(targetTimes, timestampBaseMs);
-        } catch (error) {
-          console.warn("Forward scan failed; falling back to seek scan.", error);
-          frames = null;
-        }
-        if (!frames) frames = new Array(sampleCount).fill(null);
-        // 순방향 스캔이 못 채운 목표만 기존 seek 경로로 정밀 보정한다(신뢰성 보장).
-        // 폴백 추론은 순방향 스캔이 쓴 타임스탬프 구간을 넘어선 별도 베이스를 사용해
-        // detectForVideo의 단조 증가 타임스탬프 요건을 항상 만족시킨다.
-        const fallbackBaseMs = timestampBaseMs + Math.ceil((endSec - startSec) * 1000) + 2000;
-        for (let index = 0; index < sampleCount; index += 1) {
-          if (!frames[index]) {
-            const actualTime = await waitForSeek(targetTimes[index], true);
-            const result = poseLandmarker.detectForVideo(video, fallbackBaseMs + index + Math.round(actualTime * 1000));
-            frames[index] = {
-              time: actualTime,
-              landmarks: result.landmarks && result.landmarks[0] ? result.landmarks[0] : null
-            };
-          }
+          const requestedTime = startSec + span * (index / Math.max(sampleCount - 1, 1));
+          const actualTime = await waitForSeek(requestedTime, true);
+          const result = detectPoseAt(timestampBaseMs + Math.round(actualTime * 1000));
+          frames.push({
+            time: actualTime,
+            landmarks: result.landmarks && result.landmarks[0] ? result.landmarks[0] : null
+          });
           if (index % 8 === 0) {
             setProgress(progressBase + Math.round((index / sampleCount) * progressSpan), `동작 전환점 탐색 중... ${index + 1}/${sampleCount}`);
             await new Promise((resolve) => setTimeout(resolve, 0));
@@ -3919,6 +3864,8 @@
         const analysisStartedAt = performance.now();
         const timestampBaseMs = analysisTimestampOffsetMs;
         analysisTimestampOffsetMs += Math.ceil(video.duration * 2000) + 20000;
+        // 이 분석에서 사용할 검출 타임스탬프 하한을 베이스 직전으로 맞춘다(단조 증가 보장).
+        lastDetectTimestampMs = timestampBaseMs - 1;
         try {
         analyzeBtn.disabled = true;
         reanalyzeBtn.disabled = true;
@@ -3969,7 +3916,7 @@
               const ratio = 0.08 + (0.84 * j) / Math.max(sampleCount - 1, 1);
               const requestedTime = segmentStart + segmentLength * ratio;
               const actualTime = await waitForSeek(requestedTime);
-              const result = poseLandmarker.detectForVideo(video, segmentTimestampBaseMs + Math.round(actualTime * 1000));
+              const result = detectPoseAt(segmentTimestampBaseMs + Math.round(actualTime * 1000));
               const landmarks = result.landmarks && result.landmarks[0] ? result.landmarks[0] : null;
               frames.push({ time: actualTime, landmarks });
               precisePoseFrames += 1;
