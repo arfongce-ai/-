@@ -5504,13 +5504,16 @@
           replayWeakBtn.disabled = !hasReport;
         }
       }
-      renderPoomsaeOptions(selectedPoomsaeGroup, selectedPoomsaeKey);
-      updatePoomsaeView();
-      updateTrainingModeUi();
-      updateCameraViewUi();
-      setupLayout();
-      setupQuickNav();
-      setupBackNavigationGuard();
+      function safeInit(label, fn) {
+        try { fn(); } catch (e) { console.warn("init step failed: " + label, e); }
+      }
+      safeInit("renderPoomsaeOptions", () => renderPoomsaeOptions(selectedPoomsaeGroup, selectedPoomsaeKey));
+      safeInit("updatePoomsaeView", () => updatePoomsaeView());
+      safeInit("updateTrainingModeUi", () => updateTrainingModeUi());
+      safeInit("updateCameraViewUi", () => updateCameraViewUi());
+      safeInit("setupLayout", () => setupLayout());
+      safeInit("setupQuickNav", () => setupQuickNav());
+      safeInit("setupBackNavigationGuard", () => setupBackNavigationGuard());
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js").catch(() => {}));
       }
@@ -5737,9 +5740,11 @@
           wizardNextBtn.textContent = "다음 ▶";
         }
         if (wizardHint) wizardHint.textContent = "";
-        // 단계가 바뀔 때 설정 영역 상단이 보이도록 가볍게 스크롤.
-        const sec = wizardSteps[0] ? wizardSteps[0].closest("section") : null;
-        if (sec) sec.scrollIntoView({ behavior: "smooth", block: "start" });
+        // 단계가 바뀔 때 설정 영역 상단이 보이도록 가볍게 스크롤(실패해도 무시).
+        try {
+          const sec = wizardSteps[0] ? wizardSteps[0].closest("section") : null;
+          if (sec && typeof sec.scrollIntoView === "function") sec.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (e) { /* noop */ }
       }
 
       function wizardGoTo(step) {
@@ -5749,16 +5754,26 @@
 
       if (wizardNextBtn) {
         wizardNextBtn.addEventListener("click", () => {
-          const reason = wizardStepBlockReason(wizardStep);
-          if (reason) {
-            if (wizardHint) wizardHint.textContent = reason;
-            return;
+          try {
+            const reason = wizardStepBlockReason(wizardStep);
+            if (reason) {
+              if (wizardHint) wizardHint.textContent = reason;
+              return;
+            }
+            wizardGoTo(wizardStep + 1);
+          } catch (e) {
+            console.warn("wizard next failed", e);
+            // 안전장치: 오류가 나도 최소한 다음 단계로는 넘어가게 한다.
+            wizardStep = Math.min(wizardStep + 1, WIZARD_TOTAL);
+            try { renderWizard(); } catch (e2) { /* noop */ }
           }
-          wizardGoTo(wizardStep + 1);
         });
       }
       if (wizardPrevBtn) {
-        wizardPrevBtn.addEventListener("click", () => wizardGoTo(wizardStep - 1));
+        wizardPrevBtn.addEventListener("click", () => {
+          try { wizardGoTo(wizardStep - 1); }
+          catch (e) { wizardStep = Math.max(wizardStep - 1, 1); try { renderWizard(); } catch (e2) {} }
+        });
       }
       // 결과 화면(스크롤식)으로 갈 때 위저드 진행 표시는 그대로 둔다.
       // 분석 시작 후 재설정하려면 4단계에 머무르므로 별도 처리 불필요.
