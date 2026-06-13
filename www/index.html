@@ -4455,8 +4455,8 @@
         return { confidence: 1, gangyuPeakBias: 0, axisNote: "" };
       }
       // ── 분석 축 추가: 관절 각도 · 손발 궤적 ──
-      // 세 점(a-b-c)이 이루는 b에서의 각도(도). 2D 좌표 기준.
-      function jointAngle(a, b, c) {
+      // 세 점(a-b-c)이 이루는 b에서의 각도(도). 2D 좌표 기준. (점 객체를 직접 받음)
+      function jointAngleDeg(a, b, c) {
         if (!a || !b || !c) return null;
         const v1x = a.x - b.x, v1y = a.y - b.y;
         const v2x = c.x - b.x, v2y = c.y - b.y;
@@ -4484,15 +4484,15 @@
           const lm = f.landmarks;
           // 팔 펴짐: 어깨(11/12)-팔꿈치(13/14)-손목(15/16). 양팔 중 더 잘 보이는 쪽.
           if (movementType === "punch" || movementType === "strike" || movementType === "kick_punch") {
-            const rArm = jointAngle(getPoint(lm, 12), getPoint(lm, 14), getPoint(lm, 16));
-            const lArm = jointAngle(getPoint(lm, 11), getPoint(lm, 13), getPoint(lm, 15));
+            const rArm = jointAngleDeg(getPoint(lm, 12), getPoint(lm, 14), getPoint(lm, 16));
+            const lArm = jointAngleDeg(getPoint(lm, 11), getPoint(lm, 13), getPoint(lm, 15));
             const pick = rArm != null && lArm != null ? Math.max(rArm, lArm) : (rArm ?? lArm);
             if (pick != null) { armAngles.push(pick); armVis += 1; }
           }
           // 앞굽이 무릎: 골반(23/24)-무릎(25/26)-발목(27/28).
           if (movementType === "block" || movementType === "punch" || movementType === "strike") {
-            const rKnee = jointAngle(getPoint(lm, 24), getPoint(lm, 26), getPoint(lm, 28));
-            const lKnee = jointAngle(getPoint(lm, 23), getPoint(lm, 25), getPoint(lm, 27));
+            const rKnee = jointAngleDeg(getPoint(lm, 24), getPoint(lm, 26), getPoint(lm, 28));
+            const lKnee = jointAngleDeg(getPoint(lm, 23), getPoint(lm, 25), getPoint(lm, 27));
             const pick = rKnee != null && lKnee != null ? Math.min(rKnee, lKnee) : (rKnee ?? lKnee);
             if (pick != null) { kneeAngles.push(pick); kneeVis += 1; }
           }
