@@ -756,6 +756,67 @@
         gap: 10px;
         margin-top: 12px;
       }
+      /* ── 단계별(마법사) UI ── */
+      .wizard-progress {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 4px 0 18px;
+      }
+      .wizard-progress .wp-dot {
+        flex: 1 1 auto;
+        height: 8px;
+        border-radius: 6px;
+        background: var(--panel-2, #e7e2d6);
+        transition: background .25s ease;
+      }
+      .wizard-progress .wp-dot.done { background: color-mix(in srgb, var(--brand, #087a78) 55%, transparent); }
+      .wizard-progress .wp-dot.current { background: var(--brand, #087a78); }
+      .wizard-steplabel {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--brand, #087a78);
+        margin-bottom: 2px;
+        letter-spacing: .02em;
+      }
+      .wizard-steptitle {
+        font-size: 21px;
+        font-weight: 800;
+        margin: 0 0 14px;
+        color: var(--field-strong, #2b2b2b);
+      }
+      .wizard-step { display: none; }
+      .wizard-step.active { display: block; animation: wizardFade .22s ease; }
+      @keyframes wizardFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+      .wizard-nav {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .wizard-nav button {
+        flex: 1 1 0;
+        min-height: 60px;
+        font-size: 18px;
+        font-weight: 800;
+        border-radius: 14px;
+      }
+      .wizard-nav .wn-prev {
+        flex: 0 0 34%;
+        background: var(--panel, #fff);
+        color: var(--muted, #6b6b6b);
+        border: 1px solid var(--panel-line, #d8d2c4);
+      }
+      .wizard-nav .wn-prev:disabled { opacity: .4; }
+      .wizard-hint {
+        font-size: 13px;
+        color: var(--muted, #6b6b6b);
+        margin-top: 10px;
+        text-align: center;
+        min-height: 18px;
+      }
+      @media (max-width: 720px) {
+        .wizard-nav button { min-height: 64px; font-size: 18px; }
+      }
       .primary-actions button {
         width: 100%;
         min-height: 72px;
@@ -1797,6 +1858,9 @@
       }
       .camera-view-tab strong { font-size: 15px; }
       .camera-view-tab span { font-size: 11px; }
+      .camera-view-row { display: flex; gap: 8px; }
+      .camera-view-row + .camera-view-row { margin-top: 8px; }
+      .camera-view-row .camera-view-tab { flex: 1; }
     </style>
   </head>
   <body>
@@ -1822,98 +1886,151 @@
         <section>
           <h2>훈련 시작</h2>
           <p class="dojo-hero">今日의 修練 · 오늘의 수련</p>
-          <p class="setup-copy">훈련 목적과 품새를 고른 뒤 수련 영상을 선택하세요. 선택 순서는 자유롭습니다.</p>
+          <p class="setup-copy">아래 순서대로 하나씩 골라요. 다 고르면 분석을 시작해요.</p>
           <details class="program-guide">
-            <summary>프로그램 사용 설명서</summary>
+            <summary>이 앱은 어떻게 쓰나요?</summary>
             <div class="program-guide-body">
-              <p>촬영한 품새 영상을 구간별로 나누어 동작 흐름과 연습 포인트를 확인하는 훈련 보조 프로그램입니다.</p>
+              <p>내가 품새 하는 모습을 영상으로 찍어서 넣으면, 동작을 하나하나 나눠서 "여기는 잘했어요", "여기는 이렇게 고치면 더 좋아요" 하고 알려주는 연습 도우미예요.</p>
               <ol class="program-guide-steps">
-                <li><strong>훈련 목적 선택:</strong> 수련품새 또는 경기품새를 고릅니다.</li>
-                <li><strong>품새 선택:</strong> 유급자·유품자·유단자 탭에서 분석할 품새를 고릅니다.</li>
-                <li><strong>영상 선택:</strong> 가로 화면으로 전신이 보이게 촬영한 영상을 넣습니다.</li>
-                <li><strong>분석 시작:</strong> 분석이 끝날 때까지 화면을 닫지 않고 기다립니다.</li>
-                <li><strong>훈련 확인:</strong> 구간에서 장면을 재생하고, 리포트에서 우선 연습할 부분을 확인합니다.</li>
-                <li><strong>홈 화면 추가:</strong> Android는 브라우저 메뉴의 앱 설치·홈 화면 추가, iPhone·iPad는 공유 메뉴의 홈 화면에 추가를 누릅니다.</li>
+                <li><strong>① 무엇을 볼지 골라요:</strong> '수련품새'(점수 없이 고칠 점만)와 '경기품새'(10점 점수까지) 중에 골라요.</li>
+                <li><strong>② 품새를 골라요:</strong> 내 급수(유급자·유품자·유단자)를 누르고, 연습한 품새를 골라요.</li>
+                <li><strong>③ 어떻게 찍었는지 골라요:</strong> 폰 몇 대로 찍었는지(정면 / 대각선 / 정면+측면 / 정면+측면+대각선)를 골라요.</li>
+                <li><strong>④ 영상을 넣어요:</strong> 폰을 옆으로 눕혀서(가로) 머리부터 발끝까지 다 나오게 찍은 영상을 넣어요.</li>
+                <li><strong>⑤ '분석 시작'을 눌러요:</strong> 다 될 때까지 화면을 끄지 말고 기다려요.</li>
+                <li><strong>⑥ 결과를 봐요:</strong> 동작마다 영상을 다시 보고, 어디를 먼저 고치면 좋은지 확인해요.</li>
+                <li><strong>⑦ 홈 화면에 추가하면 편해요:</strong> 안드로이드는 브라우저 메뉴에서 '앱 설치/홈 화면에 추가', 아이폰·아이패드는 공유 버튼에서 '홈 화면에 추가'를 눌러요.</li>
               </ol>
-              <p class="small">권장 촬영: 정면 · 전신 · 가로 영상 · 카메라 고정 · 밝은 장소</p>
-              <p class="small">본 프로그램은 개인품새 수련을 위한 참고용입니다.</p>
+              <p class="small">잘 찍는 법: 폰은 가로로 · 온몸이 다 나오게 · 폰은 고정(흔들리지 않게) · 밝은 곳에서</p>
+              <p class="small">이 앱은 혼자 품새 연습을 도와주는 참고용이에요. 선생님의 가르침을 대신하지는 않아요.</p>
             </div>
           </details>
-          <div class="field-label">촬영 방식 <span>카메라 각도에 따라 분석 강점이 달라집니다</span></div>
-          <div class="poomsae-tabs mode-tabs camera-view-tabs" role="tablist" aria-label="촬영 방식">
-            <button type="button" class="poomsae-tab mode-tab camera-view-tab active" data-view="front">
-              <strong>정면 1대</strong>
-              <span>좌우 대칭·균형에 강함</span>
-            </button>
-            <button type="button" class="poomsae-tab mode-tab camera-view-tab" data-view="diagonal">
-              <strong>대각선 1대</strong>
-              <span>중심이동·궤적에 강함</span>
-            </button>
-            <button type="button" class="poomsae-tab mode-tab camera-view-tab" data-view="dual">
-              <strong>두 대 융합</strong>
-              <span>정면+대각선 함께 분석</span>
-            </button>
-          </div>
-          <div class="code camera-view-guide" id="cameraViewGuide" style="margin-top:10px;"></div>
 
-          <details class="program-guide camera-view-checklist" id="cameraViewChecklist" style="margin-top:10px;">
-            <summary>이 촬영 방식 체크리스트</summary>
-            <div class="program-guide-body" id="cameraViewChecklistBody"></div>
-          </details>
+          <div class="wizard-progress" id="wizardProgress" aria-hidden="true">
+            <div class="wp-dot current"></div>
+            <div class="wp-dot"></div>
+            <div class="wp-dot"></div>
+            <div class="wp-dot"></div>
+          </div>
 
-          <div class="field-label">훈련 목적 <span>리포트의 방식이 달라집니다</span></div>
-          <div class="poomsae-tabs mode-tabs" role="tablist" aria-label="훈련 목적">
-            <button type="button" class="poomsae-tab mode-tab" data-mode="exam">
-              <strong>수련품새</strong>
-              <span>점수 없이, 쉬운 말로 고칠 점 알려주기</span>
-            </button>
-            <button type="button" class="poomsae-tab mode-tab active" data-mode="competition">
-              <strong>경기품새</strong>
-              <span>10점 참고점수 · 수정 우선순위로 점검</span>
-            </button>
+          <!-- 1단계: 무엇을 볼지 -->
+          <div class="wizard-step active" data-step="1">
+            <div class="wizard-steplabel">1단계 / 4</div>
+            <h3 class="wizard-steptitle">무엇을 볼까요?</h3>
+            <div class="field-label">훈련 목적 <span>고른 것에 따라 결과 보여주는 방식이 달라져요</span></div>
+            <div class="poomsae-tabs mode-tabs" role="tablist" aria-label="훈련 목적">
+              <button type="button" class="poomsae-tab mode-tab" data-mode="exam">
+                <strong>수련품새</strong>
+                <span>점수 없이, 쉬운 말로 고칠 점 알려주기</span>
+              </button>
+              <button type="button" class="poomsae-tab mode-tab active" data-mode="competition">
+                <strong>경기품새</strong>
+                <span>10점 참고점수 · 수정 우선순위로 점검</span>
+              </button>
+            </div>
+            <div class="code" id="modeHelp" style="margin-top: 10px;">
+              경기품새: WT 공인품새 구조를 참고한 10점 참고점수와 함께, 어느 항목을 어떻게 고쳐야 점수가 오르는지를 수정 우선순위로 짚어 드립니다.
+            </div>
+            <label class="gangyu-toggle" style="margin-top:10px;">
+              <input id="gangyuToggle" type="checkbox" />
+              <span>강유(剛柔) 분석 추가 — 동작별 강(剛)·유(柔)와 완급·리듬을 함께 표시</span>
+            </label>
           </div>
-          <div class="code" id="modeHelp" style="margin-top: 10px;">
-            경기품새: WT 공인품새 구조를 참고한 10점 참고점수와 함께, 어느 항목을 어떻게 고쳐야 점수가 오르는지를 수정 우선순위로 짚어 드립니다.
+
+          <!-- 2단계: 품새 고르기 -->
+          <div class="wizard-step" data-step="2">
+            <div class="wizard-steplabel">2단계 / 4</div>
+            <h3 class="wizard-steptitle">어떤 품새인가요?</h3>
+            <div class="field-label">품새 선택 <span>내 급수를 먼저 누르고, 품새를 골라요</span></div>
+            <div class="poomsae-tabs" role="tablist" aria-label="품새 구분">
+              <button type="button" class="poomsae-tab active" data-group="yugeup">유급자</button>
+              <button type="button" class="poomsae-tab" data-group="yupum">유품자</button>
+              <button type="button" class="poomsae-tab" data-group="yudan">유단자</button>
+            </div>
+            <div class="control-grid" style="margin-top:8px;">
+              <select id="poomsaeSelect" aria-label="품새 선택">
+              </select>
+            </div>
           </div>
-          <label class="gangyu-toggle" style="margin-top:10px;">
-            <input id="gangyuToggle" type="checkbox" />
-            <span>강유(剛柔) 분석 추가 — 동작별 강(剛)·유(柔)와 완급·리듬을 함께 표시</span>
-          </label>
-          <div class="field-label">품새 선택 <span>분류를 고른 뒤 품새를 선택하세요</span></div>
-          <div class="poomsae-tabs" role="tablist" aria-label="품새 구분">
-            <button type="button" class="poomsae-tab active" data-group="yugeup">유급자</button>
-            <button type="button" class="poomsae-tab" data-group="yupum">유품자</button>
-            <button type="button" class="poomsae-tab" data-group="yudan">유단자</button>
+
+          <!-- 3단계: 어떻게 찍었나요 -->
+          <div class="wizard-step" data-step="3">
+            <div class="wizard-steplabel">3단계 / 4</div>
+            <h3 class="wizard-steptitle">어떻게 찍었나요?</h3>
+            <div class="field-label">촬영 방식 <span>폰을 어디에 놓고 찍었는지 골라요</span></div>
+            <div class="poomsae-tabs mode-tabs camera-view-tabs" role="tablist" aria-label="촬영 방식">
+              <div class="camera-view-row">
+                <button type="button" class="poomsae-tab mode-tab camera-view-tab active" data-view="front">
+                  <strong>정면</strong>
+                  <span>앞에서 1대 · 가장 쉬워요</span>
+                </button>
+                <button type="button" class="poomsae-tab mode-tab camera-view-tab" data-view="diagonal">
+                  <strong>대각선</strong>
+                  <span>비스듬히 1대 · 앞뒤도 조금 보여요</span>
+                </button>
+              </div>
+              <div class="camera-view-row">
+                <button type="button" class="poomsae-tab mode-tab camera-view-tab" data-view="dual">
+                  <strong>정면 + 측면</strong>
+                  <span>폰 2대 · 더 정확해요</span>
+                </button>
+                <button type="button" class="poomsae-tab mode-tab camera-view-tab" data-view="triple">
+                  <strong>정면 + 측면 + 대각선</strong>
+                  <span>폰 3대 · 가장 정확해요</span>
+                </button>
+              </div>
+            </div>
+            <div class="code camera-view-guide" id="cameraViewGuide" style="margin-top:10px;"></div>
+            <details class="program-guide camera-view-checklist" id="cameraViewChecklist" style="margin-top:10px;">
+              <summary>이렇게 찍으면 돼요 (체크리스트)</summary>
+              <div class="program-guide-body" id="cameraViewChecklistBody"></div>
+            </details>
           </div>
-          <div class="control-grid">
-            <select id="poomsaeSelect" aria-label="품새 선택">
+
+          <!-- 4단계: 영상 넣고 분석 -->
+          <div class="wizard-step" data-step="4">
+            <div class="wizard-steplabel">4단계 / 4</div>
+            <h3 class="wizard-steptitle">영상을 넣고 시작해요</h3>
+            <div class="field-label">영상 넣기 <span>가로로, 온몸이 다 나오게 찍은 영상을 넣어요</span></div>
+            <div class="control-grid">
+              <input id="fileInput" type="file" accept="video/mp4,video/*" />
+            </div>
+            <div class="control-grid dual-only" id="fileInputBWrap" hidden style="margin-top:8px;">
+              <div class="field-label" style="margin:0;align-self:center;">측면 영상 <span>2번 카메라(왼쪽 옆 90°)</span></div>
+              <input id="fileInputB" type="file" accept="video/mp4,video/*" />
+            </div>
+            <div class="control-grid triple-only" id="fileInputCWrap" hidden style="margin-top:8px;">
+              <div class="field-label" style="margin:0;align-self:center;">대각선 영상 <span>3번 카메라(오른쪽 앞 45°)</span></div>
+              <input id="fileInputC" type="file" accept="video/mp4,video/*" />
+            </div>
+            <div class="field-label">구간 감지 민감도 <span>동작 전환점이 잘못 잡히면 높여 보세요</span></div>
+            <select id="boundarySensitivitySelect" aria-label="구간 감지 민감도">
+              <option value="0.65">보통 · 경계 이동 적음</option>
+              <option value="0.82">높음 · 빠른 분석</option>
+              <option value="0.95" selected>매우 높음 · 권장</option>
             </select>
-            <input id="fileInput" type="file" accept="video/mp4,video/*" />
+            <div class="field-label">분석 실행 <span>영상이 준비되면 시작할 수 있어요</span></div>
+            <div class="primary-actions">
+              <button id="analyzeBtn" disabled>분석 시작</button>
+              <button id="reanalyzeBtn" class="secondary" disabled hidden>재분석(초기화)</button>
+              <button id="loadModelBtn" type="button" hidden>모델 준비</button>
+            </div>
+            <div class="utility-actions" hidden>
+              <button id="downloadBtn" class="secondary" disabled>JSON 저장</button>
+              <button id="showReportBtn" class="secondary" disabled hidden>리포트</button>
+              <button id="jpgBtn" class="secondary" disabled hidden>JPG 저장</button>
+            </div>
+            <div class="code" style="margin-top: 12px;">
+              잘 찍는 법: 가로 영상 · 온몸이 다 나오게 · 폰 고정 · 밝은 곳
+            </div>
           </div>
-          <div class="control-grid dual-only" id="fileInputBWrap" hidden style="margin-top:8px;">
-            <div class="field-label" style="margin:0;align-self:center;">대각선 영상 <span>두 번째 카메라</span></div>
-            <input id="fileInputB" type="file" accept="video/mp4,video/*" />
+
+          <!-- 이전/다음 버튼 -->
+          <div class="wizard-nav" id="wizardNav">
+            <button type="button" class="wn-prev" id="wizardPrevBtn" disabled>◀ 이전</button>
+            <button type="button" class="wn-next" id="wizardNextBtn">다음 ▶</button>
           </div>
-          <div class="field-label">구간 감지 민감도 <span>동작 전환점이 잘못 잡히면 높여 보세요</span></div>
-          <select id="boundarySensitivitySelect" aria-label="구간 감지 민감도">
-            <option value="0.65">보통 · 경계 이동 적음</option>
-            <option value="0.82">높음 · 빠른 분석</option>
-            <option value="0.95" selected>매우 높음 · 권장</option>
-          </select>
-          <div class="field-label">분석 실행 <span>영상이 준비되면 시작할 수 있습니다</span></div>
-          <div class="primary-actions">
-            <button id="analyzeBtn" disabled>분석 시작</button>
-            <button id="reanalyzeBtn" class="secondary" disabled hidden>재분석(초기화)</button>
-            <button id="loadModelBtn" type="button" hidden>모델 준비</button>
-          </div>
-          <div class="utility-actions" hidden>
-            <button id="downloadBtn" class="secondary" disabled>JSON 저장</button>
-            <button id="showReportBtn" class="secondary" disabled hidden>리포트</button>
-            <button id="jpgBtn" class="secondary" disabled hidden>JPG 저장</button>
-          </div>
-          <div class="code" style="margin-top: 12px;">
-            권장 촬영: 가로 영상 · 정면 · 전신 · 카메라 고정
-          </div>
+          <div class="wizard-hint" id="wizardHint"></div>
+
           <div style="margin-top: 16px;">
             <video id="video" controls muted playsinline></video>
             <div class="player-controls">
@@ -2172,20 +2289,22 @@
       let selectedPoomsaeKey = "taegeuk_1";
       let trainingMode = "competition";
       // ── 촬영 방식(카메라 각도) ──
-      // front: 정면 1대 / diagonal: 대각선 1대 / dual: 두 대 융합
+      // front: 정면 1대 / diagonal: 대각선 1대
+      // dual: 정면+측면 두 대 융합 / triple: 정면+측면+대각선 세 대 융합
       let cameraView = "front";
-      let selectedFileB = null; // dual 모드의 두 번째(대각선) 영상
+      let selectedFileB = null; // dual·triple 모드의 두 번째(측면) 영상
+      let selectedFileC = null; // triple 모드의 세 번째(대각선) 영상
       const CAMERA_VIEW_INFO = {
         front: {
-          title: "앞에서 똑바로 찍기",
-          guide: "내 앞에 카메라를 놓고 똑바로 찍어요. 왼쪽·오른쪽이 똑같이 잘 됐는지, 어깨가 한쪽으로 안 기울었는지 보기 좋아요. 대신 앞으로 얼마나 나갔는지(앞뒤 거리)랑 옆차기처럼 몸에 가려지는 동작은 잘 안 보여요.",
+          title: "앞에서 똑바로 찍기 (정면 0°)",
+          guide: "내 정면 0° 방향, 4걸음(약 3m) 앞에 카메라를 놓고 똑바로 찍어요. 카메라 렌즈가 내 몸 중심선을 정확히 바라보게 해요. 왼쪽·오른쪽이 똑같이 잘 됐는지, 어깨가 한쪽으로 안 기울었는지 보기 좋아요. 대신 앞으로 얼마나 나갔는지(앞뒤 거리)랑 옆차기처럼 몸에 가려지는 동작은 잘 안 보여요.",
           best: "잘 보는 것: 좌우 균형 · 어깨/허리 수평",
           weak: "덜 보는 것: 앞뒤 거리 · 옆차기",
           checklist: [
+            "📍 위치: 내 정면(0°), 약 4걸음(3m) 앞",
             "📱 폰을 옆으로(가로로) 눕혀요",
             "🧍 머리끝부터 발끝까지 다 나오게 찍어요",
             "📏 폰 높이는 내 배꼽 높이(바닥에서 무릎보다 조금 위)",
-            "👣 내 앞에서 4걸음쯤 떨어진 곳에 폰을 둬요",
             "🔒 설 자리를 화면에서 꾹 눌러 초점을 고정해요",
             "💡 창문(밝은 빛)을 등지지 말고, 빛을 마주 보게 서요",
             "🤚 시작할 때랑 끝날 때 2초씩 가만히 서 있어요",
@@ -2193,30 +2312,52 @@
           ]
         },
         diagonal: {
-          title: "옆에서 비스듬히(45도) 찍기",
-          guide: "카메라를 내 앞에서 비스듬한 자리(45도)에 놓아요. 이렇게 찍으면 왼쪽·오른쪽 움직임이랑 앞뒤 움직임을 둘 다 볼 수 있어요. 그래서 몸이 어디로 가는지(중심 이동)랑 손발이 지나가는 길을 잘 봐요. 대신 양쪽이 똑같은지 비교하는 건 조금 약하고, 카메라에서 먼 쪽 팔다리는 살짝 덜 정확해요.",
+          title: "비스듬히 찍기 (오른쪽 앞 45°)",
+          guide: "내 정면을 기준으로 오른쪽 앞 45° 방향, 4걸음(약 3m) 떨어진 자리에 카메라를 놓아요(시계로 치면 1~2시 방향). 이렇게 찍으면 왼쪽·오른쪽 움직임이랑 앞뒤 움직임을 둘 다 볼 수 있어요. 그래서 몸이 어디로 가는지(중심 이동)랑 손발이 지나가는 길을 잘 봐요. 대신 양쪽이 똑같은지 비교하는 건 조금 약하고, 카메라에서 먼 쪽(왼쪽) 팔다리는 살짝 덜 정확해요.",
           best: "잘 보는 것: 중심 이동 · 동작이 지나가는 길",
           weak: "덜 보는 것: 좌우가 똑같은지 · 먼 쪽 팔다리",
           checklist: [
-            "📐 폰을 내 앞에서 비스듬한 자리(45도)에 둬요",
+            "📍 위치: 오른쪽 앞 45°(1~2시 방향), 약 4걸음(3m) 떨어진 곳",
             "📱 폰은 옆으로 눕히고, 배꼽 높이에 맞춰요",
-            "👣 4걸음쯤 떨어뜨리고, 내가 제일 멀리 갈 때도 화면 밖으로 안 나가는지 미리 확인해요",
+            "👣 내가 제일 멀리 갈 때도 화면 밖으로 안 나가는지 미리 확인해요",
             "🔒 설 자리를 꾹 눌러 초점을 고정하고, 흔들림 보정은 꺼요",
             "💡 밝은 빛을 등지지 말아요",
             "🤚 시작과 끝에 2초씩 가만히 서 있어요"
           ]
         },
         dual: {
-          title: "폰 2대로 같이 찍기 (가장 정확)",
-          guide: "폰 2대로 찍어요. 1번은 앞에서 똑바로, 2번은 비스듬히(45도) 찍어요. 두 영상을 합치면 좋은 점만 모아서 제일 정확하게 봐요. 제일 중요한 건, 두 영상을 같은 순간으로 맞추는 거예요. 그래서 시작하자마자 박수를 '짝!' 한 번 쳐요.",
-          best: "두 각도를 합쳐서 가장 정확해요",
+          title: "폰 2대 — 정면 + 측면 (90° 직각 배치)",
+          guide: "폰 2대로 동시에 찍어요. 1번은 내 정면 0°(약 3m 앞), 2번은 내 왼쪽 옆 90°(약 3m 옆)에 둬요. 두 카메라가 서로 직각(90°)이 되게 하는 게 핵심이에요. 정면은 왼쪽·오른쪽이 똑같은지를, 측면은 앞으로 얼마나 나갔는지(앞뒤 깊이·보폭)랑 발차기 높이를 잘 봐요. 두 각도가 직각이라 겹치지 않고 좋은 점만 모아 정확하게 봐요. 제일 중요한 건 두 영상을 같은 순간으로 맞추는 거예요. 그래서 시작하자마자 박수를 '짝!' 한 번 쳐요.",
+          best: "앞에서(좌우가 똑같은지) + 옆에서(앞으로 얼마나 갔는지·발 높이)를 같이 봐서 더 정확해요",
           weak: "두 영상의 시작을 맞추는 게 중요해요(그래서 박수!)",
           checklist: [
-            "📱 폰 2대 준비: 1번은 앞에서, 2번은 비스듬히(45도)",
+            "📍 1번(정면): 내 앞 0°, 약 4걸음(3m)",
+            "📍 2번(측면): 내 왼쪽 옆 90°(9시 방향), 약 4걸음(3m) — 1번과 직각",
             "🧍 둘 다 옆으로 눕히고, 배꼽 높이, 온몸이 다 나오게, 세워서 고정",
+            "📐 측면 폰은 내가 앞으로 가는 방향이 화면에서 가로로 보이게 둬요",
             "👏 아주 중요! 시작하자마자 크게 박수 1번 '짝!' (두 영상에 다 들리게)",
             "🥋 두 폰으로 똑같은 품새를 똑같이 한 번에 찍어요",
-            "⬆️ 앞에서 찍은 영상은 위 칸에, 비스듬히 찍은 영상은 아래 칸에 넣어요",
+            "⬆️ 정면 영상은 1번 칸, 측면 영상은 2번 칸에 넣어요",
+            "📹 세 폰 모두 같은 프레임레이트(예: 30fps)로 맞추면 더 정확해요",
+            "💡 밝은 빛 등지지 않기 · 시작과 끝에 2초 멈추기"
+          ]
+        },
+        triple: {
+          title: "폰 3대 — 정면 + 측면 + 대각선 (가장 정확)",
+          guide: "폰 3대로 동시에 찍어요. 1번은 내 정면 0°, 2번은 왼쪽 옆 90°(측면), 3번은 오른쪽 앞 45°(대각선)에 둬요. 모두 약 3~4m 떨어뜨려요. 정면이 좌우 대칭을, 측면이 앞뒤 깊이·보폭·발차기 높이를, 대각선이 그 사이를 메우면서 한쪽에 가려지는 팔다리(폐색)까지 잡아 줘요. 품새는 왼손·오른손 동작이 번갈아 나오는데, 세 방향에서 보면 거의 모든 순간에 최소 두 대가 잘 보고 있어서 가장 믿을 만해요. 시작하자마자 박수 '짝!' 한 번으로 세 영상을 같은 순간에 맞춰요.",
+          best: "앞·옆·비스듬히 세 방향에서 봐서, 몸에 가려 안 보이던 팔다리까지 잡아 가장 정확해요",
+          weak: "폰 3대와 같은 순간 맞추기(박수)·같은 프레임레이트가 중요해요",
+          checklist: [
+            "📍 1번(정면): 내 앞 0°(12시 방향), 약 4걸음(3m)",
+            "📍 2번(측면): 내 왼쪽 옆 90°(9시 방향), 약 4걸음(3m)",
+            "📍 3번(대각선): 내 오른쪽 앞 45°(1~2시 방향), 약 4걸음(3m)",
+            "🧭 세 카메라가 나를 가운데 두고 부채꼴로 둘러싸게 배치해요",
+            "🧍 셋 다 옆으로 눕히고, 배꼽 높이, 온몸이 다 나오게, 세워서 고정",
+            "👏 아주 중요! 시작하자마자 크게 박수 1번 '짝!' (세 영상에 다 들리게)",
+            "📹 세 폰 모두 같은 프레임레이트(예: 30fps)로 — 60fps 섞으면 뒤로 갈수록 어긋나요",
+            "🍎 아이폰은 설정→카메라→포맷→'높은 호환성'으로 바꿔 H.264(MP4)로 찍어요(HEVC 분석 불가)",
+            "⬆️ 정면=1번 칸, 측면=2번 칸, 대각선=3번 칸에 순서대로 넣어요",
+            "🥋 세 폰으로 똑같은 품새를 똑같이 한 번에 찍어요",
             "💡 밝은 빛 등지지 않기 · 시작과 끝에 2초 멈추기"
           ]
         }
@@ -2227,6 +2368,8 @@
       const fileInput = document.getElementById("fileInput");
       const fileInputB = document.getElementById("fileInputB");
       const fileInputBWrap = document.getElementById("fileInputBWrap");
+      const fileInputC = document.getElementById("fileInputC");
+      const fileInputCWrap = document.getElementById("fileInputCWrap");
       const poomsaeSelect = document.getElementById("poomsaeSelect");
       const boundarySensitivitySelect = document.getElementById("boundarySensitivitySelect");
       const loadModelBtn = document.getElementById("loadModelBtn");
@@ -2658,7 +2801,7 @@
               <p><b>강유(剛柔):</b> <span class="status ${gy.classification === "강" ? "bad" : gy.classification === "유" ? "good" : "caution"}">${escapeHtml(gy.classification)}${gy.classification === "강" ? "(剛)" : gy.classification === "유" ? "(柔)" : ""}</span>
                 ${gy.accelRatio != null ? ` · 가속 대비 ${gy.accelRatio}배` : ""}${gy.framesToPeak != null ? ` · 정점까지 ${gy.framesToPeak}프레임` : ""}</p>
               <p class="small">${escapeHtml(gy.note)}</p>
-              ${segment.viewAxisNote ? `<p class="small" style="opacity:.85;">📷 ${escapeHtml(segment.viewAxisNote)}${segment.viewConfidence != null && segment.cameraView !== "dual" ? ` (이 각도 신뢰도 ${Math.round(segment.viewConfidence * 100)}%)` : ""}</p>` : ""}
+              ${segment.viewAxisNote ? `<p class="small" style="opacity:.85;">📷 ${escapeHtml(segment.viewAxisNote)}${segment.viewConfidence != null && segment.cameraView !== "dual" && segment.cameraView !== "triple" ? ` (이 각도 신뢰도 ${Math.round(segment.viewConfidence * 100)}%)` : ""}</p>` : ""}
             </div>`
           : "";
 
@@ -2781,18 +2924,27 @@
         if (bodyEl) {
           bodyEl.innerHTML = `<ul class="cv-checklist">${info.checklist.map((c) => `<li>${escapeHtml(c)}</li>`).join("")}</ul>`;
         }
-        // 두 대 모드에서만 두 번째 영상 입력칸 표시
-        if (fileInputBWrap) fileInputBWrap.hidden = (cameraView !== "dual");
-        if (cameraView !== "dual") {
+        // 두 대(dual)·세 대(triple) 모드에서 추가 영상 입력칸 표시
+        const needsB = (cameraView === "dual" || cameraView === "triple");
+        const needsC = (cameraView === "triple");
+        if (fileInputBWrap) fileInputBWrap.hidden = !needsB;
+        if (fileInputCWrap) fileInputCWrap.hidden = !needsC;
+        if (!needsB) {
           selectedFileB = null;
           if (fileInputB) fileInputB.value = "";
         }
+        if (!needsC) {
+          selectedFileC = null;
+          if (fileInputC) fileInputC.value = "";
+        }
         updateAnalyzeButtonState();
       }
-      // 분석 버튼 활성 조건: 단일 뷰는 영상 1개, 두 대 모드는 두 영상 모두 필요
+      // 분석 버튼 활성 조건: 단일 뷰는 영상 1개, dual은 2개, triple은 3개 필요
       function updateAnalyzeButtonState() {
         const hasMain = !!selectedFile && Number.isFinite(video.duration);
-        const ready = cameraView === "dual" ? (hasMain && !!selectedFileB) : hasMain;
+        let ready = hasMain;
+        if (cameraView === "dual") ready = hasMain && !!selectedFileB;
+        else if (cameraView === "triple") ready = hasMain && !!selectedFileB && !!selectedFileC;
         if (typeof analyzeBtn !== "undefined" && analyzeBtn) analyzeBtn.disabled = !ready || isAnalyzing;
       }
       function updateTrainingModeUi() {
@@ -4097,6 +4249,12 @@
           // 대각선: 전후+좌우 동시·궤적·중심이동에 강, 완벽한 좌우대칭엔 약.
           return { confidence: 0.92, gangyuPeakBias: 0.1, axisNote: "대각선 촬영은 중심이동·궤적에 강하지만, 카메라에서 먼 쪽 팔다리는 정밀도가 약간 낮습니다." };
         }
+        if (view === "side") {
+          // 측면: 전후 깊이·보폭·앞지르기 신전·발차기 높이/궤적에 강(시상면 직접 관측),
+          //       좌우 대칭·반대쪽 팔다리 폐색엔 약. 전후 가속이 정면보다 잘 보여 강 판정을 후하게.
+          const strongDepth = (t === "kick" || t === "kick_punch" || t === "punch");
+          return { confidence: strongDepth ? 0.95 : 0.9, gangyuPeakBias: 0.12, axisNote: "측면 촬영은 앞뒤 깊이·보폭·발차기 높이에 강하지만, 좌우 대칭과 카메라 반대쪽 팔다리는 가려질 수 있습니다." };
+        }
         // dual 또는 미지정: 보정 없음(융합 단계에서 별도 처리).
         return { confidence: 1, gangyuPeakBias: 0, axisNote: "" };
       }
@@ -4408,8 +4566,12 @@
           file: selectedFile ? { name: selectedFile.name, size_bytes: selectedFile.size, type: selectedFile.type } : null,
           camera_view: {
             mode: cameraView,
-            label: cameraView === "front" ? "정면 1대" : cameraView === "diagonal" ? "대각선 1대" : "두 대 융합(정면+대각선)",
-            second_file: selectedFileB ? { name: selectedFileB.name, size_bytes: selectedFileB.size, type: selectedFileB.type } : null
+            label: cameraView === "front" ? "정면 1대"
+                 : cameraView === "diagonal" ? "대각선 1대"
+                 : cameraView === "dual" ? "정면+측면 융합(두 대)"
+                 : "정면+측면+대각선 융합(세 대)",
+            second_file: selectedFileB ? { name: selectedFileB.name, size_bytes: selectedFileB.size, type: selectedFileB.type } : null,
+            third_file: selectedFileC ? { name: selectedFileC.name, size_bytes: selectedFileC.size, type: selectedFileC.type } : null
           },
           video: { duration_seconds: Number(video.duration.toFixed(3)), width: video.videoWidth, height: video.videoHeight },
           summary: {
@@ -4457,9 +4619,15 @@
           await loadModel();
         }
         if (poseLandmarker) {
-          if (cameraView === "dual") {
+          if (cameraView === "triple") {
+            if (!selectedFileB || !selectedFileC) {
+              setProgress(0, "정면+측면+대각선 융합은 측면(2번)·대각선(3번) 영상이 모두 필요합니다.");
+              return;
+            }
+            await analyzeTripleView();
+          } else if (cameraView === "dual") {
             if (!selectedFileB) {
-              setProgress(0, "두 대 융합은 대각선 영상도 필요합니다. 아래 칸에 2번 영상을 넣어 주세요.");
+              setProgress(0, "정면+측면 융합은 측면 영상도 필요합니다. 아래 칸에 2번(측면) 영상을 넣어 주세요.");
               return;
             }
             await analyzeDualView();
@@ -4504,35 +4672,34 @@
           video.load();
         });
       }
-      // 두 뷰의 같은 순번 구간을 신뢰도 기준으로 합친다.
-      function fuseSegments(frontResults, diagResults) {
-        const n = Math.min(frontResults.length, diagResults.length);
+      // 두 뷰(정면 + 측면)의 같은 순번 구간을 신뢰도 기준으로 합친다.
+      function fuseSegments(frontResults, sideResults) {
+        const n = Math.min(frontResults.length, sideResults.length);
         const fused = [];
         for (let i = 0; i < n; i += 1) {
           const f = frontResults[i];
-          const d = diagResults[i];
+          const s = sideResults[i];
           // 채택 점수 = 뷰 신뢰도 × 검출률. 높은 쪽의 메트릭을 기본으로 삼는다.
           const fScore = (f.viewConfidence ?? 0.9) * (f.detectionRate ?? 0);
-          const dScore = (d.viewConfidence ?? 0.9) * (d.detectionRate ?? 0);
-          const primaryRes = dScore >= fScore ? d : f;
-          const otherRes = dScore >= fScore ? f : d;
-          // 항목별 융합 원칙:
+          const sScore = (s.viewConfidence ?? 0.9) * (s.detectionRate ?? 0);
+          const primaryRes = sScore >= fScore ? s : f;
+          // 항목별 융합 원칙(정면+측면은 직각이라 강점이 거의 겹치지 않음):
           // - 서기/대칭(stance): 정면이 더 신뢰 → 정면 값 우선
-          // - 속도/맺음/궤적(velocity/snap): 대각선이 더 신뢰 → 대각선 값 우선
-          // - 정지(stillness)·가시성(visibility): 두 뷰 중 높은 검출 쪽
+          // - 속도/맺음/궤적(velocity/snap): 측면이 깊이·신전·발차기를 직접 봄 → 측면 값 우선
+          // - 정지(stillness): 두 뷰 평균 / 가시성(visibility): 높은 검출 쪽
           const merged = { ...primaryRes };
-          merged.stanceScore = f.stanceScore;            // 정면 우선
-          merged.velocityScore = d.velocityScore;        // 대각선 우선
-          merged.snapScore = d.snapScore;                // 대각선 우선
-          merged.stillnessScore = Math.round((f.stillnessScore + d.stillnessScore) / 2);
-          merged.visibilityScore = Math.max(f.visibilityScore, d.visibilityScore);
-          // 강유: 두 뷰가 같으면 그대로, 다르면 대각선(전후 가속 관측 우수) 판정을 채택하되 표기.
+          merged.stanceScore = f.stanceScore;            // 정면 우선(좌우 대칭·수평)
+          merged.velocityScore = s.velocityScore;        // 측면 우선(전후 깊이·신전 속도)
+          merged.snapScore = s.snapScore;                // 측면 우선(맺음·궤적)
+          merged.stillnessScore = Math.round((f.stillnessScore + s.stillnessScore) / 2);
+          merged.visibilityScore = Math.max(f.visibilityScore, s.visibilityScore);
+          // 강유: 두 뷰가 같으면 그대로, 다르면 측면(전후 가속·신전 관측 우수) 판정을 채택하되 표기.
           const fg = f.gangyu?.classification;
-          const dg = d.gangyu?.classification;
-          if (fg && dg && fg !== dg && fg !== "판정보류" && dg !== "판정보류") {
-            merged.gangyu = { ...d.gangyu, note: `두 각도 판정이 달라(정면:${fg} / 대각선:${dg}) 중심·궤적이 잘 보이는 대각선 기준으로 ${dg}을(를) 채택했습니다.` };
-          } else if (dg && dg !== "판정보류") {
-            merged.gangyu = d.gangyu;
+          const sg = s.gangyu?.classification;
+          if (fg && sg && fg !== sg && fg !== "판정보류" && sg !== "판정보류") {
+            merged.gangyu = { ...s.gangyu, note: `두 각도 판정이 달라(정면:${fg} / 측면:${sg}) 앞뒤 깊이·신전이 잘 보이는 측면 기준으로 ${sg}을(를) 채택했습니다.` };
+          } else if (sg && sg !== "판정보류") {
+            merged.gangyu = s.gangyu;
           } else {
             merged.gangyu = f.gangyu;
           }
@@ -4551,17 +4718,140 @@
           merged.fusedFrom = {
             primary: primaryRes.cameraView,
             front_detection: f.detectionRate,
-            diagonal_detection: d.detectionRate
+            side_detection: s.detectionRate
           };
-          merged.viewAxisNote = "두 각도(정면+대각선)를 합쳐, 좌우 대칭은 정면·중심이동/궤적은 대각선 기준으로 평가했습니다.";
+          merged.viewAxisNote = "두 각도(정면+측면)를 합쳐, 좌우 대칭은 정면·앞뒤 깊이/보폭/맺음은 측면 기준으로 평가했습니다.";
           fused.push(merged);
         }
         return fused;
       }
+      // 세 뷰(정면 + 측면 + 대각선)를 신뢰도 가중 합의로 합친다.
+      // 각 점수 항목은 "그 항목을 잘 보는 뷰"에 더 큰 가중치를 주고, 검출률·뷰 신뢰도로 보정한다.
+      // 두 뷰 이상이 비슷하게 잘 봤다면 그쪽 합의를 더 신뢰(폐색 보완 효과).
+      function fuseSegmentsTriple(frontResults, sideResults, diagResults) {
+        const n = Math.min(frontResults.length, sideResults.length, diagResults.length);
+        const fused = [];
+        // 항목별 뷰 기본 가중치(좌우 대칭=정면, 앞뒤 깊이/맺음=측면, 궤적/폐색보완=대각선).
+        const W = {
+          stance:   { front: 0.55, side: 0.20, diag: 0.25 }, // 서기·좌우 대칭: 정면 중심
+          velocity: { front: 0.15, side: 0.50, diag: 0.35 }, // 전후 신전 속도: 측면 중심
+          snap:     { front: 0.15, side: 0.45, diag: 0.40 }, // 맺음·궤적: 측면+대각선
+          stillness:{ front: 0.34, side: 0.33, diag: 0.33 }  // 정지: 균등
+        };
+        // 검출률·뷰 신뢰도로 보정한 실제 가중치로 가중 평균을 낸다.
+        function weighted(item, fv, sv, dv) {
+          const w = W[item];
+          const fr = (fv.viewConfidence ?? 0.9) * (fv.detectionRate ?? 0) * w.front;
+          const sr = (sv.viewConfidence ?? 0.9) * (sv.detectionRate ?? 0) * w.side;
+          const dr = (dv.viewConfidence ?? 0.9) * (dv.detectionRate ?? 0) * w.diag;
+          const sum = fr + sr + dr;
+          const key = item + "Score";
+          if (sum <= 0) return Math.round((fv[key] + sv[key] + dv[key]) / 3);
+          return Math.round((fv[key] * fr + sv[key] * sr + dv[key] * dr) / sum);
+        }
+        for (let i = 0; i < n; i += 1) {
+          const f = frontResults[i];
+          const s = sideResults[i];
+          const d = diagResults[i];
+          // 기본 메타는 신뢰도×검출률이 가장 높은 뷰를 따른다.
+          const score = (r) => (r.viewConfidence ?? 0.9) * (r.detectionRate ?? 0);
+          const primaryRes = [f, s, d].sort((a, b) => score(b) - score(a))[0];
+          const merged = { ...primaryRes };
+          merged.stanceScore = weighted("stance", f, s, d);
+          merged.velocityScore = weighted("velocity", f, s, d);
+          merged.snapScore = weighted("snap", f, s, d);
+          merged.stillnessScore = weighted("stillness", f, s, d);
+          merged.visibilityScore = Math.max(f.visibilityScore, s.visibilityScore, d.visibilityScore);
+          // 강유: 세 뷰의 다수결. 동점이면 전후 신전이 잘 보이는 측면을 우선.
+          const votes = [f.gangyu, s.gangyu, d.gangyu].filter((g) => g && g.classification && g.classification !== "판정보류");
+          if (votes.length) {
+            const tally = {};
+            votes.forEach((g) => { tally[g.classification] = (tally[g.classification] || 0) + 1; });
+            let best = null, bestCnt = 0;
+            Object.entries(tally).forEach(([cls, cnt]) => { if (cnt > bestCnt) { best = cls; bestCnt = cnt; } });
+            const pick = (s.gangyu && tally[s.gangyu.classification] === bestCnt) ? s.gangyu
+                       : votes.find((g) => g.classification === best);
+            const fg = f.gangyu?.classification, sg = s.gangyu?.classification, dg = d.gangyu?.classification;
+            const allSame = fg && fg === sg && sg === dg;
+            merged.gangyu = allSame ? pick
+              : { ...pick, note: `세 각도 판정(정면:${fg ?? "-"} / 측면:${sg ?? "-"} / 대각선:${dg ?? "-"}) 중 다수인 '${best}'을(를) 채택했습니다.` };
+          } else {
+            merged.gangyu = f.gangyu;
+          }
+          merged.powerScore = stableRound(
+            merged.visibilityScore * .12 +
+            merged.velocityScore * .22 +
+            merged.snapScore * .24 +
+            merged.stillnessScore * .20 +
+            merged.stanceScore * .22
+          );
+          const v = labelFor(merged.powerScore);
+          merged.type = v.type;
+          merged.label = v.label;
+          merged.cameraView = "triple";
+          merged.fusedFrom = {
+            primary: primaryRes.cameraView,
+            front_detection: f.detectionRate,
+            side_detection: s.detectionRate,
+            diagonal_detection: d.detectionRate
+          };
+          merged.viewAxisNote = "세 각도(정면+측면+대각선)를 신뢰도 가중으로 합쳐, 대칭은 정면·깊이는 측면·궤적/폐색은 대각선으로 보완해 평가했습니다.";
+          fused.push(merged);
+        }
+        return fused;
+      }
+      async function analyzeTripleView() {
+        if (isAnalyzing) return;
+        if (!selectedFile || !selectedFileB || !selectedFileC) {
+          setProgress(0, "정면+측면+대각선 융합은 영상 3개(정면·측면·대각선)가 모두 필요합니다.");
+          return;
+        }
+        if (!poseLandmarker) { await loadModel(); }
+        if (!poseLandmarker) return;
+        const savedMainUrl = objectUrl;
+        const savedView = cameraView;
+        try {
+          setProgress(2, "정면+측면+대각선 1/3: 정면 영상을 분석합니다.");
+          await loadVideoFile(selectedFile);
+          const frontRun = await analyzePower({ sourceFile: selectedFile, view: "front", skipComplete: true });
+          if (!frontRun) throw new Error("front analysis failed");
+          setProgress(35, "정면+측면+대각선 2/3: 측면 영상을 분석합니다.");
+          await loadVideoFile(selectedFileB);
+          const sideRun = await analyzePower({ sourceFile: selectedFileB, view: "side", skipComplete: true });
+          if (!sideRun) throw new Error("side analysis failed");
+          setProgress(66, "정면+측면+대각선 3/3: 대각선 영상을 분석합니다.");
+          await loadVideoFile(selectedFileC);
+          const diagRun = await analyzePower({ sourceFile: selectedFileC, view: "diagonal", skipComplete: true });
+          if (!diagRun) throw new Error("diagonal analysis failed");
+          setProgress(94, "세 각도(정면+측면+대각선) 결과를 합치는 중입니다.");
+          const fused = fuseSegmentsTriple(frontRun.results, sideRun.results, diagRun.results);
+          const eff = {
+            ...(sideRun.analysisEfficiency || {}),
+            triple_view: true,
+            front_segments: frontRun.results.length,
+            side_segments: sideRun.results.length,
+            diagonal_segments: diagRun.results.length,
+            fused_segments: fused.length
+          };
+          await loadVideoFile(selectedFile);
+          objectUrl = video.src;
+          completeAnalysis(fused, sideRun.frameSamples || frontRun.frameSamples || diagRun.frameSamples || [], false, eff);
+          setProgress(100, "정면+측면+대각선 융합 분석 완료: 세 각도 결과를 합쳤습니다.");
+        } catch (error) {
+          console.error(error);
+          setProgress(0, "정면+측면+대각선 융합 중 오류가 발생했습니다. 세 영상이 같은 품새·H.264(MP4)인지 확인 후 다시 시도하세요.");
+          renderReport([
+            { type: "bad", text: "정면+측면+대각선 융합 분석 중 오류가 발생했습니다." },
+            { type: "caution", text: "세 영상이 같은 품새를 같은 회차로 찍은 것인지, HEVC가 아닌 H.264(MP4)인지, 프레임레이트가 같은지 확인하세요." }
+          ]);
+          try { if (selectedFile) { await loadVideoFile(selectedFile); objectUrl = video.src; } } catch (e) { /* noop */ }
+          cameraView = savedView;
+        }
+      }
       async function analyzeDualView() {
         if (isAnalyzing) return;
         if (!selectedFile || !selectedFileB) {
-          setProgress(0, "두 대 융합은 정면 영상과 대각선 영상이 모두 필요합니다.");
+          setProgress(0, "두 대 융합은 정면 영상과 측면 영상이 모두 필요합니다.");
           return;
         }
         if (!poseLandmarker) { await loadModel(); }
@@ -4570,36 +4860,36 @@
         const savedView = cameraView;
         try {
           // 1) 정면(현재 selectedFile) 분석
-          setProgress(3, "두 대 융합 1/2: 정면 영상을 분석합니다.");
+          setProgress(3, "정면+측면 1/2: 정면 영상을 분석합니다.");
           await loadVideoFile(selectedFile);
           const frontRun = await analyzePower({ sourceFile: selectedFile, view: "front", skipComplete: true });
           if (!frontRun) throw new Error("front analysis failed");
-          // 2) 대각선(selectedFileB) 분석
-          setProgress(50, "두 대 융합 2/2: 대각선 영상을 분석합니다.");
+          // 2) 측면(selectedFileB) 분석
+          setProgress(50, "정면+측면 2/2: 측면 영상을 분석합니다.");
           await loadVideoFile(selectedFileB);
-          const diagRun = await analyzePower({ sourceFile: selectedFileB, view: "diagonal", skipComplete: true });
-          if (!diagRun) throw new Error("diagonal analysis failed");
+          const sideRun = await analyzePower({ sourceFile: selectedFileB, view: "side", skipComplete: true });
+          if (!sideRun) throw new Error("side analysis failed");
           // 3) 융합
-          setProgress(92, "두 각도 결과를 합치는 중입니다.");
-          const fused = fuseSegments(frontRun.results, diagRun.results);
+          setProgress(92, "두 각도(정면+측면) 결과를 합치는 중입니다.");
+          const fused = fuseSegments(frontRun.results, sideRun.results);
           const eff = {
-            ...(diagRun.analysisEfficiency || {}),
+            ...(sideRun.analysisEfficiency || {}),
             dual_view: true,
             front_segments: frontRun.results.length,
-            diagonal_segments: diagRun.results.length,
+            side_segments: sideRun.results.length,
             fused_segments: fused.length
           };
           // 정면 영상을 기본 재생 소스로 복원해 리플레이가 정면 기준이 되게 한다.
           await loadVideoFile(selectedFile);
           if (objectUrl && objectUrl !== savedMainUrl) { /* keep */ }
           objectUrl = video.src;
-          completeAnalysis(fused, diagRun.frameSamples || frontRun.frameSamples || [], false, eff);
-          setProgress(100, "두 대 융합 분석 완료: 정면+대각선 결과를 합쳤습니다.");
+          completeAnalysis(fused, sideRun.frameSamples || frontRun.frameSamples || [], false, eff);
+          setProgress(100, "정면+측면 융합 분석 완료: 두 각도 결과를 합쳤습니다.");
         } catch (error) {
           console.error(error);
-          setProgress(0, "두 대 융합 중 오류가 발생했습니다. 두 영상이 같은 품새·H.264(MP4)인지 확인 후 다시 시도하세요.");
+          setProgress(0, "정면+측면 융합 중 오류가 발생했습니다. 두 영상이 같은 품새·H.264(MP4)인지 확인 후 다시 시도하세요.");
           renderReport([
-            { type: "bad", text: "두 대 융합 분석 중 오류가 발생했습니다." },
+            { type: "bad", text: "정면+측면 융합 분석 중 오류가 발생했습니다." },
             { type: "caution", text: "두 영상이 같은 품새를 같은 회차로 찍은 것인지, HEVC가 아닌 H.264(MP4)인지 확인하세요." }
           ]);
           // 메인 소스 복원 시도
@@ -4609,7 +4899,7 @@
       }
       async function analyzePower(opts = {}) {
         // opts.sourceFile : 분석 대상 영상(미지정 시 selectedFile)
-        // opts.view       : 이 영상의 촬영 각도(front/diagonal) — 세그먼트 보정용
+        // opts.view       : 이 영상의 촬영 각도(front/diagonal/side) — 세그먼트 보정용
         // opts.skipComplete : true면 completeAnalysis를 호출하지 않고 results만 반환(융합용)
         const sourceFile = opts.sourceFile || selectedFile;
         const viewForRun = opts.view || cameraView || "front";
@@ -4859,6 +5149,8 @@
         setProgress(0, poseLandmarker ? "영상 준비 완료. 분석 시작을 누르세요." : "영상 준비 완료. 분석 시작을 누르면 모델을 불러온 뒤 평가합니다.");
         updateAnalyzeButtonState();
         reanalyzeBtn.disabled = false;
+        const wh = document.getElementById("wizardHint");
+        if (wh) wh.textContent = "";
         warnIfFilenamePoomsaeMismatch();
         warnIfUndecodableHevc();
       });
@@ -4930,7 +5222,16 @@
           selectedFileB = fileInputB.files && fileInputB.files[0] ? fileInputB.files[0] : null;
           updateAnalyzeButtonState();
           if (selectedFileB) {
-            renderReport([{ type: "caution", text: `대각선(2번) 영상 준비됨: ${selectedFileB.name}. 정면 영상까지 준비되면 분석 시작을 누르세요.` }]);
+            renderReport([{ type: "caution", text: `측면(2번) 영상 준비됨: ${selectedFileB.name}. 나머지 영상까지 준비되면 분석 시작을 누르세요.` }]);
+          }
+        });
+      }
+      if (fileInputC) {
+        fileInputC.addEventListener("change", () => {
+          selectedFileC = fileInputC.files && fileInputC.files[0] ? fileInputC.files[0] : null;
+          updateAnalyzeButtonState();
+          if (selectedFileC) {
+            renderReport([{ type: "caution", text: `대각선(3번) 영상 준비됨: ${selectedFileC.name}. 정면·측면 영상까지 준비되면 분석 시작을 누르세요.` }]);
           }
         });
       }
@@ -4946,6 +5247,74 @@
       loadModelBtn.addEventListener("click", loadModel);
       analyzeBtn.addEventListener("click", startAnalysis);
       reanalyzeBtn.addEventListener("click", reanalyzeFromStart);
+
+      // ── 단계별(마법사) 흐름 제어 ──
+      // 설정은 4단계 페이지식으로 하나씩 보여주고, 분석/결과는 기존 스크롤식 유지.
+      const WIZARD_TOTAL = 4;
+      let wizardStep = 1;
+      const wizardSteps = Array.from(document.querySelectorAll(".wizard-step"));
+      const wizardDots = Array.from(document.querySelectorAll("#wizardProgress .wp-dot"));
+      const wizardPrevBtn = document.getElementById("wizardPrevBtn");
+      const wizardNextBtn = document.getElementById("wizardNextBtn");
+      const wizardHint = document.getElementById("wizardHint");
+
+      // 각 단계가 다음으로 넘어갈 수 있는지 확인. 못 넘어가면 안내 문구 반환.
+      function wizardStepBlockReason(step) {
+        if (step === 2) {
+          // 품새가 선택돼야 함(select에 값이 있어야).
+          if (!poomsaeSelect || !poomsaeSelect.value) return "먼저 품새를 골라 주세요.";
+        }
+        if (step === 4) {
+          const hasMain = !!selectedFile;
+          if (!hasMain) return "정면 영상을 먼저 넣어 주세요.";
+          if (cameraView === "dual" && !selectedFileB) return "측면(2번) 영상도 넣어 주세요.";
+          if (cameraView === "triple" && (!selectedFileB || !selectedFileC)) return "측면(2번)·대각선(3번) 영상도 넣어 주세요.";
+        }
+        return null; // 통과
+      }
+
+      function renderWizard() {
+        wizardSteps.forEach((el) => {
+          el.classList.toggle("active", Number(el.dataset.step) === wizardStep);
+        });
+        wizardDots.forEach((dot, i) => {
+          dot.classList.remove("done", "current");
+          if (i + 1 < wizardStep) dot.classList.add("done");
+          else if (i + 1 === wizardStep) dot.classList.add("current");
+        });
+        if (wizardPrevBtn) wizardPrevBtn.disabled = (wizardStep === 1);
+        if (wizardNextBtn) {
+          // 마지막 단계에서는 '다음'을 숨기고 분석 시작 버튼에 집중하게 한다.
+          wizardNextBtn.style.display = (wizardStep === WIZARD_TOTAL) ? "none" : "";
+          wizardNextBtn.textContent = "다음 ▶";
+        }
+        if (wizardHint) wizardHint.textContent = "";
+        // 단계가 바뀔 때 설정 영역 상단이 보이도록 가볍게 스크롤.
+        const sec = wizardSteps[0] ? wizardSteps[0].closest("section") : null;
+        if (sec) sec.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      function wizardGoTo(step) {
+        wizardStep = Math.min(Math.max(step, 1), WIZARD_TOTAL);
+        renderWizard();
+      }
+
+      if (wizardNextBtn) {
+        wizardNextBtn.addEventListener("click", () => {
+          const reason = wizardStepBlockReason(wizardStep);
+          if (reason) {
+            if (wizardHint) wizardHint.textContent = reason;
+            return;
+          }
+          wizardGoTo(wizardStep + 1);
+        });
+      }
+      if (wizardPrevBtn) {
+        wizardPrevBtn.addEventListener("click", () => wizardGoTo(wizardStep - 1));
+      }
+      // 결과 화면(스크롤식)으로 갈 때 위저드 진행 표시는 그대로 둔다.
+      // 분석 시작 후 재설정하려면 4단계에 머무르므로 별도 처리 불필요.
+      renderWizard();
       speedSelect.addEventListener("change", () => {
         video.playbackRate = Number(speedSelect.value || 1);
       });
