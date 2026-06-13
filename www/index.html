@@ -1627,6 +1627,27 @@
         background: linear-gradient(90deg, transparent, var(--ink-line), transparent);
       }
 
+      /* 동작 확실성(수련품새) · 핵심 수정(경기품새) 블록 */
+      .scene-certainty, .scene-keyfix {
+        margin: 8px 0 4px;
+        padding: 9px 11px;
+        border-radius: var(--radius-sm);
+        background: var(--panel-2);
+        border: 1px solid var(--panel-line);
+      }
+      .scene-certainty p, .scene-keyfix p { margin: 3px 0; line-height: 1.5; }
+      .scene-keyfix { border-left: 3px solid var(--accent); }
+      .scene-certainty { border-left: 3px solid var(--brand); }
+      .scene-gangyu {
+        margin: 8px 0 4px;
+        padding: 9px 11px;
+        border-radius: var(--radius-sm);
+        background: var(--panel-2);
+        border: 1px solid var(--panel-line);
+        border-left: 3px solid #b8860b;
+      }
+      .scene-gangyu p { margin: 3px 0; line-height: 1.5; }
+
       @media (prefers-reduced-motion: reduce) {
         * { transition: none !important; }
       }
@@ -1713,7 +1734,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.32</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.37</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -1761,6 +1782,9 @@
           </div>
           <div class="code" id="modeHelp" style="margin-top: 10px;">
             경기품새: WT 공인품새 구조를 참고한 10점 참고점수와 함께, 어느 항목을 어떻게 고쳐야 점수가 오르는지를 수정 우선순위로 짚어 드립니다.
+          </div>
+          <div class="repeat-options" style="margin-top:10px;">
+            <label><input id="gangyuToggle" type="checkbox" /> 강유(剛柔) 분석 추가 — 동작별 강(剛)·유(柔)와 완급·리듬을 함께 표시</label>
           </div>
           <div class="field-label">품새 선택 <span>분류를 고른 뒤 품새를 선택하세요</span></div>
           <div class="poomsae-tabs" role="tablist" aria-label="품새 구분">
@@ -2066,6 +2090,7 @@
       let selectedPoomsaeGroup = "yugeup";
       let selectedPoomsaeKey = "taegeuk_1";
       let trainingMode = "competition";
+      let gangyuMode = false;
       let movements = buildGenericMovements(selectedPoomsaeKey);
 
       const fileInput = document.getElementById("fileInput");
@@ -2103,6 +2128,7 @@
       const video = document.getElementById("video");
       const speedSelect = document.getElementById("speedSelect");
       const loopVideoToggle = document.getElementById("loopVideoToggle");
+      const gangyuToggle = document.getElementById("gangyuToggle");
       const loopSegmentToggle = document.getElementById("loopSegmentToggle");
       const replayAllBtn = document.getElementById("replayAllBtn");
       const replayWeakBtn = document.getElementById("replayWeakBtn");
@@ -2184,8 +2210,8 @@
       function updatePoomsaeView() {
         movements = buildGenericMovements(selectedPoomsaeKey);
         const poomsae = currentPoomsae();
-        segmentTitle.textContent = `${poomsae.name} ${movements.length}개 구간 분석`;
-        segmentDescription.textContent = `${poomsae.name}은 현재 ${movements.length}개 구간으로 나누어 평가합니다. ${poomsae.note}입니다. 세부 동작명은 지도자 검수 후 더 정확하게 보정할 수 있습니다.`;
+        segmentTitle.textContent = `${poomsae.name} ${movements.length}개 동작 분석`;
+        segmentDescription.textContent = `${poomsae.name}은(는) ${movements.length}개 동작으로 이루어져 있습니다. 영상에서 동작 사이의 멈춤을 찾아 구간을 나누고, 멈춤이 뚜렷하지 않아 이어지는 동작은 한 구간에 묶어 동작명을 함께 표시합니다. 각 동작 끝에서 잠깐 멈춰 촬영하면 더 정확히 하나씩 나뉩니다. 세부 동작명은 지도자 검수 후 보정할 수 있습니다.`;
       }
       function setPill(el, type, text) {
         el.className = `status ${type}`;
@@ -2195,6 +2221,61 @@
         if (type === "good") return "good-border";
         if (type === "bad") return "bad-border";
         return "caution-border";
+      }
+      // 강유 종합: 동작별 강/유 분포와 리듬 최적화 체크리스트 5가지를 데이터로 채운다.
+      function gangyuSummary(results) {
+        const withGy = results.filter((r) => r.gangyu && r.gangyu.classification !== "판정보류");
+        const gangCount = withGy.filter((r) => r.gangyu.classification === "강").length;
+        const yuCount = withGy.filter((r) => r.gangyu.classification === "유").length;
+        const transCount = withGy.filter((r) => r.gangyu.classification === "전환").length;
+        const ratios = withGy.map((r) => r.gangyu.accelRatio).filter((v) => v != null);
+        const avgRatio = ratios.length ? ratios.reduce((a, b) => a + b, 0) / ratios.length : 0;
+        const snaps = results.map((r) => r.snapScore).filter(Number.isFinite);
+        const avgSnap = snaps.length ? snaps.reduce((a, b) => a + b, 0) / snaps.length : 0;
+        // 강(剛)들의 정점 간격 일정함: 강으로 분류된 구간들의 시작 간격 표준편차.
+        const gangTimes = results.filter((r) => r.gangyu && r.gangyu.classification === "강").map((r) => r.startTime);
+        let intervalEven = null;
+        if (gangTimes.length >= 3) {
+          const gaps = [];
+          for (let i = 1; i < gangTimes.length; i += 1) gaps.push(gangTimes[i] - gangTimes[i - 1]);
+          const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+          const sd = Math.sqrt(gaps.reduce((s, g) => s + (g - mean) ** 2, 0) / gaps.length);
+          intervalEven = mean > 0 ? sd / mean : null; // 변동계수(작을수록 일정)
+        }
+        const checklist = [
+          {
+            label: "1. 정점 간격이 일정한가",
+            type: intervalEven == null ? "caution" : intervalEven <= 0.45 ? "good" : "caution",
+            text: intervalEven == null
+              ? "강(剛)으로 분류된 정점이 충분치 않아 박자 일정함을 판정하기 어렵습니다. 동작 끝을 더 분명히 끊어 보세요."
+              : intervalEven <= 0.45
+                ? "강의 정점들이 비교적 고른 박자로 나옵니다."
+                : "강의 정점 간격이 들쭉날쭉합니다. 같은 박자 동작은 같은 간격으로 맞춰 보세요."
+          },
+          {
+            label: "2. 준비는 느리고 끝은 빠른가(가속 대비)",
+            type: avgRatio >= 2.2 ? "good" : avgRatio >= 1.5 ? "caution" : "bad",
+            text: `동작들의 평균 가속 대비는 약 ${avgRatio.toFixed(1)}배입니다. ${avgRatio >= 2.2 ? "완급이 분명합니다." : "준비를 더 느리게, 끝을 더 짧고 빠르게 해 2배 이상을 목표로 하세요."}`
+          },
+          {
+            label: "3. 맺음마다 정지가 분명한가",
+            type: avgSnap >= 70 ? "good" : avgSnap >= 50 ? "caution" : "bad",
+            text: `맺음 평균 지표는 ${Math.round(avgSnap)}입니다. ${avgSnap >= 70 ? "정점 뒤 정지가 대체로 분명합니다." : "각 정점 뒤 0.3초 이상 분명히 멈춰 맺음을 살리세요."}`
+          },
+          {
+            label: "4. 연속 동작과 끊는 동작이 구분되는가",
+            type: "caution",
+            text: `강 ${gangCount} · 유 ${yuCount} · 전환 ${transCount} 구간으로 나타났습니다. 이어야 할 동작과 끊어야 할 동작이 의도대로 분류됐는지 영상으로 확인하세요. (전환이 많으면 정점이 흐릿하다는 신호입니다)`
+          },
+          {
+            label: "5. 전체에 강약 물결이 보이는가",
+            type: (gangCount >= 2 && yuCount >= 1) ? "good" : "caution",
+            text: (gangCount >= 2 && yuCount >= 1)
+              ? "강(정점)과 유(흐름)가 번갈아 나타나 완급의 물결이 보입니다."
+              : "강과 유의 구분이 약합니다. 정점은 더 날카롭게, 연결은 더 부드럽게 대비를 키우세요."
+          }
+        ];
+        return { gangCount, yuCount, transCount, avgRatio, checklist };
       }
       function renderReport(items) {
         reportList.innerHTML = "";
@@ -2374,6 +2455,33 @@
           });
         });
       }
+      // 동작 확실성: 이 구간의 동작이 영상에서 얼마나 또렷하게 잡혔는지(수련품새용, 쉬운 말).
+      function movementCertainty(segment) {
+        const detRate = segment.detectionRate != null ? segment.detectionRate : (segment.detected ? 1 : 0);
+        const merged = segment.mergedMovementCount > 1;
+        if (detRate < 0.5) {
+          return { level: "low", kid: "동작이 또렷하게 안 보여요. 몸 전체가 화면에 들어오게 다시 찍으면 좋아요.", tag: "또렷하지 않음", cls: "bad" };
+        }
+        if (merged) {
+          return { level: "merged", kid: "두 동작이 이어져서 한 칸에 같이 들어갔어요. 동작 끝에서 잠깐 멈추면 하나씩 또렷해져요.", tag: "이어진 동작", cls: "caution" };
+        }
+        if (detRate < 0.85) {
+          return { level: "mid", kid: "동작은 보이지만 가끔 흐릿해요. 밝은 곳에서 정면으로 찍으면 더 좋아요.", tag: "대체로 또렷", cls: "caution" };
+        }
+        return { level: "high", kid: "동작이 또렷하게 잘 보여요.", tag: "또렷함", cls: "good" };
+      }
+      // 경기품새 핵심 수정 포인트: 점수를 가장 많이 되돌릴 한 가지(가장 약한 측정 지표).
+      function keyFixPoint(segment) {
+        const items = [
+          { key: "velocity", score: segment.velocityScore, label: "완급(속도 대비)", fix: "준비는 더 느리게, 기술 끝은 더 짧고 빠르게 끊어 속도 대비를 분명히 하면 표현성 점수가 오릅니다." },
+          { key: "snap", score: segment.snapScore, label: "맺음", fix: "동작 끝에서 힘을 한 점에 모아 0.5초 정지하고 반대손 회수를 맞추면 표현성 감점이 줄어듭니다." },
+          { key: "stillness", score: segment.stillnessScore, label: "마무리 안정", fix: "동작 후 발바닥 압력과 골반 높이를 고정해 정지 자세를 안정시키면 균형 감점이 줄어듭니다." },
+          { key: "stance", score: segment.stanceScore, label: "서기 정렬", fix: "발끝·무릎 방향을 일치시키고 중심 높이를 일정하게 유지하면 자세 항목 감점이 줄어듭니다." }
+        ].filter((it) => Number.isFinite(it.score));
+        if (!items.length) return null;
+        items.sort((a, b) => a.score - b.score);
+        return items[0];
+      }
       function renderSceneCard(segment, isPriority = false) {
         const shot = segment.snapshot
           ? `<img class="scene-shot" src="${segment.snapshot}" alt="${escapeHtml(segment.order)}번 구간 장면" loading="lazy" />`
@@ -2383,9 +2491,43 @@
         const issueLimit = isPriority ? 4 : 2;
         const issues = segmentIssueDetails(segment, issueLimit);
         const deduction = segment.referenceDeduction || { label: "판정 보류", amount: null, reason: "지도자 확인 필요" };
+        const merged = segment.mergedMovementCount > 1;
+        const certainty = movementCertainty(segment);
+
+        // 경기품새: 가감점을 명확히 + 핵심 수정 포인트 한 가지.
         const deductionMarkup = trainingMode === "competition"
           ? `<span class="status ${deduction.amount === 0.3 ? "bad" : deduction.amount === 0.1 ? "caution" : "good"}">${escapeHtml(deduction.label)}</span>`
           : "";
+        const keyFix = trainingMode === "competition" ? keyFixPoint(segment) : null;
+        const competitionExtra = trainingMode === "competition"
+          ? `
+            <div class="scene-keyfix">
+              <p><b>가감점:</b> ${deduction.amount === 0 ? "측정 지표상 큰 감점 징후 적음" : deduction.amount == null ? "판정 보류(촬영/지도자 확인 필요)" : `약 -${deduction.amount.toFixed(1)}점 가능성`} · ${escapeHtml(deduction.reason)}</p>
+              ${keyFix ? `<p><b>핵심 수정:</b> [${escapeHtml(keyFix.label)}] ${escapeHtml(keyFix.fix)}</p>` : ""}
+              ${merged ? `<p class="small"><b>참고:</b> 이 구간에는 ${escapeHtml(segment.mergedMovementNumbers || "")} 동작이 함께 들어가 있어, 감점은 각 동작별로 따로 적용됩니다. 지도자 확인을 권장합니다.</p>` : ""}
+            </div>`
+          : "";
+
+        // 수련품새: 동작 확실성 + 쉬운 말 문제·수정.
+        const examExtra = trainingMode === "exam"
+          ? `
+            <div class="scene-certainty">
+              <p><b>동작이 잘 보이나요?</b> <span class="status ${certainty.cls}">${escapeHtml(certainty.tag)}</span> — ${escapeHtml(certainty.kid)}</p>
+              ${merged ? `<p class="small"><b>알려드려요:</b> 여기에는 ${escapeHtml(segment.mergedMovementNumbers || "")} 동작이 같이 들어 있어요. 동작마다 끝에서 잠깐 멈추면 따로따로 볼 수 있어요.</p>` : ""}
+            </div>`
+          : "";
+
+        // 강유(剛柔) 분석 블록(토글 켜짐 시 두 모드 모두에 표시).
+        const gy = segment.gangyu;
+        const gangyuExtra = (gangyuMode && gy)
+          ? `
+            <div class="scene-gangyu">
+              <p><b>강유(剛柔):</b> <span class="status ${gy.classification === "강" ? "bad" : gy.classification === "유" ? "good" : "caution"}">${escapeHtml(gy.classification)}${gy.classification === "강" ? "(剛)" : gy.classification === "유" ? "(柔)" : ""}</span>
+                ${gy.accelRatio != null ? ` · 가속 대비 ${gy.accelRatio}배` : ""}${gy.framesToPeak != null ? ` · 정점까지 ${gy.framesToPeak}프레임` : ""}</p>
+              <p class="small">${escapeHtml(gy.note)}</p>
+            </div>`
+          : "";
+
         const issueMarkup = issues.map((issue, index) => `
           <div class="scene-issue">
             <span class="scene-issue-number">${index + 1}</span>
@@ -2405,9 +2547,12 @@
               <div class="scene-meta">
                 <span>${segment.startTime.toFixed(1)}-${segment.endTime.toFixed(1)}초</span>
                 <span>${escapeHtml(segment.label)}</span>
-                <span>동작명 자동 추정</span>
+                ${merged
+                  ? `<span class="status caution">${escapeHtml(segment.mergedMovementNumbers || "")} 동작 묶음</span>`
+                  : `<span>${escapeHtml(segment.mergedMovementNumbers || "")} · 동작명 자동 추정</span>`}
                 ${deductionMarkup}
               </div>
+              ${examExtra}${competitionExtra}${gangyuExtra}
               <div class="scene-issues">${issueMarkup}</div>
               <p class="movement-estimate-note"><b>확인 가능:</b> ${escapeHtml((segment.evidence?.observable || []).join(", "))} · <b>추정:</b> ${escapeHtml((segment.evidence?.estimated || []).join(", "))} · <b>지도자 확인 필요:</b> ${escapeHtml((segment.evidence?.coachRequired || []).join(", "))}</p>
             </div>
@@ -2519,6 +2664,22 @@
               ${summaryItems.map((item) => `<li class="${borderClass(item.type)}">${escapeHtml(item.text)}</li>`).join("")}
             </ul>
           </div>
+          ${gangyuMode ? (() => {
+            const gs = gangyuSummary(latestReport.segments);
+            return `
+          <div class="result-card" style="margin-top:14px;">
+            <div class="result-section-title">
+              <div>
+                <h3>강유(剛柔) 분석 · 완급·리듬</h3>
+                <p class="small">동작별 강(剛)·유(柔)와, 리듬 최적화 체크리스트 5가지를 영상 데이터로 채웠습니다. 속도·맺음 기반의 코칭 지표이며 지도자 확인을 권장합니다.</p>
+              </div>
+              <span class="badge">강 ${gs.gangCount}·유 ${gs.yuCount}·전환 ${gs.transCount}</span>
+            </div>
+            <ul class="list">
+              ${gs.checklist.map((c) => `<li class="${borderClass(c.type)}"><b>${escapeHtml(c.label)}:</b> ${escapeHtml(c.text)}</li>`).join("")}
+            </ul>
+          </div>`;
+          })() : ""}
           <div class="result-card" style="margin-top:14px;">
             <div class="result-section-title">
               <div>
@@ -2602,10 +2763,22 @@
           : "## 1. 구간별로 무엇이 아쉽고 어떻게 고치는지");
         for (const segment of latestReport.segments) {
           const scoreText = trainingMode === "exam" ? "" : ` (${segment.competitionScore10.toFixed(1)}점)`;
-          lines.push(`- **${segment.order}. ${segment.name}** - ${segment.label}${scoreText}`);
-          if (trainingMode !== "exam") lines.push(`  - 참고 감점 가능성: ${segment.referenceDeduction?.label || "판정 보류"}`);
-          if (trainingMode !== "exam") lines.push(`   속도 ${segment.velocityScore} / 맺음 ${segment.snapScore} / 정지 ${segment.stillnessScore}`);
-          lines.push(`  - 분석: ${segment.feedback}`);
+          const mergeTag = segment.mergedMovementCount > 1 ? ` [${segment.mergedMovementNumbers || ""} 동작 묶음]` : "";
+          lines.push(`- **${segment.order}. ${segment.name}**${mergeTag} - ${segment.label}${scoreText}`);
+          if (trainingMode === "exam") {
+            const c = movementCertainty(segment);
+            lines.push(`  - 동작이 잘 보이나요: ${c.tag} (${c.kid})`);
+            const issue = segmentIssueDetails(segment, 1)[0];
+            if (issue) lines.push(`  - 무엇이 아쉬운지: ${issue.kidProblem} / 이렇게 고쳐요: ${issue.kidFix}`);
+          } else {
+            const amt = segment.referenceDeduction?.amount;
+            const dedText = amt === 0 ? "큰 감점 징후 적음" : amt == null ? "판정 보류(촬영/지도자 확인)" : `약 -${amt.toFixed(1)}점 가능성`;
+            lines.push(`  - 가감점(참고): ${dedText}`);
+            const kf = keyFixPoint(segment);
+            if (kf) lines.push(`  - 핵심 수정: [${kf.label}] ${kf.fix}`);
+            lines.push(`   속도 ${segment.velocityScore} / 맺음 ${segment.snapScore} / 정지 ${segment.stillnessScore}`);
+            if (mergeTag) lines.push(`  - 참고: 이 구간은 동작이 이어져 함께 평가됨. 감점은 동작별로 지도자 확인 권장.`);
+          }
           lines.push(`  - 판정 범위: 확인 가능 ${(segment.evidence?.observable || []).join(", ")} / 지도자 확인 필요 ${(segment.evidence?.coachRequired || []).join(", ")}`);
         }
         lines.push("");
@@ -3207,10 +3380,22 @@
         const threshold = low + (high - low) * 0.12;
         const active = valid.filter((sample) => sample.motion > threshold);
         if (active.length < 2) return { start: 0, end: duration };
-        return {
-          start: clamp(active[0].time - 0.18, 0, duration),
-          end: clamp(active[active.length - 1].time + 0.18, 0, duration)
-        };
+        let start = clamp(active[0].time - 0.18, 0, duration);
+        const end = clamp(active[active.length - 1].time + 0.18, 0, duration);
+        // 개선 A: 시작부의 긴 준비자세(저움직임 지속)를 제외한다.
+        // 첫 동작이 시작되는 '지속적 움직임 시작점'을 찾아, 그 앞의 정지를 1번 구간에서 뺀다.
+        const mean = motions.reduce((a, b) => a + b, 0) / motions.length;
+        const onsetLevel = low + (mean - low) * 0.5;
+        for (let i = 0; i < valid.length - 2; i += 1) {
+          // 연속 2표본이 onset 수준 이상으로 올라오는 첫 지점을 동작 시작으로 본다.
+          if (valid[i].motion >= onsetLevel && valid[i + 1].motion >= onsetLevel * 0.8) {
+            const onset = clamp(valid[i].time - 0.12, 0, duration);
+            // 단, 과하게 잘라 첫 동작을 삼키지 않도록 기존 시작보다 뒤일 때만, 그리고 전체의 25% 이내에서만.
+            if (onset > start && onset < start + (end - start) * 0.25) start = onset;
+            break;
+          }
+        }
+        return { start, end };
       }
       // 동작 경계 탐지: 움직임의 국소 최저점(valley)을 prominence(깊이)로 평가해
       // 길이가 들쭉날쭉한 동작도 실제 정지점에서 끊는다. 균등분할을 강제하지 않는다.
@@ -3376,6 +3561,101 @@
         }
         return motionSamples;
       }
+      // 깊은 valley만으로 '자연스럽게' 끊기는 경계를 찾는다(동작 수로 강제하지 않음).
+      // 반환 경계 수는 동작 수 이하이며, 멈춤이 뚜렷한 만큼만 나온다.
+      function detectNaturalBoundaries(duration, motionSamples, sensitivity, activeStart, activeEnd, maxSegments) {
+        const rangeStart = clamp(Number(activeStart) || 0, 0, duration);
+        const rangeEnd = clamp(Number(activeEnd) || duration, rangeStart, duration);
+        const span = Math.max(rangeEnd - rangeStart, 0.001);
+        const uniform = (n) => Array.from({ length: n + 1 }, (_, i) => rangeStart + span * (i / n));
+        const sorted = motionSamples
+          .filter((s) => s.valid !== false && Number.isFinite(s.time) && Number.isFinite(s.motion) && s.time >= rangeStart && s.time <= rangeEnd)
+          .slice().sort((a, b) => a.time - b.time);
+        if (sorted.length < 4) return uniform(Math.min(maxSegments, 1));
+        const valleys = [];
+        for (let i = 1; i < sorted.length - 1; i += 1) {
+          if (sorted[i].motion <= sorted[i - 1].motion && sorted[i].motion <= sorted[i + 1].motion) valleys.push(i);
+        }
+        if (!valleys.length) return uniform(1);
+        const promOf = (vi) => {
+          const base = sorted[vi].motion;
+          let lp = base; for (let j = vi - 1; j >= 0; j -= 1) { if (sorted[j].motion < base) break; if (sorted[j].motion > lp) lp = sorted[j].motion; }
+          let rp = base; for (let j = vi + 1; j < sorted.length; j += 1) { if (sorted[j].motion < base) break; if (sorted[j].motion > rp) rp = sorted[j].motion; }
+          return Math.min(lp, rp) - base;
+        };
+        const scored = valleys.map((vi) => ({ time: sorted[vi].time, prom: promOf(vi) }));
+        const maxProm = scored.reduce((m, s) => Math.max(m, s.prom), 0.0001);
+        // 자동 임계: 깊은 정지만 진짜 경계로. 민감도가 높을수록 더 얕은 정지도 허용.
+        const ratio = clamp(0.30 - (sensitivity - 0.5) * 0.34, 0.12, 0.45);
+        const promThreshold = maxProm * ratio;
+        // 너무 가까운 valley는 더 깊은 것만 남긴다(한 동작 안의 멈칫 제거).
+        const minGap = span / Math.max(maxSegments, 1) * 0.55;
+        const strong = scored.filter((s) => s.prom >= promThreshold).sort((a, b) => b.prom - a.prom);
+        const picked = [];
+        for (const v of strong) {
+          if (picked.length >= maxSegments - 1) break;
+          if (picked.every((p) => Math.abs(p.time - v.time) >= minGap)) picked.push(v);
+        }
+        picked.sort((a, b) => a.time - b.time);
+        let boundaries = [rangeStart, ...picked.map((p) => p.time), rangeEnd];
+
+        // 개선 B: 평균보다 훨씬 긴 구간은, 내부에 실제 valley(임계 미달이라도 국소 최저점)가
+        // 있으면 그것으로 추가 분할한다. valley가 없으면 분할하지 않고 묶음 단계로 넘긴다.
+        // → B의 단점(가짜 경계 생성)을 '실제 국소 최저점이 있을 때만'으로 제한한다.
+        const remainingValleys = scored.filter((s) => !boundaries.some((b) => Math.abs(b - s.time) < minGap * 0.6))
+          .sort((a, b) => b.prom - a.prom);
+        let guard = 0;
+        while (boundaries.length - 1 < maxSegments && guard < maxSegments * 2) {
+          guard += 1;
+          // 가장 긴 구간 찾기
+          let longestIdx = -1, longestLen = 0;
+          for (let k = 0; k < boundaries.length - 1; k += 1) {
+            const len = boundaries[k + 1] - boundaries[k];
+            if (len > longestLen) { longestLen = len; longestIdx = k; }
+          }
+          const avgLen = span / (boundaries.length - 1);
+          // 평균의 1.7배 미만이면 더 쪼갤 필요 없음 → 나머지는 묶음으로.
+          if (longestIdx < 0 || longestLen < avgLen * 1.7) break;
+          const segS = boundaries[longestIdx], segE = boundaries[longestIdx + 1];
+          // 이 구간 내부에서 아직 안 쓴 가장 깊은 valley
+          const inside = remainingValleys.filter((s) => s.time > segS + minGap * 0.5 && s.time < segE - minGap * 0.5);
+          if (!inside.length) break; // 실제 valley 없음 → 분할 중단(묶음이 처리)
+          const cut = inside[0];
+          boundaries.push(cut.time);
+          boundaries.sort((a, b) => a - b);
+          const ri = remainingValleys.indexOf(cut);
+          if (ri >= 0) remainingValleys.splice(ri, 1);
+        }
+        boundaries.sort((a, b) => a - b);
+        return boundaries;
+      }
+      // 각 구간 길이에 비례해 동작(이름)을 배분한다. 긴 구간일수록 더 많은 동작이 묶인다.
+      // 반환: 구간별 { movementIndices: [..], names: [..] } 배열.
+      function allocateMovementsToSegments(boundaries, movementCount) {
+        const segCount = boundaries.length - 1;
+        if (segCount <= 0) return [];
+        const lengths = [];
+        for (let k = 0; k < segCount; k += 1) lengths.push(Math.max(boundaries[k + 1] - boundaries[k], 0.001));
+        const total = lengths.reduce((a, b) => a + b, 0);
+        // 길이 비율로 동작 수 배분 후, 최대잔여법으로 정수화하고 합을 movementCount로 맞춘다.
+        const exact = lengths.map((l) => (l / total) * movementCount);
+        const counts = exact.map((v) => Math.floor(v));
+        let remainder = movementCount - counts.reduce((a, b) => a + b, 0);
+        const fracOrder = exact.map((v, i) => ({ i, frac: v - Math.floor(v) })).sort((a, b) => b.frac - a.frac);
+        for (let r = 0; r < remainder; r += 1) counts[fracOrder[r % fracOrder.length].i] += 1;
+        for (let i = 0; i < counts.length; i += 1) if (counts[i] < 1) counts[i] = 1;
+        let sum = counts.reduce((a, b) => a + b, 0);
+        while (sum > movementCount) { const mi = counts.indexOf(Math.max(...counts)); counts[mi] -= 1; sum -= 1; }
+        while (sum < movementCount) { const mi = counts.indexOf(Math.min(...counts)); counts[mi] += 1; sum += 1; }
+        const allocation = [];
+        let idx = 0;
+        for (let k = 0; k < segCount; k += 1) {
+          const indices = [];
+          for (let c = 0; c < counts[k] && idx < movementCount; c += 1) { indices.push(idx); idx += 1; }
+          allocation.push(indices);
+        }
+        return allocation;
+      }
       async function detectMotionBoundaries(timestampBaseMs) {
         const count = movements.length;
         const sensitivity = Number(boundarySensitivitySelect.value || 0.95);
@@ -3387,18 +3667,19 @@
         const motionSamples = buildMotionSamples(frames);
 
         const activeRange = detectActiveMotionRange(duration, motionSamples);
-        const boundaries = refineSegmentBoundaries(duration, count, motionSamples, sensitivity, activeRange.start, activeRange.end);
-        const boundaryConfidence = refineSegmentBoundaries.lastConfidence || null;
+        // 멈춤이 뚜렷한 만큼만 자연스럽게 끊고, 부족한 경계는 동작명을 묶어서 표시한다.
+        const boundaries = detectNaturalBoundaries(duration, motionSamples, sensitivity, activeRange.start, activeRange.end, count);
+        const allocation = allocateMovementsToSegments(boundaries, count);
         return {
           boundaries,
+          allocation,
           activeRange,
           completionTimes: chooseCompletionSnapshotTimes(boundaries, motionSamples),
           motionSamples,
           frames,
           scanCount,
           sensitivity,
-          boundaryConfidence,
-          method: "active_range_skeleton_valley_prominence_adaptive"
+          method: "active_range_valley_natural_segments_length_proportional_allocation"
         };
       }
       function scoreStance(frames) {
@@ -3591,6 +3872,45 @@
         }
         return `${movement.name}: ${cueText}${ruleCue} 우선 연습 포인트: ${weakest.text}`;
       }
+      // 속도 곡선에서 강유(剛柔) 지표를 계산한다.
+      // accelRatio: 정점 속도 ÷ 준비 구간 평균 속도(완급 대비). 클수록 강유가 뚜렷.
+      // framesToPeak: 동작 시작~정점까지 표본 수(적을수록 날카로운 '강').
+      // classification: 강(剛)/유(柔)/전환 — 정점이 분명하고 빠르면 강, 완만하면 유.
+      function computeGangyu(speeds) {
+        if (!speeds || speeds.length < 3) {
+          return { classification: "판정보류", accelRatio: null, framesToPeak: null, peakValue: null, prepValue: null, note: "표본이 적어 강유를 판정하기 어렵습니다." };
+        }
+        const peakIdx = speeds.indexOf(Math.max(...speeds));
+        const peakValue = speeds[peakIdx];
+        // 준비 구간 = 앞 40%(정점 앞쪽 흐름).
+        const prepEnd = Math.max(1, Math.min(peakIdx, Math.round(speeds.length * 0.4)));
+        const prep = speeds.slice(0, prepEnd);
+        const prepValue = prep.length ? prep.reduce((a, b) => a + b, 0) / prep.length : peakValue;
+        const accelRatio = prepValue > 1e-4 ? peakValue / prepValue : (peakValue > 0 ? 99 : 0);
+        // 동작 시작(움직임이 의미 있게 커지는 첫 지점)부터 정점까지 표본 수.
+        const moveThreshold = peakValue * 0.35;
+        let startIdx = 0;
+        for (let i = 0; i < peakIdx; i += 1) { if (speeds[i] >= moveThreshold) { startIdx = i; break; } }
+        const framesToPeak = Math.max(peakIdx - startIdx, 0);
+        // 분류: 정점이 분명(accelRatio 큼)하고 빨리 도달(framesToPeak 작음)하면 강.
+        // 정점이 완만하고 전체가 비슷하면 유. 그 사이는 전환.
+        let classification;
+        if (accelRatio >= 2.2 && framesToPeak <= 3) classification = "강";
+        else if (accelRatio < 1.5) classification = "유";
+        else classification = "전환";
+        return {
+          classification,
+          accelRatio: Number(accelRatio.toFixed(2)),
+          framesToPeak,
+          peakValue: Number(peakValue.toFixed(4)),
+          prepValue: Number(prepValue.toFixed(4)),
+          note: classification === "강"
+            ? "준비 대비 정점 가속이 분명한 '강(剛)'의 정점입니다."
+            : classification === "유"
+              ? "속도 변화가 완만한 '유(柔)'의 흐름 구간입니다."
+              : "강과 유의 중간(전환) 구간입니다. 정점을 더 분명히 하면 '강'으로 살아납니다."
+        };
+      }
       function evaluateSegment(movement, rawFrames) {
         // 좌표 떨림을 줄이기 위해 스무딩된 프레임으로 속도/안정성을 계산한다.
         const frames = smoothFrames(rawFrames);
@@ -3606,6 +3926,12 @@
         const finalSpeed = speeds.length ? trimmedMean(speeds.slice(-tailCount)) : 0;
         // 진짜 "떨림"은 마지막 구간 속도의 표준편차로 본다(맺음 신호와 분리).
         const endJitter = speeds.length ? stdDev(speeds.slice(-tailCount)) : 0;
+
+        // 강유(剛柔) 지표: 속도 곡선의 모양에서 '강(정점)'과 '유(흐름)'를 읽는다.
+        // - 절대 최고속도 지점과, 준비(앞 40%) 평균 속도의 비율 = 가속 대비(완급의 핵심).
+        // - 동작 시작부터 정점까지 프레임 수 = '강'의 도달 속도(적을수록 날카로움).
+        const gangyu = computeGangyu(speeds);
+
         const velocityScore = scoreVelocity(peakSpeed, movement.type);
         const snapScore = scoreSnap(peakSpeed, finalSpeed, movement.type);
         const stillnessScore = scoreStillness(finalSpeed, endJitter, movement.type);
@@ -3626,6 +3952,7 @@
         const referenceDeduction = referenceDeductionFor({ visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore });
         return {
           detected: detectedFrames.length > 0,
+          detectionRate: Number((detectedFrames.length / Math.max(frames.length, 1)).toFixed(3)),
           visibilityScore,
           velocityScore,
           snapScore,
@@ -3638,6 +3965,7 @@
           peakSpeed: Number(peakSpeed.toFixed(4)),
           finalSpeed: Number(finalSpeed.toFixed(4)),
           endJitter: Number(endJitter.toFixed(4)),
+          gangyu,
           type: verdict.type,
           label: verdict.label,
           feedback: feedbackFor(movement, { visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore })
@@ -3757,17 +4085,29 @@
         const totalSegments = results.length;
         const issueCounts = summarizeRepeatedIssues(results);
         const neededTraining = neededTrainingFromIssues(issueCounts);
+        // 동작 확실성(수련품새)·가감점 합계(경기품새) 집계.
+        const clearCount = results.filter((r) => (r.detectionRate ?? (r.detected ? 1 : 0)) >= 0.85 && !(r.mergedMovementCount > 1)).length;
+        const mergedCount = results.filter((r) => r.mergedMovementCount > 1).length;
+        const ded03 = results.filter((r) => r.referenceDeduction && r.referenceDeduction.amount === 0.3).length;
+        const ded01 = results.filter((r) => r.referenceDeduction && r.referenceDeduction.amount === 0.1).length;
+        const dedHold = results.filter((r) => r.referenceDeduction && r.referenceDeduction.amount == null).length;
+        const estDeduction = (ded03 * 0.3 + ded01 * 0.1);
         if (trainingMode === "exam") {
-          items.push({ type, text: "수련품새 결과입니다. 점수는 표시하지 않고 수정할 부분만 확인합니다." });
+          items.push({ type, text: "수련품새 결과입니다. 점수 대신, 동작이 또렷하게 됐는지와 고칠 점을 쉬운 말로 알려드립니다." });
+          items.push({ type: clearCount >= totalSegments * 0.7 ? "good" : "caution", text: `또렷하게 잘 된 동작: ${clearCount}개 / ${totalSegments}개${mergedCount ? `, 두 동작이 이어진 구간: ${mergedCount}개` : ""}. 동작 끝에서 잠깐 멈추면 하나씩 더 또렷해져요.` });
           if (issueCounts.length) {
-            items.push({ type: "caution", text: `먼저 볼 문제: ${issueCounts.slice(0, 2).map((item) => `${item.label} ${item.count}회`).join(", ")}.` });
-            items.push({ type: "caution", text: `수정 방법: ${issueCounts[0].practice}` });
+            items.push({ type: "caution", text: `먼저 고칠 점: ${issueCounts.slice(0, 2).map((item) => `${item.label} ${item.count}번`).join(", ")}.` });
+            items.push({ type: "caution", text: `이렇게 해보세요: ${issueCounts[0].practice}` });
           } else {
-            items.push({ type: "good", text: "큰 반복 문제는 적습니다. 준비서기, 기합, 마무리 자세만 지도자와 함께 확인하세요." });
+            items.push({ type: "good", text: "큰 문제는 적어요. 준비서기, 기합, 마무리 자세만 지도 선생님과 함께 확인해요." });
           }
         } else {
           items.push({ type, text: `경기품새 참고점수 ${competitionScore10.toFixed(2)} / 10.0점입니다. 정확성 추정 ${accuracyScore4.toFixed(2)} / 4.0, 표현력 추정 ${presentationScore6.toFixed(2)} / 6.0입니다.` });
+          items.push({ type: estDeduction >= 0.6 ? "bad" : estDeduction > 0 ? "caution" : "good", text: `참고 감점 합계(추정): 약 -${estDeduction.toFixed(1)}점 (큰 오류 -0.3 ${ded03}곳, 경미한 오류 -0.1 ${ded01}곳${dedHold ? `, 판정 보류 ${dedHold}곳` : ""}). 실제 감점은 심판이 확정합니다.` });
           items.push({ type: "caution", text: `점수 해석: ${competitionScore10 >= 8 ? "전체 흐름은 안정적입니다. 세부 정확성과 기의 표현을 다듬으세요." : competitionScore10 >= 6 ? "대회 전 보완이 필요합니다. 반복되는 약점을 먼저 줄이세요." : "촬영 구도 또는 동작 안정성 문제가 큽니다. 우선 구간을 짧게 나누어 다시 훈련하세요."}` });
+        }
+        if (mergedCount && trainingMode === "competition") {
+          items.push({ type: "caution", text: `${mergedCount}개 구간은 동작이 이어져 함께 평가됐습니다. 그 구간의 감점은 동작별로 나눠 확인이 필요하니 지도자 검수를 권장합니다.` });
         }
         if (detectRate >= .8) {
           if (trainingMode === "competition") items.push({ type: "good", text: `${totalSegments}개 구간 중 ${detected}개 구간에서 관절 데이터가 감지됐습니다. 촬영 구도는 분석에 충분합니다.` });
@@ -3826,17 +4166,17 @@
       function completeAnalysis(results, frameSamples, cacheHit = false, analysisEfficiency = null) {
         renderSegments(results);
         const summary = summarize(results);
-        // 뚜렷한 정지(valley)가 동작 수에 비해 부족하면 동작명이 한 칸씩 밀렸을 수 있어 안내한다.
-        if (analysisEfficiency && Number.isFinite(analysisEfficiency.boundary_uniform_filled)
-            && Number.isFinite(analysisEfficiency.boundary_needed) && analysisEfficiency.boundary_needed > 0) {
-          const filled = analysisEfficiency.boundary_uniform_filled;
-          const need = analysisEfficiency.boundary_needed;
-          if (filled / need >= 0.34) {
-            summary.items.unshift({
-              type: "caution",
-              text: `동작 사이 멈춤이 뚜렷하지 않아 경계 ${need}곳 중 ${filled}곳을 시간 균등으로 추정했습니다. 일부 구간에서 동작명과 영상이 한 칸씩 어긋날 수 있으니, 각 동작을 끝에서 잠깐 멈춰 다시 촬영하면 정확해집니다.`
-            });
-          }
+        // 멈춤이 뚜렷하지 않아 여러 동작이 한 구간에 묶인 경우 안내한다.
+        if (analysisEfficiency && Number.isFinite(analysisEfficiency.merged_segments)
+            && Number.isFinite(analysisEfficiency.natural_segments) && analysisEfficiency.natural_segments > 0
+            && analysisEfficiency.merged_segments > 0) {
+          const merged = analysisEfficiency.merged_segments;
+          const expected = analysisEfficiency.expected_movements;
+          const natural = analysisEfficiency.natural_segments;
+          summary.items.unshift({
+            type: "caution",
+            text: `동작 사이 멈춤이 뚜렷하지 않아 ${expected}개 동작을 ${natural}개 구간으로 묶었습니다(${merged}개 구간에 여러 동작이 함께 들어감). 각 동작 끝에서 잠깐(0.3~0.5초) 멈춰 다시 촬영하면 동작이 하나씩 분리됩니다.`
+          });
         }
         const issueTotal = summary.issueCounts.reduce((sum, item) => sum + item.count, 0);
         detectRateText.textContent = `${(summary.detectRate * 100).toFixed(0)}%`;
@@ -3979,8 +4319,18 @@
         const frameSamples = [];
         let reusedPoseFrames = 0;
         let precisePoseFrames = 0;
-        for (let i = 0; i < movements.length; i += 1) {
-          const movement = movements[i];
+        const allocation = boundaryDetection.allocation || [];
+        const segmentCount = boundaryDetection.boundaries.length - 1;
+        let mergedSegments = 0;
+        for (let i = 0; i < segmentCount; i += 1) {
+          // 이 구간에 배분된 동작들(긴 구간이면 여러 개가 묶인다).
+          const movementIndices = allocation[i] && allocation[i].length ? allocation[i] : [Math.min(i, movements.length - 1)];
+          const segmentMovements = movementIndices.map((mi) => movements[mi]).filter(Boolean);
+          const primary = segmentMovements[0] || movements[Math.min(i, movements.length - 1)];
+          const mergedName = segmentMovements.length > 1
+            ? segmentMovements.map((m) => m.name).join(" + ")
+            : (primary ? primary.name : `구간 ${i + 1}`);
+          if (segmentMovements.length > 1) mergedSegments += 1;
           const segmentStart = boundaryDetection.boundaries[i];
           const segmentEnd = boundaryDetection.boundaries[i + 1];
           const segmentLength = segmentEnd - segmentStart;
@@ -4007,43 +4357,46 @@
           const completionTime = boundaryDetection.completionTimes[i] ?? segmentStart + segmentLength * 0.82;
           const snapshotTime = await waitForSeek(completionTime);
           snapshot = captureVideoSnapshot();
-          const metrics = evaluateSegment(movement, frames);
+          const metrics = evaluateSegment(primary, frames);
+          const movementLabel = movementIndices.length > 1
+            ? `${movementIndices[0] + 1}~${movementIndices[movementIndices.length - 1] + 1}번`
+            : `${movementIndices[0] + 1}번`;
           const row = {
             order: i + 1,
-            id: movement.id,
-            name: movement.name,
-            movementType: movement.type,
+            id: primary ? primary.id : `${selectedPoomsaeKey}_segment_${i + 1}`,
+            name: mergedName,
+            movementType: primary ? primary.type : "",
+            mergedMovementCount: segmentMovements.length,
+            mergedMovementNumbers: movementLabel,
             startTime: Number(segmentStart.toFixed(3)),
             endTime: Number(segmentEnd.toFixed(3)),
             snapshot,
             ...metrics
           };
           results.push(row);
-          const startConf = i === 0 ? null : (boundaryDetection.boundaryConfidence?.perBoundary?.[i - 1] || null);
           frameSamples.push({
-            segment_id: movement.id,
+            segment_id: row.id,
+            movement_numbers: movementLabel,
+            merged_movements: segmentMovements.length,
             times: frames.map((f) => Number(f.time.toFixed(3))),
             detected_frames: frames.filter((f) => f.landmarks).length,
             boundary_method: boundaryDetection.method,
             boundary_sensitivity: boundaryDetection.sensitivity,
-            boundary_source: startConf ? startConf.source : (i === 0 ? "active_range_start" : "unknown"),
-            boundary_confidence: startConf ? Number((startConf.relative || 0).toFixed(3)) : null,
             sample_source: reusableFrames.length === sampleCount ? "boundary_scan_reused" : "precise_fallback",
             completion_snapshot_time: Number(snapshotTime.toFixed(3))
           });
-          setProgress(5 + Math.round(((i + 1) / movements.length) * 82), `${trainingMode === "exam" ? "문제점 확인 중" : "파워·맺음 평가 중"}... ${i + 1}/${movements.length}`);
+          setProgress(5 + Math.round(((i + 1) / segmentCount) * 82), `${trainingMode === "exam" ? "문제점 확인 중" : "파워·맺음 평가 중"}... ${i + 1}/${segmentCount}`);
           await new Promise((resolve) => setTimeout(resolve, 0));
         }
-        const bc = boundaryDetection.boundaryConfidence || {};
         const analysisEfficiency = {
           boundary_pose_detections: boundaryDetection.scanCount,
           reused_pose_frames: reusedPoseFrames,
           precise_pose_detections: precisePoseFrames,
           avoided_pose_detections: reusedPoseFrames,
           total_elapsed_ms: Math.round(performance.now() - analysisStartedAt),
-          boundary_strong_valleys: bc.strongValleys ?? null,
-          boundary_needed: bc.neededBoundaries ?? null,
-          boundary_uniform_filled: bc.filledUniform ?? null,
+          natural_segments: segmentCount,
+          expected_movements: movements.length,
+          merged_segments: mergedSegments,
           reliability_guard: "reuse only when every target has a unique detected frame within 0.18 seconds; otherwise precise fallback"
         };
         if (cacheKey) stableAnalysisCache.set(cacheKey, cloneStableData({ results, frameSamples, analysisEfficiency }));
@@ -4083,11 +4436,55 @@
         window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js").catch(() => {}));
       }
 
+      // 영상 코덱이 HEVC(H.265)인지 추정하고, 현재 브라우저가 디코딩 가능한지 확인한다.
+      // HEVC는 일부 모바일 브라우저·WebView에서 디코딩되지 않아 분석이 진행되지 않을 수 있다.
+      function browserCanPlayHevc() {
+        const probe = document.createElement("video");
+        return !!(probe.canPlayType('video/mp4; codecs="hvc1"') || probe.canPlayType('video/mp4; codecs="hev1"'));
+      }
+      // 파일의 앞·뒤 일부를 읽어 HEVC 박스(hvc1/hev1/hvcC)가 있는지 확인한다(이름 의존 없이).
+      // moov(코덱 정보) 박스가 파일 끝에 있는 경우가 많아 앞부분만으로는 놓칠 수 있어 뒤도 함께 본다.
+      async function fileLooksHevc(file) {
+        const scan = (bytes) => {
+          let text = "";
+          for (let i = 0; i < bytes.length; i += 1) text += String.fromCharCode(bytes[i]);
+          return /hvc1|hev1|hvcC/.test(text);
+        };
+        try {
+          const headLen = Math.min(file.size, 131072);
+          const head = new Uint8Array(await file.slice(0, headLen).arrayBuffer());
+          if (scan(head)) return true;
+          if (file.size > headLen) {
+            const tailLen = Math.min(file.size, 262144);
+            const tail = new Uint8Array(await file.slice(file.size - tailLen).arrayBuffer());
+            if (scan(tail)) return true;
+          }
+          return false;
+        } catch (error) {
+          return false;
+        }
+      }
+      let lastHevcWarnKey = "";
+      async function warnIfUndecodableHevc() {
+        if (!selectedFile) return;
+        const key = `${selectedFile.name}|${selectedFile.size}`;
+        if (lastHevcWarnKey === key) return;
+        const isHevc = await fileLooksHevc(selectedFile);
+        if (!isHevc) return;
+        if (browserCanPlayHevc()) return; // 디코딩 가능하면 경고 불필요
+        lastHevcWarnKey = key;
+        setProgress(0, "이 영상은 HEVC(H.265) 형식이며 현재 브라우저에서 재생·분석이 안 될 수 있습니다. H.264(MP4)로 변환 후 다시 시도하세요.");
+        renderReport([
+          { type: "caution", text: "이 영상은 HEVC(H.265) 코덱입니다. 사용 중인 브라우저가 HEVC 디코딩을 지원하지 않아, 영상이 보이더라도 분석이 진행되지 않거나 빈 결과가 나올 수 있습니다." },
+          { type: "caution", text: "해결: 휴대폰 갤러리 공유 시 '더 호환성 높은 형식'으로 내보내거나, 무료 변환 앱/PC에서 H.264 MP4로 변환해 다시 올리면 정상 분석됩니다." }
+        ]);
+      }
       fileInput.addEventListener("change", () => {
         showTrainingPage();
         closeReplayModal();
         selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
         lastPoomsaeMismatchKey = "";
+        lastHevcWarnKey = "";
         latestReport = null;
         clearReplayRange();
         downloadBtn.disabled = true;
@@ -4122,6 +4519,18 @@
         analyzeBtn.disabled = false;
         reanalyzeBtn.disabled = false;
         warnIfFilenamePoomsaeMismatch();
+        warnIfUndecodableHevc();
+      });
+      // 영상 디코딩 실패(HEVC 미지원 등)를 직접 잡아 사용자에게 명확히 안내한다.
+      video.addEventListener("error", () => {
+        if (!selectedFile) return;
+        setProgress(0, "영상을 재생·디코딩할 수 없습니다. HEVC(H.265) 등 미지원 형식일 수 있으니 H.264(MP4)로 변환 후 다시 시도하세요.");
+        renderReport([
+          { type: "bad", text: "영상을 디코딩할 수 없어 분석을 시작할 수 없습니다. 이 브라우저가 지원하지 않는 코덱(예: HEVC/H.265)일 가능성이 높습니다." },
+          { type: "caution", text: "H.264(MP4)로 변환해 다시 올리면 분석됩니다. 같은 영상을 H.264로 변환한 뒤 시도해 보세요." }
+        ]);
+        analyzeBtn.disabled = true;
+        reanalyzeBtn.disabled = true;
       });
       poomsaeSelect.addEventListener("change", () => {
         showTrainingPage();
@@ -4183,6 +4592,14 @@
       });
       loopVideoToggle.addEventListener("change", () => {
         video.loop = loopVideoToggle.checked && !mainReplayRange;
+      });
+      gangyuToggle.addEventListener("change", () => {
+        gangyuMode = gangyuToggle.checked;
+        // 이미 분석 결과가 있으면 다시 그려 강유 표시를 즉시 반영한다.
+        if (latestReport && latestReport.segments) {
+          renderSegments(latestReport.segments);
+          renderReport(latestReport.summary.items);
+        }
       });
       video.addEventListener("timeupdate", () => {
         if (!mainReplayRange) return;

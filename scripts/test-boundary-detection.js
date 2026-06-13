@@ -1,24 +1,24 @@
-// 경계 탐지(valley prominence) 정확도 회귀 테스트.
-// index.html의 refineSegmentBoundaries와 동일한 로직을 합성 데이터로 검증한다.
+// 경계 탐지(valley 자연 구간) + 동작 길이비례 배분 회귀 테스트.
+// index.html의 실제 함수를 추출해 합성 데이터로 검증한다.
 const fs = require("fs");
 const path = require("path");
 
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
-// index.html에서 refineSegmentBoundaries 본문을 추출해 실행(소스 드리프트 방지).
 const html = fs.readFileSync(path.join(__dirname, "..", "www", "index.html"), "utf8");
-const startMarker = "function refineSegmentBoundaries(duration";
-const startIdx = html.indexOf(startMarker);
-if (startIdx === -1) { console.error("refineSegmentBoundaries 함수를 찾지 못했습니다."); process.exit(1); }
-// 함수 끝(균형 잡힌 중괄호) 찾기
-let depth = 0, i = html.indexOf("{", startIdx), end = -1;
-for (; i < html.length; i++) {
-  if (html[i] === "{") depth++;
-  else if (html[i] === "}") { depth--; if (depth === 0) { end = i + 1; break; } }
+function extract(sig) {
+  const s = html.indexOf(sig);
+  if (s === -1) { console.error("함수를 찾지 못함:", sig); process.exit(1); }
+  let d = 0, i = html.indexOf("{", s), e = -1;
+  for (; i < html.length; i++) { if (html[i] === "{") d++; else if (html[i] === "}") { d--; if (d === 0) { e = i + 1; break; } } }
+  return html.slice(s, e);
 }
-const fnSource = html.slice(startIdx, end);
-// eslint-disable-next-line no-new-func
-const refineSegmentBoundaries = new Function("clamp", `${fnSource}; return refineSegmentBoundaries;`)(clamp);
+const fns = new Function("clamp",
+  extract("function detectActiveMotionRange(duration") + "\n" +
+  extract("function detectNaturalBoundaries(duration") + "\n" +
+  extract("function allocateMovementsToSegments(boundaries") + "\n" +
+  "return { detectActiveMotionRange, detectNaturalBoundaries, allocateMovementsToSegments };"
+)(clamp);
 
 function synth(trueBoundaries, dur, rate, noise, stopDepth) {
   const samples = [];
@@ -32,57 +32,87 @@ function synth(trueBoundaries, dur, rate, noise, stopDepth) {
   }
   return samples;
 }
-function maxErr(pred, truth) {
-  const tIn = truth.slice(1, -1), pIn = pred.slice(1, -1);
-  let max = 0;
-  for (const tb of tIn) { const nearest = Math.min(...pIn.map((p) => Math.abs(p - tb))); max = Math.max(max, nearest); }
-  return max;
-}
-function avgErr(pred, truth) {
-  const tIn = truth.slice(1, -1), pIn = pred.slice(1, -1);
-  let sum = 0;
-  for (const tb of tIn) sum += Math.min(...pIn.map((p) => Math.abs(p - tb)));
-  return sum / tIn.length;
-}
 
 let fail = 0;
 function check(cond, msg) { console.log((cond ? "OK  " : "FAIL ") + msg); if (!cond) fail++; }
 
-// 불균등 동작에서 평균 경계오차가 충분히 작아야 한다(여러 번 평균).
-// 임계값은 스캔 밀도(3.5/초 ≈ 0.29초 간격)의 물리적 한계를 반영한 정직한 값이며,
-// 옛 균등분할 알고리즘으로 되돌리면 평균오차가 커져 실패하도록 설정했다.
-const scenarios = [
-  { name: "균등", b: [0, 2, 4, 6, 8, 10], dur: 10, thresh: 0.25 },
-  { name: "앞 길고 뒤 짧음", b: [0, 4, 5, 6, 7, 10], dur: 10, thresh: 0.25 },
-  { name: "중간에 긴 동작", b: [0, 1.5, 3, 7, 8.5, 10], dur: 10, thresh: 0.20 },
-  { name: "극단적 불균등", b: [0, 0.8, 1.6, 7, 8, 10], dur: 10, thresh: 0.28 },
-];
-const runs = 200;
-for (const sc of scenarios) {
-  let total = 0;
-  for (let r = 0; r < runs; r++) {
-    const samples = synth(sc.b, sc.dur, 3.5, 0.05, 0.55);
-    const pred = refineSegmentBoundaries(sc.dur, sc.b.length - 1, samples, 0.95, 0, sc.dur);
-    total += avgErr(pred, sc.b);
+// 1) 자연 경계 수는 동작 수를 넘지 않고 단조 증가한다.
+{
+  const dur = 10, mv = 18;
+  const samples = synth([0, 4, 5, 6, 7, 10], dur, 3.5, 0.05, 0.55);
+  const ar = fns.detectActiveMotionRange(dur, samples);
+  const b = fns.detectNaturalBoundaries(dur, samples, 0.95, ar.start, ar.end, mv);
+  check(b.length - 1 <= mv && b.length - 1 >= 1, `자연 구간 수(${b.length - 1})가 1~${mv} 범위`);
+  check(b.every((v, k) => k === 0 || v > b[k - 1]), "경계 단조 증가 보장");
+}
+
+// 2) 동작 배분: 합이 정확히 동작 수, 각 구간 최소 1개, 순서 보존.
+{
+  for (const segN of [3, 8, 14, 18]) {
+    const bounds = Array.from({ length: segN + 1 }, (_, i) => i * (10 / segN));
+    const alloc = fns.allocateMovementsToSegments(bounds, 18);
+    const flat = alloc.flat();
+    const sumOk = flat.length === 18;
+    const minOne = alloc.every((a) => a.length >= 1);
+    const ordered = flat.every((v, i) => i === 0 || v === flat[i - 1] + 1);
+    check(sumOk && minOne && ordered, `구간 ${segN}개: 동작 18개 빠짐없이·순서대로·각 구간 최소1개 배분`);
   }
-  const mean = total / runs;
-  check(mean <= sc.thresh, `[${sc.name}] 평균 경계오차 ${mean.toFixed(2)}s ≤ ${sc.thresh}s`);
 }
 
-// 폴백: 정지가 거의 없어도 정확히 segmentCount+1개 경계를 단조 증가로 반환해야 한다(절대 실패 금지).
-for (const stop of [0.5, 0.2, 0.05, 0.0]) {
-  const b = [0, 4, 5, 6, 7, 10];
-  const samples = synth(b, 10, 3.5, 0.05, stop);
-  const pred = refineSegmentBoundaries(10, 5, samples, 0.95, 0, 10);
-  const monotonic = pred.every((v, k) => k === 0 || v > pred[k - 1]);
-  check(pred.length === 6 && monotonic, `정지깊이 ${stop}: 경계 6개·단조 증가 보장`);
+// 3) 긴 구간에 더 많은 동작이 배분된다(길이 비례).
+{
+  const bounds = [0, 6, 7, 8, 9, 10];
+  const alloc = fns.allocateMovementsToSegments(bounds, 18);
+  const longestGetsMost = alloc[0].length === Math.max(...alloc.map((a) => a.length));
+  check(longestGetsMost, `긴 구간에 가장 많은 동작 배분(${alloc.map((a) => a.length).join(",")})`);
 }
 
-// 경계 신뢰도 메타가 기록되어야 한다.
-const samples = synth([0, 2, 4, 6, 8, 10], 10, 3.5, 0.05, 0.55);
-refineSegmentBoundaries(10, 5, samples, 0.95, 0, 10);
-const conf = refineSegmentBoundaries.lastConfidence;
-check(conf && Number.isFinite(conf.strongValleys) && Number.isFinite(conf.filledUniform), "경계 신뢰도(valley 수·균등 추정 수) 기록");
+// 4) 멈춤이 거의 없어도 안전하게 구간 생성·전체 동작 배분(실패 금지).
+{
+  const dur = 10;
+  for (const stop of [0.5, 0.2, 0.05, 0.0]) {
+    const samples = synth([0, 4, 5, 6, 7, 10], dur, 3.5, 0.05, stop);
+    const ar = fns.detectActiveMotionRange(dur, samples);
+    const b = fns.detectNaturalBoundaries(dur, samples, 0.95, ar.start, ar.end, 18);
+    const alloc = fns.allocateMovementsToSegments(b, 18);
+    check(b.length >= 2 && alloc.flat().length === 18, `정지깊이 ${stop}: 구간 생성·동작 18개 전부 배분`);
+  }
+}
 
-console.log(fail ? `\n실패 ${fail}건` : "\n경계 탐지 회귀 테스트 통과");
+
+// 5) 하이브리드 B: 긴 구간에 얕은 valley가 있으면 추가 분할된다.
+{
+  const dur = 12;
+  // 0~6s에 약한 멈춤(valley) 하나, 6~12s 정상 동작. 강한 임계는 못 넘지만 국소최저점은 존재.
+  const samples = [];
+  for (let t = 0; t <= dur; t += 0.29) {
+    let m = 0.6;
+    if (Math.abs(t - 3) < 0.3) m = 0.45;      // 얕은 valley @3s
+    if (Math.abs(t - 8) < 0.3) m = 0.05;      // 깊은 valley @8s
+    samples.push({ time: t, motion: m + (Math.random() - 0.5) * 0.03, valid: true });
+  }
+  const ar = fns.detectActiveMotionRange(dur, samples);
+  const b = fns.detectNaturalBoundaries(dur, samples, 0.95, ar.start, ar.end, 6);
+  // 깊은 valley(8s) + 얕은 valley(3s) 분할로 내부 경계가 2개 이상이어야 함
+  const internal = b.length - 2;
+  check(internal >= 2, `하이브리드 B: 긴 구간이 얕은 valley로 추가 분할됨(내부 경계 ${internal}개)`);
+}
+
+// 6) 하이브리드: valley가 전혀 없는 긴 연속 구간은 분할하지 않고 묶음으로 남긴다(가짜 경계 금지).
+{
+  const dur = 12;
+  const samples = [];
+  for (let t = 0; t <= dur; t += 0.29) {
+    // 단조 증가 후 단조 감소(중간 valley 없음) — 가짜로 쪼개면 안 됨
+    const m = 0.6 - Math.abs(t - 6) * 0.02;
+    samples.push({ time: t, motion: Math.max(0.1, m), valid: true });
+  }
+  const ar = fns.detectActiveMotionRange(dur, samples);
+  const b = fns.detectNaturalBoundaries(dur, samples, 0.95, ar.start, ar.end, 6);
+  const alloc = fns.allocateMovementsToSegments(b, 6);
+  // 동작은 6개 전부 배분되고(묶음 허용), 경계가 동작 수를 넘지 않음
+  check(alloc.flat().length === 6 && (b.length - 1) <= 6, "하이브리드: valley 없는 연속구간은 가짜 분할 없이 묶음 처리");
+}
+
+console.log(fail ? `\n실패 ${fail}건` : "\n경계 탐지·동작 배분 회귀 테스트 통과");
 process.exit(fail ? 1 : 0);
