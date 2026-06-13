@@ -288,11 +288,11 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v5-local-serif", "www 직접 배포용 로컬 명조 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v6-offline-engine", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
-assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-local-serif-v3", "최상단 배포용 로컬 명조 서비스워커 존재");
+assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v4", "최상단 배포용 오프라인 엔진 서비스워커 존재");
 assertContains(readUtf8(rootManifestPath), "app-icon-192.png", "최상단 manifest에 192 아이콘 등록");
 assertContains(readUtf8(rootManifestPath), "app-icon-512.png", "최상단 manifest에 512 아이콘 등록");
 assertContains(readUtf8(path.join(root, "www", "manifest.webmanifest")), "app-icon-192.png", "www manifest에 192 아이콘 등록");
@@ -400,6 +400,11 @@ assertFileExists(path.join(root, "www", "assets", "fonts", "NotoSerifKR-SemiBold
 assertFileExists(path.join(root, "www", "assets", "fonts", "NotoSerifKR-Bold.woff2"), "로컬 명조 Bold 파일 존재");
 assertFileExists(path.join(root, "www", "assets", "fonts", "NotoSerifKR-Black.woff2"), "로컬 명조 Black 파일 존재");
 assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "assets/fonts/NotoSerifKR-Bold.woff2", "서비스워커에 로컬 명조 오프라인 캐시 등록");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "models/pose_landmarker_lite.task", "www 서비스워커에 포즈 모델 오프라인 캐시 등록");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "vision_wasm_internal.wasm", "www 서비스워커에 MediaPipe WASM 오프라인 캐시 등록");
+assertContains(readUtf8(rootServiceWorkerPath), "www/models/pose_landmarker_lite.task", "최상단 서비스워커에 포즈 모델 오프라인 캐시 등록");
+assertContains(readUtf8(rootServiceWorkerPath), "vision_wasm_internal.wasm", "최상단 서비스워커에 MediaPipe WASM 오프라인 캐시 등록");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "cache.put(event.request", "오프라인 엔진 런타임 캐시 저장 로직 존재");
 assertContains(webHtml, "id=\"themeToggle\"", "다크·라이트 테마 토글 버튼 존재");
 assertContains(webHtml, "poomsae-theme", "테마 선택 저장 키 존재");
 assertContains(webHtml, "data-theme=\"light\"", "라이트 테마 토큰 정의 존재");

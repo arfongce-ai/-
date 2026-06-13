@@ -1446,7 +1446,7 @@
       }
       html[data-theme="light"] body { background-blend-mode: multiply, normal, normal, normal; }
 
-      /* ── 헤더: 품세 한자 워터마크 + 단청 띠 ── */
+      /* ── 헤더: 품새 한자 워터마크 + 단청 띠 ── */
       header {
         position: relative;
         overflow: hidden;
@@ -1750,6 +1750,53 @@
       main.app-view > .grid > section:nth-child(2) { animation-delay: .06s; }
       main.app-view > section:nth-child(2) { animation-delay: .1s; }
       main.app-view > section:nth-child(3) { animation-delay: .16s; }
+      /* ── 카메라 촬영 가이드 ── */
+      .camera-view-guide { line-height: 1.5; }
+      .cv-title {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 16px;
+        color: var(--brand-strong);
+        margin: 0 0 6px;
+      }
+      .cv-guide-text { margin: 0 0 10px; font-size: 14px; color: var(--text); }
+      .cv-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+      .cv-badge {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.3;
+      }
+      .cv-best {
+        background: color-mix(in srgb, var(--good, #2e7d32) 16%, transparent);
+        color: var(--good, #2e7d32);
+        border: 1px solid color-mix(in srgb, var(--good, #2e7d32) 40%, transparent);
+      }
+      .cv-weak {
+        background: color-mix(in srgb, var(--gold, #c79a3a) 16%, transparent);
+        color: var(--gold, #c79a3a);
+        border: 1px solid color-mix(in srgb, var(--gold, #c79a3a) 40%, transparent);
+      }
+      .cv-checklist {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 8px;
+      }
+      .cv-checklist li {
+        background: var(--panel-2);
+        border: 1px solid var(--panel-line);
+        border-radius: var(--radius-sm, 10px);
+        padding: 10px 12px;
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--text);
+      }
+      .camera-view-tab strong { font-size: 15px; }
+      .camera-view-tab span { font-size: 11px; }
     </style>
   </head>
   <body>
@@ -1792,6 +1839,28 @@
               <p class="small">본 프로그램은 개인품새 수련을 위한 참고용입니다.</p>
             </div>
           </details>
+          <div class="field-label">촬영 방식 <span>카메라 각도에 따라 분석 강점이 달라집니다</span></div>
+          <div class="poomsae-tabs mode-tabs camera-view-tabs" role="tablist" aria-label="촬영 방식">
+            <button type="button" class="poomsae-tab mode-tab camera-view-tab active" data-view="front">
+              <strong>정면 1대</strong>
+              <span>좌우 대칭·균형에 강함</span>
+            </button>
+            <button type="button" class="poomsae-tab mode-tab camera-view-tab" data-view="diagonal">
+              <strong>대각선 1대</strong>
+              <span>중심이동·궤적에 강함</span>
+            </button>
+            <button type="button" class="poomsae-tab mode-tab camera-view-tab" data-view="dual">
+              <strong>두 대 융합</strong>
+              <span>정면+대각선 함께 분석</span>
+            </button>
+          </div>
+          <div class="code camera-view-guide" id="cameraViewGuide" style="margin-top:10px;"></div>
+
+          <details class="program-guide camera-view-checklist" id="cameraViewChecklist" style="margin-top:10px;">
+            <summary>이 촬영 방식 체크리스트</summary>
+            <div class="program-guide-body" id="cameraViewChecklistBody"></div>
+          </details>
+
           <div class="field-label">훈련 목적 <span>리포트의 방식이 달라집니다</span></div>
           <div class="poomsae-tabs mode-tabs" role="tablist" aria-label="훈련 목적">
             <button type="button" class="poomsae-tab mode-tab" data-mode="exam">
@@ -1820,6 +1889,10 @@
             <select id="poomsaeSelect" aria-label="품새 선택">
             </select>
             <input id="fileInput" type="file" accept="video/mp4,video/*" />
+          </div>
+          <div class="control-grid dual-only" id="fileInputBWrap" hidden style="margin-top:8px;">
+            <div class="field-label" style="margin:0;align-self:center;">대각선 영상 <span>두 번째 카메라</span></div>
+            <input id="fileInputB" type="file" accept="video/mp4,video/*" />
           </div>
           <div class="field-label">구간 감지 민감도 <span>동작 전환점이 잘못 잡히면 높여 보세요</span></div>
           <select id="boundarySensitivitySelect" aria-label="구간 감지 민감도">
@@ -2006,22 +2079,6 @@
             ["final_front_punch_kihap", "전방 몸통지르기 및 기합", "punch"]
           ].map(([id, name, type]) => ({ id, name, type }))
         },
-        taegeuk_2: { name: "태극 2장", count: 18, note: "이미지 참고 기술명 데이터", techniques: ["시선먼저가기", "왼 앞서기 아래막기", "오른 앞굽이 몸통반대지르기", "오른 앞서기 아래막기", "왼 앞굽이 몸통반대지르기", "왼 앞서기 몸통안막기", "오른 앞서기 몸통안막기", "왼 앞굽이 아래막기", "오른발 앞차고 얼굴반대지르기", "오른 앞서기 아래막기", "왼 앞서기 얼굴반대지르기", "왼 앞굽이 아래막기", "오른 앞굽이 몸통안막기", "오른 앞서기 몸통안막기", "왼 앞서기 몸통반대지르기", "오른 앞서기 몸통반대지르기", "오른 앞굽이 몸통반대지르기", "기합"] },
-        taegeuk_3: { name: "태극 3장", count: 20, note: "이미지 참고 기술명 데이터", techniques: ["왼 앞서기 아래막기", "오른발 앞차고 몸통두번지르기", "오른 앞서기 아래막기", "왼발 앞차고 몸통두번지르기", "왼 손날목치기", "오른 앞서기 손날목치기", "오른 앞굽이 몸통바로지르기", "반대방향 왼 제자리 한손날몸통바깥막기", "연속으로 오른발 반걸음 밀고나가 몸통바로지르기", "정면 왼 앞굽이 몸통안막기", "오른발 앞차고 몸통안막기", "뒤돌아 왼 앞굽이 몸통안막기", "오른발 앞차고 몸통두번지르기", "오른발 옮겨 뒤로 왼 앞서기 아래막기", "왼 앞차고 몸통두번지르기", "왼 앞굽이 아래막기", "오른 앞서기 아래막기", "오른 앞차고 몸통두번지르기", "기합", "왼발 끌어 정면 기본준비서기"] },
-        taegeuk_4: { name: "태극 4장", count: 20, note: "이미지 참고 기술명 데이터", techniques: ["왼 뒷굽이 손날몸통막기", "오른발 앞차고 편손끝세워찌르기", "오른 뒷굽이 손날몸통막기", "왼발 앞차고 편손끝세워찌르기", "오른 뒤돌아 제비품목치기", "왼 앞차고 몸통바로지르기", "왼 옆차기", "오른 옆차기", "왼 뒷굽이 손날몸통막기", "오른 앞굽이 몸통바로지르기", "오른 뒷굽이 손날몸통막기", "왼 앞굽이 몸통바로지르기", "오른 앞굽이 등주먹앞치기", "왼 앞굽이 몸통바로지르기", "오른 앞굽이 몸통안막기", "오른 앞차고 등주먹앞치기", "왼 앞굽이 몸통안막기", "왼 앞차고 몸통두번지르기", "기합", "왼발 돌아 기본준비서기"] },
-        taegeuk_5: { name: "태극 5장", count: 20, note: "이미지 참고 기술명 데이터", techniques: ["왼 앞굽이 아래막기", "왼 한걸음 끌어당겨 메주먹내려치기", "오른 앞굽이 아래막기", "오른 한걸음 끌어당겨 메주먹내려치기", "왼 앞굽이 몸통안막기", "오른 앞차고 등주먹앞치기", "왼 앞굽이 몸통안막기", "왼 앞차고 등주먹앞치기", "오른 등주먹앞치기", "왼 앞굽이 한손날바깥막기", "오른 앞굽이 팔굽돌려치기", "오른 한손날바깥막기", "왼 앞굽이 팔굽돌려치기", "오른 손날몸통막기", "왼 앞굽이 몸통안막기", "오른 옆차고 팔굽표적치기", "왼 얼굴막기", "오른 앞차고 아래막기", "오른 앞차고 몸통안막기", "기합"] },
-        taegeuk_6: { name: "태극 6장", count: 19, note: "이미지 참고 기술명 데이터", techniques: ["왼 앞굽이 아래막기", "오른 앞차고 몸통바깥막기", "오른 앞굽이 아래막기", "왼 앞차고 몸통바깥막기", "정면 왼 앞굽이 한손날얼굴비틀어막기", "오른발 돌려차고 한걸음 반 내리기", "왼 앞굽이 얼굴바깥막기", "오른 앞굽이 몸통바로지르기", "왼 앞굽이 아래헤쳐막기", "왼 앞굽이 얼굴비틀어막기", "왼발 돌려차고 한걸음 내리기", "오른 앞굽이 얼굴바깥막기", "왼 앞굽이 몸통바로지르기", "오른 손날등몸통막기", "왼 앞굽이 몸통바로지르기", "왼 손날등몸통막기", "오른 앞굽이 몸통바로지르기", "왼발 끌어 기본준비서기", "마무리"] },
-        taegeuk_7: { name: "태극 7장", count: 25, note: "이미지 참고 기술명 데이터", techniques: ["왼 범서기 바탕손몸통안막기", "오른발 앞차고 오른 범서기 몸통막기", "오른 범서기 바탕손몸통안막기", "왼발 차고 오른 범서기 몸통막기", "정면 오른 손날아래막기", "왼발 내려 손날아래막기", "왼 보주먹", "등주먹앞치기", "오른 앞굽이 가위막기", "오른 앞차고 무릎치기", "두주먹젖혀지르기", "왼 앞굽이 엇걸어아래막기", "오른 옆차고 표적치기", "오른 앞굽이 엇걸어아래막기", "왼 옆차고 두주먹젖혀지르기", "오른 앞굽이 엇걸어아래막기", "왼 앞굽이 등주먹바깥치기", "오른 표적차고 주춤서기 팔굽표적치기", "제자리 한손날몸통막기", "왼손 잡아끌며 오른발 주춤서기 몸통옆지르기", "기합", "왼발 끌어 기본준비서기", "앞차고 안막기 확인", "가위막기 확인", "보주먹 확인"] },
-        taegeuk_8: { name: "태극 8장", count: 27, note: "이미지 참고 기술명 데이터", techniques: ["왼 앞굽이 몸통거들어바깥막기", "반걸음 내디뎌 오른 앞굽이 몸통반대지르기", "두발 제자리 오른발 앞차며 두 주먹 엇지르기", "한걸음 앞으로 내려 몸통막기", "몸통두번지르기", "오른 앞굽이 몸통반대지르기", "오른 앞굽이 외산틀막기", "두 다리 제자리 왼 앞굽이 당겨턱지르기", "오른 앞굽이 외산틀막기", "오른 앞굽이 당겨턱지르기", "왼 앞꼬아서기 후 오른 범서기 바탕손 몸통막기", "왼 범서기 손날막기", "왼 앞굽이 몸통막기", "오른 앞굽이 몸통바로지르기", "오른 범서기 바탕손몸통막기", "왼 범서기 손날막기", "왼 앞굽이 얼굴바깥막기", "왼 앞굽이 몸통지르기", "오른 앞차고 오른 앞굽이 몸통반대지르기", "방향 바꿔 오른 범서기 손날막기", "오른 앞차고 몸통바로지르기", "오른 앞굽이 몸통바로지르기", "오른발 돌려 비틀어 앞차기", "왼 앞굽이 한손날바깥막기", "왼 앞굽이 오른 팔굽돌려치기", "왼 앞굽이 몸통반대지르기", "기본준비서기"] },
-        koryo: { name: "고려", count: 30, note: "이미지 참고 기술명 데이터", techniques: ["통밀기", "왼 손날막기", "오른발 거듭옆차기", "오른 앞굽이 손날바깥치기", "오른손 허리잡아 몸통바로지르기", "오른발 뒤로 끌어 몸통막기", "오른발 옮겨 손날막기", "왼 손날아래막기", "오른 안손날아래막기", "오른 아귀손칼재비", "기합", "오른 앞차고 무릎꺾기", "오른 앞굽이 안팔목몸통헤쳐막기", "왼 한손날아래막기", "오른 아귀손칼재비", "오른 앞차고 무릎꺾기", "왼 앞굽이 안팔목몸통헤쳐막기", "두발 제자리 주춤서기 표적치기", "왼 앞굽이 팔굽표적치기", "오른발 옆차고 편손끝아래젖혀찌르기", "왼 앞꼬아서기 날개펴기", "오른 한걸음 몸통막기", "오른발 옆차고 오른발 제자리", "왼 한걸음 내딛어 손날아래막기", "오른발 끌어 두발 중심 모아 주먹 아래치기", "오른팔굽열치기", "오른팔 끌어 주춤서기", "왼발 내려 제쳐지르기", "오른발 끌어 모아서기", "왼발 끌어 정면 통밀기 준비서기"] },
-        keumgang: { name: "금강", count: 27, note: "이미지 참고 기술명 데이터", techniques: ["왼 앞굽이 안팔목몸통헤쳐막기", "오른 바탕손턱치기", "오른 한손날몸통막기", "오른발 뒤로 물러 한손날몸통막기", "학다리서기 금강막기", "오른발 뒤로 물러 한손날몸통막기", "학다리서기 금강막기", "왼내려딛기 주춤서기 큰돌쩌귀", "몸을 왼쪽으로 돌려 오른발 왼발모아 큰돌쩌귀", "주춤서기 산틀막기", "오른발 축 왼발 옮겨 산틀막기", "오른발 축 왼발 옮겨 주춤서기 안팔목몸통헤쳐막기", "왼 한발 나란히서기 아래헤쳐막기", "왼발 들어 방향바꾸기", "두발모아 주춤서기 산틀막기", "시선 이동 후 한 다리 금강서기", "오른발 옮겨 디디며 주춤서기 큰돌쩌귀", "왼발제자리 한학다리 금강서기", "큰돌쩌귀", "금강서기 산틀막기", "오른발 축 왼발 들어 내려 안팔목몸통헤쳐막기", "왼발 축 오른발 옮겨 주춤서기 산틀막기", "왼쪽으로 돌아 산틀막기", "오른발 찌찡으며 산틀막기", "오른발축 왼쪽으로 돌려 금강서기", "왼발 끌어 주춤서기 큰돌쩌귀", "기본준비서기"] },
-        taebaek: { name: "태백", count: 26, note: "이미지 참고 기술명 데이터", techniques: ["왼 범서기 손날아래헤쳐막기", "오른 앞차고 편손끝찌르기", "오른 범서기 손날아래헤쳐막기", "왼 앞차고 편손끝찌르기", "오른 주먹 제비품목치기", "왼 앞굽이 몸통바로지르기", "오른발 뒤로 돌아 오른 뒷굽이 금강몸통막기", "당겨턱지르기", "몸통지르기", "오른 작은돌쩌귀", "왼 작은돌쩌귀", "오른 앞굽이 몸통바로지르기", "기합", "오른 금강몸통막기", "당겨턱지르기", "몸통지르기", "오른 작은돌쩌귀", "오른 손날막기", "오른발 차고 손날막기", "오른 손날목밀어빼기", "왼발을 틀어 산틀막기", "오른발 몸통바깥막기", "왼 앞차고 오른발 몸통바깥막기", "오른발 앞차고 두번지르기", "왼 앞차고 몸통두번지르기", "왼발 끌어 기본준비서기"] },
-        pyongwon: { name: "평원", count: 21, note: "이미지 참고 기술명 데이터", techniques: ["모아겹손준비서기", "왼발 한발뒤로 나란히서기 손날아래헤쳐막기", "오른 뒷굽이 한손날몸통막기", "오른 팔굽올려치기", "오른발 앞차고 왼 앞굽이 손날목치기", "왼 앞굽이 아래막기", "오른발 들어 한손날아래막기", "오른발 들어 앞차며 주춤서기 오른 등주먹당겨턱치기", "오른발 물러 왼학다리서기 금강막기", "오른발 옆차고 왼 앞굽이 팔굽올려치기", "왼발 앞차고 오른 옆차고 손날목치기", "주춤서기 얼굴거들어옆막기", "주춤서기 얼굴거들어옆막기", "오른발 옮겨 앞꼬아서기 명치치기", "왼발 주춤서기 헤쳐산틀막기", "오른발 공중차기", "오른허리 작은돌쩌귀", "옆차는 동시에 왼손 바깥치고 내려딛기", "오른 앞차고 팔굽표적치기", "왼발 모듬발 겹손준비서기", "마무리"] },
-        sipjin: { name: "십진", count: 28, note: "이미지 참고 기술명 데이터", techniques: ["두발 나란히서기 두 주먹 올려 황소막기", "두 주먹 앞옆으로 제치기", "왼발 옮겨 바깥팔목거들어막기", "왼주먹 펴고 오른손끝 엎어찌르기", "몸통 두번지르기", "오른손 힘주어 손목 안으로 틀기", "오른 한발 이동 후 주춤서기 해산틀막기", "오른발 딛고 주춤서기", "왼발 모듬발 모아서기", "오른발 한발 옮겨 바위밀기", "나선 오른발 끌어 주춤서기 멍에치기", "오른발 몸통거들어바깥막기", "오른발 밀고 나가 손끝 엎어찌르기", "몸통 두번지르기", "왼발내딛어 주춤서기 해산틀막기", "왼발 옮겨 주춤서기 몸통지르기", "손날 아래막기", "오른발 앞으로 내딛고 바위밀기", "오른 앞차고 몸통지르기", "팔굽올려치기", "왼발 뒤로 끌어 앞서기 손날등체쳐막기", "두다리 무릎 서기 손날아래헤쳐막기", "두다리 무릎 서기 손날아래헤쳐막기", "왼발 밀어 바위밀기", "왼발 뒤로 끌어 한손날아래막기", "오른발 내디뎌 손날등체쳐막기", "오른발 내딛어 왼발끌기", "기본준비서기"] },
-        jitae: { name: "지태", count: 28, note: "이미지 참고 기술명 데이터", techniques: ["기본준비서기", "오른 뒷굽이 안팔목몸통바깥막기", "오른 앞굽이 얼굴막기 이어 몸통바로지르기", "오른 뒷굽이 한손날얼굴막기", "왼발 내디뎌 원산손날얼굴막기", "오른발 앞차고 왼손받쳐 지르기", "오른발 뒤로 물러 원산손날얼굴막기", "오른발 앞차고 오른손받쳐 지르기", "왼발 앞꼬아서기 얼굴막기", "오른발 내디뎌 금강앞지르기", "몸통안막기", "몸통거들어막기", "오른 뒷굽이 한손날아래막기", "오른 앞차고 팔굽표적치기", "오른 학다리 손날아래막기", "왼 앞서기 몸통바로지르기", "오른 앞굽이 몸통반대지르기", "기합", "오른 앞굽이 손날아래막기", "오른 뒷굽이 한손날아래막기", "오른발 옮겨 손날아래막기", "왼발 끌어 왼굽이 손날아래막기", "오른발 내디뎌 금강앞지르기", "몸통안막기", "몸통거들어막기", "오른 앞차고 손날아래막기", "오른발 옮겨 손날아래막기", "기본서기"] },
-        cheonkwon: { name: "천권", count: 26, note: "이미지 참고 기술명 데이터", techniques: ["두 다리 제자리 모아서 날개펴기", "왼발 뒤로 물러 디딤 숨을지르기", "날개펴기하되 장골능 지나 숨을지르기", "오른발 제자리 앞주먹 내디뎌 오른팔 펴기", "왼발 모아산틀막기", "오른팔 잡아당기기", "오른팔 내디뎌 몸통반대지르기", "왼발 옆으로 받아치며 몸통반대지르기", "왼 앞굽이 한손날비틀어막기", "오른발 내디뎌 지르기", "오른발 뒤로 물러 원산손날얼굴막기", "오른 앞차고 오른손받쳐 지르기", "왼발 내려 몸통바로지르기", "원산손날얼굴막기", "왼발 끌어 디뎌 지르기", "금강옆지르기", "몸을 띄워 왼쪽으로 돌며 표적차고 주춤서기", "금강옆지르기", "오른 뒷굽이 손날외산틀막기", "방향 바꾸어 오른발 끌어오며 오른발앞으로 내디뎌 오른범서기 태산밀기", "오른발 걸어들여 모아서기", "두팔 원 그렸다가 왼발 앞으로 내밀며 왼범서기 태산밀기", "왼발 끌어 모아서기", "오른발 끌어 기본준비서기", "하늘 방향 마무리", "기합"] },
-        hansu: { name: "한수", count: 27, note: "이미지 참고 기술명 데이터", techniques: ["모아서기 겹손준비서기", "왼발 내디뎌 왼손날등몸통헤쳐막기", "오른 뒷굽이 두메주먹옆구리지르기", "두레 손 빼는동작", "두 손목 젖혀지르기", "오른 앞굽이 외산틀막기", "두다리 제자리 얼굴바라지르기", "오른 앞굽이 이음통바로지르기", "오른 앞굽이 외산틀막기", "왼 앞굽이 몸통바로지르기", "오른발 내디뎌 오른손날등몸통헤쳐막기", "오른발 뛰어나가 디딤걸다리치기", "오른갈라디디기 두주먹젖혀지르기", "오른발 제자리 일발 뒤로 물러 추춤서기", "팔목표적치기", "시선 이동 후 디딤 안팔목젖혀치기", "왼발 끌어올려 오른학다리 작은돌쩌귀", "왼발 앞차고 왼앞굽이 제비목치기", "오른발 앞차고 동주먹앞치기", "오른발 뒤로 물러 주춤서기 안팔목감아막기", "바라보며 오른발 제자리", "오른발 뒤로 물러 손날감아막기", "오른 앞굽이 오른발 표적차기", "왼발 두드려 디디며 왼손날금강막기", "오른 앞굽이 오른손날등몸통헤쳐막기", "왼발 제자리 가방향 바라보며 겹손준비서기", "마무리"] },
-        ilyeo: { name: "일여", count: 23, note: "이미지 참고 기술명 데이터", techniques: ["모아서기 보주먹준비서기", "왼발 내디뎌 오른 뒷굽이 손날막기", "오른발 내디뎌 오른 앞굽이 몸통반대지르기", "다방향 왼발 옮겨 손날막기", "오른발 옆차고 손날막기", "왼발 향해 뛰어넘어 다다닥 앞차기", "왼발 향해 뛰어넘어 다다닥 앞차기", "오른발 뛰어 차기", "오른손 끝몸통세워찌르기", "기합", "오른발 내디뎌 오른 앞굽이 얼굴막기", "오른손칼재비", "왼발 내디뎌 한손날아래막기", "오른발 뛰어 엇차고 한손날아래막기", "왼발 옮겨 오른손날목막기", "가1방향 오른발 뛰어 연차기", "오른발 앞차고 오른손날목막기", "오른발 뛰어 연차기", "다1방향 오른발 제자리 한손날아래막기", "왼발 들어 표적차고 왼발 앞서기 두주먹 허리서기", "오른발 앞차고 한걸음 내려 틀며 몸 바꾸어 뛰어 옆차기", "오른발 끌어 모아서기", "기본준비서기"] }
       };
 
       Object.assign(poomsaeData, {
@@ -2033,13 +2090,13 @@
         taegeuk_7: { name: "태극 7장", count: 25, note: "이미지 참고 기술명 데이터", techniques: ["왼 범서기 바탕손몸통안막기", "오른발 앞차고 오른 범서기 몸통막기", "오른 범서기 바탕손몸통안막기", "왼발 차고 오른 범서기 몸통막기", "정면 오른 손날아래막기", "왼발 내려 손날아래막기", "왼 보주먹", "등주먹앞치기", "오른 앞굽이 가위막기", "오른 앞차고 무릎치기", "두주먹젖혀지르기", "왼 앞굽이 엇걸어아래막기", "오른 옆차고 표적치기", "오른 앞굽이 엇걸어아래막기", "왼 옆차고 두주먹젖혀지르기", "오른 앞굽이 엇걸어아래막기", "왼 앞굽이 등주먹바깥치기", "오른 표적차고 주춤서기 팔굽표적치기", "제자리 한손날몸통막기", "왼손 잡아끌며 오른발 주춤서기 몸통옆지르기", "기합", "왼발 끌어 기본준비서기", "앞차고 안막기 확인", "가위막기 확인", "보주먹 확인"] },
         taegeuk_8: { name: "태극 8장", count: 27, note: "이미지 참고 기술명 데이터", techniques: ["왼 앞굽이 몸통거들어바깥막기", "반걸음 내디뎌 오른 앞굽이 몸통반대지르기", "두발 제자리 오른발 앞차며 두 주먹 엇지르기", "한걸음 앞으로 내려 몸통막기", "몸통두번지르기", "오른 앞굽이 몸통반대지르기", "오른 앞굽이 외산틀막기", "두 다리 제자리 왼 앞굽이 당겨턱지르기", "오른 앞굽이 외산틀막기", "오른 앞굽이 당겨턱지르기", "왼 앞꼬아서기 후 오른 범서기 바탕손 몸통막기", "왼 범서기 손날막기", "왼 앞굽이 몸통막기", "오른 앞굽이 몸통바로지르기", "오른 범서기 바탕손몸통막기", "왼 범서기 손날막기", "왼 앞굽이 얼굴바깥막기", "왼 앞굽이 몸통지르기", "오른 앞차고 오른 앞굽이 몸통반대지르기", "방향 바꿔 오른 범서기 손날막기", "오른 앞차고 몸통바로지르기", "오른 앞굽이 몸통바로지르기", "오른발 돌려 비틀어 앞차기", "왼 앞굽이 한손날바깥막기", "왼 앞굽이 오른 팔굽돌려치기", "왼 앞굽이 몸통반대지르기", "기본준비서기"] },
         koryo: { name: "고려", count: 30, note: "이미지 참고 기술명 데이터", techniques: ["통밀기", "왼 손날막기", "오른발 거듭옆차기", "오른 앞굽이 손날바깥치기", "오른손 허리잡아 몸통바로지르기", "오른발 뒤로 끌어 몸통막기", "오른발 옮겨 손날막기", "왼 손날아래막기", "오른 안손날아래막기", "오른 아귀손칼재비", "기합", "오른 앞차고 무릎꺾기", "오른 앞굽이 안팔목몸통헤쳐막기", "왼 한손날아래막기", "오른 아귀손칼재비", "오른 앞차고 무릎꺾기", "왼 앞굽이 안팔목몸통헤쳐막기", "두발 제자리 주춤서기 표적치기", "왼 앞굽이 팔굽표적치기", "오른발 옆차고 편손끝아래젖혀찌르기", "왼 앞꼬아서기 날개펴기", "오른 한걸음 몸통막기", "오른발 옆차고 오른발 제자리", "왼 한걸음 내딛어 손날아래막기", "오른발 끌어 두발 중심 모아 주먹 아래치기", "오른팔굽열치기", "오른팔 끌어 주춤서기", "왼발 내려 제쳐지르기", "오른발 끌어 모아서기", "왼발 끌어 정면 통밀기 준비서기"] },
-        keumgang: { name: "금강", count: 27, note: "이미지 참고 기술명 데이터", techniques: ["왼 앞굽이 안팔목몸통헤쳐막기", "오른 바탕손턱치기", "오른 한손날몸통막기", "오른발 뒤로 물러 한손날몸통막기", "학다리서기 금강막기", "오른발 뒤로 물러 한손날몸통막기", "학다리서기 금강막기", "왼내려딛기 주춤서기 큰돌쩌귀", "몸을 왼쪽으로 돌려 오른발 왼발모아 큰돌쩌귀", "주춤서기 산틀막기", "오른발 축 왼발 옮겨 산틀막기", "오른발 축 왼발 옮겨 주춤서기 안팔목몸통헤쳐막기", "왼 한발 나란히서기 아래헤쳐막기", "왼발 들어 방향바꾸기", "두발모아 주춤서기 산틀막기", "시선 이동 후 한 다리 금강서기", "오른발 옮겨 디디며 주춤서기 큰돌쩌귀", "왼발제자리 한학다리 금강서기", "큰돌쩌귀", "금강서기 산틀막기", "오른발 축 왼발 들어 내려 안팔목몸통헤쳐막기", "왼발 축 오른발 옮겨 주춤서기 산틀막기", "왼쪽으로 돌아 산틀막기", "오른발 찌찡으며 산틀막기", "오른발축 왼쪽으로 돌려 금강서기", "왼발 끌어 주춤서기 큰돌쩌귀", "기본준비서기"] },
+        keumgang: { name: "금강", count: 27, note: "이미지 참고 기술명 데이터", techniques: ["왼 앞굽이 안팔목몸통헤쳐막기", "오른 바탕손턱치기", "오른 한손날몸통막기", "오른발 뒤로 물러 한손날몸통막기", "학다리서기 금강막기", "오른발 뒤로 물러 한손날몸통막기", "학다리서기 금강막기", "왼내려딛기 주춤서기 큰돌쩌귀", "몸을 왼쪽으로 돌려 오른발 왼발모아 큰돌쩌귀", "주춤서기 산틀막기", "오른발 축 왼발 옮겨 산틀막기", "오른발 축 왼발 옮겨 주춤서기 안팔목몸통헤쳐막기", "왼 한발 나란히서기 아래헤쳐막기", "왼발 들어 방향바꾸기", "두발모아 주춤서기 산틀막기", "시선 이동 후 한 다리 금강서기", "오른발 옮겨 디디며 주춤서기 큰돌쩌귀", "왼발제자리 한학다리 금강서기", "큰돌쩌귀", "금강서기 산틀막기", "오른발 축 왼발 들어 내려 안팔목몸통헤쳐막기", "왼발 축 오른발 옮겨 주춤서기 산틀막기", "왼쪽으로 돌아 산틀막기", "오른발 찍으며 산틀막기", "오른발축 왼쪽으로 돌려 금강서기", "왼발 끌어 주춤서기 큰돌쩌귀", "기본준비서기"] },
         taebaek: { name: "태백", count: 26, note: "이미지 참고 기술명 데이터", techniques: ["왼 범서기 손날아래헤쳐막기", "오른 앞차고 편손끝찌르기", "오른 범서기 손날아래헤쳐막기", "왼 앞차고 편손끝찌르기", "오른 주먹 제비품목치기", "왼 앞굽이 몸통바로지르기", "오른발 뒤로 돌아 오른 뒷굽이 금강몸통막기", "당겨턱지르기", "몸통지르기", "오른 작은돌쩌귀", "왼 작은돌쩌귀", "오른 앞굽이 몸통바로지르기", "기합", "오른 금강몸통막기", "당겨턱지르기", "몸통지르기", "오른 작은돌쩌귀", "오른 손날막기", "오른발 차고 손날막기", "오른 손날목밀어빼기", "왼발을 틀어 산틀막기", "오른발 몸통바깥막기", "왼 앞차고 오른발 몸통바깥막기", "오른발 앞차고 두번지르기", "왼 앞차고 몸통두번지르기", "왼발 끌어 기본준비서기"] },
         pyongwon: { name: "평원", count: 21, note: "이미지 참고 기술명 데이터", techniques: ["모아겹손준비서기", "왼발 한발뒤로 나란히서기 손날아래헤쳐막기", "오른 뒷굽이 한손날몸통막기", "오른 팔굽올려치기", "오른발 앞차고 왼 앞굽이 손날목치기", "왼 앞굽이 아래막기", "오른발 들어 한손날아래막기", "오른발 들어 앞차며 주춤서기 오른 등주먹당겨턱치기", "오른발 물러 왼학다리서기 금강막기", "오른발 옆차고 왼 앞굽이 팔굽올려치기", "왼발 앞차고 오른 옆차고 손날목치기", "주춤서기 얼굴거들어옆막기", "주춤서기 얼굴거들어옆막기", "오른발 옮겨 앞꼬아서기 명치치기", "왼발 주춤서기 헤쳐산틀막기", "오른발 공중차기", "오른허리 작은돌쩌귀", "옆차는 동시에 왼손 바깥치고 내려딛기", "오른 앞차고 팔굽표적치기", "왼발 모듬발 겹손준비서기", "마무리"] },
         sipjin: { name: "십진", count: 28, note: "이미지 참고 기술명 데이터", techniques: ["두발 나란히서기 두 주먹 올려 황소막기", "두 주먹 앞옆으로 제치기", "왼발 옮겨 바깥팔목거들어막기", "왼주먹 펴고 오른손끝 엎어찌르기", "몸통 두번지르기", "오른손 힘주어 손목 안으로 틀기", "오른 한발 이동 후 주춤서기 해산틀막기", "오른발 딛고 주춤서기", "왼발 모듬발 모아서기", "오른발 한발 옮겨 바위밀기", "나선 오른발 끌어 주춤서기 멍에치기", "오른발 몸통거들어바깥막기", "오른발 밀고 나가 손끝 엎어찌르기", "몸통 두번지르기", "왼발내딛어 주춤서기 해산틀막기", "왼발 옮겨 주춤서기 몸통지르기", "손날 아래막기", "오른발 앞으로 내딛고 바위밀기", "오른 앞차고 몸통지르기", "팔굽올려치기", "왼발 뒤로 끌어 앞서기 손날등체쳐막기", "두다리 무릎 서기 손날아래헤쳐막기", "두다리 무릎 서기 손날아래헤쳐막기", "왼발 밀어 바위밀기", "왼발 뒤로 끌어 한손날아래막기", "오른발 내디뎌 손날등체쳐막기", "오른발 내딛어 왼발끌기", "기본준비서기"] },
         jitae: { name: "지태", count: 28, note: "이미지 참고 기술명 데이터", techniques: ["기본준비서기", "오른 뒷굽이 안팔목몸통바깥막기", "오른 앞굽이 얼굴막기 이어 몸통바로지르기", "오른 뒷굽이 한손날얼굴막기", "왼발 내디뎌 원산손날얼굴막기", "오른발 앞차고 왼손받쳐 지르기", "오른발 뒤로 물러 원산손날얼굴막기", "오른발 앞차고 오른손받쳐 지르기", "왼발 앞꼬아서기 얼굴막기", "오른발 내디뎌 금강앞지르기", "몸통안막기", "몸통거들어막기", "오른 뒷굽이 한손날아래막기", "오른 앞차고 팔굽표적치기", "오른 학다리 손날아래막기", "왼 앞서기 몸통바로지르기", "오른 앞굽이 몸통반대지르기", "기합", "오른 앞굽이 손날아래막기", "오른 뒷굽이 한손날아래막기", "오른발 옮겨 손날아래막기", "왼발 끌어 왼굽이 손날아래막기", "오른발 내디뎌 금강앞지르기", "몸통안막기", "몸통거들어막기", "오른 앞차고 손날아래막기", "오른발 옮겨 손날아래막기", "기본서기"] },
         cheonkwon: { name: "천권", count: 26, note: "이미지 참고 기술명 데이터", techniques: ["두 다리 제자리 모아서 날개펴기", "왼발 뒤로 물러 디딤 숨을지르기", "날개펴기하되 장골능 지나 숨을지르기", "오른발 제자리 앞주먹 내디뎌 오른팔 펴기", "왼발 모아산틀막기", "오른팔 잡아당기기", "오른팔 내디뎌 몸통반대지르기", "왼발 옆으로 받아치며 몸통반대지르기", "왼 앞굽이 한손날비틀어막기", "오른발 내디뎌 지르기", "오른발 뒤로 물러 원산손날얼굴막기", "오른 앞차고 오른손받쳐 지르기", "왼발 내려 몸통바로지르기", "원산손날얼굴막기", "왼발 끌어 디뎌 지르기", "금강옆지르기", "몸을 띄워 왼쪽으로 돌며 표적차고 주춤서기", "금강옆지르기", "오른 뒷굽이 손날외산틀막기", "방향 바꾸어 오른발 끌어오며 오른발앞으로 내디뎌 오른범서기 태산밀기", "오른발 걸어들여 모아서기", "두팔 원 그렸다가 왼발 앞으로 내밀며 왼범서기 태산밀기", "왼발 끌어 모아서기", "오른발 끌어 기본준비서기", "하늘 방향 마무리", "기합"] },
-        hansu: { name: "한수", count: 27, note: "이미지 참고 기술명 데이터", techniques: ["모아서기 겹손준비서기", "왼발 내디뎌 왼손날등몸통헤쳐막기", "오른 뒷굽이 두메주먹옆구리지르기", "두레 손 빼는동작", "두 손목 젖혀지르기", "오른 앞굽이 외산틀막기", "두다리 제자리 얼굴바라지르기", "오른 앞굽이 이음통바로지르기", "오른 앞굽이 외산틀막기", "왼 앞굽이 몸통바로지르기", "오른발 내디뎌 오른손날등몸통헤쳐막기", "오른발 뛰어나가 디딤걸다리치기", "오른갈라디디기 두주먹젖혀지르기", "오른발 제자리 일발 뒤로 물러 추춤서기", "팔목표적치기", "시선 이동 후 디딤 안팔목젖혀치기", "왼발 끌어올려 오른학다리 작은돌쩌귀", "왼발 앞차고 왼앞굽이 제비목치기", "오른발 앞차고 동주먹앞치기", "오른발 뒤로 물러 주춤서기 안팔목감아막기", "바라보며 오른발 제자리", "오른발 뒤로 물러 손날감아막기", "오른 앞굽이 오른발 표적차기", "왼발 두드려 디디며 왼손날금강막기", "오른 앞굽이 오른손날등몸통헤쳐막기", "왼발 제자리 가방향 바라보며 겹손준비서기", "마무리"] },
+        hansu: { name: "한수", count: 27, note: "이미지 참고 기술명 데이터", techniques: ["모아서기 겹손준비서기", "왼발 내디뎌 왼손날등몸통헤쳐막기", "오른 뒷굽이 두 메주먹 옆구리지르기", "두레 손 빼는동작", "두 손목 젖혀지르기", "오른 앞굽이 외산틀막기", "두다리 제자리 얼굴바라지르기", "오른 앞굽이 이음통바로지르기", "오른 앞굽이 외산틀막기", "왼 앞굽이 몸통바로지르기", "오른발 내디뎌 오른손날등몸통헤쳐막기", "오른발 뛰어나가 디딤걸다리치기", "오른갈라디디기 두주먹젖혀지르기", "오른발 제자리 일발 뒤로 물러 주춤서기", "팔목표적치기", "시선 이동 후 디딤 안팔목젖혀치기", "왼발 끌어올려 오른학다리 작은돌쩌귀", "왼발 앞차고 왼앞굽이 제비목치기", "오른발 앞차고 등주먹앞치기", "오른발 뒤로 물러 주춤서기 안팔목감아막기", "바라보며 오른발 제자리", "오른발 뒤로 물러 손날감아막기", "오른 앞굽이 오른발 표적차기", "왼발 두드려 디디며 왼손날금강막기", "오른 앞굽이 오른손날등몸통헤쳐막기", "왼발 제자리 가방향 바라보며 겹손준비서기", "마무리"] },
         ilyeo: { name: "일여", count: 23, note: "이미지 참고 기술명 데이터", techniques: ["모아서기 보주먹준비서기", "왼발 내디뎌 오른 뒷굽이 손날막기", "오른발 내디뎌 오른 앞굽이 몸통반대지르기", "다방향 왼발 옮겨 손날막기", "오른발 옆차고 손날막기", "왼발 향해 뛰어넘어 다다닥 앞차기", "왼발 향해 뛰어넘어 다다닥 앞차기", "오른발 뛰어 차기", "오른손 끝몸통세워찌르기", "기합", "오른발 내디뎌 오른 앞굽이 얼굴막기", "오른손칼재비", "왼발 내디뎌 한손날아래막기", "오른발 뛰어 엇차고 한손날아래막기", "왼발 옮겨 오른손날목막기", "가1방향 오른발 뛰어 연차기", "오른발 앞차고 오른손날목막기", "오른발 뛰어 연차기", "다1방향 오른발 제자리 한손날아래막기", "왼발 들어 표적차고 왼발 앞서기 두주먹 허리서기", "오른발 앞차고 한걸음 내려 틀며 몸 바꾸어 뛰어 옆차기", "오른발 끌어 모아서기", "기본준비서기"] }
       });
 
@@ -2114,10 +2171,62 @@
       let selectedPoomsaeGroup = "yugeup";
       let selectedPoomsaeKey = "taegeuk_1";
       let trainingMode = "competition";
+      // ── 촬영 방식(카메라 각도) ──
+      // front: 정면 1대 / diagonal: 대각선 1대 / dual: 두 대 융합
+      let cameraView = "front";
+      let selectedFileB = null; // dual 모드의 두 번째(대각선) 영상
+      const CAMERA_VIEW_INFO = {
+        front: {
+          title: "앞에서 똑바로 찍기",
+          guide: "내 앞에 카메라를 놓고 똑바로 찍어요. 왼쪽·오른쪽이 똑같이 잘 됐는지, 어깨가 한쪽으로 안 기울었는지 보기 좋아요. 대신 앞으로 얼마나 나갔는지(앞뒤 거리)랑 옆차기처럼 몸에 가려지는 동작은 잘 안 보여요.",
+          best: "잘 보는 것: 좌우 균형 · 어깨/허리 수평",
+          weak: "덜 보는 것: 앞뒤 거리 · 옆차기",
+          checklist: [
+            "📱 폰을 옆으로(가로로) 눕혀요",
+            "🧍 머리끝부터 발끝까지 다 나오게 찍어요",
+            "📏 폰 높이는 내 배꼽 높이(바닥에서 무릎보다 조금 위)",
+            "👣 내 앞에서 4걸음쯤 떨어진 곳에 폰을 둬요",
+            "🔒 설 자리를 화면에서 꾹 눌러 초점을 고정해요",
+            "💡 창문(밝은 빛)을 등지지 말고, 빛을 마주 보게 서요",
+            "🤚 시작할 때랑 끝날 때 2초씩 가만히 서 있어요",
+            "🎥 폰은 손에 들지 말고 세워서 고정해요(흔들리면 안 돼요)"
+          ]
+        },
+        diagonal: {
+          title: "옆에서 비스듬히(45도) 찍기",
+          guide: "카메라를 내 앞에서 비스듬한 자리(45도)에 놓아요. 이렇게 찍으면 왼쪽·오른쪽 움직임이랑 앞뒤 움직임을 둘 다 볼 수 있어요. 그래서 몸이 어디로 가는지(중심 이동)랑 손발이 지나가는 길을 잘 봐요. 대신 양쪽이 똑같은지 비교하는 건 조금 약하고, 카메라에서 먼 쪽 팔다리는 살짝 덜 정확해요.",
+          best: "잘 보는 것: 중심 이동 · 동작이 지나가는 길",
+          weak: "덜 보는 것: 좌우가 똑같은지 · 먼 쪽 팔다리",
+          checklist: [
+            "📐 폰을 내 앞에서 비스듬한 자리(45도)에 둬요",
+            "📱 폰은 옆으로 눕히고, 배꼽 높이에 맞춰요",
+            "👣 4걸음쯤 떨어뜨리고, 내가 제일 멀리 갈 때도 화면 밖으로 안 나가는지 미리 확인해요",
+            "🔒 설 자리를 꾹 눌러 초점을 고정하고, 흔들림 보정은 꺼요",
+            "💡 밝은 빛을 등지지 말아요",
+            "🤚 시작과 끝에 2초씩 가만히 서 있어요"
+          ]
+        },
+        dual: {
+          title: "폰 2대로 같이 찍기 (가장 정확)",
+          guide: "폰 2대로 찍어요. 1번은 앞에서 똑바로, 2번은 비스듬히(45도) 찍어요. 두 영상을 합치면 좋은 점만 모아서 제일 정확하게 봐요. 제일 중요한 건, 두 영상을 같은 순간으로 맞추는 거예요. 그래서 시작하자마자 박수를 '짝!' 한 번 쳐요.",
+          best: "두 각도를 합쳐서 가장 정확해요",
+          weak: "두 영상의 시작을 맞추는 게 중요해요(그래서 박수!)",
+          checklist: [
+            "📱 폰 2대 준비: 1번은 앞에서, 2번은 비스듬히(45도)",
+            "🧍 둘 다 옆으로 눕히고, 배꼽 높이, 온몸이 다 나오게, 세워서 고정",
+            "👏 아주 중요! 시작하자마자 크게 박수 1번 '짝!' (두 영상에 다 들리게)",
+            "🥋 두 폰으로 똑같은 품새를 똑같이 한 번에 찍어요",
+            "⬆️ 앞에서 찍은 영상은 위 칸에, 비스듬히 찍은 영상은 아래 칸에 넣어요",
+            "💡 밝은 빛 등지지 않기 · 시작과 끝에 2초 멈추기"
+          ]
+        }
+      };
       let gangyuMode = false;
       let movements = buildGenericMovements(selectedPoomsaeKey);
 
       const fileInput = document.getElementById("fileInput");
+      const fileInputB = document.getElementById("fileInputB");
+      const fileInputBWrap = document.getElementById("fileInputBWrap");
       const poomsaeSelect = document.getElementById("poomsaeSelect");
       const boundarySensitivitySelect = document.getElementById("boundarySensitivitySelect");
       const loadModelBtn = document.getElementById("loadModelBtn");
@@ -2549,6 +2658,7 @@
               <p><b>강유(剛柔):</b> <span class="status ${gy.classification === "강" ? "bad" : gy.classification === "유" ? "good" : "caution"}">${escapeHtml(gy.classification)}${gy.classification === "강" ? "(剛)" : gy.classification === "유" ? "(柔)" : ""}</span>
                 ${gy.accelRatio != null ? ` · 가속 대비 ${gy.accelRatio}배` : ""}${gy.framesToPeak != null ? ` · 정점까지 ${gy.framesToPeak}프레임` : ""}</p>
               <p class="small">${escapeHtml(gy.note)}</p>
+              ${segment.viewAxisNote ? `<p class="small" style="opacity:.85;">📷 ${escapeHtml(segment.viewAxisNote)}${segment.viewConfidence != null && segment.cameraView !== "dual" ? ` (이 각도 신뢰도 ${Math.round(segment.viewConfidence * 100)}%)` : ""}</p>` : ""}
             </div>`
           : "";
 
@@ -2647,6 +2757,43 @@
       }
       function modeLabel() {
         return trainingMode === "exam" ? "수련품새" : "경기품새";
+      }
+      function updateCameraViewUi() {
+        const info = CAMERA_VIEW_INFO[cameraView] || CAMERA_VIEW_INFO.front;
+        document.querySelectorAll("[data-view]").forEach((tab) => {
+          const on = tab.dataset.view === cameraView;
+          tab.classList.toggle("active", on);
+          tab.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        const guideEl = document.getElementById("cameraViewGuide");
+        if (guideEl) {
+          const badges = `
+            <div class="cv-badges">
+              ${info.best ? `<span class="cv-badge cv-best">👍 ${escapeHtml(info.best)}</span>` : ""}
+              ${info.weak ? `<span class="cv-badge cv-weak">⚠️ ${escapeHtml(info.weak)}</span>` : ""}
+            </div>`;
+          guideEl.innerHTML = `
+            <p class="cv-title">${escapeHtml(info.title || "")}</p>
+            <p class="cv-guide-text">${escapeHtml(info.guide)}</p>
+            ${badges}`;
+        }
+        const bodyEl = document.getElementById("cameraViewChecklistBody");
+        if (bodyEl) {
+          bodyEl.innerHTML = `<ul class="cv-checklist">${info.checklist.map((c) => `<li>${escapeHtml(c)}</li>`).join("")}</ul>`;
+        }
+        // 두 대 모드에서만 두 번째 영상 입력칸 표시
+        if (fileInputBWrap) fileInputBWrap.hidden = (cameraView !== "dual");
+        if (cameraView !== "dual") {
+          selectedFileB = null;
+          if (fileInputB) fileInputB.value = "";
+        }
+        updateAnalyzeButtonState();
+      }
+      // 분석 버튼 활성 조건: 단일 뷰는 영상 1개, 두 대 모드는 두 영상 모두 필요
+      function updateAnalyzeButtonState() {
+        const hasMain = !!selectedFile && Number.isFinite(video.duration);
+        const ready = cameraView === "dual" ? (hasMain && !!selectedFileB) : hasMain;
+        if (typeof analyzeBtn !== "undefined" && analyzeBtn) analyzeBtn.disabled = !ready || isAnalyzing;
       }
       function updateTrainingModeUi() {
         document.querySelectorAll("[data-mode]").forEach((tab) => {
@@ -3900,7 +4047,7 @@
       // accelRatio: 정점 속도 ÷ 준비 구간 평균 속도(완급 대비). 클수록 강유가 뚜렷.
       // framesToPeak: 동작 시작~정점까지 표본 수(적을수록 날카로운 '강').
       // classification: 강(剛)/유(柔)/전환 — 정점이 분명하고 빠르면 강, 완만하면 유.
-      function computeGangyu(speeds) {
+      function computeGangyu(speeds, peakBias = 0) {
         if (!speeds || speeds.length < 3) {
           return { classification: "판정보류", accelRatio: null, framesToPeak: null, peakValue: null, prepValue: null, note: "표본이 적어 강유를 판정하기 어렵습니다." };
         }
@@ -3917,9 +4064,10 @@
         for (let i = 0; i < peakIdx; i += 1) { if (speeds[i] >= moveThreshold) { startIdx = i; break; } }
         const framesToPeak = Math.max(peakIdx - startIdx, 0);
         // 분류: 정점이 분명(accelRatio 큼)하고 빨리 도달(framesToPeak 작음)하면 강.
-        // 정점이 완만하고 전체가 비슷하면 유. 그 사이는 전환.
+        // peakBias>0(대각선): 전후 가속이 더 잘 보이므로 강 임계를 약간 낮춰 보정.
+        const strongAccelGate = 2.2 - peakBias;
         let classification;
-        if (accelRatio >= 2.2 && framesToPeak <= 3) classification = "강";
+        if (accelRatio >= strongAccelGate && framesToPeak <= 3) classification = "강";
         else if (accelRatio < 1.5) classification = "유";
         else classification = "전환";
         return {
@@ -3935,7 +4083,26 @@
               : "강과 유의 중간(전환) 구간입니다. 정점을 더 분명히 하면 '강'으로 살아납니다."
         };
       }
-      function evaluateSegment(movement, rawFrames) {
+      // 촬영 각도별 분석 특성. 2D 랜드마크는 각도에 따라 잘 보이는 축이 다르다.
+      // confidence: 해당 뷰가 이 동작 유형을 얼마나 신뢰성 있게 보는지(0~1).
+      // gangyuPeakBias: 강유 임계 보정(대각선은 전후 가속이 더 잘 보여 강 판정을 약간 후하게).
+      function viewProfile(view, movementType) {
+        const t = movementType || "punch";
+        if (view === "front") {
+          // 정면: 좌우/수평 동작·대칭에 강, 전후(앞지르기 깊이)·옆차기 폐색에 약.
+          const weak = (t === "kick" || t === "kick_punch");
+          return { confidence: weak ? 0.82 : 0.95, gangyuPeakBias: 0, axisNote: weak ? "정면에서는 앞으로 뻗는 깊이·옆차기 궤적이 일부 가려질 수 있습니다." : "" };
+        }
+        if (view === "diagonal") {
+          // 대각선: 전후+좌우 동시·궤적·중심이동에 강, 완벽한 좌우대칭엔 약.
+          return { confidence: 0.92, gangyuPeakBias: 0.1, axisNote: "대각선 촬영은 중심이동·궤적에 강하지만, 카메라에서 먼 쪽 팔다리는 정밀도가 약간 낮습니다." };
+        }
+        // dual 또는 미지정: 보정 없음(융합 단계에서 별도 처리).
+        return { confidence: 1, gangyuPeakBias: 0, axisNote: "" };
+      }
+      function evaluateSegment(movement, rawFrames, viewMeta) {
+        const view = (viewMeta && viewMeta.view) || cameraView || "front";
+        const profile = viewProfile(view, movement.type);
         // 좌표 떨림을 줄이기 위해 스무딩된 프레임으로 속도/안정성을 계산한다.
         const frames = smoothFrames(rawFrames);
         const detectedFrames = frames.filter((f) => f.landmarks);
@@ -3954,7 +4121,7 @@
         // 강유(剛柔) 지표: 속도 곡선의 모양에서 '강(정점)'과 '유(흐름)'를 읽는다.
         // - 절대 최고속도 지점과, 준비(앞 40%) 평균 속도의 비율 = 가속 대비(완급의 핵심).
         // - 동작 시작부터 정점까지 프레임 수 = '강'의 도달 속도(적을수록 날카로움).
-        const gangyu = computeGangyu(speeds);
+        const gangyu = computeGangyu(speeds, profile.gangyuPeakBias);
 
         const velocityScore = scoreVelocity(peakSpeed, movement.type);
         const snapScore = scoreSnap(peakSpeed, finalSpeed, movement.type);
@@ -3990,6 +4157,9 @@
           finalSpeed: Number(finalSpeed.toFixed(4)),
           endJitter: Number(endJitter.toFixed(4)),
           gangyu,
+          cameraView: view,
+          viewConfidence: Number(profile.confidence.toFixed(2)),
+          viewAxisNote: profile.axisNote,
           type: verdict.type,
           label: verdict.label,
           feedback: feedbackFor(movement, { visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore })
@@ -4236,6 +4406,11 @@
             data_note: currentPoomsae().note
           },
           file: selectedFile ? { name: selectedFile.name, size_bytes: selectedFile.size, type: selectedFile.type } : null,
+          camera_view: {
+            mode: cameraView,
+            label: cameraView === "front" ? "정면 1대" : cameraView === "diagonal" ? "대각선 1대" : "두 대 융합(정면+대각선)",
+            second_file: selectedFileB ? { name: selectedFileB.name, size_bytes: selectedFileB.size, type: selectedFileB.type } : null
+          },
           video: { duration_seconds: Number(video.duration.toFixed(3)), width: video.videoWidth, height: video.videoHeight },
           summary: {
             label: summary.label,
@@ -4282,7 +4457,15 @@
           await loadModel();
         }
         if (poseLandmarker) {
-          await analyzePower();
+          if (cameraView === "dual") {
+            if (!selectedFileB) {
+              setProgress(0, "두 대 융합은 대각선 영상도 필요합니다. 아래 칸에 2번 영상을 넣어 주세요.");
+              return;
+            }
+            await analyzeDualView();
+          } else {
+            await analyzePower({ view: cameraView });
+          }
         }
       }
       async function reanalyzeFromStart() {
@@ -4300,8 +4483,138 @@
         analyzeBtn.disabled = !selectedFile || !Number.isFinite(video.duration);
         requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
       }
-      async function analyzePower() {
-        if (!poseLandmarker || !selectedFile || !Number.isFinite(video.duration)) return;
+      // ── 두 대(멀티뷰) 융합 ──
+      // 비디오 소스를 지정 파일로 바꾸고 메타데이터가 준비될 때까지 기다린다.
+      function loadVideoFile(file) {
+        return new Promise((resolve, reject) => {
+          const url = URL.createObjectURL(file);
+          const onMeta = () => {
+            video.removeEventListener("loadedmetadata", onMeta);
+            video.removeEventListener("error", onErr);
+            resolve(url);
+          };
+          const onErr = () => {
+            video.removeEventListener("loadedmetadata", onMeta);
+            video.removeEventListener("error", onErr);
+            reject(new Error("video load error"));
+          };
+          video.addEventListener("loadedmetadata", onMeta, { once: true });
+          video.addEventListener("error", onErr, { once: true });
+          video.src = url;
+          video.load();
+        });
+      }
+      // 두 뷰의 같은 순번 구간을 신뢰도 기준으로 합친다.
+      function fuseSegments(frontResults, diagResults) {
+        const n = Math.min(frontResults.length, diagResults.length);
+        const fused = [];
+        for (let i = 0; i < n; i += 1) {
+          const f = frontResults[i];
+          const d = diagResults[i];
+          // 채택 점수 = 뷰 신뢰도 × 검출률. 높은 쪽의 메트릭을 기본으로 삼는다.
+          const fScore = (f.viewConfidence ?? 0.9) * (f.detectionRate ?? 0);
+          const dScore = (d.viewConfidence ?? 0.9) * (d.detectionRate ?? 0);
+          const primaryRes = dScore >= fScore ? d : f;
+          const otherRes = dScore >= fScore ? f : d;
+          // 항목별 융합 원칙:
+          // - 서기/대칭(stance): 정면이 더 신뢰 → 정면 값 우선
+          // - 속도/맺음/궤적(velocity/snap): 대각선이 더 신뢰 → 대각선 값 우선
+          // - 정지(stillness)·가시성(visibility): 두 뷰 중 높은 검출 쪽
+          const merged = { ...primaryRes };
+          merged.stanceScore = f.stanceScore;            // 정면 우선
+          merged.velocityScore = d.velocityScore;        // 대각선 우선
+          merged.snapScore = d.snapScore;                // 대각선 우선
+          merged.stillnessScore = Math.round((f.stillnessScore + d.stillnessScore) / 2);
+          merged.visibilityScore = Math.max(f.visibilityScore, d.visibilityScore);
+          // 강유: 두 뷰가 같으면 그대로, 다르면 대각선(전후 가속 관측 우수) 판정을 채택하되 표기.
+          const fg = f.gangyu?.classification;
+          const dg = d.gangyu?.classification;
+          if (fg && dg && fg !== dg && fg !== "판정보류" && dg !== "판정보류") {
+            merged.gangyu = { ...d.gangyu, note: `두 각도 판정이 달라(정면:${fg} / 대각선:${dg}) 중심·궤적이 잘 보이는 대각선 기준으로 ${dg}을(를) 채택했습니다.` };
+          } else if (dg && dg !== "판정보류") {
+            merged.gangyu = d.gangyu;
+          } else {
+            merged.gangyu = f.gangyu;
+          }
+          // 융합 powerScore 재계산(기존 가중치와 동일 구조).
+          merged.powerScore = stableRound(
+            merged.visibilityScore * .12 +
+            merged.velocityScore * .22 +
+            merged.snapScore * .24 +
+            merged.stillnessScore * .20 +
+            merged.stanceScore * .22
+          );
+          const v = labelFor(merged.powerScore);
+          merged.type = v.type;
+          merged.label = v.label;
+          merged.cameraView = "dual";
+          merged.fusedFrom = {
+            primary: primaryRes.cameraView,
+            front_detection: f.detectionRate,
+            diagonal_detection: d.detectionRate
+          };
+          merged.viewAxisNote = "두 각도(정면+대각선)를 합쳐, 좌우 대칭은 정면·중심이동/궤적은 대각선 기준으로 평가했습니다.";
+          fused.push(merged);
+        }
+        return fused;
+      }
+      async function analyzeDualView() {
+        if (isAnalyzing) return;
+        if (!selectedFile || !selectedFileB) {
+          setProgress(0, "두 대 융합은 정면 영상과 대각선 영상이 모두 필요합니다.");
+          return;
+        }
+        if (!poseLandmarker) { await loadModel(); }
+        if (!poseLandmarker) return;
+        const savedMainUrl = objectUrl;
+        const savedView = cameraView;
+        try {
+          // 1) 정면(현재 selectedFile) 분석
+          setProgress(3, "두 대 융합 1/2: 정면 영상을 분석합니다.");
+          await loadVideoFile(selectedFile);
+          const frontRun = await analyzePower({ sourceFile: selectedFile, view: "front", skipComplete: true });
+          if (!frontRun) throw new Error("front analysis failed");
+          // 2) 대각선(selectedFileB) 분석
+          setProgress(50, "두 대 융합 2/2: 대각선 영상을 분석합니다.");
+          await loadVideoFile(selectedFileB);
+          const diagRun = await analyzePower({ sourceFile: selectedFileB, view: "diagonal", skipComplete: true });
+          if (!diagRun) throw new Error("diagonal analysis failed");
+          // 3) 융합
+          setProgress(92, "두 각도 결과를 합치는 중입니다.");
+          const fused = fuseSegments(frontRun.results, diagRun.results);
+          const eff = {
+            ...(diagRun.analysisEfficiency || {}),
+            dual_view: true,
+            front_segments: frontRun.results.length,
+            diagonal_segments: diagRun.results.length,
+            fused_segments: fused.length
+          };
+          // 정면 영상을 기본 재생 소스로 복원해 리플레이가 정면 기준이 되게 한다.
+          await loadVideoFile(selectedFile);
+          if (objectUrl && objectUrl !== savedMainUrl) { /* keep */ }
+          objectUrl = video.src;
+          completeAnalysis(fused, diagRun.frameSamples || frontRun.frameSamples || [], false, eff);
+          setProgress(100, "두 대 융합 분석 완료: 정면+대각선 결과를 합쳤습니다.");
+        } catch (error) {
+          console.error(error);
+          setProgress(0, "두 대 융합 중 오류가 발생했습니다. 두 영상이 같은 품새·H.264(MP4)인지 확인 후 다시 시도하세요.");
+          renderReport([
+            { type: "bad", text: "두 대 융합 분석 중 오류가 발생했습니다." },
+            { type: "caution", text: "두 영상이 같은 품새를 같은 회차로 찍은 것인지, HEVC가 아닌 H.264(MP4)인지 확인하세요." }
+          ]);
+          // 메인 소스 복원 시도
+          try { if (selectedFile) { await loadVideoFile(selectedFile); objectUrl = video.src; } } catch (e) { /* noop */ }
+          cameraView = savedView;
+        }
+      }
+      async function analyzePower(opts = {}) {
+        // opts.sourceFile : 분석 대상 영상(미지정 시 selectedFile)
+        // opts.view       : 이 영상의 촬영 각도(front/diagonal) — 세그먼트 보정용
+        // opts.skipComplete : true면 completeAnalysis를 호출하지 않고 results만 반환(융합용)
+        const sourceFile = opts.sourceFile || selectedFile;
+        const viewForRun = opts.view || cameraView || "front";
+        const skipComplete = !!opts.skipComplete;
+        if (!poseLandmarker || !sourceFile || !Number.isFinite(video.duration)) return null;
         if (isAnalyzing) {
           setProgress(Number(progress.value || 0), "이미 분석 중입니다. 잠시만 기다려 주세요.");
           return;
@@ -4330,11 +4643,11 @@
         // 분석 중에는 사용자가 영상을 직접 조작하면 seek가 충돌하므로 컨트롤을 잠근다.
         video.removeAttribute("controls");
         video.classList.add("is-analyzing");
-        const cacheKey = currentAnalysisCacheKey();
+        const cacheKey = skipComplete ? "" : currentAnalysisCacheKey();
         const cached = cacheKey ? stableAnalysisCache.get(cacheKey) : null;
         if (cached) {
           completeAnalysis(cloneStableData(cached.results), cloneStableData(cached.frameSamples), true, cloneStableData(cached.analysisEfficiency || null));
-          return;
+          return { results: cloneStableData(cached.results), frameSamples: cloneStableData(cached.frameSamples), analysisEfficiency: cloneStableData(cached.analysisEfficiency || null), view: viewForRun };
         }
         setProgress(5, "동작 전환점을 먼저 찾아 구간 경계를 보정합니다.");
         const boundaryDetection = await detectMotionBoundaries(timestampBaseMs);
@@ -4381,7 +4694,7 @@
           const completionTime = boundaryDetection.completionTimes[i] ?? segmentStart + segmentLength * 0.82;
           const snapshotTime = await waitForSeek(completionTime);
           snapshot = captureVideoSnapshot();
-          const metrics = evaluateSegment(primary, frames);
+          const metrics = evaluateSegment(primary, frames, { view: viewForRun });
           const movementLabel = movementIndices.length > 1
             ? `${movementIndices[0] + 1}~${movementIndices[movementIndices.length - 1] + 1}번`
             : `${movementIndices[0] + 1}번`;
@@ -4424,7 +4737,11 @@
           reliability_guard: "reuse only when every target has a unique detected frame within 0.18 seconds; otherwise precise fallback"
         };
         if (cacheKey) stableAnalysisCache.set(cacheKey, cloneStableData({ results, frameSamples, analysisEfficiency }));
+        if (skipComplete) {
+          return { results, frameSamples, analysisEfficiency, view: viewForRun };
+        }
         completeAnalysis(results, frameSamples, false, analysisEfficiency);
+        return { results, frameSamples, analysisEfficiency, view: viewForRun };
         } catch (error) {
           console.error(error);
           const hadReport = !!latestReport;
@@ -4439,10 +4756,9 @@
           // 분석 종료 후 영상 조작 복원.
           video.setAttribute("controls", "");
           video.classList.remove("is-analyzing");
-          const canAnalyze = !!selectedFile && Number.isFinite(video.duration);
           const hasReport = !!latestReport;
-          analyzeBtn.disabled = !canAnalyze;
-          reanalyzeBtn.disabled = !canAnalyze;
+          updateAnalyzeButtonState();
+          reanalyzeBtn.disabled = !(selectedFile && Number.isFinite(video.duration));
           downloadBtn.disabled = !hasReport;
           showReportBtn.disabled = !hasReport;
           jpgBtn.disabled = !hasReport;
@@ -4453,6 +4769,7 @@
       renderPoomsaeOptions(selectedPoomsaeGroup, selectedPoomsaeKey);
       updatePoomsaeView();
       updateTrainingModeUi();
+      updateCameraViewUi();
       setupLayout();
       setupQuickNav();
       setupBackNavigationGuard();
@@ -4540,7 +4857,7 @@
         video.playbackRate = Number(speedSelect.value || 1);
         video.loop = loopVideoToggle.checked;
         setProgress(0, poseLandmarker ? "영상 준비 완료. 분석 시작을 누르세요." : "영상 준비 완료. 분석 시작을 누르면 모델을 불러온 뒤 평가합니다.");
-        analyzeBtn.disabled = false;
+        updateAnalyzeButtonState();
         reanalyzeBtn.disabled = false;
         warnIfFilenamePoomsaeMismatch();
         warnIfUndecodableHevc();
@@ -4599,6 +4916,24 @@
           }
         });
       });
+      document.querySelectorAll("[data-view]").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          showTrainingPage();
+          cameraView = tab.dataset.view || "front";
+          updateCameraViewUi();
+          const info = CAMERA_VIEW_INFO[cameraView];
+          renderReport([{ type: "caution", text: `촬영 방식을 '${tab.querySelector("strong")?.textContent || cameraView}'으로 설정했습니다. ${info ? info.guide : ""}` }]);
+        });
+      });
+      if (fileInputB) {
+        fileInputB.addEventListener("change", () => {
+          selectedFileB = fileInputB.files && fileInputB.files[0] ? fileInputB.files[0] : null;
+          updateAnalyzeButtonState();
+          if (selectedFileB) {
+            renderReport([{ type: "caution", text: `대각선(2번) 영상 준비됨: ${selectedFileB.name}. 정면 영상까지 준비되면 분석 시작을 누르세요.` }]);
+          }
+        });
+      }
       document.querySelectorAll("[data-group]").forEach((tab) => {
         tab.addEventListener("click", () => {
           showTrainingPage();
