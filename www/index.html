@@ -2,7 +2,7 @@
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#15120d" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#ece4d3" media="(prefers-color-scheme: light)" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -814,9 +814,6 @@
         text-align: center;
         min-height: 18px;
       }
-      @media (max-width: 720px) {
-        .wizard-nav button { min-height: 64px; font-size: 18px; }
-      }
       .primary-actions button {
         width: 100%;
         min-height: 72px;
@@ -1034,8 +1031,29 @@
         height: 14px;
         accent-color: var(--brand);
       }
-      @media (max-width: 920px) {
+      /* ── 태블릿(769~1024px): 모바일과 데스크탑 사이를 부드럽게 잇는 중간 분기 ── */
+      @media (min-width: 769px) and (max-width: 1024px) {
+        .wrap { width: min(100% - 40px, 900px); }
+        .grid {
+          grid-template-columns: minmax(300px, .95fr) minmax(0, 1.05fr);
+          gap: 16px;
+        }
+        section { padding: 18px; }
+        section > h2 { font-size: 19px; }
+        .mode-tabs { gap: 9px; }
+        .mode-tab { min-height: 70px; padding: 12px; }
+        .camera-view-tab { min-height: 74px; }
+        .video-dock { top: 12px; max-height: calc(100dvh - 24px); }
+        video { max-height: 40vh; }
+        .result-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .wizard-nav button { min-height: 58px; font-size: 17px; }
+        button, select { min-height: 48px; }
+        input[type="file"] { min-height: 56px; }
+      }
+
+      @media (max-width: 768px) {
         body { padding-bottom: 88px; }
+        html, body { overflow-x: hidden; }
         .wrap { width: min(100% - 24px, 1240px); }
         header .wrap {
           flex-direction: row;
@@ -1096,7 +1114,7 @@
           overflow: visible;
           box-shadow: var(--shadow);
         }
-        video { max-height: 34vh; }
+        video { max-height: 34dvh; }
         .sticky-note {
           display: block;
           margin-top: 8px;
@@ -1131,6 +1149,11 @@
         .mode-tab { min-height: 72px; padding: 10px; }
         .mode-tab strong { font-size: 16px; }
         .mode-tab span { font-size: 11px; }
+        .camera-view-row { gap: 8px; }
+        .camera-view-tab { min-height: 78px; padding: 12px 12px 12px 13px; }
+        .camera-view-tab strong { font-size: 15px; }
+        .camera-view-tab span { font-size: 11px; }
+        .camera-view-tab .cv-cams { top: 9px; right: 10px; font-size: 10px; }
         .control-grid { grid-template-columns: 1fr; }
         .primary-actions { grid-template-columns: 1fr; }
         .primary-actions button { min-height: 72px; padding: 14px; font-size: 19px; }
@@ -1144,6 +1167,7 @@
         .replay-actions { grid-template-columns: 1fr 1fr; }
         button, select { min-height: 52px; }
         input[type="file"] { min-height: 64px; }
+        .wizard-nav button { min-height: 64px; font-size: 18px; }
       }
 
       /* ===================== 기본 다크 베이스 오버라이드 (도장 리디자인 레이어가 이후에 보강) ===================== */
@@ -1793,6 +1817,15 @@
         .app-footer-partners { max-height: 56px; }
       }
 
+      /* ── 초소형 폰(≤380px): 라벨이 배지와 겹치지 않게 보강 ── */
+      @media (max-width: 380px) {
+        .camera-view-tab { padding-top: 28px; min-height: 80px; }
+        .camera-view-tab .cv-cams { top: 8px; right: 9px; }
+        .camera-view-tab strong { font-size: 14px; }
+        h2 { font-size: 18px; }
+        .wizard-steptitle { font-size: 19px; }
+      }
+
       /* 스크롤바 */
       ::-webkit-scrollbar { width: 10px; height: 10px; }
       ::-webkit-scrollbar-track { background: transparent; }
@@ -1858,9 +1891,31 @@
       }
       .camera-view-tab strong { font-size: 15px; }
       .camera-view-tab span { font-size: 11px; }
-      .camera-view-row { display: flex; gap: 8px; }
-      .camera-view-row + .camera-view-row { margin-top: 8px; }
-      .camera-view-row .camera-view-tab { flex: 1; }
+      .camera-view-tabs { margin-top: 10px; }
+      .camera-view-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .camera-view-row + .camera-view-row { margin-top: 10px; }
+      .camera-view-tab {
+        position: relative;
+        min-height: 76px;
+        padding: 14px 14px 14px 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 3px;
+        border-radius: 14px;
+      }
+      .camera-view-tab .cv-cams {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--muted);
+        letter-spacing: .02em;
+      }
+      .camera-view-tab.active .cv-cams { color: var(--brand-strong); }
+      .camera-view-tab strong { font-size: 16px; line-height: 1.2; margin: 0; }
+      .camera-view-tab span { font-size: 12px; line-height: 1.35; }
     </style>
   </head>
   <body>
@@ -1956,26 +2011,30 @@
           <div class="wizard-step" data-step="3">
             <div class="wizard-steplabel">3단계 / 4</div>
             <h3 class="wizard-steptitle">어떻게 찍었나요?</h3>
-            <div class="field-label">촬영 방식 <span>폰을 어디에 놓고 찍었는지 골라요</span></div>
+            <div class="field-label">촬영 방식 <span>폰을 몇 대로, 어디에 놓고 찍었나요</span></div>
             <div class="poomsae-tabs mode-tabs camera-view-tabs" role="tablist" aria-label="촬영 방식">
               <div class="camera-view-row">
                 <button type="button" class="poomsae-tab mode-tab camera-view-tab active" data-view="front">
+                  <span class="cv-cams">폰 1대</span>
                   <strong>정면</strong>
-                  <span>앞에서 1대 · 가장 쉬워요</span>
+                  <span>가장 쉬워요</span>
                 </button>
                 <button type="button" class="poomsae-tab mode-tab camera-view-tab" data-view="diagonal">
+                  <span class="cv-cams">폰 1대</span>
                   <strong>대각선</strong>
-                  <span>비스듬히 1대 · 앞뒤도 조금 보여요</span>
+                  <span>앞뒤도 조금 보여요</span>
                 </button>
               </div>
               <div class="camera-view-row">
                 <button type="button" class="poomsae-tab mode-tab camera-view-tab" data-view="dual">
+                  <span class="cv-cams">폰 2대</span>
                   <strong>정면 + 측면</strong>
-                  <span>폰 2대 · 더 정확해요</span>
+                  <span>더 정확해요</span>
                 </button>
                 <button type="button" class="poomsae-tab mode-tab camera-view-tab" data-view="triple">
-                  <strong>정면 + 측면 + 대각선</strong>
-                  <span>폰 3대 · 가장 정확해요</span>
+                  <span class="cv-cams">폰 3대</span>
+                  <strong>3방향</strong>
+                  <span>정면+측면+대각선 · 가장 정확</span>
                 </button>
               </div>
             </div>
@@ -1990,16 +2049,16 @@
           <div class="wizard-step" data-step="4">
             <div class="wizard-steplabel">4단계 / 4</div>
             <h3 class="wizard-steptitle">영상을 넣고 시작해요</h3>
-            <div class="field-label">영상 넣기 <span>가로로, 온몸이 다 나오게 찍은 영상을 넣어요</span></div>
-            <div class="control-grid">
+            <div class="control-grid" id="fileInputAWrap">
+              <div class="field-label" id="fileInputALabel" style="margin:0 0 6px;">정면 영상 <span id="fileInputAHint">1번 카메라(앞에서)</span></div>
               <input id="fileInput" type="file" accept="video/mp4,video/*" />
             </div>
             <div class="control-grid dual-only" id="fileInputBWrap" hidden style="margin-top:8px;">
-              <div class="field-label" style="margin:0;align-self:center;">측면 영상 <span>2번 카메라(왼쪽 옆 90°)</span></div>
+              <div class="field-label" style="margin:0 0 6px;">측면 영상 <span>2번 카메라(왼쪽 옆 90°)</span></div>
               <input id="fileInputB" type="file" accept="video/mp4,video/*" />
             </div>
             <div class="control-grid triple-only" id="fileInputCWrap" hidden style="margin-top:8px;">
-              <div class="field-label" style="margin:0;align-self:center;">대각선 영상 <span>3번 카메라(오른쪽 앞 45°)</span></div>
+              <div class="field-label" style="margin:0 0 6px;">대각선 영상 <span>3번 카메라(오른쪽 앞 45°)</span></div>
               <input id="fileInputC" type="file" accept="video/mp4,video/*" />
             </div>
             <div class="field-label">구간 감지 민감도 <span>동작 전환점이 잘못 잡히면 높여 보세요</span></div>
@@ -2223,15 +2282,32 @@
         yudan: { label: "유단자", keys: ["pyongwon", "sipjin", "jitae", "cheonkwon", "hansu", "ilyeo"] }
       };
 
+      // 동작이 아닌 '메모/안내성' 항목인지 판별한다.
+      // 데이터 원본은 그대로 두되, 분석 대상 동작 목록에서만 제외해 분석 정확도를 높인다.
+      // 주의: '기합', '기본준비서기', '준비서기' 등은 실제 품새 동작/정지이므로 제외하지 않는다.
+      function isMemoTechnique(name) {
+        const n = String(name || "").trim();
+        if (!n) return true;
+        // 끝이 '확인'으로 끝나는 점검 메모(예: "가위막기 확인")
+        if (/\s확인$/.test(n)) return true;
+        // 단독 '마무리' 또는 '~ 마무리'(예: "하늘 방향 마무리") — 종료 안내
+        if (/마무리$/.test(n)) return true;
+        // 동작이 아닌 시선/시작 안내(예: "시선먼저가기")
+        if (n === "시선먼저가기") return true;
+        return false;
+      }
       function buildGenericMovements(dataKey) {
         const data = poomsaeData[dataKey];
         if (data.movements) return data.movements;
         if (data.techniques) {
-          return data.techniques.slice(0, data.count).map((name, index) => ({
-            id: `${dataKey}_movement_${index + 1}`,
-            name,
-            type: inferMovementType(name)
-          }));
+          return data.techniques
+            .slice(0, data.count)
+            .filter((name) => !isMemoTechnique(name))
+            .map((name, index) => ({
+              id: `${dataKey}_movement_${index + 1}`,
+              name,
+              type: inferMovementType(name)
+            }));
         }
         const labelByType = {
           hold: "마무리/정지",
@@ -2337,8 +2413,9 @@
             "📐 측면 폰은 내가 앞으로 가는 방향이 화면에서 가로로 보이게 둬요",
             "👏 아주 중요! 시작하자마자 크게 박수 1번 '짝!' (두 영상에 다 들리게)",
             "🥋 두 폰으로 똑같은 품새를 똑같이 한 번에 찍어요",
+            "📱 폰 종류가 달라도 괜찮아요(아이폰+안드로이드 OK). 대신 시작·끝에 2초씩 멈춰 주세요",
+            "🍎 아이폰은 설정→카메라→포맷→'높은 호환성'(H.264)으로 찍으면 분석이 잘 돼요",
             "⬆️ 정면 영상은 1번 칸, 측면 영상은 2번 칸에 넣어요",
-            "📹 세 폰 모두 같은 프레임레이트(예: 30fps)로 맞추면 더 정확해요",
             "💡 밝은 빛 등지지 않기 · 시작과 끝에 2초 멈추기"
           ]
         },
@@ -2354,7 +2431,7 @@
             "🧭 세 카메라가 나를 가운데 두고 부채꼴로 둘러싸게 배치해요",
             "🧍 셋 다 옆으로 눕히고, 배꼽 높이, 온몸이 다 나오게, 세워서 고정",
             "👏 아주 중요! 시작하자마자 크게 박수 1번 '짝!' (세 영상에 다 들리게)",
-            "📹 세 폰 모두 같은 프레임레이트(예: 30fps)로 — 60fps 섞으면 뒤로 갈수록 어긋나요",
+            "📱 폰 종류가 달라도 괜찮아요(아이폰+안드로이드+태블릿 OK). 대신 시작·끝에 2초씩 멈춰 주세요",
             "🍎 아이폰은 설정→카메라→포맷→'높은 호환성'으로 바꿔 H.264(MP4)로 찍어요(HEVC 분석 불가)",
             "⬆️ 정면=1번 칸, 측면=2번 칸, 대각선=3번 칸에 순서대로 넣어요",
             "🥋 세 폰으로 똑같은 품새를 똑같이 한 번에 찍어요",
@@ -2497,6 +2574,86 @@
         if (type === "good") return "good-border";
         if (type === "bad") return "bad-border";
         return "caution-border";
+      }
+      // ── 분석 축 추가: 박자(리듬) ──
+      // 동작 정점(맺음) 시각들의 간격으로 박자를 평가한다. 강유 모드와 무관하게 항상 계산.
+      // 핵심: 품새는 '기계적 일정함'이 정답이 아니다. 같은 성격 동작끼리 고르되,
+      //       강(정점)과 유(흐름)의 대비가 분명해야 좋은 리듬이다.
+      // 반환: { score, regularity, contrast, confidence, note } — 신뢰도 낮으면 score=null.
+      function computeRhythm(results) {
+        // 정점 시각: 각 구간의 시작 시각(startTime)을 동작 타이밍의 대용으로 쓴다.
+        const times = results.map((r) => r.startTime).filter((t) => Number.isFinite(t)).sort((a, b) => a - b);
+        if (times.length < 4) {
+          return { score: null, regularity: null, contrast: null, confidence: 0, note: "동작이 충분히 감지되지 않아 박자를 판정하기 어렵습니다." };
+        }
+        const gaps = [];
+        for (let i = 1; i < times.length; i += 1) gaps.push(times[i] - times[i - 1]);
+        const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+        if (mean <= 0) return { score: null, regularity: null, contrast: null, confidence: 0, note: "박자 간격을 계산할 수 없습니다." };
+        const sd = Math.sqrt(gaps.reduce((s, g) => s + (g - mean) ** 2, 0) / gaps.length);
+        const cv = sd / mean; // 변동계수(작을수록 일정)
+        // 규칙성: 변동계수 0.25 이하면 매우 고름(100), 0.7 이상이면 들쭉날쭉(0).
+        const regularity = clamp(Math.round((1 - (cv - 0.25) / (0.7 - 0.25)) * 100), 0, 100);
+        // 완급 대비: 강유 분류가 있으면 강·유가 번갈아 나오는 정도를 본다.
+        const gy = results.map((r) => r.gangyu?.classification).filter((c) => c && c !== "판정보류");
+        let contrast = null;
+        if (gy.length >= 4) {
+          const gang = gy.filter((c) => c === "강").length;
+          const yu = gy.filter((c) => c === "유" || c === "전환").length;
+          // 강과 유가 둘 다 충분히 있을수록 대비가 분명.
+          const balance = Math.min(gang, yu) / Math.max(gang, yu, 1);
+          contrast = clamp(Math.round(balance * 100), 0, 100);
+        }
+        // 최종 박자 점수: 규칙성 위주(0.7), 대비는 있으면 보조(0.3).
+        const score = contrast != null
+          ? Math.round(regularity * 0.7 + contrast * 0.3)
+          : regularity;
+        // 신뢰도: 정점이 많을수록, 검출률이 높을수록 신뢰. 동작 8개 이상이면 충분.
+        const avgDetect = results.reduce((s, r) => s + (r.detectionRate || 0), 0) / results.length;
+        const confidence = Number((Math.min(1, times.length / 8) * avgDetect).toFixed(2));
+        let note;
+        if (regularity >= 70) note = "같은 박자 동작들이 비교적 고른 간격으로 나옵니다.";
+        else if (regularity >= 45) note = "박자가 약간 들쭉날쭉합니다. 같은 성격 동작은 같은 간격으로 맞춰 보세요.";
+        else note = "박자 간격이 많이 흔들립니다. 메트로놈처럼 일정한 호흡으로 연습해 보세요.";
+        if (contrast != null && contrast < 40) note += " 또한 강(정점)과 유(흐름)의 대비를 더 분명히 하면 리듬이 살아납니다.";
+        return { score, regularity, contrast, confidence, note };
+      }
+      // ── 분석 축 추가: 좌우 대칭 ──
+      // 품새는 왼·오른 동작이 짝으로 나온다. 같은 유형 동작의 좌/우 점수 차이를 본다.
+      // 정면 영상이 있어야 신뢰도가 높다(측면 단독은 좌우가 가려져 신뢰도 낮음).
+      // 반환: { score, confidence, note } — 신뢰도 낮으면 score=null.
+      function computeSymmetry(results, view) {
+        // 동작 이름에서 '왼'/'오른' 방향을 읽어 같은 동작 유형의 좌우 짝을 비교한다.
+        const left = [], right = [];
+        for (const r of results) {
+          const name = r.movementName || r.name || "";
+          const base = (s) => s.replace(/^(왼|오른|왼쪽|오른쪽)\s*/, "").trim();
+          if (/^(왼|왼쪽)/.test(name)) left.push({ key: base(name), score: r.powerScore });
+          else if (/^(오른|오른쪽)/.test(name)) right.push({ key: base(name), score: r.powerScore });
+        }
+        // 같은 동작 유형(key)으로 좌우 짝 매칭.
+        const diffs = [];
+        for (const l of left) {
+          const match = right.find((r) => r.key === l.key);
+          if (match && Number.isFinite(l.score) && Number.isFinite(match.score)) {
+            diffs.push(Math.abs(l.score - match.score));
+          }
+        }
+        if (diffs.length < 2) {
+          return { score: null, confidence: 0, note: "좌우 짝 동작이 충분히 매칭되지 않아 대칭을 판정하기 어렵습니다." };
+        }
+        const avgDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+        // 평균 점수 차 0 = 완벽 대칭(100), 30점 차이 = 0점.
+        const score = clamp(Math.round((1 - avgDiff / 30) * 100), 0, 100);
+        // 신뢰도: 정면일수록 높음. 측면 단독은 좌우 폐색으로 신뢰도 크게 낮춤.
+        const viewFactor = view === "front" ? 1.0 : view === "dual" || view === "triple" ? 0.95 : view === "diagonal" ? 0.6 : 0.4;
+        const avgDetect = results.reduce((s, r) => s + (r.detectionRate || 0), 0) / results.length;
+        const confidence = Number((Math.min(1, diffs.length / 4) * viewFactor * avgDetect).toFixed(2));
+        let note;
+        if (score >= 75) note = "왼쪽과 오른쪽 동작의 완성도가 고릅니다.";
+        else if (score >= 50) note = "좌우 동작에 약간의 차이가 있습니다. 약한 쪽을 따로 반복해 보세요.";
+        else note = "좌우 동작의 차이가 큽니다. 약한 쪽 방향을 집중적으로 보완하세요.";
+        return { score, confidence, note };
       }
       // 강유 종합: 동작별 강/유 분포와 리듬 최적화 체크리스트 5가지를 데이터로 채운다.
       function gangyuSummary(results) {
@@ -2936,6 +3093,18 @@
         if (!needsC) {
           selectedFileC = null;
           if (fileInputC) fileInputC.value = "";
+        }
+        // 첫 영상칸 라벨을 촬영 방식에 맞춰 바꾼다(대각선 단독이면 '대각선 영상').
+        const aLabel = document.getElementById("fileInputALabel");
+        const aHint = document.getElementById("fileInputAHint");
+        if (aLabel && aHint) {
+          if (cameraView === "diagonal") {
+            aLabel.childNodes[0].nodeValue = "대각선 영상 ";
+            aHint.textContent = "1번 카메라(오른쪽 앞 45°)";
+          } else {
+            aLabel.childNodes[0].nodeValue = "정면 영상 ";
+            aHint.textContent = (needsB ? "1번 카메라(앞에서)" : "앞에서 찍은 영상");
+          }
         }
         updateAnalyzeButtonState();
       }
@@ -4258,6 +4427,87 @@
         // dual 또는 미지정: 보정 없음(융합 단계에서 별도 처리).
         return { confidence: 1, gangyuPeakBias: 0, axisNote: "" };
       }
+      // ── 분석 축 추가: 관절 각도 · 손발 궤적 ──
+      // 세 점(a-b-c)이 이루는 b에서의 각도(도). 2D 좌표 기준.
+      function jointAngle(a, b, c) {
+        if (!a || !b || !c) return null;
+        const v1x = a.x - b.x, v1y = a.y - b.y;
+        const v2x = c.x - b.x, v2y = c.y - b.y;
+        const dot = v1x * v2x + v1y * v2y;
+        const m1 = Math.hypot(v1x, v1y), m2 = Math.hypot(v2x, v2y);
+        if (m1 < 1e-6 || m2 < 1e-6) return null;
+        let cos = dot / (m1 * m2);
+        cos = Math.max(-1, Math.min(1, cos));
+        return (Math.acos(cos) * 180) / Math.PI;
+      }
+      // 한 동작 구간에서 주요 관절 각도를 측정한다(정점 부근 프레임들의 중앙값).
+      // 2D 한계: 카메라가 잘 보는 관절만 신뢰. 가시성이 낮으면 null(점수 반영 제외).
+      // 반환: { straightArm, frontStanceKnee, confidence } — 각도(도)와 신뢰도(0~1).
+      function measureJointAngles(frames, movementType) {
+        const detected = frames.filter((f) => f.landmarks);
+        if (detected.length < 3) return { straightArm: null, frontStanceKnee: null, confidence: 0 };
+        // 정점 부근(가운데 60%) 프레임만 본다 — 준비·회수 구간 제외.
+        const lo = Math.floor(detected.length * 0.2);
+        const hi = Math.ceil(detected.length * 0.8);
+        const core = detected.slice(lo, hi);
+        const armAngles = [];
+        const kneeAngles = [];
+        let armVis = 0, kneeVis = 0;
+        for (const f of core) {
+          const lm = f.landmarks;
+          // 팔 펴짐: 어깨(11/12)-팔꿈치(13/14)-손목(15/16). 양팔 중 더 잘 보이는 쪽.
+          if (movementType === "punch" || movementType === "strike" || movementType === "kick_punch") {
+            const rArm = jointAngle(getPoint(lm, 12), getPoint(lm, 14), getPoint(lm, 16));
+            const lArm = jointAngle(getPoint(lm, 11), getPoint(lm, 13), getPoint(lm, 15));
+            const pick = rArm != null && lArm != null ? Math.max(rArm, lArm) : (rArm ?? lArm);
+            if (pick != null) { armAngles.push(pick); armVis += 1; }
+          }
+          // 앞굽이 무릎: 골반(23/24)-무릎(25/26)-발목(27/28).
+          if (movementType === "block" || movementType === "punch" || movementType === "strike") {
+            const rKnee = jointAngle(getPoint(lm, 24), getPoint(lm, 26), getPoint(lm, 28));
+            const lKnee = jointAngle(getPoint(lm, 23), getPoint(lm, 25), getPoint(lm, 27));
+            const pick = rKnee != null && lKnee != null ? Math.min(rKnee, lKnee) : (rKnee ?? lKnee);
+            if (pick != null) { kneeAngles.push(pick); kneeVis += 1; }
+          }
+        }
+        const straightArm = armAngles.length >= 2 ? median(armAngles) : null;
+        const frontStanceKnee = kneeAngles.length >= 2 ? median(kneeAngles) : null;
+        // 신뢰도: 측정 가능한 프레임 비율(둘 중 더 많이 잡힌 쪽 기준).
+        const confidence = Math.min(1, Math.max(armVis, kneeVis) / Math.max(core.length, 1));
+        return { straightArm, frontStanceKnee, confidence };
+      }
+      // 손발 궤적의 '곧기'(straightness): 정점 손목이 지나간 경로가 직선에 가까운가.
+      // 경로 길이 대비 시작-끝 직선거리 비율(1에 가까울수록 곧음). 노이즈가 커서 참고용.
+      function measureTrajectory(frames, movementType) {
+        const detected = frames.filter((f) => f.landmarks);
+        if (detected.length < 4) return { straightness: null, confidence: 0 };
+        // 지르기/치기는 손목, 차기는 발목 궤적을 본다.
+        const isKick = movementType === "kick" || movementType === "kick_punch";
+        const idxR = isKick ? 28 : 16;
+        const idxL = isKick ? 27 : 15;
+        function pathStraightness(idx) {
+          const pts = [];
+          for (const f of detected) {
+            const p = getPoint(f.landmarks, idx);
+            const scale = bodyScale(f.landmarks);
+            if (p && scale > 0.04) pts.push({ x: p.x / scale, y: p.y / scale });
+          }
+          if (pts.length < 4) return null;
+          let pathLen = 0;
+          for (let i = 1; i < pts.length; i += 1) pathLen += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+          const straight = Math.hypot(pts[pts.length - 1].x - pts[0].x, pts[pts.length - 1].y - pts[0].y);
+          if (pathLen < 0.2) return null; // 거의 안 움직임 — 판정 불가
+          return Math.min(1, straight / pathLen);
+        }
+        const r = pathStraightness(idxR);
+        const l = pathStraightness(idxL);
+        const vals = [r, l].filter((v) => v != null);
+        if (!vals.length) return { straightness: null, confidence: 0 };
+        // 더 많이 움직인(곧기 판정이 의미있는) 쪽을 채택.
+        const straightness = Math.max(...vals);
+        // 궤적은 본질적으로 노이즈가 크므로 신뢰도를 보수적으로(최대 0.7) 둔다.
+        return { straightness: Number(straightness.toFixed(3)), confidence: 0.7 };
+      }
       function evaluateSegment(movement, rawFrames, viewMeta) {
         const view = (viewMeta && viewMeta.view) || cameraView || "front";
         const profile = viewProfile(view, movement.type);
@@ -4286,6 +4536,20 @@
         const stillnessScore = scoreStillness(finalSpeed, endJitter, movement.type);
         const stanceScore = scoreStance(frames);
         const visibilityScore = stableRound(visibility * 100);
+
+        // ── 추가 축 측정(관절 각도 · 궤적) ──
+        // 측면/3면 영상에서 깊이 방향 동작이 더 잘 보이므로 각도 신뢰도를 가산한다.
+        const angle = measureJointAngles(frames, movement.type);
+        const traj = measureTrajectory(frames, movement.type);
+        const viewBoost = (view === "side" || view === "diagonal") ? 1.0 : 0.85;
+        // 각도 점수: 지르기 팔은 165° 이상 펴짐이 이상적, 앞굽이 무릎은 약 90~120°가 적정.
+        let angleScore = null;
+        if (angle.straightArm != null && angle.confidence >= 0.5) {
+          // 165°↑ = 만점, 120° = 0점 선형.
+          angleScore = clamp(Math.round(((angle.straightArm - 120) / (170 - 120)) * 100), 0, 100);
+        }
+        const angleConfidence = Number((angle.confidence * viewBoost).toFixed(2));
+
         const powerScore = stableRound(
           visibilityScore * .12 +
           velocityScore * .22 +
@@ -4315,6 +4579,18 @@
           finalSpeed: Number(finalSpeed.toFixed(4)),
           endJitter: Number(endJitter.toFixed(4)),
           gangyu,
+          jointAngle: {
+            straightArm: angle.straightArm != null ? Math.round(angle.straightArm) : null,
+            frontStanceKnee: angle.frontStanceKnee != null ? Math.round(angle.frontStanceKnee) : null,
+            score: angleScore,
+            confidence: angleConfidence
+          },
+          trajectory: {
+            straightness: traj.straightness,
+            // straightness(0~1, 1=완전 직선)를 0~100 점수로. 0.85↑를 양호로 본다.
+            score: traj.straightness != null ? clamp(Math.round(((traj.straightness - 0.6) / (1 - 0.6)) * 100), 0, 100) : null,
+            confidence: traj.confidence
+          },
           cameraView: view,
           viewConfidence: Number(profile.confidence.toFixed(2)),
           viewAxisNote: profile.axisNote,
@@ -4420,11 +4696,30 @@
           return "촬영 구도 점검: 머리, 양손, 양발이 화면 안에 들어오도록 카메라를 더 멀리 고정하세요.";
         });
       }
-      function summarize(results) {
+      function summarize(results, view) {
         const avg = results.reduce((sum, r) => sum + r.powerScore, 0) / Math.max(results.length, 1);
-        const competitionScore10 = results.reduce((sum, r) => sum + r.competitionScore10, 0) / Math.max(results.length, 1);
+        const baseCompetitionScore10 = results.reduce((sum, r) => sum + r.competitionScore10, 0) / Math.max(results.length, 1);
         const accuracyScore4 = results.reduce((sum, r) => sum + r.accuracyScore4, 0) / Math.max(results.length, 1);
         const presentationScore6 = results.reduce((sum, r) => sum + r.presentationScore6, 0) / Math.max(results.length, 1);
+        // ── 신뢰도 높은 추가 축을 종합 점수에 보수적으로 반영 ──
+        // 박자(표현력)·대칭(정확성)만, 신뢰도 0.6↑일 때, 최대 ±0.3점 범위로만 조정한다.
+        // 각도·궤적은 2D 한계로 참고용 — 점수 미반영(정확한 부분만 반영).
+        const rhythm = computeRhythm(results);
+        const symmetry = computeSymmetry(results, view || cameraView);
+        let presentationAdj = 0, accuracyAdj = 0;
+        const axisNotes = [];
+        if (rhythm.score != null && rhythm.confidence >= 0.6) {
+          // 박자 50점=중립(0), 100점=+0.3, 0점=-0.3. 표현력의 리듬 항목을 미세 조정.
+          presentationAdj = clamp(((rhythm.score - 50) / 50) * 0.3, -0.3, 0.3);
+          axisNotes.push(`박자 ${rhythm.score}점`);
+        }
+        if (symmetry.score != null && symmetry.confidence >= 0.6) {
+          accuracyAdj = clamp(((symmetry.score - 50) / 50) * 0.2, -0.2, 0.2);
+          axisNotes.push(`좌우대칭 ${symmetry.score}점`);
+        }
+        const adjPresentation6 = clamp(presentationScore6 + presentationAdj, 0, 6);
+        const adjAccuracy4 = clamp(accuracyScore4 + accuracyAdj, 0, 4);
+        const competitionScore10 = clamp(adjAccuracy4 + adjPresentation6, 0, 10);
         const score100 = avg;
         const detected = results.filter((r) => r.detected).length;
         const detectRate = detected / Math.max(results.length, 1);
@@ -4454,7 +4749,10 @@
             items.push({ type: "good", text: "큰 문제는 적어요. 준비서기, 기합, 마무리 자세만 지도 선생님과 함께 확인해요." });
           }
         } else {
-          items.push({ type, text: `경기품새 참고점수 ${competitionScore10.toFixed(2)} / 10.0점입니다. 정확성 추정 ${accuracyScore4.toFixed(2)} / 4.0, 표현력 추정 ${presentationScore6.toFixed(2)} / 6.0입니다.` });
+          items.push({ type, text: `경기품새 참고점수 ${competitionScore10.toFixed(2)} / 10.0점입니다. 정확성 추정 ${adjAccuracy4.toFixed(2)} / 4.0, 표현력 추정 ${adjPresentation6.toFixed(2)} / 6.0입니다.` });
+          if (axisNotes.length) {
+            items.push({ type: "caution", text: `추가 분석 축 반영(보수적): ${axisNotes.join(" · ")}. 박자·좌우대칭은 신뢰도가 높을 때만 점수에 약하게 반영되며, 관절 각도·궤적은 참고용입니다.` });
+          }
           items.push({ type: estDeduction >= 0.6 ? "bad" : estDeduction > 0 ? "caution" : "good", text: `참고 감점 합계(추정): 약 -${estDeduction.toFixed(1)}점 (큰 오류 -0.3 ${ded03}곳, 경미한 오류 -0.1 ${ded01}곳${dedHold ? `, 판정 보류 ${dedHold}곳` : ""}). 실제 감점은 심판이 확정합니다.` });
           items.push({ type: "caution", text: `점수 해석: ${competitionScore10 >= 8 ? "전체 흐름은 안정적입니다. 세부 정확성과 기의 표현을 다듬으세요." : competitionScore10 >= 6 ? "대회 전 보완이 필요합니다. 반복되는 약점을 먼저 줄이세요." : "촬영 구도 또는 동작 안정성 문제가 큽니다. 우선 구간을 짧게 나누어 다시 훈련하세요."}` });
         }
@@ -4478,7 +4776,7 @@
         }
         if (weak.length) items.push({ type: "bad", text: `우선 보완할 구간: ${weak.map((r) => `${r.order}.${r.name}`).join(", ")}` });
         if (trainingMode === "competition") items.push({ type: "caution", text: "영상만으로 실제 타격 힘은 직접 측정할 수 없으므로, 이 평가는 속도와 마무리 안정성 기반의 코칭 지표입니다." });
-        return { score100, avg, competitionScore10, accuracyScore4, presentationScore6, detectRate, type, label, items, issueCounts, neededTraining };
+        return { score100, avg, competitionScore10, accuracyScore4: adjAccuracy4, presentationScore6: adjPresentation6, detectRate, type, label, items, issueCounts, neededTraining };
       }
       function currentAnalysisCacheKey() {
         if (!selectedFile || !Number.isFinite(video.duration)) return "";
@@ -4517,7 +4815,8 @@
       }
       function completeAnalysis(results, frameSamples, cacheHit = false, analysisEfficiency = null) {
         renderSegments(results);
-        const summary = summarize(results);
+        const fusedView = (analysisEfficiency && (analysisEfficiency.triple_view ? "triple" : analysisEfficiency.dual_view ? "dual" : null)) || cameraView;
+        const summary = summarize(results, fusedView);
         // 멈춤이 뚜렷하지 않아 여러 동작이 한 구간에 묶인 경우 안내한다.
         if (analysisEfficiency && Number.isFinite(analysisEfficiency.merged_segments)
             && Number.isFinite(analysisEfficiency.natural_segments) && analysisEfficiency.natural_segments > 0
@@ -4536,7 +4835,34 @@
           ? `문제점 ${issueTotal}회`
           : `${summary.competitionScore10.toFixed(2)} / 10.0`;
         setPill(overallStatus, summary.type, summary.label);
-        renderReport(summary.items);
+
+        // ── 추가 분석 축: 박자(리듬) · 좌우 대칭 ──
+        // 신뢰도가 충분할 때만 리포트에 표시한다(불확실하면 침묵 — 틀린 안내 방지).
+        const rhythm = computeRhythm(results);
+        const symmetry = computeSymmetry(results, fusedView);
+        const extraAxisItems = [];
+        if (rhythm.score != null && rhythm.confidence >= 0.5) {
+          extraAxisItems.push({ type: rhythm.score >= 70 ? "good" : rhythm.score >= 45 ? "caution" : "bad", text: `[박자] ${rhythm.score}점 — ${rhythm.note}` });
+        }
+        if (symmetry.score != null && symmetry.confidence >= 0.5) {
+          extraAxisItems.push({ type: symmetry.score >= 75 ? "good" : symmetry.score >= 50 ? "caution" : "bad", text: `[좌우 대칭] ${symmetry.score}점 — ${symmetry.note}` });
+        }
+        // 관절 각도: 신뢰도 충분한 구간이 있을 때만 평균을 참고 표시(점수 아님).
+        const angleSegs = results.filter((r) => r.jointAngle && r.jointAngle.score != null && r.jointAngle.confidence >= 0.5);
+        if (angleSegs.length >= 2) {
+          const avgAngleScore = Math.round(angleSegs.reduce((s, r) => s + r.jointAngle.score, 0) / angleSegs.length);
+          const armSegs = angleSegs.filter((r) => r.jointAngle.straightArm != null);
+          const avgArm = armSegs.length ? Math.round(armSegs.reduce((s, r) => s + r.jointAngle.straightArm, 0) / armSegs.length) : null;
+          const viewHint = (fusedView === "side" || fusedView === "triple" || fusedView === "dual") ? "" : " (정면 영상이라 깊이 방향 각도는 참고용입니다)";
+          extraAxisItems.push({ type: avgAngleScore >= 70 ? "good" : avgAngleScore >= 45 ? "caution" : "caution", text: `[관절 각도] 펴짐·굽힘 참고 ${avgAngleScore}점${avgArm != null ? ` (지르는 팔 평균 ${avgArm}°)` : ""}${viewHint}` });
+        }
+        // 손발 궤적: 노이즈가 커서 '참고용'으로만, 신뢰도 충분한 구간이 여럿일 때 평균 표시(점수 아님).
+        const trajSegs = results.filter((r) => r.trajectory && r.trajectory.score != null && r.trajectory.confidence >= 0.6);
+        if (trajSegs.length >= 3) {
+          const avgTraj = Math.round(trajSegs.reduce((s, r) => s + r.trajectory.score, 0) / trajSegs.length);
+          extraAxisItems.push({ type: avgTraj >= 70 ? "good" : "caution", text: `[손발 궤적] 경로 곧기 참고 ${avgTraj}점 — 지르기·차기 경로가 ${avgTraj >= 70 ? "비교적 곧습니다" : "흔들립니다. 목표선까지 곧게 뻗어 보세요"} (참고용)` });
+        }
+        renderReport([...extraAxisItems, ...summary.items]);
         setProgress(100, cacheHit ? "동일 영상 안정화 결과를 불러왔습니다." : (trainingMode === "exam" ? "문제점 확인 완료" : "파워·맺음 평가 완료"));
         latestReport = {
           app: "태권도 품새 수련",
@@ -4589,7 +4915,12 @@
               examples: item.examples
             })),
             needed_training: summary.neededTraining,
-            items: summary.items
+            items: summary.items,
+            extra_axes: {
+              rhythm: { score: rhythm.score, regularity: rhythm.regularity, contrast: rhythm.contrast, confidence: rhythm.confidence },
+              symmetry: { score: symmetry.score, confidence: symmetry.confidence },
+              joint_angle_segments: angleSegs.length
+            }
           },
           segments: results,
           frame_samples: frameSamples,
@@ -4671,6 +5002,83 @@
           video.src = url;
           video.load();
         });
+      }
+      // 영상 한 개의 메타데이터(길이·해상도·디코딩 가능 여부)를 기기와 무관하게 읽어온다.
+      // 별도의 임시 <video>로 읽어 메인 플레이어 상태를 건드리지 않는다.
+      function probeVideoFile(file) {
+        return new Promise((resolve) => {
+          const v = document.createElement("video");
+          v.preload = "metadata";
+          v.muted = true;
+          v.playsInline = true;
+          const url = URL.createObjectURL(file);
+          let settled = false;
+          const done = (info) => {
+            if (settled) return;
+            settled = true;
+            v.removeAttribute("src");
+            try { URL.revokeObjectURL(url); } catch (e) { /* noop */ }
+            resolve(info);
+          };
+          const timer = setTimeout(() => done({ ok: false, reason: "timeout", name: file.name, size: file.size }), 8000);
+          v.addEventListener("loadedmetadata", () => {
+            clearTimeout(timer);
+            const decodable = v.videoWidth > 0 && v.videoHeight > 0 && Number.isFinite(v.duration) && v.duration > 0;
+            done({
+              ok: decodable,
+              reason: decodable ? "" : "no_decode",
+              name: file.name,
+              size: file.size,
+              type: file.type || "",
+              duration: Number.isFinite(v.duration) ? v.duration : 0,
+              width: v.videoWidth,
+              height: v.videoHeight
+            });
+          }, { once: true });
+          v.addEventListener("error", () => {
+            clearTimeout(timer);
+            done({ ok: false, reason: "error", name: file.name, size: file.size, type: file.type || "" });
+          }, { once: true });
+          v.src = url;
+          v.load();
+        });
+      }
+      // 여러 기기(아이폰/안드로이드/태블릿)로 따로 찍은 멀티뷰 영상들의 호환성을 분석 전에 점검한다.
+      // 반환: { fatal: [...치명적 문제], warn: [...경고] }
+      // - fatal: 분석을 막아야 하는 문제(디코딩 불가 등)
+      // - warn: 진행은 가능하나 정확도에 영향(길이 차이 큼, 세로/가로 혼용 등)
+      async function checkMultiViewCompatibility(files) {
+        const labels = ["정면", "측면", "대각선"];
+        const probes = [];
+        for (let i = 0; i < files.length; i += 1) {
+          probes.push({ label: labels[i] || `${i + 1}번`, info: await probeVideoFile(files[i]) });
+        }
+        const fatal = [];
+        const warn = [];
+        // 1) 디코딩 불가(HEVC 등): 한 영상이라도 못 읽으면 치명적.
+        const undecodable = probes.filter((p) => !p.info.ok);
+        if (undecodable.length) {
+          const which = undecodable.map((p) => p.label).join(" · ");
+          fatal.push(`${which} 영상을 이 브라우저에서 열 수 없습니다. 아이폰이라면 '높은 호환성'(H.264)으로 다시 찍거나, 영상을 MP4(H.264)로 변환해 주세요.`);
+        }
+        const okProbes = probes.filter((p) => p.info.ok && p.info.duration > 0);
+        if (okProbes.length >= 2) {
+          // 2) 길이 차이: 같은 품새를 같이 찍었다면 길이가 비슷해야 한다.
+          const durs = okProbes.map((p) => p.info.duration);
+          const minD = Math.min(...durs);
+          const maxD = Math.max(...durs);
+          if (maxD - minD > 3 && maxD - minD > minD * 0.35) {
+            warn.push(`영상 길이가 서로 많이 다릅니다(${minD.toFixed(1)}초 ~ ${maxD.toFixed(1)}초). 같은 품새를 같은 회차로 동시에 찍은 영상인지 확인하세요. 시작·끝의 정지 2초가 빠지면 길이가 달라질 수 있습니다.`);
+          }
+          // 3) 세로/가로 혼용: 한쪽만 세로면 분석 품질이 떨어진다.
+          const orientations = okProbes.map((p) => (p.info.width >= p.info.height ? "가로" : "세로"));
+          if (new Set(orientations).size > 1) {
+            warn.push("가로로 찍은 영상과 세로로 찍은 영상이 섞여 있습니다. 모든 폰을 옆으로 눕혀(가로) 다시 찍으면 더 정확합니다.");
+          } else if (orientations.every((o) => o === "세로")) {
+            warn.push("영상이 세로로 찍혀 있습니다. 폰을 옆으로 눕혀(가로) 온몸이 다 나오게 찍으면 더 정확합니다.");
+          }
+        }
+        return { fatal, warn, probes };
       }
       // 두 뷰(정면 + 측면)의 같은 순번 구간을 신뢰도 기준으로 합친다.
       function fuseSegments(frontResults, sideResults) {
@@ -4810,6 +5218,20 @@
         if (!poseLandmarker) return;
         const savedMainUrl = objectUrl;
         const savedView = cameraView;
+        // 기기 혼용 호환성 사전 점검(세 영상이 서로 다른 폰이어도 안전하게)
+        setProgress(1, "세 영상의 호환성을 확인하는 중입니다...");
+        const compat = await checkMultiViewCompatibility([selectedFile, selectedFileB, selectedFileC]);
+        if (compat.fatal.length) {
+          setProgress(0, "세 영상을 함께 분석할 수 없습니다.");
+          renderReport([
+            { type: "bad", text: "세 영상을 함께 분석할 수 없습니다." },
+            ...compat.fatal.map((t) => ({ type: "bad", text: t }))
+          ]);
+          return;
+        }
+        if (compat.warn.length) {
+          renderReport(compat.warn.map((t) => ({ type: "caution", text: t })));
+        }
         try {
           setProgress(2, "정면+측면+대각선 1/3: 정면 영상을 분석합니다.");
           await loadVideoFile(selectedFile);
@@ -4825,6 +5247,12 @@
           if (!diagRun) throw new Error("diagonal analysis failed");
           setProgress(94, "세 각도(정면+측면+대각선) 결과를 합치는 중입니다.");
           const fused = fuseSegmentsTriple(frontRun.results, sideRun.results, diagRun.results);
+          // 세 영상의 감지 동작 수가 크게 다르면 정렬이 어긋났을 수 있어 안내한다.
+          const segLens = [frontRun.results.length, sideRun.results.length, diagRun.results.length];
+          const segDiff = Math.max(...segLens) - Math.min(...segLens);
+          if (segDiff >= 2 && segDiff > Math.max(...segLens) * 0.2) {
+            renderReport([{ type: "caution", text: `세 영상에서 감지된 동작 수가 다릅니다(정면 ${segLens[0]} · 측면 ${segLens[1]} · 대각선 ${segLens[2]}). 시작·끝에 2초씩 멈추고, 같은 회차를 동시에 찍으면 더 정확히 맞춰집니다.` }]);
+          }
           const eff = {
             ...(sideRun.analysisEfficiency || {}),
             triple_view: true,
@@ -4858,6 +5286,20 @@
         if (!poseLandmarker) return;
         const savedMainUrl = objectUrl;
         const savedView = cameraView;
+        // 기기 혼용 호환성 사전 점검(아이폰/안드로이드/태블릿 섞여도 안전하게)
+        setProgress(1, "두 영상의 호환성을 확인하는 중입니다...");
+        const compat = await checkMultiViewCompatibility([selectedFile, selectedFileB]);
+        if (compat.fatal.length) {
+          setProgress(0, "두 영상을 함께 분석할 수 없습니다.");
+          renderReport([
+            { type: "bad", text: "두 영상을 함께 분석할 수 없습니다." },
+            ...compat.fatal.map((t) => ({ type: "bad", text: t }))
+          ]);
+          return;
+        }
+        if (compat.warn.length) {
+          renderReport(compat.warn.map((t) => ({ type: "caution", text: t })));
+        }
         try {
           // 1) 정면(현재 selectedFile) 분석
           setProgress(3, "정면+측면 1/2: 정면 영상을 분석합니다.");
@@ -4872,6 +5314,12 @@
           // 3) 융합
           setProgress(92, "두 각도(정면+측면) 결과를 합치는 중입니다.");
           const fused = fuseSegments(frontRun.results, sideRun.results);
+          // 두 영상의 감지 동작 수가 크게 다르면 정렬이 어긋났을 수 있어 안내한다.
+          const segDiff = Math.abs(frontRun.results.length - sideRun.results.length);
+          const segMax = Math.max(frontRun.results.length, sideRun.results.length, 1);
+          if (segDiff >= 2 && segDiff > segMax * 0.2) {
+            renderReport([{ type: "caution", text: `두 영상에서 감지된 동작 수가 다릅니다(정면 ${frontRun.results.length} · 측면 ${sideRun.results.length}). 시작·끝에 2초씩 멈추고, 같은 회차를 동시에 찍으면 더 정확히 맞춰집니다.` }]);
+          }
           const eff = {
             ...(sideRun.analysisEfficiency || {}),
             dual_view: true,
@@ -5188,7 +5636,7 @@
         powerScoreText.textContent = trainingMode === "exam" ? "문제점 확인" : "-";
         setPill(overallStatus, "caution", "분석 전");
         warnIfFilenamePoomsaeMismatch();
-        renderReport([{ type: "caution", text: `${currentPoomsae().name} 선택 완료. 영상 선택 후 평가를 시작하세요.` }]);
+        renderReport([{ type: "caution", text: `${currentPoomsae().name} 선택 완료. 영상을 넣은 뒤 분석을 시작하세요.` }]);
       });
       boundarySensitivitySelect.addEventListener("change", () => {
         clearAnalysisOnly();
@@ -5241,7 +5689,7 @@
           renderPoomsaeOptions(tab.dataset.group || "yugeup");
           updatePoomsaeView();
           clearAnalysisOnly();
-          renderReport([{ type: "caution", text: `${poomsaeGroups[selectedPoomsaeGroup].label} 품새를 선택했습니다. 영상 선택 후 평가를 시작하세요.` }]);
+          renderReport([{ type: "caution", text: `${poomsaeGroups[selectedPoomsaeGroup].label} 품새를 선택했습니다. 영상을 넣은 뒤 분석을 시작하세요.` }]);
         });
       });
       loadModelBtn.addEventListener("click", loadModel);
