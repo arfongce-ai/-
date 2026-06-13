@@ -690,6 +690,29 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
       }
+      .gangyu-toggle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 11px 12px;
+        border-radius: 8px;
+        border-left: 4px solid var(--brand);
+        background: var(--brand-soft);
+        color: var(--text);
+        font-size: 13px;
+        line-height: 1.45;
+        cursor: pointer;
+      }
+      .gangyu-toggle input {
+        flex: 0 0 auto;
+        width: 20px;
+        height: 20px;
+        accent-color: var(--brand);
+        cursor: pointer;
+      }
+      .gangyu-toggle span { flex: 1 1 auto; }
       .repeat-options label {
         justify-content: center;
         gap: 8px;
@@ -1783,9 +1806,10 @@
           <div class="code" id="modeHelp" style="margin-top: 10px;">
             경기품새: WT 공인품새 구조를 참고한 10점 참고점수와 함께, 어느 항목을 어떻게 고쳐야 점수가 오르는지를 수정 우선순위로 짚어 드립니다.
           </div>
-          <div class="repeat-options" style="margin-top:10px;">
-            <label><input id="gangyuToggle" type="checkbox" /> 강유(剛柔) 분석 추가 — 동작별 강(剛)·유(柔)와 완급·리듬을 함께 표시</label>
-          </div>
+          <label class="gangyu-toggle" style="margin-top:10px;">
+            <input id="gangyuToggle" type="checkbox" />
+            <span>강유(剛柔) 분석 추가 — 동작별 강(剛)·유(柔)와 완급·리듬을 함께 표시</span>
+          </label>
           <div class="field-label">품새 선택 <span>분류를 고른 뒤 품새를 선택하세요</span></div>
           <div class="poomsae-tabs" role="tablist" aria-label="품새 구분">
             <button type="button" class="poomsae-tab active" data-group="yugeup">유급자</button>
