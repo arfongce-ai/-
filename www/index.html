@@ -787,6 +787,13 @@
       }
       .wizard-step { display: none; }
       .wizard-step.active { display: block; animation: wizardFade .22s ease; }
+      /* 위저드 설정 영역은 sticky/overflow 박스에 갇히지 않도록 강제(다음 버튼 클릭 보장) */
+      section:has(.wizard-step) {
+        position: static !important;
+        max-height: none !important;
+        overflow: visible !important;
+      }
+      #wizardNav { position: relative; z-index: 2; }
       @keyframes wizardFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
       .wizard-nav {
         display: flex;
@@ -2089,8 +2096,10 @@
             <button type="button" class="wn-next" id="wizardNextBtn">다음 ▶</button>
           </div>
           <div class="wizard-hint" id="wizardHint"></div>
+        </section>
 
-          <div style="margin-top: 16px;">
+        <section id="videoSection">
+          <div style="margin-top: 0;">
             <video id="video" controls muted playsinline></video>
             <div class="player-controls">
               <div class="playback-settings">
@@ -2730,11 +2739,29 @@
       function setupLayout() {
         trainingPage = document.querySelector("main.wrap");
         const grid = trainingPage ? trainingPage.querySelector(".grid") : null;
-        const videoSection = grid ? grid.children[0] : null;
-        const statusSection = grid ? grid.children[1] : null;
+        // 영상 영역은 id로 정확히 찾는다(위저드 설정 영역과 분리됨).
+        const videoSection = document.getElementById("videoSection");
+        // 위저드 설정 section(grid의 첫 자식, 위저드 단계 포함)을 grid 밖으로 빼 전체 폭으로 둔다.
+        // 이렇게 해야 setupLayout의 sticky(video-dock) 처리가 위저드를 가두지 않는다.
+        const wizardSection = grid ? Array.from(grid.children).find((c) => c.querySelector && c.querySelector(".wizard-step")) : null;
+        if (trainingPage && grid && wizardSection) {
+          trainingPage.insertBefore(wizardSection, grid);
+          // 안전장치: 위저드 영역은 어떤 경우에도 sticky/overflow에 갇히지 않게 한다.
+          wizardSection.classList.remove("video-dock");
+          wizardSection.style.position = "static";
+          wizardSection.style.maxHeight = "none";
+          wizardSection.style.overflow = "visible";
+        }
         const reportSection = reportList.closest("section");
         const outputSection = reportOutput.closest("section");
         const segmentsSection = segmentsEl.closest("section");
+        // 분석 상태 section = grid 자식 중 '분석 상태' 제목을 가진 section.
+        let statusSec = null;
+        if (grid) {
+          for (const sec of grid.children) {
+            if (sec.tagName === "SECTION" && sec !== videoSection && /분석 상태/.test(sec.textContent || "")) { statusSec = sec; break; }
+          }
+        }
         if (trainingPage) {
           trainingPage.id = "trainingPage";
           trainingPage.classList.add("app-view");
@@ -2746,11 +2773,11 @@
           note.textContent = "태블릿/PC에서는 영상 영역이 고정되어 구간 리플레이를 바로 확인할 수 있습니다.";
           videoSection.appendChild(note);
         }
-        if (grid && statusSection && reportSection && segmentsSection) {
+        if (grid && statusSec && reportSection && segmentsSection) {
           const sidePanel = document.createElement("div");
           sidePanel.className = "side-panel";
           grid.appendChild(sidePanel);
-          sidePanel.appendChild(statusSection);
+          sidePanel.appendChild(statusSec);
           sidePanel.appendChild(reportSection);
           sidePanel.appendChild(segmentsSection);
         }
