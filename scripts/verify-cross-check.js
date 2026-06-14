@@ -228,20 +228,7 @@ assertContains(readUtf8(capacitorConfigPath), "\"appName\": \"태권도 품새 �
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련품새 · 경기품새", "헤더 훈련 목적 배지 적용");
-assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.41", "헤더 설명 문구 적용");
-// v3.39 표준 동작열 + 펄스 정렬 + 공백 가드
-assertContains(webHtml, "standard:", "표준 동작열 스키마 존재(태극1장)");
-assertContains(webHtml, "officialCount: 18", "태극1장 공식 동작수 18 명시");
-assertContains(webHtml, "function foldPulsesToMoves", "복합동작 펄스→동작 접기 함수 존재");
-assertContains(webHtml, "standard_pulse_aligned_segments", "표준 펄스 정렬 분할 적용");
-assertContains(webHtml, "데이터 공백(긴 정지/포즈 미검출) 가드", "데이터 공백 가드 적용");
-// v3.40 표준 모드 1:1 매핑(정점 재배분 비활성화) + 표시 라벨 정리
-assertContains(webHtml, "표준 동작열 정렬 모드", "표준 1:1 직접 매핑 적용");
-assertContains(webHtml, "directOneToOne", "1:1 매핑 플래그 존재");
-assertContains(webHtml, "orderLabel", "준비/끝맺음/동작 번호 라벨 분리 표기");
-// v3.41 준비·끝맺음 분리(밀림 방지)
-assertContains(webHtml, "준비자세가 1번 동작을 덮어 전체가 밀리는 문제를 막는다", "준비/끝맺음 분리로 정렬 밀림 방지");
-assertContains(webHtml, "const coreMoves = movements.filter", "번호동작만 펄스 분할(준비/끝맺음 제외)");
+assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.42", "헤더 설명 문구 적용");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
@@ -292,7 +279,7 @@ assertContains(webHtml, "sampling_strategy: \"adaptive_device_safe\"", "적응�
 assertContains(webHtml, "window.addEventListener(\"pagehide\"", "페이지 종료 시 영상 메모리 정리");
 assertContains(webHtml, "requestVideoFrameCallback", "실제 표시 프레임 기준 분석 지원");
 assertContains(webHtml, "meta.mediaTime", "표시 프레임의 실제 mediaTime 기록");
-assertContains(webHtml, "const actualTime = await waitForSeek(requestedTime, true)", "요청 시각 대신 실제 분석 시각 사용(빠른 seek 경로)");
+assertContains(webHtml, "const actualTime = await waitForSeek(requestedTime)", "요청 시각 대신 실제 분석 시각 사용");
 assertContains(webHtml, "completion_snapshot_time: Number(snapshotTime.toFixed(3))", "완료 스냅샷 실제 시각 기록");
 assertContains(webHtml, "COMPETITION_RULES_2026", "2026 경기규칙 피드백 기준 존재");
 assertContains(webHtml, "competitionScoreFromMetrics", "WT 정확성 4.0 및 연출 6.0 참고점수 환산 함수 존재");
@@ -328,9 +315,7 @@ assertContains(webHtml, "nearest.gap > maxGap", "재사용 프레임 최대 시�
 assertContains(webHtml, "sample_source: reusableFrames.length === sampleCount ? \"boundary_scan_reused\" : \"precise_fallback\"", "구간별 재사용 또는 정밀 폴백 기록");
 assertContains(webHtml, "reliability_guard:", "분석 속도 최적화 신뢰성 안전장치 기록");
 assertContains(webHtml, "total_elapsed_ms:", "분석 실제 소요시간 기록");
-assertContains(webHtml, "active_range_peak_pulse_segments", "정점(peak) 기반 동작 분할 적용");
-assertContains(webHtml, "function detectPeakSegments", "정점 기반 분할 함수 존재");
-assertContains(webHtml, "active_range_valley_natural_segments_fallback", "저품질 영상용 valley 폴백 유지");
+assertContains(webHtml, "always_n_segments_one_to_one_for_unity", "영상-분석 통일성: 항상 N구간 1:1 매핑");
 assertContains(webHtml, "function detectNaturalBoundaries", "자연 경계 탐지 함수 존재");
 assertContains(webHtml, "function allocateMovementsToSegments", "구간 길이비례 동작 배분 함수 존재");
 assertContains(webHtml, "개선 A:", "준비자세(긴 정지) 시작 제외 개선 적용");
@@ -368,7 +353,7 @@ assertContains(webHtml, "동작명 자동 추정", "동작명과 영상 불일�
 assertContains(webHtml, "skeletonMotionScore", "관절 각도와 중심 이동을 포함한 스켈레톤 움직임 분석");
 assertContains(webHtml, "chooseCompletionSnapshotTimes", "구간 후반 가장 안정적인 스켈레톤 자세를 대표 장면으로 선택");
 assertContains(webHtml, "detectActiveMotionRange", "영상 앞뒤 대기 시간을 제외한 실제 품새 활성 구간 탐색");
-assertContains(webHtml, "duration * 2.6", "구간 감지 스캔 빈도(초당 2.6회, 동작당 최소 4.5프레임 보장)");
+assertContains(webHtml, "duration * 3.5", "구간 감지를 초당 3.5회 수준으로 유지");
 assertContains(webHtml, "./assets/momgagym-logo.jpg", "앱 하단 몸가짐운동센터 로고 존재");
 assertContains(webHtml, "제작: 울산 몸가짐운동센터", "앱 하단 제작 정보 존재");
 assertContains(webHtml, "https://blog.naver.com/posture_gym/222560486461", "김동규 센터장 소개 링크 존재");
