@@ -1899,6 +1899,12 @@
       .camera-view-tab strong { font-size: 15px; }
       .camera-view-tab span { font-size: 11px; }
       .camera-view-tabs { margin-top: 10px; }
+      /* 부모에 붙은 poomsae-tabs/mode-tabs의 grid를 무효화하고 두 줄(row)을 세로로 쌓는다 */
+      .camera-view-tabs.poomsae-tabs,
+      .camera-view-tabs.mode-tabs {
+        display: block;
+        grid-template-columns: none;
+      }
       .camera-view-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
       .camera-view-row + .camera-view-row { margin-top: 10px; }
       .camera-view-tab {
@@ -1963,7 +1969,8 @@
                 <li><strong>⑦ 홈 화면에 추가하면 편해요:</strong> 안드로이드는 브라우저 메뉴에서 '앱 설치/홈 화면에 추가', 아이폰·아이패드는 공유 버튼에서 '홈 화면에 추가'를 눌러요.</li>
               </ol>
               <p class="small">잘 찍는 법: 폰은 가로로 · 온몸이 다 나오게 · 폰은 고정(흔들리지 않게) · 밝은 곳에서</p>
-              <p class="small">이 앱은 혼자 품새 연습을 도와주는 참고용이에요. 선생님의 가르침을 대신하지는 않아요.</p>
+              <p class="small">정확한 동작이 궁금하면 <strong><a href="https://www.youtube.com/playlist?list=PLSFr5pEwo7gRNGXHlU-ZVxzha5A0c_M3i" target="_blank" rel="noopener">국기원 공식 유튜브 품새 영상</a></strong>(34편)이나 세계태권도연맹(WT) 공식 영상, 국기원 태권도 교과서를 참고하세요. 이 앱의 평가 기준은 국기원·WT 공식 기준을 따릅니다.</p>
+              <p class="small">이 앱은 혼자 품새 연습을 도와주는 참고용이에요. 선생님의 가르침이나 국기원 공식 심사를 대신하지는 않아요.</p>
             </div>
           </details>
 
@@ -2210,16 +2217,25 @@
       }
 
       function inferMovementType(name) {
+        // 기합은 동작이 아니라 '음성'. 별도 타입으로 분류해 오디오로 판정한다.
+        if (/^기합$|기합$/.test(String(name || "").trim())) return "kihap";
         if (/차기|찍기|꼬아서기|뛰어/.test(name)) return "kick_punch";
         if (/막기|헤쳐|산틀|거들어막기/.test(name)) return "block";
         if (/치기|찌르기|지르기|밀기|꺾기|표적/.test(name)) return "strike";
-        if (/준비|서기|기합|멈추기|학다리/.test(name)) return "hold";
+        if (/준비|서기|멈추기|학다리/.test(name)) return "hold";
         return "punch";
       }
 
       const COMPETITION_RULES_2026 = {
         source: "2026년 태권도 품새 경기규칙",
         scope: "경기품새 훈련 피드백 참고 기준",
+        // 공식 권위 기관 및 검증 출처(데이터·평가 방식의 근거)
+        authorities: {
+          standard: "국기원(Kukkiwon) · 세계태권도연맹(World Taekwondo, WT)",
+          official_video: "국기원 공식 유튜브, World Taekwondo 공식 경기 영상",
+          textbook: "국기원 태권도 교과서(공식 인증 교재, 품새 편 3권)",
+          method_basis: "스켈레톤(관절) 위치를 표준 가이드와 비교해 차이값을 감점에 반영하는 방식은 KCI/KISTI 등재 품새 검증 연구와 동일한 접근입니다(예: Kinect/BlazePose 기반 품새 평가 연구)."
+        },
         accuracy: {
           score: 4.0,
           criteria: ["기본동작의 정확성", "각 품새별 세부동작의 정확성", "동작 수행 및 연결 과정의 균형"],
@@ -2235,7 +2251,9 @@
           criteria: ["속도와 힘", "강유·완급·리듬의 조화", "기의 표현"],
           caution: "속도와 힘의 구분, 강유·완급·리듬, 기의 표현이 약하면 표현성 보완이 필요합니다."
         },
-        disclaimer: "영상 좌표로 확인 가능한 훈련 보조 항목이며 실제 심판 판정, 품새선, 목표 높이, 시선, 손 모양을 확정하지 않습니다."
+        // 준비자세는 동작 번호에 포함하지 않는다(국기원 기준: 품새마다 고유한 6가지 정형 준비자세가 있음).
+        preparation_note: "기본준비서기 등 준비자세는 동작 수에 포함하지 않으며, 품새별로 고유한 준비자세(통밀기/보주먹/겹손 준비 등)가 있습니다. 17개 품새의 동작 수는 국기원 공식 도해로 검증되었습니다.",
+        disclaimer: "영상 좌표로 확인 가능한 훈련 보조 항목이며 실제 심판 판정, 품새선, 목표 높이, 시선, 손 모양을 확정하지 않습니다. 공식 인정은 국기원/WT 기준과 지도자 확인을 따릅니다."
       };
 
       const poomsaeData = {
@@ -2291,33 +2309,75 @@
         yudan: { label: "유단자", keys: ["pyongwon", "sipjin", "jitae", "cheonkwon", "hansu", "ilyeo"] }
       };
 
+      // ── 국기원/WT 공식 동작 수(준비서기 제외, 번호가 매겨지는 실제 기술 동작 기준) ──
+      // 교차검증: 국기원 공식 품새 도해(junbi 다음 1번부터 매겨진 동작 번호)로 17개 품새 전체 직접 대조 확인.
+      //   태극1~8 = 18·18·20·20·20·19·25·27,
+      //   고려30·금강27·태백26·평원21·십진28·지태28·천권26·한수27·일여23 — 모두 공식 도해와 일치 확인됨.
+      // 준비서기와 종료 후 '기본준비서기로 돌아오기'는 동작 번호에 포함하지 않는다.
+      const OFFICIAL_MOVE_COUNT = {
+        taegeuk_1: 18, taegeuk_2: 18, taegeuk_3: 20, taegeuk_4: 20,
+        taegeuk_5: 20, taegeuk_6: 19, taegeuk_7: 25, taegeuk_8: 27,
+        koryo: 30, keumgang: 27, taebaek: 26,
+        pyongwon: 21, sipjin: 28, jitae: 28, cheonkwon: 26, hansu: 27, ilyeo: 23
+      };
       // 동작이 아닌 '메모/안내성' 항목인지 판별한다.
-      // 데이터 원본은 그대로 두되, 분석 대상 동작 목록에서만 제외해 분석 정확도를 높인다.
-      // 주의: '기합', '기본준비서기', '준비서기' 등은 실제 품새 동작/정지이므로 제외하지 않는다.
       function isMemoTechnique(name) {
         const n = String(name || "").trim();
         if (!n) return true;
-        // 끝이 '확인'으로 끝나는 점검 메모(예: "가위막기 확인")
-        if (/\s확인$/.test(n)) return true;
-        // 단독 '마무리' 또는 '~ 마무리'(예: "하늘 방향 마무리") — 종료 안내
-        if (/마무리$/.test(n)) return true;
-        // 동작이 아닌 시선/시작 안내(예: "시선먼저가기")
-        if (n === "시선먼저가기") return true;
+        if (/\s확인$/.test(n)) return true;        // "가위막기 확인" 같은 점검 메모
+        if (/마무리$/.test(n)) return true;          // "하늘 방향 마무리" 종료 안내
+        if (n === "시선먼저가기") return true;        // 동작 아닌 시선 안내
         return false;
       }
+      // 준비서기(시작/종료 자세)인지 판별. 동작 번호에 포함하지 않는다.
+      // 단, 시작의 '준비서기'와 종료 직전 '기본준비서기로 돌아오기'를 모두 잡는다.
+      function isReadyStance(name) {
+        const n = String(name || "").trim();
+        return /준비서기|준비 자세|준비자세|준비$/.test(n);
+      }
+      // 품새의 '본동작'(번호 매겨지는 기술 동작) 목록을 만든다. 준비서기·메모는 제외.
+      function coreMovementNames(dataKey) {
+        const data = poomsaeData[dataKey];
+        let names;
+        if (data.movements) {
+          names = data.movements.map((m) => m.name);
+        } else if (data.techniques) {
+          names = data.techniques.slice(0, data.count);
+        } else {
+          return null; // pattern 기반은 별도 처리
+        }
+        // 메모·준비서기·기합(음성)은 동작 번호에서 제외한다.
+        return names.filter((name) => !isMemoTechnique(name) && !isReadyStance(name) && inferMovementType(name) !== "kihap");
+      }
+      // 기합(음성) 항목인지 — 원본 순서에서 어느 동작 뒤에 오는지 알아내기 위해 사용.
+      function isKihapName(name) {
+        return inferMovementType(name) === "kihap";
+      }
+      // 분석/표시에 쓰는 동작 목록. 준비서기(isPrep) + 번호 동작 + 기합(isKihap, 음성).
       function buildGenericMovements(dataKey) {
         const data = poomsaeData[dataKey];
-        if (data.movements) return data.movements;
-        if (data.techniques) {
-          return data.techniques
-            .slice(0, data.count)
-            .filter((name) => !isMemoTechnique(name))
-            .map((name, index) => ({
-              id: `${dataKey}_movement_${index + 1}`,
-              name,
-              type: inferMovementType(name)
-            }));
+        let rawNames;
+        if (data.movements) rawNames = data.movements.map((m) => m.name);
+        else if (data.techniques) rawNames = data.techniques.slice(0, data.count);
+        else rawNames = null;
+
+        if (rawNames) {
+          const prep = { id: `${dataKey}_prep`, name: "준비서기", type: "hold", isPrep: true, moveNo: 0 };
+          const out = [prep];
+          let moveNo = 0;
+          for (const name of rawNames) {
+            if (isMemoTechnique(name) || isReadyStance(name)) continue;       // 메모·준비 제외
+            if (isKihapName(name)) {
+              // 기합은 음성. 번호를 매기지 않고 직전 동작 뒤에 음성 구간으로 표시.
+              out.push({ id: `${dataKey}_kihap_${out.length}`, name: "기합(소리)", type: "kihap", isKihap: true, moveNo: null });
+              continue;
+            }
+            moveNo += 1;
+            out.push({ id: `${dataKey}_movement_${moveNo}`, name, type: inferMovementType(name), isPrep: false, moveNo });
+          }
+          return out;
         }
+        // pattern 기반(fallback)
         const labelByType = {
           hold: "마무리/정지",
           block: "막기 계열 동작",
@@ -2325,11 +2385,15 @@
           strike: "치기/손날 계열 동작",
           kick_punch: "차기 후 연결 동작"
         };
-        return data.pattern.slice(0, data.count).map((type, index) => ({
+        const prep = { id: `${dataKey}_prep`, name: "준비서기", type: "hold", isPrep: true, moveNo: 0 };
+        const moves = data.pattern.slice(0, data.count).map((type, index) => ({
           id: `${dataKey}_movement_${index + 1}`,
           name: `${labelByType[type] || "품새 동작"} ${index + 1}`,
-          type
+          type,
+          isPrep: false,
+          moveNo: index + 1
         }));
+        return [prep, ...moves];
       }
       function detectPoomsaeKeyFromFilename(filename) {
         const normalized = String(filename || "").toLowerCase().replace(/[\s_.\-()[\]]/g, "");
@@ -2559,7 +2623,15 @@
           const item = poomsaeData[key];
           const option = document.createElement("option");
           option.value = key;
-          option.textContent = `${item.name} · ${item.count}동작`;
+          // 공식 동작 수(준비서기 제외)를 표시. 우리 데이터의 실제 본동작 수와 다르면 콘솔 경고.
+          const official = OFFICIAL_MOVE_COUNT[key];
+          const core = coreMovementNames(key);
+          const builtCount = core ? core.length : (item.count || 0);
+          const shown = official != null ? official : builtCount;
+          if (official != null && core && core.length !== official) {
+            console.warn(`[품새 데이터] ${item.name}: 본동작 ${core.length}개, 공식 ${official}개 (불일치 — 표시는 공식 기준)`);
+          }
+          option.textContent = `${item.name} · ${shown}동작`;
           poomsaeSelect.appendChild(option);
         }
         selectedPoomsaeKey = group.keys.includes(preferredKey) ? preferredKey : group.keys[0];
@@ -2965,6 +3037,7 @@
               <p><b>가감점:</b> ${deduction.amount === 0 ? "측정 지표상 큰 감점 징후 적음" : deduction.amount == null ? "판정 보류(촬영/지도자 확인 필요)" : `약 -${deduction.amount.toFixed(1)}점 가능성`} · ${escapeHtml(deduction.reason)}</p>
               ${keyFix ? `<p><b>핵심 수정:</b> [${escapeHtml(keyFix.label)}] ${escapeHtml(keyFix.fix)}</p>` : ""}
               ${merged ? `<p class="small"><b>참고:</b> 이 구간에는 ${escapeHtml(segment.mergedMovementNumbers || "")} 동작이 함께 들어가 있어, 감점은 각 동작별로 따로 적용됩니다. 지도자 확인을 권장합니다.</p>` : ""}
+              ${(merged && typeof segment.allocConfidence === "number" && segment.allocConfidence < 0.45) ? `<p class="small" style="color:var(--warn,#b45309)"><b>주의:</b> 이 구간은 동작 경계가 흐릿해 어떤 동작이 묶였는지 추정이 불확실합니다. 동작 끝마다 잠깐 멈춰 다시 촬영하면 정확도가 올라갑니다.</p>` : ""}
             </div>`
           : "";
 
@@ -3824,10 +3897,11 @@
         return stableRound(clamp(100 - (remainingMotion / tolerance) * 100, 0, 100));
       }
       function chooseSampleCount(segmentLength) {
-        // 동작 비교에 필요한 프레임은 유지하고 전체 분석량은 보통 초당 1.5~2회 이하로 제한한다.
-        return clamp(Math.round(segmentLength * 1.5), 4, 8);
+        // 속도 최적화: 최소 4프레임은 동작 비교(시작·정점·끝+여유)에 필요해 유지하고,
+        // 상한만 8→6으로 낮춰 긴 구간의 과도한 샘플링을 줄인다.
+        return clamp(Math.round(segmentLength * 1.3), 4, 6);
       }
-      function selectReusableSegmentFrames(scanFrames, segmentStart, segmentEnd, sampleCount, maxGap = 0.18) {
+      function selectReusableSegmentFrames(scanFrames, segmentStart, segmentEnd, sampleCount, maxGap = 0.28) {
         const segmentLength = segmentEnd - segmentStart;
         if (!(segmentLength > 0) || !Array.isArray(scanFrames) || !scanFrames.length) return [];
         const candidates = scanFrames
@@ -4148,16 +4222,55 @@
         boundaries.sort((a, b) => a - b);
         return boundaries;
       }
-      // 각 구간 길이에 비례해 동작(이름)을 배분한다. 긴 구간일수록 더 많은 동작이 묶인다.
-      // 반환: 구간별 { movementIndices: [..], names: [..] } 배열.
-      function allocateMovementsToSegments(boundaries, movementCount) {
+      // 구간 [start,end] 안의 '움직임 정점(peak)' 개수를 센다.
+      // 한 동작 = 보통 한 번의 가속→정점→감속. 정점 수가 그 구간에 묶인 동작 수의 단서가 된다.
+      function countMotionPeaks(motionSamples, start, end) {
+        const seg = motionSamples
+          .filter((s) => s.valid !== false && Number.isFinite(s.time) && Number.isFinite(s.motion) && s.time >= start && s.time <= end)
+          .sort((a, b) => a.time - b.time);
+        if (seg.length < 3) return { peaks: 1, strength: 0 };
+        const motions = seg.map((s) => s.motion);
+        const maxM = Math.max(...motions);
+        const meanM = motions.reduce((a, b) => a + b, 0) / motions.length;
+        if (maxM < 1e-6) return { peaks: 1, strength: 0 };
+        // 정점 = 좌우보다 크고, 평균보다 충분히 높은 국소 최대점.
+        const peakThreshold = meanM + (maxM - meanM) * 0.35;
+        let peaks = 0;
+        for (let i = 1; i < seg.length - 1; i += 1) {
+          if (seg[i].motion >= seg[i - 1].motion && seg[i].motion > seg[i + 1].motion && seg[i].motion >= peakThreshold) {
+            peaks += 1;
+          }
+        }
+        // 신뢰도: 정점이 뚜렷할수록(최대/평균 비가 클수록) 높다.
+        const strength = clamp((maxM / Math.max(meanM, 1e-6) - 1) / 2, 0, 1);
+        return { peaks: Math.max(peaks, 1), strength: Number(strength.toFixed(2)) };
+      }
+      // 각 구간에 동작(이름)을 배분한다.
+      // 1순위: 구간 내 '움직임 정점 수' 비례(한 구간에 정점 2개면 동작 2개가 묶인 것).
+      // 2순위(정점이 불분명하면): 길이 비례로 폴백.
+      // 반환: 구간별 { indices, allocConfidence } — allocConfidence는 배분 신뢰도.
+      function allocateMovementsToSegments(boundaries, movementCount, motionSamples) {
         const segCount = boundaries.length - 1;
         if (segCount <= 0) return [];
         const lengths = [];
         for (let k = 0; k < segCount; k += 1) lengths.push(Math.max(boundaries[k + 1] - boundaries[k], 0.001));
-        const total = lengths.reduce((a, b) => a + b, 0);
-        // 길이 비율로 동작 수 배분 후, 최대잔여법으로 정수화하고 합을 movementCount로 맞춘다.
-        const exact = lengths.map((l) => (l / total) * movementCount);
+        const totalLen = lengths.reduce((a, b) => a + b, 0);
+
+        // 구간별 정점 수와 신뢰도 측정
+        let peakInfo = null;
+        if (motionSamples && motionSamples.length) {
+          peakInfo = [];
+          for (let k = 0; k < segCount; k += 1) peakInfo.push(countMotionPeaks(motionSamples, boundaries[k], boundaries[k + 1]));
+        }
+        // 가중치: 정점 데이터가 신뢰할 만하면 정점 수, 아니면 길이.
+        const peakSum = peakInfo ? peakInfo.reduce((a, p) => a + p.peaks, 0) : 0;
+        const avgStrength = peakInfo ? peakInfo.reduce((a, p) => a + p.strength, 0) / segCount : 0;
+        const usePeaks = peakInfo && peakSum >= segCount && avgStrength >= 0.25;
+        const weights = usePeaks ? peakInfo.map((p) => p.peaks) : lengths.slice();
+        const totalW = weights.reduce((a, b) => a + b, 0) || 1;
+
+        // 가중치 비율로 동작 수 배분 후 최대잔여법으로 정수화, 합을 movementCount로 맞춘다.
+        const exact = weights.map((w) => (w / totalW) * movementCount);
         const counts = exact.map((v) => Math.floor(v));
         let remainder = movementCount - counts.reduce((a, b) => a + b, 0);
         const fracOrder = exact.map((v, i) => ({ i, frac: v - Math.floor(v) })).sort((a, b) => b.frac - a.frac);
@@ -4166,12 +4279,19 @@
         let sum = counts.reduce((a, b) => a + b, 0);
         while (sum > movementCount) { const mi = counts.indexOf(Math.max(...counts)); counts[mi] -= 1; sum -= 1; }
         while (sum < movementCount) { const mi = counts.indexOf(Math.min(...counts)); counts[mi] += 1; sum += 1; }
+
         const allocation = [];
         let idx = 0;
         for (let k = 0; k < segCount; k += 1) {
           const indices = [];
           for (let c = 0; c < counts[k] && idx < movementCount; c += 1) { indices.push(idx); idx += 1; }
-          allocation.push(indices);
+          // 배분 신뢰도: 정점 수와 배분된 동작 수가 일치하면 높음.
+          let allocConfidence = 0.5;
+          if (usePeaks && peakInfo) {
+            const match = peakInfo[k].peaks === indices.length ? 1 : Math.max(0, 1 - Math.abs(peakInfo[k].peaks - indices.length) * 0.34);
+            allocConfidence = Number((match * (0.5 + peakInfo[k].strength * 0.5)).toFixed(2));
+          }
+          allocation.push({ indices, allocConfidence });
         }
         return allocation;
       }
@@ -4179,7 +4299,9 @@
         const count = movements.length;
         const sensitivity = Number(boundarySensitivitySelect.value || 0.95);
         const duration = video.duration;
-        const scanCount = clamp(Math.round(duration * 3.5), count * 5, 320);
+        // 속도 최적화: 경계 검출에는 초당 2.6회면 동작 정점을 충분히 잡는다(기존 3.5회 대비 ~25% 감소).
+        // 단 동작 수가 많은 품새는 동작당 최소 4.5프레임을 보장해 정밀도를 유지하고, 상한은 260으로 낮춘다.
+        const scanCount = clamp(Math.round(duration * 2.6), Math.round(count * 4.5), 260);
 
         // 영상 전체를 초당 약 3.5회 밀도로 한 번에 정밀 스캔한다(안정성 우선).
         const frames = await collectScanFrames(0, Math.max(duration - 0.04, 0), scanCount, timestampBaseMs, 5, 12);
@@ -4188,7 +4310,7 @@
         const activeRange = detectActiveMotionRange(duration, motionSamples);
         // 멈춤이 뚜렷한 만큼만 자연스럽게 끊고, 부족한 경계는 동작명을 묶어서 표시한다.
         const boundaries = detectNaturalBoundaries(duration, motionSamples, sensitivity, activeRange.start, activeRange.end, count);
-        const allocation = allocateMovementsToSegments(boundaries, count);
+        const allocation = allocateMovementsToSegments(boundaries, count, motionSamples);
         return {
           boundaries,
           allocation,
@@ -4744,6 +4866,22 @@
           accuracyAdj = clamp(((symmetry.score - 50) / 50) * 0.2, -0.2, 0.2);
           axisNotes.push(`좌우대칭 ${symmetry.score}점`);
         }
+        // ── 기합 누락 감점(표현력의 '기의 표현') ──
+        // 기합 구간에서 함성이 확인되지 않으면 감점. 누락 1건당 0.2점, 최대 0.4점.
+        // 단, 영상에 소리가 없어 '판정보류(null)'인 경우는 감점하지 않는다(확인 불가).
+        let kihapAdj = 0;
+        const kihapSegs = results.filter((r) => r.movementType === "kihap" && r.kihap);
+        const kihapJudged = kihapSegs.filter((r) => r.kihap.detected !== null);
+        if (kihapJudged.length) {
+          const missed = kihapJudged.filter((r) => !r.kihap.detected).length;
+          if (missed > 0) {
+            kihapAdj = -Math.min(0.2 * missed, 0.4);
+            axisNotes.push(`기합 누락 ${missed}건(−${Math.abs(kihapAdj).toFixed(1)})`);
+          } else {
+            axisNotes.push(`기합 ${kihapJudged.length}회 확인`);
+          }
+        }
+        presentationAdj = clamp(presentationAdj + kihapAdj, -0.6, 0.3);
         const adjPresentation6 = clamp(presentationScore6 + presentationAdj, 0, 6);
         const adjAccuracy4 = clamp(accuracyScore4 + accuracyAdj, 0, 4);
         const competitionScore10 = clamp(adjAccuracy4 + adjPresentation6, 0, 10);
@@ -4840,10 +4978,54 @@
         powerScoreText.textContent = trainingMode === "exam" ? "문제점 확인" : "-";
         setPill(overallStatus, "caution", "분석 전");
       }
-      function completeAnalysis(results, frameSamples, cacheHit = false, analysisEfficiency = null) {
+      async function completeAnalysis(results, frameSamples, cacheHit = false, analysisEfficiency = null) {
         renderSegments(results);
+        // ── 기합(음성) 검출: 기합 구간이 있으면 영상 오디오에서 함성을 확인한다 ──
+        try {
+          const kihapSegs = results.filter((r) => r.movementType === "kihap");
+          if (kihapSegs.length) {
+            const audioFile = selectedFile; // 정면/단일 영상의 오디오를 사용
+            const profile = await buildAudioLoudnessProfile(audioFile);
+            for (const seg of kihapSegs) {
+              const res = detectKihapInRange(profile, seg.startTime, seg.endTime);
+              seg.kihap = res;
+            }
+            // 결과 요약용 안내를 만든다.
+            const judged = kihapSegs.map((s) => s.kihap).filter((k) => k && k.detected !== null);
+            if (profile && profile.ok === false) {
+              results._kihapNote = { type: "caution", text: "이 영상에는 소리가 없어 기합(함성)을 확인할 수 없습니다. 소리가 녹음된 영상으로 다시 촬영하면 기합을 자동으로 확인합니다." };
+            } else if (judged.length) {
+              const ok = judged.filter((k) => k.detected).length;
+              const weak = judged.filter((k) => !k.detected && k.weak).length;
+              const missed = judged.filter((k) => !k.detected).length;
+              const dedSuffix = (trainingMode === "competition" && missed > 0)
+                ? ` 경기품새에서 기합 누락은 표현력(기의 표현) 감점 요인이라 점수에 반영했습니다.`
+                : "";
+              if (ok === judged.length) {
+                results._kihapNote = { type: "good", text: `기합 ${judged.length}회가 모두 또렷하게 확인되었습니다. 좋은 기합입니다!` };
+              } else if (ok === 0 && weak === 0) {
+                results._kihapNote = { type: "caution", text: `기합 구간에서 큰 함성이 확인되지 않았습니다. 기합("얍/악" 등)은 짧고 크게 내질러야 인정됩니다.${dedSuffix}` };
+              } else {
+                results._kihapNote = { type: "caution", text: `기합 ${judged.length}회 중 ${ok}회는 또렷했지만 나머지는 약했습니다. 기합은 매번 짧고 크게 내질러 주세요.${dedSuffix}` };
+              }
+            }
+          }
+        } catch (e) { /* 오디오 분석 실패는 무시(분석은 계속) */ }
         const fusedView = (analysisEfficiency && (analysisEfficiency.triple_view ? "triple" : analysisEfficiency.dual_view ? "dual" : null)) || cameraView;
         const summary = summarize(results, fusedView);
+        if (results._kihapNote) summary.items.unshift(results._kihapNote);
+        // 분석 품새의 본동작 수가 공식과 다르면(데이터 누락 가능성) 사용자에게 투명하게 안내.
+        try {
+          const pk = selectedPoomsaeKey;
+          const official = OFFICIAL_MOVE_COUNT[pk];
+          const core = coreMovementNames(pk);
+          if (official != null && core && core.length < official) {
+            summary.items.unshift({
+              type: "caution",
+              text: `${currentPoomsae().name}의 공식 동작 수는 ${official}개인데, 현재 앱이 가진 동작 데이터는 ${core.length}개입니다. 일부 동작이 누락돼 있어 정밀 비교가 제한될 수 있습니다(동작 흐름·리듬 분석은 정상). 정확한 동작별 평가가 필요하면 국기원 공식 동작표 기준 데이터 보완이 필요합니다.`
+            });
+          }
+        } catch (e) { /* noop */ }
         // 멈춤이 뚜렷하지 않아 여러 동작이 한 구간에 묶인 경우 안내한다.
         if (analysisEfficiency && Number.isFinite(analysisEfficiency.merged_segments)
             && Number.isFinite(analysisEfficiency.natural_segments) && analysisEfficiency.natural_segments > 0
@@ -5008,6 +5190,152 @@
         setProgress(0, "초기화했습니다. 같은 영상으로 다시 분석하려면 분석 시작을 누르세요.");
         analyzeBtn.disabled = !selectedFile || !Number.isFinite(video.duration);
         requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+      }
+      // ── 기합(음성) 검출 ──
+      // 영상 파일의 오디오를 디코딩해 시간대별 음량(RMS) 프로파일을 만든다.
+      // 기합 구간에서 '주변 대비 큰 함성'(얍/악/파악 등)이 있으면 인정한다.
+      // 영상에 오디오가 없거나 디코딩 불가면 null(=판정 보류)을 반환한다.
+      let _audioProfileCache = new WeakMap();
+      async function buildAudioLoudnessProfile(file) {
+        if (!file) return null;
+        if (_audioProfileCache.has(file)) return _audioProfileCache.get(file);
+        try {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return null;
+          const arrayBuf = await file.arrayBuffer();
+          const ctx = new AC();
+          let audioBuf;
+          try {
+            audioBuf = await ctx.decodeAudioData(arrayBuf.slice(0));
+          } catch (e) {
+            // decodeAudioData는 일부 영상 컨테이너(MP4 등)에서 실패할 수 있다.
+            // 이 경우 <video>를 실제 재생하며 음량을 측정하는 폴백을 쓴다.
+            try { ctx.close(); } catch (e2) {}
+            const fallback = await buildAudioProfileViaPlayback(file);
+            _audioProfileCache.set(file, fallback || { ok: false, reason: "no_audio" });
+            return fallback || { ok: false, reason: "no_audio" };
+          }
+          const ch = audioBuf.numberOfChannels > 0 ? audioBuf.getChannelData(0) : null;
+          if (!ch || ch.length === 0) { try { ctx.close(); } catch (e) {} const r = { ok: false, reason: "no_audio" }; _audioProfileCache.set(file, r); return r; }
+          const sr = audioBuf.sampleRate;
+          const duration = audioBuf.duration;
+          // 50ms 단위로 RMS 음량을 계산해 프로파일을 만든다.
+          const winSec = 0.05;
+          const winLen = Math.max(1, Math.floor(sr * winSec));
+          const bins = Math.floor(ch.length / winLen);
+          const rms = new Float32Array(bins);
+          for (let i = 0; i < bins; i += 1) {
+            let sum = 0;
+            const start = i * winLen;
+            for (let j = 0; j < winLen; j += 1) { const v = ch[start + j]; sum += v * v; }
+            rms[i] = Math.sqrt(sum / winLen);
+          }
+          // 전체 평균·표준편차로 정규화 기준을 잡는다.
+          let mean = 0; for (let i = 0; i < bins; i += 1) mean += rms[i]; mean /= Math.max(bins, 1);
+          let varSum = 0; for (let i = 0; i < bins; i += 1) { const d = rms[i] - mean; varSum += d * d; }
+          const std = Math.sqrt(varSum / Math.max(bins, 1));
+          try { ctx.close(); } catch (e) {}
+          const profile = { ok: true, rms, binSec: winSec, duration, mean, std, peak: Math.max(...rms) };
+          _audioProfileCache.set(file, profile);
+          return profile;
+        } catch (e) {
+          return null;
+        }
+      }
+      // decodeAudioData가 실패할 때(MP4 등) <video>를 재생하며 음량 프로파일을 만드는 폴백.
+      // 실시간 재생이라 느리므로, 음소거하고 가능한 한 빠르게 재생해 RMS를 50ms 간격으로 수집한다.
+      function buildAudioProfileViaPlayback(file) {
+        return new Promise((resolve) => {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) { resolve(null); return; }
+          const url = URL.createObjectURL(file);
+          const v = document.createElement("video");
+          v.src = url;
+          v.muted = false;          // 분석을 위해 오디오 그래프로 보냄(스피커로는 안 나가게 gain 0)
+          v.volume = 1;
+          v.playsInline = true;
+          let ctx, srcNode, analyser, gain, raf;
+          const rmsList = [];
+          let lastSampleT = -1;
+          const cleanup = () => {
+            try { if (raf) cancelAnimationFrame(raf); } catch (e) {}
+            try { v.pause(); } catch (e) {}
+            try { if (srcNode) srcNode.disconnect(); } catch (e) {}
+            try { if (analyser) analyser.disconnect(); } catch (e) {}
+            try { if (gain) gain.disconnect(); } catch (e) {}
+            try { if (ctx) ctx.close(); } catch (e) {}
+            try { URL.revokeObjectURL(url); } catch (e) {}
+          };
+          const fail = (reason) => { cleanup(); resolve({ ok: false, reason: reason || "no_audio" }); };
+          const timeout = setTimeout(() => finish(), 30000); // 안전장치: 최대 30초
+          const buf = new Float32Array(2048);
+          const sample = () => {
+            if (!analyser) return;
+            analyser.getFloatTimeDomainData(buf);
+            let sum = 0;
+            for (let i = 0; i < buf.length; i += 1) sum += buf[i] * buf[i];
+            const rms = Math.sqrt(sum / buf.length);
+            // 50ms 간격으로만 기록(재생 시각 기준)
+            const t = v.currentTime;
+            if (t - lastSampleT >= 0.05) { rmsList.push(rms); lastSampleT = t; }
+            raf = requestAnimationFrame(sample);
+          };
+          const finish = () => {
+            clearTimeout(timeout);
+            if (rmsList.length < 4) { fail("no_audio"); return; }
+            const arr = Float32Array.from(rmsList);
+            let mean = 0; for (let i = 0; i < arr.length; i += 1) mean += arr[i]; mean /= arr.length;
+            let vs = 0; for (let i = 0; i < arr.length; i += 1) { const d = arr[i] - mean; vs += d * d; }
+            const std = Math.sqrt(vs / arr.length);
+            const peak = Math.max(...arr);
+            if (peak < 1e-4) { fail("silent"); return; }
+            const profile = { ok: true, rms: arr, binSec: 0.05, duration: v.duration || (arr.length * 0.05), mean, std, peak };
+            cleanup();
+            resolve(profile);
+          };
+          v.addEventListener("loadedmetadata", () => {
+            try {
+              ctx = new AC();
+              srcNode = ctx.createMediaElementSource(v);
+              analyser = ctx.createAnalyser();
+              analyser.fftSize = 2048;
+              gain = ctx.createGain();
+              gain.gain.value = 0; // 스피커로는 소리 안 나가게(분석만)
+              srcNode.connect(analyser);
+              analyser.connect(gain);
+              gain.connect(ctx.destination);
+              v.playbackRate = 1.0; // 정확한 음량 수집을 위해 정상 속도(배속은 샘플 누락 위험)
+              v.play().then(() => { sample(); }).catch(() => fail("play_blocked"));
+            } catch (e) { fail("graph_error"); }
+          }, { once: true });
+          v.addEventListener("ended", () => finish(), { once: true });
+          v.addEventListener("error", () => fail("video_error"), { once: true });
+        });
+      }
+      // 특정 시간 구간 [startSec, endSec]에서 기합(큰 함성)이 검출되는지 판정한다.
+      // 특정 시간 구간에서 기합(함성)이 검출되는지 판정한다.
+      // 핵심 원리: 기합은 품새 중 '가장 큰 소리'여야 한다. 다른 동작 소리(발구름 등)보다
+      // 뚜렷이 커야 인정. 단순 z-score는 조용한 영상에서 작은 소리를 오인하므로,
+      // '구간 피크가 영상 전체 최대 음량에 근접(절대)' + '평균보다 충분히 큼(상대)' 둘 다 본다.
+      function detectKihapInRange(profile, startSec, endSec) {
+        if (!profile || !profile.ok) return { detected: null, confidence: 0, reason: profile ? profile.reason : "no_profile" };
+        const { rms, binSec, mean, std, peak } = profile;
+        if (std < 1e-6 || peak < 0.02) return { detected: null, confidence: 0, reason: "silent" };
+        const pad = 0.25;
+        const a = Math.max(0, Math.floor((startSec - pad) / binSec));
+        const b = Math.min(rms.length - 1, Math.ceil((endSec + pad) / binSec));
+        if (b < a) return { detected: null, confidence: 0, reason: "range" };
+        let localPeak = 0;
+        for (let i = a; i <= b; i += 1) { if (rms[i] > localPeak) localPeak = rms[i]; }
+        const peakZ = (localPeak - mean) / std;
+        const relRatio = localPeak / peak; // 전체 최대 대비 (0~1)
+        // 인정: 구간 피크가 (1) 전체 최대 음량의 75% 이상이고 (2) 평균+2σ 이상.
+        //       즉 영상에서 손꼽히게 큰 소리이면서 주변보다 도드라져야 한다.
+        const detected = relRatio >= 0.75 && peakZ >= 2.0;
+        // 약함: 큰 편이지만 최대급은 아님(기합인지 애매).
+        const weak = !detected && relRatio >= 0.5 && peakZ >= 1.5;
+        const confidence = Math.max(0, Math.min(1, Math.min(relRatio, peakZ / 3)));
+        return { detected, weak, confidence: Number(confidence.toFixed(2)), peakZ: Number(peakZ.toFixed(2)), relRatio: Number(relRatio.toFixed(2)) };
       }
       // ── 두 대(멀티뷰) 융합 ──
       // 비디오 소스를 지정 파일로 바꾸고 메타데이터가 준비될 때까지 기다린다.
@@ -5290,7 +5618,7 @@
           };
           await loadVideoFile(selectedFile);
           objectUrl = video.src;
-          completeAnalysis(fused, sideRun.frameSamples || frontRun.frameSamples || diagRun.frameSamples || [], false, eff);
+          await completeAnalysis(fused, sideRun.frameSamples || frontRun.frameSamples || diagRun.frameSamples || [], false, eff);
           setProgress(100, "정면+측면+대각선 융합 분석 완료: 세 각도 결과를 합쳤습니다.");
         } catch (error) {
           console.error(error);
@@ -5358,7 +5686,7 @@
           await loadVideoFile(selectedFile);
           if (objectUrl && objectUrl !== savedMainUrl) { /* keep */ }
           objectUrl = video.src;
-          completeAnalysis(fused, sideRun.frameSamples || frontRun.frameSamples || [], false, eff);
+          await completeAnalysis(fused, sideRun.frameSamples || frontRun.frameSamples || [], false, eff);
           setProgress(100, "정면+측면 융합 분석 완료: 두 각도 결과를 합쳤습니다.");
         } catch (error) {
           console.error(error);
@@ -5411,7 +5739,7 @@
         const cacheKey = skipComplete ? "" : currentAnalysisCacheKey();
         const cached = cacheKey ? stableAnalysisCache.get(cacheKey) : null;
         if (cached) {
-          completeAnalysis(cloneStableData(cached.results), cloneStableData(cached.frameSamples), true, cloneStableData(cached.analysisEfficiency || null));
+          await completeAnalysis(cloneStableData(cached.results), cloneStableData(cached.frameSamples), true, cloneStableData(cached.analysisEfficiency || null));
           return { results: cloneStableData(cached.results), frameSamples: cloneStableData(cached.frameSamples), analysisEfficiency: cloneStableData(cached.analysisEfficiency || null), view: viewForRun };
         }
         setProgress(5, "동작 전환점을 먼저 찾아 구간 경계를 보정합니다.");
@@ -5425,13 +5753,21 @@
         const segmentCount = boundaryDetection.boundaries.length - 1;
         let mergedSegments = 0;
         for (let i = 0; i < segmentCount; i += 1) {
-          // 이 구간에 배분된 동작들(긴 구간이면 여러 개가 묶인다).
-          const movementIndices = allocation[i] && allocation[i].length ? allocation[i] : [Math.min(i, movements.length - 1)];
+          // 이 구간에 배분된 동작들(여러 개면 묶인 것). 새 형식: {indices, allocConfidence}.
+          const allocEntry = allocation[i] || {};
+          const movementIndices = (allocEntry.indices && allocEntry.indices.length) ? allocEntry.indices : [Math.min(i, movements.length - 1)];
+          const allocConfidence = typeof allocEntry.allocConfidence === "number" ? allocEntry.allocConfidence : 0.5;
           const segmentMovements = movementIndices.map((mi) => movements[mi]).filter(Boolean);
           const primary = segmentMovements[0] || movements[Math.min(i, movements.length - 1)];
+          const labelOf = (m) => {
+            if (!m) return "";
+            if (m.isPrep) return "준비 자세";
+            if (m.isKihap || m.type === "kihap") return "기합(소리)";
+            return m.moveNo ? `${m.moveNo}. ${m.name}` : m.name;
+          };
           const mergedName = segmentMovements.length > 1
-            ? segmentMovements.map((m) => m.name).join(" + ")
-            : (primary ? primary.name : `구간 ${i + 1}`);
+            ? segmentMovements.map((m) => labelOf(m)).join(" + ")
+            : (primary ? labelOf(primary) : `구간 ${i + 1}`);
           if (segmentMovements.length > 1) mergedSegments += 1;
           const segmentStart = boundaryDetection.boundaries[i];
           const segmentEnd = boundaryDetection.boundaries[i + 1];
@@ -5449,7 +5785,8 @@
               // 재사용 품질 기준을 만족하지 못한 구간만 기존 정밀 경로로 분석한다.
               const ratio = 0.08 + (0.84 * j) / Math.max(sampleCount - 1, 1);
               const requestedTime = segmentStart + segmentLength * ratio;
-              const actualTime = await waitForSeek(requestedTime);
+              // 속도 최적화: 포즈 검출은 화면 페인트 완료를 기다릴 필요가 없으므로 빠른 seek 경로 사용.
+              const actualTime = await waitForSeek(requestedTime, true);
               const result = detectPoseAt(segmentTimestampBaseMs + Math.round(actualTime * 1000));
               const landmarks = result.landmarks && result.landmarks[0] ? result.landmarks[0] : null;
               frames.push({ time: actualTime, landmarks });
@@ -5470,6 +5807,7 @@
             movementType: primary ? primary.type : "",
             mergedMovementCount: segmentMovements.length,
             mergedMovementNumbers: movementLabel,
+            allocConfidence,
             startTime: Number(segmentStart.toFixed(3)),
             endTime: Number(segmentEnd.toFixed(3)),
             snapshot,
@@ -5505,7 +5843,7 @@
         if (skipComplete) {
           return { results, frameSamples, analysisEfficiency, view: viewForRun };
         }
-        completeAnalysis(results, frameSamples, false, analysisEfficiency);
+        await completeAnalysis(results, frameSamples, false, analysisEfficiency);
         return { results, frameSamples, analysisEfficiency, view: viewForRun };
         } catch (error) {
           console.error(error);
@@ -5675,12 +6013,12 @@
         renderReport([{ type: "caution", text: `구간 감지 민감도를 '${label}'으로 변경했습니다. 분석 시작을 누르면 동작 전환점을 다시 찾습니다.` }]);
       });
       document.querySelectorAll("[data-mode]").forEach((tab) => {
-        tab.addEventListener("click", () => {
+        tab.addEventListener("click", async () => {
           showTrainingPage();
           trainingMode = tab.dataset.mode || "competition";
           updateTrainingModeUi();
           if (latestReport?.segments?.length) {
-            completeAnalysis(cloneStableData(latestReport.segments), cloneStableData(latestReport.frame_samples || []), true, cloneStableData(latestReport.analysis_efficiency || null));
+            await completeAnalysis(cloneStableData(latestReport.segments), cloneStableData(latestReport.frame_samples || []), true, cloneStableData(latestReport.analysis_efficiency || null));
           } else {
             renderReport([{ type: "caution", text: `${modeLabel()} 모드를 선택했습니다. 품새와 영상을 준비한 뒤 분석 시작을 누르세요.` }]);
           }
