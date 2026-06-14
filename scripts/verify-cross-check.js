@@ -228,7 +228,7 @@ assertContains(readUtf8(capacitorConfigPath), "\"appName\": \"태권도 품새 �
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련품새 · 경기품새", "헤더 훈련 목적 배지 적용");
-assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.40", "헤더 설명 문구 적용");
+assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.41", "헤더 설명 문구 적용");
 // v3.39 표준 동작열 + 펄스 정렬 + 공백 가드
 assertContains(webHtml, "standard:", "표준 동작열 스키마 존재(태극1장)");
 assertContains(webHtml, "officialCount: 18", "태극1장 공식 동작수 18 명시");
@@ -239,6 +239,9 @@ assertContains(webHtml, "데이터 공백(긴 정지/포즈 미검출) 가드", 
 assertContains(webHtml, "표준 동작열 정렬 모드", "표준 1:1 직접 매핑 적용");
 assertContains(webHtml, "directOneToOne", "1:1 매핑 플래그 존재");
 assertContains(webHtml, "orderLabel", "준비/끝맺음/동작 번호 라벨 분리 표기");
+// v3.41 준비·끝맺음 분리(밀림 방지)
+assertContains(webHtml, "준비자세가 1번 동작을 덮어 전체가 밀리는 문제를 막는다", "준비/끝맺음 분리로 정렬 밀림 방지");
+assertContains(webHtml, "const coreMoves = movements.filter", "번호동작만 펄스 분할(준비/끝맺음 제외)");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");

@@ -1936,7 +1936,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.40</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.41</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -4485,13 +4485,20 @@
         // 복합동작(앞차기+지르기)은 영상에서 펄스 2개가 나므로, 단순 동작 수가 아니라
         // Σpulses 개의 구간을 만든 뒤 표준 동작열(pulses≥2는 펄스를 묶음)에 정렬해야
         // 경계가 동작 중간에 찍히지 않는다.
-        const usesStandard = movements.some((m) => m.pulses && m.pulses > 1);
+        const usesStandard = movements.some((m) => m.pulses && m.pulses > 1) || movements.some((m) => m.isFinish);
+        // 준비(isPrep)·끝맺음(isFinish)은 '번호동작'이 아니므로 펄스 분할에서 분리한다.
+        // 번호동작만 활성구간에서 펄스로 나누고, 준비는 활성시작 앞, 끝맺음은 활성종료 뒤
+        // 구간으로 따로 붙인다 → 준비자세가 1번 동작을 덮어 전체가 밀리는 문제를 막는다.
+        const hasPrep = movements.length > 0 && movements[0].isPrep;
+        const hasFinish = movements.length > 0 && movements[movements.length - 1].isFinish;
+        const coreMoves = movements.filter((m) => !m.isPrep && !m.isFinish);
+        const corePulses = coreMoves.reduce((s, m) => s + (m.pulses || 1), 0);
         const totalPulses = movements.reduce((s, m) => s + (m.pulses || 1), 0);
-        const segTarget = usesStandard ? totalPulses : count;
+        const segTarget = usesStandard ? corePulses : count;
         const sensitivity = Number(boundarySensitivitySelect.value || 0.95);
         const duration = video.duration;
         // 속도 최적화: 경계 검출에는 초당 2.6회면 동작 정점을 충분히 잡는다(기존 3.5회 대비 ~25% 감소).
-        // 단 동작 수가 많은 품새는 동작당 최소 4.5프레임을 보장해 정밀도를 유지하고, 상한은 260으로 낮춘다.
+        // 단 동작 수가 많은 품새는 동작당 최소 4.5프레임을 보장해 정밀도를 유지하고, 상한은 320으로.
         const scanCount = clamp(Math.round(duration * 2.6), Math.round(segTarget * 4.5), 320);
 
         // 영상 전체를 초당 약 3.5회 밀도로 한 번에 정밀 스캔한다(안정성 우선).
@@ -4499,8 +4506,7 @@
         const motionSamples = buildMotionSamples(frames);
 
         const activeRange = detectActiveMotionRange(duration, motionSamples);
-        // 1차: 동작 펄스(peak) 기반 분할 — 빠르게 이어지는 동작도 합쳐지지 않게 끊는다.
-        // 표준 동작열이면 segTarget=Σpulses로 펄스 단위 구간을 만든다.
+        // 번호동작만 활성구간(실제 동작 시작~끝)에서 펄스로 나눈다.
         const peakResult = detectPeakSegments(motionSamples, segTarget, activeRange.start, activeRange.end);
         const peakReliable = peakResult.peakCount >= Math.ceil(segTarget * 0.7);
         let pulseBoundaries;
@@ -4512,13 +4518,35 @@
           pulseBoundaries = detectNaturalBoundaries(duration, motionSamples, sensitivity, activeRange.start, activeRange.end, segTarget);
           method = "active_range_valley_natural_segments_fallback";
         }
-        // 표준 동작열이면 펄스 경계를 동작 경계로 접는다(복합동작 pulses개 펄스를 1동작으로).
-        let boundaries = pulseBoundaries;
-        if (usesStandard && pulseBoundaries.length - 1 === totalPulses) {
-          boundaries = foldPulsesToMoves(pulseBoundaries, movements);
+        // 펄스 경계를 '번호동작' 경계로 접는다(복합동작 pulses개 펄스를 1동작으로).
+        let coreBoundaries = pulseBoundaries;
+        if (usesStandard && pulseBoundaries.length - 1 === corePulses) {
+          coreBoundaries = foldPulsesToMoves(pulseBoundaries, coreMoves);
+        }
+        // 준비·끝맺음 구간을 앞뒤로 부착한다.
+        let boundaries = coreBoundaries.slice();
+        if (usesStandard && (hasPrep || hasFinish)) {
+          const out = [];
+          if (hasPrep) {
+            // 준비 구간: 영상 시작(0 또는 첫 표본) ~ 활성시작.
+            const prepStart = 0;
+            out.push(prepStart);
+            // 활성시작이 0과 거의 같으면(준비 없음) 준비 구간을 아주 짧게라도 둔다.
+          } 
+          // 번호동작 경계(coreBoundaries) 추가. 준비가 있으면 첫 점은 활성시작이므로 그대로 이어붙임.
+          for (let k = 0; k < coreBoundaries.length; k += 1) {
+            // 준비를 넣은 경우 coreBoundaries[0](활성시작)이 준비의 끝이자 1번 시작.
+            out.push(coreBoundaries[k]);
+          }
+          if (hasFinish) {
+            // 끝맺음 구간: 활성종료 ~ 영상 끝(또는 마지막 표본 뒤 여유).
+            const finishEnd = Math.min(duration, (coreBoundaries[coreBoundaries.length - 1] || activeRange.end) + Math.max(0.6, (activeRange.end - activeRange.start) * 0.04));
+            out.push(finishEnd);
+          }
+          // 단조 증가 정리.
+          boundaries = out.filter((v, i, a) => i === 0 || v > a[i - 1]);
         }
         // 표준 동작열 정렬 시(boundaries가 이미 동작 단위) 1:1 직접 매핑.
-        // 재배분(정점 비례)을 적용하면 정확히 나뉜 구간을 도로 합쳐버리므로 금지.
         const allocation = allocateMovementsToSegments(boundaries, count, motionSamples, usesStandard);
         return {
           boundaries,
