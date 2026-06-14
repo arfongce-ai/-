@@ -1936,7 +1936,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.42</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.44</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -3957,11 +3957,30 @@
       function chooseCompletionSnapshotTimes(boundaries, motionSamples) {
         return boundaries.slice(0, -1).map((start, index) => {
           const end = boundaries[index + 1];
-          const searchStart = start + (end - start) * 0.55;
-          const candidates = motionSamples
-            .filter((sample) => sample.valid !== false && sample.time >= searchStart && sample.time < end)
-            .sort((a, b) => a.motion - b.motion);
-          return candidates[0]?.time ?? start + (end - start) * 0.82;
+          const span = end - start;
+          // 동작 '맺음' 순간 = 동작 수행(높은 모션) 직후 속도가 급감해 정지에 드는 지점.
+          // 구간 중반~후반(40%~88%)에서, 모션 정점(peak) 이후 처음으로 낮아진 지점을 찾는다.
+          // (단순 최저점은 다음 동작 준비자세를 잡을 수 있어 부정확)
+          const lo = start + span * 0.40;
+          const hi = start + span * 0.88;
+          const seg = motionSamples
+            .filter((s) => s.valid !== false && Number.isFinite(s.motion) && s.time >= lo && s.time <= hi)
+            .sort((a, b) => a.time - b.time);
+          if (seg.length >= 3) {
+            // 구간 내 모션 정점 인덱스
+            let peak = 0;
+            for (let i = 1; i < seg.length; i += 1) if (seg[i].motion > seg[peak].motion) peak = i;
+            // 정점 이후 '맺음'(속도가 정점의 35% 이하로 떨어지는 첫 지점)
+            const settleLevel = seg[peak].motion * 0.35;
+            for (let i = peak + 1; i < seg.length; i += 1) {
+              if (seg[i].motion <= settleLevel) return seg[i].time;
+            }
+            // 못 찾으면 정점 직후 가장 낮은 지점
+            let lowest = peak;
+            for (let i = peak + 1; i < seg.length; i += 1) if (seg[i].motion < seg[lowest].motion) lowest = i;
+            return seg[lowest].time;
+          }
+          return start + span * 0.78;
         });
       }
       function detectActiveMotionRange(duration, motionSamples) {
@@ -3975,18 +3994,24 @@
         if (active.length < 2) return { start: 0, end: duration };
         let start = clamp(active[0].time - 0.18, 0, duration);
         const end = clamp(active[active.length - 1].time + 0.18, 0, duration);
-        // 개선 A: 시작부의 긴 준비자세(저움직임 지속)를 제외한다.
-        // 첫 동작이 시작되는 '지속적 움직임 시작점'을 찾아, 그 앞의 정지를 1번 구간에서 뺀다.
-        const mean = motions.reduce((a, b) => a + b, 0) / motions.length;
-        const onsetLevel = low + (mean - low) * 0.5;
+        // 개선 A: 시작부의 긴 준비자세(저움직임 + 작은 흔들림)를 제외한다.
+        // 준비 흔들림에 속지 않도록 '정점 대비' 임계를 쓰고, 그 지점 이후로도 큰 동작이
+        // 지속되는지(준비 흔들림은 곧 잦아듦) 확인해 '진짜 첫 동작 시작'을 잡는다.
+        const peakM = high;
+        const onsetLevel = low + (peakM - low) * 0.30; // 정점의 약 30% 지점
         for (let i = 0; i < valid.length - 2; i += 1) {
-          // 연속 2표본이 onset 수준 이상으로 올라오는 첫 지점을 동작 시작으로 본다.
-          if (valid[i].motion >= onsetLevel && valid[i + 1].motion >= onsetLevel * 0.8) {
-            const onset = clamp(valid[i].time - 0.12, 0, duration);
-            // 단, 과하게 잘라 첫 동작을 삼키지 않도록 기존 시작보다 뒤일 때만, 그리고 전체의 25% 이내에서만.
-            if (onset > start && onset < start + (end - start) * 0.25) start = onset;
-            break;
+          if (valid[i].motion < onsetLevel) continue;
+          // 이 지점 이후 1.5초 안에 정점의 55% 이상 큰 동작이 오는지(진짜 동작 신호).
+          let sustained = false;
+          for (let j = i; j < valid.length; j += 1) {
+            if (valid[j].time - valid[i].time > 1.5) break;
+            if (valid[j].motion >= low + (peakM - low) * 0.55) { sustained = true; break; }
           }
+          if (!sustained) continue;
+          const onset = clamp(valid[i].time - 0.12, 0, duration);
+          // 과하게 잘라 첫 동작을 삼키지 않도록 전체의 40% 이내에서만 적용.
+          if (onset > start && onset < start + (end - start) * 0.40) start = onset;
+          break;
         }
         return { start, end };
       }
@@ -4308,14 +4333,25 @@
         const motionSamples = buildMotionSamples(frames);
 
         const activeRange = detectActiveMotionRange(duration, motionSamples);
-        // ── 영상-분석 통일성 원칙 ──
-        // 동작 수(count)만큼 '항상' 구간을 만든다. 정지점이 뚜렷하면 그 위치를 쓰고,
-        // 부족하면 그만큼만 균등분할로 메운다(refineSegmentBoundaries). 동작을 묶지 않는다.
-        // → 영상의 N번째 동작이 분석의 N번 구간과 1:1로 대응한다.
-        // 준비자세(movements[0].isPrep)가 있으면 분할 시작을 영상 0초로 둔다.
-        // 그래야 '준비' 카드가 영상 앞부분 준비자세 시간을 차지하고, 1번부터 밀리지 않는다.
-        const startForSeg = (movements[0] && movements[0].isPrep) ? 0 : activeRange.start;
-        const boundaries = refineSegmentBoundaries(duration, count, motionSamples, sensitivity, startForSeg, activeRange.end);
+        // ── 영상-분석 통일성 원칙 (v3.44) ──
+        // 핵심 교정: 준비자세가 길면(영상 앞 정지가 수 초) N등분이 그 정지를 동작 여러 개로
+        // 쪼개, 진짜 1번 동작이 4~5번째로 밀리는 문제가 있었다.
+        // 해결: 준비자세 '종료점(onset)'을 찾아 0~onset 전체를 '준비' 1칸으로 고정하고,
+        // 1번~마지막 동작은 onset 이후 활성구간만 (동작 수)로 N등분한다.
+        const hasPrep = movements[0] && movements[0].isPrep;
+        let boundaries;
+        if (hasPrep) {
+          // 준비 종료점(onset) = 활성구간 시작점. detectActiveMotionRange가 이미 앞쪽 정지/
+          // 준비 흔들림을 12% 임계와 onset 보정으로 제외하고 '첫 동작 시작'을 잡아 둔다.
+          // 그 한 점을 신뢰해, 0~onset 전체를 '준비' 1칸으로 고정하고 1번부터 onset 이후를 N등분.
+          const onset = activeRange.start;
+          const moveCount = count - 1;
+          const moveBoundaries = refineSegmentBoundaries(duration, moveCount, motionSamples, sensitivity, onset, activeRange.end);
+          boundaries = [0, ...moveBoundaries];
+          detectMotionBoundaries.lastOnset = onset;
+        } else {
+          boundaries = refineSegmentBoundaries(duration, count, motionSamples, sensitivity, activeRange.start, activeRange.end);
+        }
         // 구간 k → 동작 k 직접 매핑(재배분으로 묶지 않음).
         const allocation = [];
         for (let k = 0; k < count; k += 1) allocation.push({ indices: [k], allocConfidence: 1 });
@@ -4328,8 +4364,39 @@
           frames,
           scanCount,
           sensitivity,
-          method: "always_n_segments_one_to_one_for_unity"
+          method: "prep_reserved_plus_n_segments_for_unity"
         };
+      }
+      // 준비자세 종료점(= 진짜 첫 동작 시작점, onset)을 찾는다.
+      // 원리: 활성구간 시작 근처에서, '동작 1회 분량의 시간' 안에 모션이 큰 폭으로
+      // 솟구치는(준비 흔들림과 구별되는) 첫 지점을 onset으로 본다. 그 앞 작은 흔들림은 준비로 본다.
+      function detectActionOnset(motionSamples, activeRange, duration) {
+        const valid = motionSamples
+          .filter((s) => s.valid !== false && Number.isFinite(s.time) && Number.isFinite(s.motion))
+          .sort((a, b) => a.time - b.time);
+        if (valid.length < 5) return activeRange.start;
+        const motions = valid.map((s) => s.motion);
+        const peak = Math.max(...motions);
+        // 동작 시작 임계: 정점의 22%. 준비 흔들림(보통 정점의 10~15% 이하)과 첫 동작을 가른다.
+        const onsetLevel = peak * 0.22;
+        const within = valid.filter((s) => s.time >= activeRange.start - 0.05 && s.time <= activeRange.end);
+        for (let i = 0; i < within.length - 1; i += 1) {
+          // 연속 2표본이 임계를 넘고, 그 뒤 곧 정점의 50% 이상으로 치솟는 '진짜 동작'인지 확인.
+          if (within[i].motion >= onsetLevel && within[i + 1].motion >= onsetLevel) {
+            let rises = false;
+            for (let j = i + 1; j < Math.min(within.length, i + 8); j += 1) {
+              if (within[j].motion >= peak * 0.5) { rises = true; break; }
+            }
+            if (!rises) continue;
+            // onset 직전의 가장 깊은 정지(준비 완성)를 경계로. 단 너무 멀리 가지 않게 6표본 이내.
+            let settle = i;
+            for (let j = i; j >= Math.max(0, i - 6); j -= 1) {
+              if (within[j].motion < within[settle].motion) settle = j;
+            }
+            return clamp(within[settle].time - 0.04, 0, duration);
+          }
+        }
+        return activeRange.start;
       }
       function scoreStance(frames) {
         const detected = frames.filter((f) => f.landmarks);
