@@ -1936,7 +1936,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.39</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.40</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -3131,7 +3131,7 @@
           <article class="scene-card ${layoutClass}" role="button" tabindex="0" data-start="${segment.startTime}" data-end="${segment.endTime}" aria-label="${escapeHtml(segment.order)}번 ${escapeHtml(segment.name)} 리플레이">
             ${shot}
             <div>
-              <strong>${segment.order}. ${escapeHtml(segment.name)}${titleScore}</strong>
+              <strong>${segment.orderLabel || segment.order}. ${escapeHtml(segment.name)}${titleScore}</strong>
               <div class="scene-meta">
                 <span>${segment.startTime.toFixed(1)}-${segment.endTime.toFixed(1)}초</span>
                 <span>${escapeHtml(segment.label)}</span>
@@ -3410,7 +3410,7 @@
         for (const segment of latestReport.segments) {
           const scoreText = trainingMode === "exam" ? "" : ` (${segment.competitionScore10.toFixed(1)}점)`;
           const mergeTag = segment.mergedMovementCount > 1 ? ` [${segment.mergedMovementNumbers || ""} 동작 묶음]` : "";
-          lines.push(`- **${segment.order}. ${segment.name}**${mergeTag} - ${segment.label}${scoreText}`);
+          lines.push(`- **${segment.orderLabel || segment.order}. ${segment.name}**${mergeTag} - ${segment.label}${scoreText}`);
           if (trainingMode === "exam") {
             const c = movementCertainty(segment);
             lines.push(`  - 동작이 잘 보이나요: ${c.tag} (${c.kid})`);
@@ -3546,7 +3546,7 @@
         topWeak.forEach((segment, index) => {
           rr(110, y, 72, 52, 12, "#eef4ff");
           text(String(index + 1), 138, y + 9, 28, "#174ea6", "800");
-          const segmentTitle = trainingMode === "exam" ? `${segment.order}. ${segment.name}` : `${segment.order}. ${segment.name} (${segment.competitionScore10.toFixed(1)}점)`;
+          const segmentTitle = trainingMode === "exam" ? `${segment.orderLabel || segment.order}. ${segment.name}` : `${segment.orderLabel || segment.order}. ${segment.name} (${segment.competitionScore10.toFixed(1)}점)`;
           text(segmentTitle, 210, y, 27, "#111827", "800");
           wrap(segment.feedback, 210, y + 38, 1060, 22, "#6b7280");
           y += 108;
@@ -4424,9 +4424,18 @@
       // 1순위: 구간 내 '움직임 정점 수' 비례(한 구간에 정점 2개면 동작 2개가 묶인 것).
       // 2순위(정점이 불분명하면): 길이 비례로 폴백.
       // 반환: 구간별 { indices, allocConfidence } — allocConfidence는 배분 신뢰도.
-      function allocateMovementsToSegments(boundaries, movementCount, motionSamples) {
+      function allocateMovementsToSegments(boundaries, movementCount, motionSamples, directOneToOne = false) {
         const segCount = boundaries.length - 1;
         if (segCount <= 0) return [];
+        // ── v3.39: 표준 동작열 정렬 모드 ──
+        // boundaries가 이미 '동작 단위'로 정확히 나뉘어 있으므로(준비+N+끝맺음), 구간 k에
+        // 동작 k를 그대로 1:1 매핑한다. 정점 비례 재배분을 적용하면 정확한 구간을 도로
+        // 합쳐(예: 6+7 한 구간) 전체가 밀리므로, 표준 모드에서는 재배분을 하지 않는다.
+        if (directOneToOne && segCount === movementCount) {
+          const out = [];
+          for (let k = 0; k < segCount; k += 1) out.push({ indices: [k], allocConfidence: 1 });
+          return out;
+        }
         const lengths = [];
         for (let k = 0; k < segCount; k += 1) lengths.push(Math.max(boundaries[k + 1] - boundaries[k], 0.001));
         const totalLen = lengths.reduce((a, b) => a + b, 0);
@@ -4508,7 +4517,9 @@
         if (usesStandard && pulseBoundaries.length - 1 === totalPulses) {
           boundaries = foldPulsesToMoves(pulseBoundaries, movements);
         }
-        const allocation = allocateMovementsToSegments(boundaries, count, motionSamples);
+        // 표준 동작열 정렬 시(boundaries가 이미 동작 단위) 1:1 직접 매핑.
+        // 재배분(정점 비례)을 적용하면 정확히 나뉜 구간을 도로 합쳐버리므로 금지.
+        const allocation = allocateMovementsToSegments(boundaries, count, motionSamples, usesStandard);
         return {
           boundaries,
           allocation,
@@ -5984,8 +5995,10 @@
           const labelOf = (m) => {
             if (!m) return "";
             if (m.isPrep) return "준비 자세";
+            if (m.isFinish) return "끝맺음(준비 복귀)";
             if (m.isKihap || m.type === "kihap") return "기합(소리)";
-            return m.moveNo ? `${m.moveNo}. ${m.name}` : m.name;
+            // 카드 제목이 'orderLabel. 동작명' 형식이라 이름에는 번호를 넣지 않는다(중복 방지).
+            return m.name;
           };
           const mergedName = segmentMovements.length > 1
             ? segmentMovements.map((m) => labelOf(m)).join(" + ")
@@ -6019,11 +6032,26 @@
           const snapshotTime = await waitForSeek(completionTime);
           snapshot = captureVideoSnapshot();
           const metrics = evaluateSegment(primary, frames, { view: viewForRun });
-          const movementLabel = movementIndices.length > 1
-            ? `${movementIndices[0] + 1}~${movementIndices[movementIndices.length - 1] + 1}번`
+          // 표시용 동작 번호: 배열 인덱스가 아니라 실제 moveNo를 쓴다.
+          // 준비(moveNo 0)·끝맺음(isFinish)·기합은 번호 대신 라벨로 표기한다.
+          const labelNo = (m) => {
+            if (!m) return "";
+            if (m.isPrep) return "준비";
+            if (m.isFinish) return "끝맺음";
+            if (m.isKihap || m.type === "kihap") return "기합";
+            return m.moveNo ? `${m.moveNo}번` : "";
+          };
+          const numLabels = segmentMovements.map(labelNo).filter(Boolean);
+          const movementLabel = numLabels.length
+            ? (numLabels.length > 1 ? `${numLabels[0]}~${numLabels[numLabels.length - 1]}` : numLabels[0])
             : `${movementIndices[0] + 1}번`;
           const row = {
             order: i + 1,
+            // 화면 좌측 표기: 준비/끝맺음은 라벨, 번호동작은 실제 moveNo로 표시해
+            // 준비자세 때문에 동작 번호가 밀려 보이지 않게 한다.
+            orderLabel: primary && primary.isPrep ? "준비"
+              : primary && primary.isFinish ? "마무리"
+              : (primary && primary.moveNo ? String(primary.moveNo) : String(i + 1)),
             id: primary ? primary.id : `${selectedPoomsaeKey}_segment_${i + 1}`,
             name: mergedName,
             movementType: primary ? primary.type : "",
