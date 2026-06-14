@@ -1936,7 +1936,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.38</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.39</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -2280,7 +2280,36 @@
             ["right_high_block", "오른쪽 얼굴막기", "block"],
             ["front_kick_punch_2", "앞차기 후 몸통지르기", "kick_punch"],
             ["final_front_punch_kihap", "전방 몸통지르기 및 기합", "punch"]
-          ].map(([id, name, type]) => ({ id, name, type }))
+          ].map(([id, name, type]) => ({ id, name, type })),
+          // ── v3.39 표준 동작열(공식 국기원 도해 기준) ──
+          // 준비(junbi) → 1~18 번호동작 → 끝맺음. 14·16번은 복합동작(앞차기+지르기, pulses:2).
+          // 기합은 18번 동작에 귀속(kihapAt). 준비·끝맺음은 번호에 미포함하되 분석 단위에는 포함.
+          standard: {
+            officialCount: 18,
+            kihapAt: [18],
+            prep: { name: "준비서기", stance: "나란히서기" },
+            finish: { name: "끝맺음(준비서기 복귀)" },
+            moves: [
+              { no: 1, name: "왼 앞굽이 아래막기", type: "block", pulses: 1 },
+              { no: 2, name: "오른 앞굽이 몸통바로지르기", type: "punch", pulses: 1 },
+              { no: 3, name: "오른 앞굽이 아래막기", type: "block", pulses: 1 },
+              { no: 4, name: "왼 앞굽이 몸통바로지르기", type: "punch", pulses: 1 },
+              { no: 5, name: "왼 앞굽이 아래막기", type: "block", pulses: 1 },
+              { no: 6, name: "오른 앞굽이 몸통바로지르기", type: "punch", pulses: 1 },
+              { no: 7, name: "왼 뒷굽이 몸통안막기", type: "block", pulses: 1 },
+              { no: 8, name: "오른 앞굽이 몸통바로지르기", type: "punch", pulses: 1 },
+              { no: 9, name: "오른 뒷굽이 몸통안막기", type: "block", pulses: 1 },
+              { no: 10, name: "왼 앞굽이 몸통바로지르기", type: "punch", pulses: 1 },
+              { no: 11, name: "왼 앞굽이 아래막기", type: "block", pulses: 1 },
+              { no: 12, name: "오른 앞굽이 몸통바로지르기", type: "punch", pulses: 1 },
+              { no: 13, name: "오른 앞굽이 얼굴막기", type: "block", pulses: 1 },
+              { no: 14, name: "왼발 앞차고 왼 앞굽이 몸통바로지르기", type: "kick_punch", pulses: 2 },
+              { no: 15, name: "왼 앞굽이 얼굴막기", type: "block", pulses: 1 },
+              { no: 16, name: "오른발 앞차고 오른 앞굽이 몸통바로지르기", type: "kick_punch", pulses: 2 },
+              { no: 17, name: "왼 앞굽이 아래막기", type: "block", pulses: 1 },
+              { no: 18, name: "오른 앞굽이 몸통바로지르기", type: "punch", pulses: 1, kihap: true }
+            ]
+          }
         },
       };
 
@@ -2356,6 +2385,31 @@
       // 분석/표시에 쓰는 동작 목록. 준비서기(isPrep) + 번호 동작 + 기합(isKihap, 음성).
       function buildGenericMovements(dataKey) {
         const data = poomsaeData[dataKey];
+        // ── v3.39: 표준 동작열(standard)이 있으면 우선 사용 ──
+        // 구성: 준비(moveNo:0) → 번호동작 1..N(복합동작은 pulses≥2) → 끝맺음(isFinish).
+        // 기합은 해당 번호동작에 kihap:true 마커로 귀속(별도 음성 구간을 만들지 않음).
+        if (data.standard && Array.isArray(data.standard.moves)) {
+          const std = data.standard;
+          const out = [];
+          out.push({
+            id: `${dataKey}_prep`, name: std.prep?.name || "준비서기",
+            type: "hold", isPrep: true, moveNo: 0, pulses: 1
+          });
+          for (const mv of std.moves) {
+            out.push({
+              id: `${dataKey}_movement_${mv.no}`, name: mv.name,
+              type: mv.type || inferMovementType(mv.name),
+              isPrep: false, moveNo: mv.no,
+              pulses: Math.max(1, mv.pulses || 1),
+              kihap: !!mv.kihap
+            });
+          }
+          out.push({
+            id: `${dataKey}_finish`, name: std.finish?.name || "끝맺음",
+            type: "hold", isFinish: true, moveNo: std.moves.length + 1, pulses: 1
+          });
+          return out;
+        }
         let rawNames;
         if (data.movements) rawNames = data.movements.map((m) => m.name);
         else if (data.techniques) rawNames = data.techniques.slice(0, data.count);
@@ -3975,6 +4029,32 @@
         if (active.length < 2) return { start: 0, end: duration };
         let start = clamp(active[0].time - 0.18, 0, duration);
         const end = clamp(active[active.length - 1].time + 0.18, 0, duration);
+        // ── v3.39: 데이터 공백(긴 정지/포즈 미검출) 가드 ──
+        // 활성 표본 사이에 큰 시간 간극이 있으면, 영상이 '두 번 시연' 또는 '중간 끊김'일 수 있다.
+        // 간극으로 구간을 나눈 뒤, 표본이 가장 많은(=실제 시연) 덩어리만 활성범위로 삼는다.
+        // 이렇게 하면 공백 자리에 비정상적으로 긴 구간이 생기지 않는다.
+        const GAP = 2.5; // 초: 이보다 긴 무활동 간극을 시연 경계로 본다.
+        const runs = [];
+        let runStart = active[0].time, prevT = active[0].time, runCount = 1;
+        for (let i = 1; i < active.length; i += 1) {
+          const t = active[i].time;
+          if (t - prevT > GAP) {
+            runs.push({ start: runStart, end: prevT, count: runCount });
+            runStart = t; runCount = 0;
+          }
+          prevT = t; runCount += 1;
+        }
+        runs.push({ start: runStart, end: prevT, count: runCount });
+        if (runs.length > 1) {
+          // 표본 수가 가장 많은 덩어리 선택(가장 충실히 촬영된 시연).
+          runs.sort((a, b) => b.count - a.count);
+          const best = runs[0];
+          start = clamp(best.start - 0.18, 0, duration);
+          const bestEnd = clamp(best.end + 0.18, 0, duration);
+          detectActiveMotionRange.lastGapInfo = { runsFound: runs.length, chosen: { start, end: bestEnd } };
+          return { start, end: bestEnd };
+        }
+        detectActiveMotionRange.lastGapInfo = { runsFound: 1, chosen: { start, end } };
         // 개선 A: 시작부의 긴 준비자세(저움직임 지속)를 제외한다.
         // 첫 동작이 시작되는 '지속적 움직임 시작점'을 찾아, 그 앞의 정지를 1번 구간에서 뺀다.
         const mean = motions.reduce((a, b) => a + b, 0) / motions.length;
@@ -4392,11 +4472,18 @@
       }
       async function detectMotionBoundaries(timestampBaseMs) {
         const count = movements.length;
+        // ── v3.39: 표준 동작열이면 '총 펄스 기대치'로 분할한다 ──
+        // 복합동작(앞차기+지르기)은 영상에서 펄스 2개가 나므로, 단순 동작 수가 아니라
+        // Σpulses 개의 구간을 만든 뒤 표준 동작열(pulses≥2는 펄스를 묶음)에 정렬해야
+        // 경계가 동작 중간에 찍히지 않는다.
+        const usesStandard = movements.some((m) => m.pulses && m.pulses > 1);
+        const totalPulses = movements.reduce((s, m) => s + (m.pulses || 1), 0);
+        const segTarget = usesStandard ? totalPulses : count;
         const sensitivity = Number(boundarySensitivitySelect.value || 0.95);
         const duration = video.duration;
         // 속도 최적화: 경계 검출에는 초당 2.6회면 동작 정점을 충분히 잡는다(기존 3.5회 대비 ~25% 감소).
         // 단 동작 수가 많은 품새는 동작당 최소 4.5프레임을 보장해 정밀도를 유지하고, 상한은 260으로 낮춘다.
-        const scanCount = clamp(Math.round(duration * 2.6), Math.round(count * 4.5), 260);
+        const scanCount = clamp(Math.round(duration * 2.6), Math.round(segTarget * 4.5), 320);
 
         // 영상 전체를 초당 약 3.5회 밀도로 한 번에 정밀 스캔한다(안정성 우선).
         const frames = await collectScanFrames(0, Math.max(duration - 0.04, 0), scanCount, timestampBaseMs, 5, 12);
@@ -4404,19 +4491,22 @@
 
         const activeRange = detectActiveMotionRange(duration, motionSamples);
         // 1차: 동작 펄스(peak) 기반 분할 — 빠르게 이어지는 동작도 합쳐지지 않게 끊는다.
-        const peakResult = detectPeakSegments(motionSamples, count, activeRange.start, activeRange.end);
-        // peak가 동작 수의 70% 이상 잡히면 신뢰하고 그대로 사용한다.
-        // (peak 추가분할로 경계 수는 count에 맞춰지므로, peakCount는 '진짜 봉우리' 비율 판정용)
-        const peakReliable = peakResult.peakCount >= Math.ceil(count * 0.7);
-        let boundaries;
+        // 표준 동작열이면 segTarget=Σpulses로 펄스 단위 구간을 만든다.
+        const peakResult = detectPeakSegments(motionSamples, segTarget, activeRange.start, activeRange.end);
+        const peakReliable = peakResult.peakCount >= Math.ceil(segTarget * 0.7);
+        let pulseBoundaries;
         let method;
         if (peakReliable) {
-          boundaries = peakResult.boundaries;
-          method = "active_range_peak_pulse_segments";
+          pulseBoundaries = peakResult.boundaries;
+          method = usesStandard ? "standard_pulse_aligned_segments" : "active_range_peak_pulse_segments";
         } else {
-          // 폴백: 영상 품질이 낮아 봉우리가 불분명하면 기존 valley 방식으로 안전하게 처리.
-          boundaries = detectNaturalBoundaries(duration, motionSamples, sensitivity, activeRange.start, activeRange.end, count);
+          pulseBoundaries = detectNaturalBoundaries(duration, motionSamples, sensitivity, activeRange.start, activeRange.end, segTarget);
           method = "active_range_valley_natural_segments_fallback";
+        }
+        // 표준 동작열이면 펄스 경계를 동작 경계로 접는다(복합동작 pulses개 펄스를 1동작으로).
+        let boundaries = pulseBoundaries;
+        if (usesStandard && pulseBoundaries.length - 1 === totalPulses) {
+          boundaries = foldPulsesToMoves(pulseBoundaries, movements);
         }
         const allocation = allocateMovementsToSegments(boundaries, count, motionSamples);
         return {
@@ -4429,8 +4519,31 @@
           scanCount,
           sensitivity,
           peakCount: peakResult.peakCount,
+          segTarget,
+          totalPulses,
+          usesStandard,
           method
         };
+      }
+      // 펄스 경계(길이 = Σpulses+1)를 동작 경계(길이 = 동작수+1)로 접는다.
+      // 각 동작의 pulses 만큼 펄스 경계를 소비하고, 그 동작의 끝 경계만 남긴다.
+      // 복합동작(pulses=2: 앞차기+지르기)은 마지막 펄스(지르기 맺음)에서 경계를 잡아
+      // 동작이 중간에 잘리지 않게 한다.
+      function foldPulsesToMoves(pulseBoundaries, moves) {
+        const out = [pulseBoundaries[0]];
+        let p = 0; // 소비한 펄스 수
+        for (const mv of moves) {
+          const k = Math.max(1, mv.pulses || 1);
+          p += k;
+          // p번째 펄스 경계(=pulseBoundaries[p])가 이 동작의 끝.
+          const idx = Math.min(p, pulseBoundaries.length - 1);
+          out.push(pulseBoundaries[idx]);
+        }
+        // 부동소수/누적 오차로 끝점이 빠지면 보정.
+        if (out[out.length - 1] !== pulseBoundaries[pulseBoundaries.length - 1]) {
+          out[out.length - 1] = pulseBoundaries[pulseBoundaries.length - 1];
+        }
+        return out;
       }
       function scoreStance(frames) {
         const detected = frames.filter((f) => f.landmarks);
