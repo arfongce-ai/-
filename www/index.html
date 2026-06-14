@@ -1936,7 +1936,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.37</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.38</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -4245,6 +4245,101 @@
         const strength = clamp((maxM / Math.max(meanM, 1e-6) - 1) / 2, 0, 1);
         return { peaks: Math.max(peaks, 1), strength: Number(strength.toFixed(2)) };
       }
+      // ── 정점(peak) 기반 동작 분할 ──────────────────────────────────────────
+      // 핵심 전환: '정지(valley)'가 아니라 '동작 펄스(peak)'를 1차 신호로 본다.
+      // 품새의 한 동작 = 한 번의 가속→정점→감속 이므로 motion 신호에 봉우리 하나가 대응된다.
+      // 빠르게 이어지는 동작(앞차고 지르기, 두번지르기 등)은 그 사이 '깊은 정지'가 없어
+      // valley 기반으로는 여러 동작이 한 구간으로 합쳐졌다. peak는 동작마다 분명히 생기므로
+      // 동작 수만큼의 봉우리를 골라 그 사이 최저점을 경계로 삼으면 합쳐짐이 크게 줄어든다.
+      // 반환: { boundaries, peakCount } — peakCount가 동작 수에 가까울수록 신뢰 높음.
+      function detectPeakSegments(motionSamples, movementCount, activeStart, activeEnd) {
+        const N = Math.max(Math.round(movementCount) || 1, 1);
+        const a = Number(activeStart) || 0;
+        const b = Math.max(Number(activeEnd) || a, a);
+        const span = Math.max(b - a, 0.001);
+        const uniform = () => Array.from({ length: N + 1 }, (_, i) => a + span * (i / N));
+        const sorted = motionSamples
+          .filter((s) => s.valid !== false && Number.isFinite(s.time) && Number.isFinite(s.motion)
+            && s.time >= a && s.time <= b)
+          .slice().sort((x, y) => x.time - y.time);
+        if (sorted.length < N + 1 || N <= 1) {
+          return { boundaries: uniform(), peakCount: N <= 1 ? N : 0 };
+        }
+        const t = sorted.map((s) => s.time);
+        const v = sorted.map((s) => s.motion);
+        // 1) 국소 최대점(peak) 후보 수집.
+        const peaks = [];
+        for (let i = 1; i < v.length - 1; i += 1) {
+          if (v[i] >= v[i - 1] && v[i] > v[i + 1]) peaks.push(i);
+        }
+        if (peaks.length < 1) return { boundaries: uniform(), peakCount: 0 };
+        // 2) 각 peak의 prominence(봉우리 높이): 좌우로 더 높은 봉우리를 만나기 전까지의
+        //    최저 골 대비 솟은 정도. 진짜 '타격 동작'일수록 크고, 흔들림 잡음은 작다.
+        const promOf = (pi) => {
+          const base = v[pi];
+          let left = base;
+          for (let j = pi - 1; j >= 0; j -= 1) { if (v[j] > base) break; if (v[j] < left) left = v[j]; }
+          let right = base;
+          for (let j = pi + 1; j < v.length; j += 1) { if (v[j] > base) break; if (v[j] < right) right = v[j]; }
+          return base - Math.max(left, right);
+        };
+        const scored = peaks.map((pi) => ({ i: pi, prom: promOf(pi) }))
+          .sort((x, y) => y.prom - x.prom);
+        // 3) prominence 큰 순으로 N개 선택하되, 한 동작 안의 잔봉우리를 배제하도록 최소간격을 둔다.
+        const minSep = (span / N) * 0.5;
+        const chosen = [];
+        for (const p of scored) {
+          if (chosen.length >= N) break;
+          if (chosen.every((c) => Math.abs(t[p.i] - t[c]) >= minSep)) chosen.push(p.i);
+        }
+        const peakCount = chosen.length;
+        chosen.sort((x, y) => x - y);
+        // 4) 경계 = 연속한 두 peak 사이의 '최저 motion 지점'(실제 정지점). 균등분할이 아니다.
+        const boundaries = [a];
+        for (let k = 0; k < chosen.length - 1; k += 1) {
+          let lo = chosen[k];
+          for (let j = chosen[k]; j <= chosen[k + 1]; j += 1) if (v[j] < v[lo]) lo = j;
+          boundaries.push(t[lo]);
+        }
+        boundaries.push(b);
+        // 5) 선택된 peak가 동작 수에 못 미치면(연속·저대비 구간), 가장 긴 구간을 그 내부
+        //    국소 최저점으로 추가 분할해 부족분을 메운다(없으면 균등 보간).
+        let guard = 0;
+        while (boundaries.length - 1 < N && guard < N * 3) {
+          guard += 1;
+          let li = -1, ll = 0;
+          for (let k = 0; k < boundaries.length - 1; k += 1) {
+            const len = boundaries[k + 1] - boundaries[k];
+            if (len > ll) { ll = len; li = k; }
+          }
+          if (li < 0) break;
+          const segS = boundaries[li], segE = boundaries[li + 1];
+          const inside = [];
+          for (let j = 0; j < t.length; j += 1) if (t[j] > segS + minSep * 0.4 && t[j] < segE - minSep * 0.4) inside.push(j);
+          let cut;
+          if (inside.length) {
+            let lo = inside[0];
+            for (const j of inside) if (v[j] < v[lo]) lo = j;
+            cut = t[lo];
+          } else {
+            cut = (segS + segE) / 2;
+          }
+          boundaries.push(cut);
+          boundaries.sort((x, y) => x - y);
+        }
+        // 6) 단조 증가·최소 간격 보장.
+        const minSpacing = Math.max(span * 0.01, 0.04);
+        const out = [a];
+        let prev = a;
+        for (let k = 1; k < boundaries.length - 1; k += 1) {
+          const remaining = (boundaries.length - 1) - k;
+          const maxAllowed = b - minSpacing * remaining;
+          const tt = clamp(boundaries[k], prev + minSpacing, Math.max(prev + minSpacing, maxAllowed));
+          out.push(tt); prev = tt;
+        }
+        out.push(b);
+        return { boundaries: out, peakCount };
+      }
       // 각 구간에 동작(이름)을 배분한다.
       // 1순위: 구간 내 '움직임 정점 수' 비례(한 구간에 정점 2개면 동작 2개가 묶인 것).
       // 2순위(정점이 불분명하면): 길이 비례로 폴백.
@@ -4308,8 +4403,21 @@
         const motionSamples = buildMotionSamples(frames);
 
         const activeRange = detectActiveMotionRange(duration, motionSamples);
-        // 멈춤이 뚜렷한 만큼만 자연스럽게 끊고, 부족한 경계는 동작명을 묶어서 표시한다.
-        const boundaries = detectNaturalBoundaries(duration, motionSamples, sensitivity, activeRange.start, activeRange.end, count);
+        // 1차: 동작 펄스(peak) 기반 분할 — 빠르게 이어지는 동작도 합쳐지지 않게 끊는다.
+        const peakResult = detectPeakSegments(motionSamples, count, activeRange.start, activeRange.end);
+        // peak가 동작 수의 70% 이상 잡히면 신뢰하고 그대로 사용한다.
+        // (peak 추가분할로 경계 수는 count에 맞춰지므로, peakCount는 '진짜 봉우리' 비율 판정용)
+        const peakReliable = peakResult.peakCount >= Math.ceil(count * 0.7);
+        let boundaries;
+        let method;
+        if (peakReliable) {
+          boundaries = peakResult.boundaries;
+          method = "active_range_peak_pulse_segments";
+        } else {
+          // 폴백: 영상 품질이 낮아 봉우리가 불분명하면 기존 valley 방식으로 안전하게 처리.
+          boundaries = detectNaturalBoundaries(duration, motionSamples, sensitivity, activeRange.start, activeRange.end, count);
+          method = "active_range_valley_natural_segments_fallback";
+        }
         const allocation = allocateMovementsToSegments(boundaries, count, motionSamples);
         return {
           boundaries,
@@ -4320,7 +4428,8 @@
           frames,
           scanCount,
           sensitivity,
-          method: "active_range_valley_natural_segments_length_proportional_allocation"
+          peakCount: peakResult.peakCount,
+          method
         };
       }
       function scoreStance(frames) {
