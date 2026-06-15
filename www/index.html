@@ -1936,7 +1936,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.54</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.55</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -2175,9 +2175,9 @@
       <section style="margin-top: 18px;">
         <h2 id="segmentTitle">태극 1장 구간별 파워·맺음 평가</h2>
         <p id="segmentDescription">구간마다 여러 프레임을 분석해 속도, 맺음, 정지 안정성, 서기 안정성을 확인합니다.</p>
-        <div id="manualEditBar" style="display:none;margin:6px 0 10px;gap:8px;align-items:center;flex-wrap:wrap">
-          <button type="button" id="manualEditToggle" class="secondary" style="font-size:13px">구간 수동 조정</button>
-          <span id="manualEditHint" class="small" style="display:none;color:var(--muted)">동작이 밀리면 '위 구간과 합치기', 한 동작이 두 칸이면 '둘로 나누기'를 누르세요. 영상 재추출 없이 즉시 반영됩니다.</span>
+        <div id="manualEditBar" style="display:none;margin:10px 0 12px;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;background:#fff7ed;border:1px solid #fdba74;border-radius:10px">
+          <button type="button" id="manualEditToggle" class="primary" style="font-size:14px;font-weight:700">✏️ 구간 수동 조정</button>
+          <span id="manualEditHint" class="small" style="color:var(--muted)">동작이 밀리면 '위 구간과 합치기', 한 동작이 두 칸이면 '둘로 나누기'를 누르세요. 즉시 반영됩니다.</span>
           <span id="correctionLogStatus" class="small" style="color:var(--muted)"></span>
           <button type="button" id="restoreAutoBtn" class="secondary" style="font-size:12px;display:none">자동 결과로 되돌리기</button>
           <button type="button" id="exportCorrectionBtn" class="secondary" style="font-size:12px;display:none">보정 기록 내보내기</button>
@@ -4740,16 +4740,20 @@
       function applySemanticSceneRules(results, motionSamples, poomsaeKey) {
         const rules = semanticConnectionRules[poomsaeKey] || [];
         let output = results.slice();
+        // [v3.55] 영상-분석 통일성 우선: 연결동작이라도 카드(번호)를 합치지 않는다.
+        // 합치면 번호가 사라져(예: 5·6 묶음→7 사라짐) 영상의 18동작과 어긋난다.
+        // 대신 각 동작은 그대로 두고, 연결 관계는 '꼬리표(connectionTag)'로만 표시한다.
         for (const rule of rules) {
-          const leftIndex = output.findIndex((r) => Array.isArray(r.movementNumbers) && r.movementNumbers.includes(rule.movements[0]));
-          const rightIndex = output.findIndex((r) => Array.isArray(r.movementNumbers) && r.movementNumbers.includes(rule.movements[1]));
-          if (leftIndex < 0 || rightIndex !== leftIndex + 1) continue;
-          const left = output[leftIndex];
-          const right = output[rightIndex];
-          const numbered = output.filter((r) => Array.isArray(r.movementNumbers) && r.movementNumbers.length);
-          const avgDuration = numbered.reduce((sum, r) => sum + Math.max(r.endTime - r.startTime, 0), 0) / Math.max(numbered.length, 1);
-          const evidence = connectionEvidenceFromMotion(left, right, motionSamples, avgDuration);
-          output.splice(leftIndex, 2, mergeSemanticConnectionPair(left, right, rule, evidence));
+          for (const mv of rule.movements) {
+            const idx = output.findIndex((r) => Array.isArray(r.movementNumbers) && r.movementNumbers.includes(mv));
+            if (idx < 0) continue;
+            output[idx] = {
+              ...output[idx],
+              connectionTag: rule.title,            // 예: "5~6번 연결동작"
+              connectionNote: rule.description,      // 같은 서기에서 이어짐 등 설명
+              connectionPractice: rule.practice
+            };
+          }
         }
         const compoundRules = compoundMovementRules[poomsaeKey] || {};
         output = output.map((segment) => {
@@ -5350,6 +5354,9 @@
               ${result.order > 1 ? `<button type="button" class="secondary seg-merge" data-seg="${result.order - 1}" style="font-size:12px;padding:4px 8px">↑ 위 구간과 합치기</button>` : ""}
               <button type="button" class="secondary seg-split" data-seg="${result.order - 1}" style="font-size:12px;padding:4px 8px">⊟ 둘로 나누기</button>
             </div>` : "";
+          const connTag = result.connectionTag
+            ? `<span class="conn-tag" style="display:inline-block;margin-top:6px;font-size:11px;color:#1d6fa5;background:#e7f2fb;border-radius:10px;padding:2px 8px">↔ ${result.connectionTag} · 앞 동작과 한 자리에서 이어집니다</span>`
+            : "";
           row.innerHTML = `
             <div class="segment-head">
               <strong><span class="segment-number">${String(result.order).padStart(2, "0")}.</span>${result.name}</strong>
@@ -5361,6 +5368,7 @@
             </div>
             <div class="segment-body">
               <span class="segment-feedback">${result.feedback}</span>
+              ${connTag}
               ${scoreBars}
               ${editControls}
             </div>
@@ -5379,6 +5387,8 @@
             btn.addEventListener("click", (e) => { e.stopPropagation(); splitSegment(Number(btn.dataset.seg)); });
           });
         }
+        // 구간이 그려지면 수동 조정 바도 확실히 표시(분석 완료 신호).
+        renderManualEditPanel();
       }
       function repeatedIssueFor(result) {
         const metrics = [
