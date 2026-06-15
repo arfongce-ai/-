@@ -72,10 +72,16 @@ function extractPoomsaeDefinitions(html) {
   if (oneStart >= 0 && twoStart > oneStart) {
     const oneBlock = html.slice(oneStart, twoStart);
     const countMatch = oneBlock.match(/count:\s*(\d+)/);
+    const movementsMatch = oneBlock.match(/movements:\s*\[([\s\S]*?)\]\.map/);
+    const numberedMovements = movementsMatch
+      ? [...movementsMatch[1].matchAll(/\["([^"]+)"/g)]
+        .map((match) => match[1])
+        .filter((id) => id !== "ready_stance" && !id.startsWith("kihap_"))
+      : [];
     result.set("taegeuk_1", {
       count: countMatch ? Number(countMatch[1]) : NaN,
-      actual: [...oneBlock.matchAll(/\["/g)].length,
-      source: "movements",
+      actual: numberedMovements.length,
+      source: "numbered movements",
     });
   }
 
@@ -197,12 +203,12 @@ assertContains(webHtml, "data-jump=\"segments\"", "빠른 이동 전체 구간 �
 assertContains(webHtml, "data-jump=\"result\"", "빠른 이동 결과지 버튼 존재");
 assertContains(webHtml, "data-jump=\"setup\"", "앱형 하단 설정 메뉴 존재");
 assertContains(webHtml, "훈련 시작", "앱형 훈련 시작 제목 존재");
-assertContains(webHtml, "<summary>프로그램 사용 설명서</summary>", "홈 훈련 시작 아래 프로그램 사용 설명서 버튼 존재");
+assertContains(webHtml, "<summary>이 앱은 어떻게 쓰나요?</summary>", "홈 훈련 시작 아래 프로그램 사용 설명서 버튼 존재");
 assertContains(webHtml, "program-guide-steps", "프로그램 사용 순서 목록 존재");
-assertContains(webHtml, "본 프로그램은 개인품새 수련을 위한 참고용입니다.", "프로그램 사용 설명서 하단 참고용 안내 존재");
-assertContains(webHtml, "Android는 브라우저 메뉴의 앱 설치·홈 화면 추가", "폰 및 태블릿 홈 화면 추가 안내 존재");
-assertContains(webHtml, "훈련 목적 선택:", "설명서에 첫 번째 사용 단계 존재");
-assertContains(webHtml, "훈련 확인:", "설명서에 마지막 사용 단계 존재");
+assertContains(webHtml, "이 앱은 혼자 품새 연습을 도와주는 참고용이에요.", "프로그램 사용 설명서 하단 참고용 안내 존재");
+assertContains(webHtml, "안드로이드는 브라우저 메뉴에서 '앱 설치/홈 화면에 추가'", "폰 및 태블릿 홈 화면 추가 안내 존재");
+assertContains(webHtml, "① 무엇을 볼지 골라요:", "설명서에 첫 번째 사용 단계 존재");
+assertContains(webHtml, "⑥ 결과를 봐요:", "설명서에 마지막 사용 단계 존재");
 assertContains(webHtml, "field-label", "단계별 입력 안내 스타일 존재");
 assertContains(webHtml, "if (reportSection) reportSection.hidden = true", "훈련 화면 중복 분석 요약 숨김");
 assertContains(webHtml, ".quick-nav button.active", "하단 메뉴 활성 상태 스타일 존재");
@@ -228,7 +234,7 @@ assertContains(readUtf8(capacitorConfigPath), "\"appName\": \"태권도 품새 �
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련품새 · 경기품새", "헤더 훈련 목적 배지 적용");
-assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.45", "헤더 설명 문구 적용");
+assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.48", "헤더 설명 문구 적용");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
@@ -239,7 +245,7 @@ assertContains(webHtml, "초등학생도 알 수 있는 쉬운 말", "수련품�
 assertContains(webHtml, "필요 훈련", "경기품새 필요 훈련 문구 존재");
 assertContains(webHtml, "stableAnalysisCache", "동일 영상 반복 측정 안정화 캐시 존재");
 assertContains(webHtml, "same_file_same_poomsae_reuses_segment_metrics", "반복 측정 안정화 전략 기록 존재");
-assertContains(webHtml, "선택 순서는 자유롭습니다", "품새/영상 선택 순서 자유 안내 존재");
+assertContains(webHtml, "아래 순서대로 하나씩 골라요.", "품새/영상 선택 순서 안내 존재");
 assertContains(webHtml, "경기품새 참고점수", "WT 구조 기반 10점 만점 참고점수 표기 존재");
 assertContains(webHtml, "latestReport.summary.competition_score_10", "결과지 경기품새 10점 참고점수 표시 구조 존재");
 assertContains(webHtml, "score_100", "100점 기준 점수 데이터 존재");
@@ -279,7 +285,7 @@ assertContains(webHtml, "sampling_strategy: \"adaptive_device_safe\"", "적응�
 assertContains(webHtml, "window.addEventListener(\"pagehide\"", "페이지 종료 시 영상 메모리 정리");
 assertContains(webHtml, "requestVideoFrameCallback", "실제 표시 프레임 기준 분석 지원");
 assertContains(webHtml, "meta.mediaTime", "표시 프레임의 실제 mediaTime 기록");
-assertContains(webHtml, "const actualTime = await waitForSeek(requestedTime)", "요청 시각 대신 실제 분석 시각 사용");
+assertContains(webHtml, "const actualTime = await waitForSeek(requestedTime, true)", "요청 시각 대신 실제 분석 시각 사용");
 assertContains(webHtml, "completion_snapshot_time: Number(snapshotTime.toFixed(3))", "완료 스냅샷 실제 시각 기록");
 assertContains(webHtml, "COMPETITION_RULES_2026", "2026 경기규칙 피드백 기준 존재");
 assertContains(webHtml, "competitionScoreFromMetrics", "WT 정확성 4.0 및 연출 6.0 참고점수 환산 함수 존재");
@@ -288,11 +294,11 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v6-offline-engine", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v8-sample-validated", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
-assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v4", "최상단 배포용 오프라인 엔진 서비스워커 존재");
+assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v6-sample-validated", "최상단 배포용 오프라인 엔진 서비스워커 존재");
 assertContains(readUtf8(rootManifestPath), "app-icon-192.png", "최상단 manifest에 192 아이콘 등록");
 assertContains(readUtf8(rootManifestPath), "app-icon-512.png", "최상단 manifest에 512 아이콘 등록");
 assertContains(readUtf8(path.join(root, "www", "manifest.webmanifest")), "app-icon-192.png", "www manifest에 192 아이콘 등록");
@@ -309,13 +315,19 @@ assertContains(webHtml, "boundarySensitivitySelect", "구간 감지 민감도 �
 assertContains(webHtml, "detectMotionBoundaries", "영상 움직임 기반 구간 경계 탐색 존재");
 assertContains(webHtml, "refineSegmentBoundaries", "예상 경계를 가까운 정지점으로 보정하는 로직 존재");
 assertContains(webHtml, "sample.valid !== false", "관절 미검출 장면을 거짓 정지점 후보에서 제외");
-assertContains(webHtml, "skeleton-angle-kta-scan-reuse-revision-7-", "스캔 프레임 재사용 방식과 민감도를 캐시 키에 반영");
+assertContains(webHtml, "skeleton-angle-kta-semantic-scenes-revision-9-", "연결 장면 방식과 민감도를 캐시 키에 반영");
 assertContains(webHtml, "selectReusableSegmentFrames", "경계 탐색 포즈 프레임의 안전한 구간 평가 재사용");
 assertContains(webHtml, "nearest.gap > maxGap", "재사용 프레임 최대 시각 오차 안전장치");
 assertContains(webHtml, "sample_source: reusableFrames.length === sampleCount ? \"boundary_scan_reused\" : \"precise_fallback\"", "구간별 재사용 또는 정밀 폴백 기록");
 assertContains(webHtml, "reliability_guard:", "분석 속도 최적화 신뢰성 안전장치 기록");
 assertContains(webHtml, "total_elapsed_ms:", "분석 실제 소요시간 기록");
-assertContains(webHtml, "always_n_segments_one_to_one_for_unity", "영상-분석 통일성: 항상 N구간 1:1 매핑");
+assertContains(webHtml, "prep_reserved_plus_n_segments_for_unity", "영상-분석 통일성: 준비 구간과 N동작 1:1 기초 매핑");
+assertContains(webHtml, 'primary.isKihap || primary.type === "kihap"', "기합 장면은 공식 동작 번호 대신 기합으로 표시");
+assertContains(webHtml, "semanticConnectionRules", "품새별 의미상 연결동작 규칙 존재");
+assertContains(webHtml, "connectionEvidenceFromMotion", "시간·속도 기반 연결 신뢰도 계산 존재");
+assertContains(webHtml, "applySemanticSceneRules", "연결동작 장면 통합 처리 존재");
+assertContains(webHtml, "compoundMovementRules", "복합동작 내부 단계 규칙 존재");
+assertContains(webHtml, "앱 분석용 · 공식 번호 아님", "복합동작 내부 단계 안전 안내 존재");
 assertContains(webHtml, "function detectNaturalBoundaries", "자연 경계 탐지 함수 존재");
 assertContains(webHtml, "function allocateMovementsToSegments", "구간 길이비례 동작 배분 함수 존재");
 assertContains(webHtml, "개선 A:", "준비자세(긴 정지) 시작 제외 개선 적용");
@@ -353,7 +365,7 @@ assertContains(webHtml, "동작명 자동 추정", "동작명과 영상 불일�
 assertContains(webHtml, "skeletonMotionScore", "관절 각도와 중심 이동을 포함한 스켈레톤 움직임 분석");
 assertContains(webHtml, "chooseCompletionSnapshotTimes", "구간 후반 가장 안정적인 스켈레톤 자세를 대표 장면으로 선택");
 assertContains(webHtml, "detectActiveMotionRange", "영상 앞뒤 대기 시간을 제외한 실제 품새 활성 구간 탐색");
-assertContains(webHtml, "duration * 3.5", "구간 감지를 초당 3.5회 수준으로 유지");
+assertContains(webHtml, "duration * 2.6", "구간 감지를 초당 2.6회 수준으로 유지");
 assertContains(webHtml, "./assets/momgagym-logo.jpg", "앱 하단 몸가짐운동센터 로고 존재");
 assertContains(webHtml, "제작: 울산 몸가짐운동센터", "앱 하단 제작 정보 존재");
 assertContains(webHtml, "https://blog.naver.com/posture_gym/222560486461", "김동규 센터장 소개 링크 존재");
@@ -431,7 +443,7 @@ assertNotContainsInFiles("let replayRange = null", [webIndexPath, androidIndexPa
 assertNotContainsInFiles("const segmentStart = video.duration * (i / movements.length)", [webIndexPath, androidIndexPath], "단순 균등 구간 시작값 제거");
 assertNotContainsInFiles("태극 1~8장 테스트", [webIndexPath, androidIndexPath], "이전 제목 '태극 1~8장 테스트' 제거");
 assertNotContainsInFiles("태극1~8장 테스트", [webIndexPath, androidIndexPath], "이전 제목 '태극1~8장 테스트' 제거");
-assertNotContainsInFiles("v2", [webIndexPath, androidIndexPath], "이전 버전 v2 문구 제거");
+assertNotContainsInFiles("· v2", [webIndexPath, androidIndexPath], "이전 앱 버전 v2 문구 제거");
 assertNotContainsInFiles("C:\\Users\\MOMGAGYM", [webIndexPath, androidIndexPath, buildStepsPath], "배포 코드/문서의 개인 PC 샘플 경로 제거");
 assertNotContainsInFiles("AI 품새 코치", [webIndexPath, androidIndexPath], "이전 앱 이름 'AI 품새 코치' 제거");
 assertNotContainsInFiles("품새 분석 AI플그램", [webIndexPath, androidIndexPath], "오타 앱 이름 '품새 분석 AI플그램' 제거");

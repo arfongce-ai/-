@@ -20,6 +20,14 @@ const fns = new Function("clamp",
   "return { detectActiveMotionRange, detectNaturalBoundaries, allocateMovementsToSegments };"
 )(clamp);
 
+function indicesOf(entry) {
+  return Array.isArray(entry) ? entry : (entry && Array.isArray(entry.indices) ? entry.indices : []);
+}
+
+function flattenAllocation(allocation) {
+  return allocation.flatMap(indicesOf);
+}
+
 function synth(trueBoundaries, dur, rate, noise, stopDepth) {
   const samples = [];
   const n = Math.round(dur * rate);
@@ -51,9 +59,9 @@ function check(cond, msg) { console.log((cond ? "OK  " : "FAIL ") + msg); if (!c
   for (const segN of [3, 8, 14, 18]) {
     const bounds = Array.from({ length: segN + 1 }, (_, i) => i * (10 / segN));
     const alloc = fns.allocateMovementsToSegments(bounds, 18);
-    const flat = alloc.flat();
+    const flat = flattenAllocation(alloc);
     const sumOk = flat.length === 18;
-    const minOne = alloc.every((a) => a.length >= 1);
+    const minOne = alloc.every((a) => indicesOf(a).length >= 1);
     const ordered = flat.every((v, i) => i === 0 || v === flat[i - 1] + 1);
     check(sumOk && minOne && ordered, `구간 ${segN}개: 동작 18개 빠짐없이·순서대로·각 구간 최소1개 배분`);
   }
@@ -63,8 +71,9 @@ function check(cond, msg) { console.log((cond ? "OK  " : "FAIL ") + msg); if (!c
 {
   const bounds = [0, 6, 7, 8, 9, 10];
   const alloc = fns.allocateMovementsToSegments(bounds, 18);
-  const longestGetsMost = alloc[0].length === Math.max(...alloc.map((a) => a.length));
-  check(longestGetsMost, `긴 구간에 가장 많은 동작 배분(${alloc.map((a) => a.length).join(",")})`);
+  const lengths = alloc.map((a) => indicesOf(a).length);
+  const longestGetsMost = lengths[0] === Math.max(...lengths);
+  check(longestGetsMost, `긴 구간에 가장 많은 동작 배분(${lengths.join(",")})`);
 }
 
 // 4) 멈춤이 거의 없어도 안전하게 구간 생성·전체 동작 배분(실패 금지).
@@ -75,7 +84,7 @@ function check(cond, msg) { console.log((cond ? "OK  " : "FAIL ") + msg); if (!c
     const ar = fns.detectActiveMotionRange(dur, samples);
     const b = fns.detectNaturalBoundaries(dur, samples, 0.95, ar.start, ar.end, 18);
     const alloc = fns.allocateMovementsToSegments(b, 18);
-    check(b.length >= 2 && alloc.flat().length === 18, `정지깊이 ${stop}: 구간 생성·동작 18개 전부 배분`);
+    check(b.length >= 2 && flattenAllocation(alloc).length === 18, `정지깊이 ${stop}: 구간 생성·동작 18개 전부 배분`);
   }
 }
 
@@ -111,7 +120,7 @@ function check(cond, msg) { console.log((cond ? "OK  " : "FAIL ") + msg); if (!c
   const b = fns.detectNaturalBoundaries(dur, samples, 0.95, ar.start, ar.end, 6);
   const alloc = fns.allocateMovementsToSegments(b, 6);
   // 동작은 6개 전부 배분되고(묶음 허용), 경계가 동작 수를 넘지 않음
-  check(alloc.flat().length === 6 && (b.length - 1) <= 6, "하이브리드: valley 없는 연속구간은 가짜 분할 없이 묶음 처리");
+  check(flattenAllocation(alloc).length === 6 && (b.length - 1) <= 6, "하이브리드: valley 없는 연속구간은 가짜 분할 없이 묶음 처리");
 }
 
 console.log(fail ? `\n실패 ${fail}건` : "\n경계 탐지·동작 배분 회귀 테스트 통과");
