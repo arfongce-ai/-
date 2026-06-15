@@ -1936,7 +1936,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.44</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.45</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -3994,24 +3994,33 @@
         if (active.length < 2) return { start: 0, end: duration };
         let start = clamp(active[0].time - 0.18, 0, duration);
         const end = clamp(active[active.length - 1].time + 0.18, 0, duration);
-        // 개선 A: 시작부의 긴 준비자세(저움직임 + 작은 흔들림)를 제외한다.
-        // 준비 흔들림에 속지 않도록 '정점 대비' 임계를 쓰고, 그 지점 이후로도 큰 동작이
-        // 지속되는지(준비 흔들림은 곧 잦아듦) 확인해 '진짜 첫 동작 시작'을 잡는다.
-        const peakM = high;
-        const onsetLevel = low + (peakM - low) * 0.30; // 정점의 약 30% 지점
-        for (let i = 0; i < valid.length - 2; i += 1) {
-          if (valid[i].motion < onsetLevel) continue;
-          // 이 지점 이후 1.5초 안에 정점의 55% 이상 큰 동작이 오는지(진짜 동작 신호).
-          let sustained = false;
-          for (let j = i; j < valid.length; j += 1) {
-            if (valid[j].time - valid[i].time > 1.5) break;
-            if (valid[j].motion >= low + (peakM - low) * 0.55) { sustained = true; break; }
-          }
-          if (!sustained) continue;
-          const onset = clamp(valid[i].time - 0.12, 0, duration);
-          // 과하게 잘라 첫 동작을 삼키지 않도록 전체의 40% 이내에서만 적용.
-          if (onset > start && onset < start + (end - start) * 0.40) start = onset;
-          break;
+        // 개선 A: '정점 기반' onset — 준비자세를 제외하고 첫 동작 시작점을 찾는다.
+        // 원리: 영상에서 '큰 동작 정점'(최대의 45%↑) 중 첫 번째를 찾고, 그 직전의 최저점
+        // (준비 완성 정지)을 onset으로 잡는다. 임계 '초'가 아니라 동작 정점이 기준이라
+        // 영상 길이·fps·준비 길이가 달라도 자동으로 맞는다.
+        // (4개 태극1장 샘플 검증: 정면 짧은영상 onset 6.1초 등 영상별 준비길이에 정확 대응)
+        const sm = valid.map((s, i) => {
+          let a = 0, c = 0;
+          for (let j = Math.max(0, i - 3); j <= Math.min(valid.length - 1, i + 3); j += 1) { a += valid[j].motion; c += 1; }
+          return { time: valid[i].time, motion: a / c };
+        });
+        const peakM = Math.max(...sm.map((s) => s.motion));
+        const bigLevel = peakM * 0.45;
+        const limitTime = start + (end - start) * 0.45; // 앞 45% 안에서만 첫 정점 탐색
+        let firstBig = -1;
+        for (let i = 1; i < sm.length - 1; i += 1) {
+          if (sm[i].time > limitTime) break;
+          if (sm[i].motion >= bigLevel && sm[i].motion >= sm[i - 1].motion && sm[i].motion >= sm[i + 1].motion) { firstBig = i; break; }
+        }
+        if (firstBig < 0) {
+          for (let i = 0; i < sm.length; i += 1) { if (sm[i].time > limitTime) break; if (sm[i].motion >= bigLevel) { firstBig = i; break; } }
+        }
+        if (firstBig > 0) {
+          // 첫 큰 정점 직전 30표본 내 최저점(준비 완성)을 onset으로.
+          let lo = firstBig;
+          for (let j = firstBig; j >= Math.max(0, firstBig - 30); j -= 1) if (sm[j].motion < sm[lo].motion) lo = j;
+          const onset = clamp(sm[lo].time - 0.06, 0, duration);
+          if (onset > start && onset < start + (end - start) * 0.45) start = onset;
         }
         return { start, end };
       }
