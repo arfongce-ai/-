@@ -1936,7 +1936,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.53</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.54</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -2203,6 +2203,41 @@
     </footer>
 
     <script type="module">
+      // ── Firebase 연동(보정 기록 자동 수집) ──
+      // 보정 기록을 사장님 Firestore(momgagym-cms)에 자동으로 모은다.
+      // 실패해도(오프라인/차단) 앱 본체는 정상 동작하며, 기록은 로컬에도 항상 저장된다(이중 안전).
+      let _fbDB = null;          // Firestore 인스턴스
+      let _fbAddDoc = null, _fbCollection = null, _fbServerTs = null;
+      let _fbReady = false;
+      (async function initFirebase() {
+        try {
+          const appMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+          const fsMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+          const firebaseConfig = {
+            apiKey: "AIzaSyC9R63MgGXKE0lQ_hfCR8LHRmMRv1jiugk",
+            authDomain: "momgagym-cms.firebaseapp.com",
+            projectId: "momgagym-cms",
+            storageBucket: "momgagym-cms.firebasestorage.app",
+            messagingSenderId: "28887391734",
+            appId: "1:28887391734:web:42eb4981c8dcacaccd7bd7"
+          };
+          const app = appMod.initializeApp(firebaseConfig);
+          _fbDB = fsMod.getFirestore(app);
+          _fbAddDoc = fsMod.addDoc; _fbCollection = fsMod.collection; _fbServerTs = fsMod.serverTimestamp;
+          _fbReady = true;
+        } catch (e) {
+          _fbReady = false; // 조용히 실패. 로컬 기록은 계속 동작.
+        }
+      })();
+      // 보정 기록 1건을 Firestore 'corrections' 컬렉션에 보낸다(익명, 영상 파일명 제외).
+      async function sendCorrectionToCloud(record) {
+        if (!_fbReady || !_fbDB) return false;
+        try {
+          const { file, ...safe } = record; // 개인정보가 될 수 있는 파일명 제거
+          await _fbAddDoc(_fbCollection(_fbDB, "corrections"), { ...safe, created: _fbServerTs() });
+          return true;
+        } catch (e) { return false; }
+      }
       const LOCAL_MODEL_URL = "./models/pose_landmarker_lite.task";
       const REMOTE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task";
       const LOCAL_WASM_URL = "./vendor/mediapipe/tasks-vision/wasm";
@@ -2665,8 +2700,7 @@
       // 보정 1건 기록. action: "merge" | "split" | "adjust"
       function recordCorrection(action, detail) {
         try {
-          const log = loadCorrectionLog();
-          log.push({
+          const record = {
             ts: new Date().toISOString(),
             poomsae: selectedPoomsaeKey,
             poomsae_name: (currentPoomsae() && currentPoomsae().name) || "",
@@ -2675,8 +2709,12 @@
             auto_method: lastBoundaryCache ? lastBoundaryCache.method : "",
             action,
             ...detail
-          });
+          };
+          const log = loadCorrectionLog();
+          log.push(record);
           saveCorrectionLog(log);
+          // 클라우드(Firestore)에도 자동 전송(파일명 제외, 익명). 실패해도 로컬엔 이미 저장됨.
+          sendCorrectionToCloud(record);
         } catch (e) { /* 무시 */ }
       }
       // 분석 완료 후 수동 조정 바를 보이게 하고, 토글 버튼을 연결한다.
