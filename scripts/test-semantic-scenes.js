@@ -160,8 +160,9 @@ const semanticMotion = Array.from({ length: 49 }, (_, index) => ({
   valid: true,
 }));
 const semanticOutput = context.applySemanticSceneRules(semanticInput, semanticMotion, "taegeuk_1");
-assert(semanticOutput.filter((segment) => segment.connectionScene).length === 2, "Taeguk 1 semantic rules merge two connection scenes");
-assert(semanticOutput.some((segment) => segment.mergedMovementNumbers === "5~6번"), "5~6 connection scene keeps official movement range");
+assert(semanticOutput.filter((segment) => segment.connectionTag).length === 4, "Taeguk 1 semantic rules tag two connection pairs");
+assert(semanticOutput.some((segment) => segment.movementNumbers.includes(5) && segment.connectionTag === "5~6번 연결동작"), "5~6 connection keeps official movement 5 visible");
+assert(semanticOutput.some((segment) => segment.movementNumbers.includes(6) && segment.connectionTag === "5~6번 연결동작"), "5~6 connection keeps official movement 6 visible");
 assert(semanticOutput.filter((segment) => segment.compoundScene).length === 2, "Taeguk 1 compound rules annotate movements 14 and 16");
 assert(semanticOutput.every((segment) => segment.referenceDeduction?.amount !== 0.1 && segment.referenceDeduction?.amount !== 0.3), "connection scenes do not auto-confirm individual deductions");
 

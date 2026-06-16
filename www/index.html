@@ -2322,8 +2322,7 @@
             ["m15_left_high_block", "왼 앞굽이 얼굴막기", "block"],
             ["m16_kick_punch", "오른발 앞차고 오른 앞굽이 몸통바로지르기", "kick_punch"],
             ["m17_left_low_block", "왼 앞굽이 아래막기", "block"],
-            ["m18_right_punch", "오른 앞굽이 몸통바로지르기", "punch"],
-            ["kihap_end", "기합", "kihap"]
+            ["m18_right_punch", "오른 앞굽이 몸통바로지르기(기합)", "punch"]
           ].map(([id, name, type]) => ({ id, name, type }))
         },
       };
@@ -3097,6 +3096,20 @@
           }
         });
         resultPage.addEventListener("click", (event) => {
+          const manualBtn = event.target.closest("#resultManualEditBtn");
+          if (manualBtn) {
+            if (!canManualEdit()) return;
+            manualEditMode = true;
+            const toggle = document.getElementById("manualEditToggle");
+            const hint = document.getElementById("manualEditHint");
+            if (toggle) toggle.textContent = "수동 조정 끝내기";
+            if (hint) hint.style.display = "inline";
+            showTrainingPage();
+            if (latestReport && latestReport.segments) renderSegments(latestReport.segments);
+            const bar = document.getElementById("manualEditBar");
+            if (bar) requestAnimationFrame(() => bar.scrollIntoView({ behavior: "smooth", block: "center" }));
+            return;
+          }
           const card = event.target.closest(".scene-card");
           if (!card) return;
           openVideoReplay(Number(card.dataset.start), Number(card.dataset.end), card.getAttribute("aria-label"));
@@ -3479,6 +3492,15 @@
             </ul>
           </div>`;
           })() : ""}
+          <div class="result-card" style="margin-top:14px;">
+            <div class="result-section-title">
+              <div>
+                <h3>구간 수동 조정</h3>
+                <p class="small">동작 경계가 밀렸다면 훈련 화면의 구간별 평가에서 합치기/나누기로 바로 고칠 수 있습니다.</p>
+              </div>
+              <button id="resultManualEditBtn" class="secondary" type="button" ${canManualEdit() ? "" : "disabled"}>수동 조정 열기</button>
+            </div>
+          </div>
           <div class="result-card" style="margin-top:14px;">
             <div class="result-section-title">
               <div>
@@ -5570,7 +5592,10 @@
         powerScoreText.textContent = trainingMode === "exam" ? "문제점 확인" : "-";
         setPill(overallStatus, "caution", "분석 전");
       }
-      async function completeAnalysis(results, frameSamples, cacheHit = false, analysisEfficiency = null) {
+      async function completeAnalysis(results, frameSamples, cacheHit = false, analysisEfficiency = null, context = {}) {
+        const boundaryDetectionForRun = context.boundaryDetection || null;
+        const movementsForRun = context.movements || lastMovementsCache || buildGenericMovements(selectedPoomsaeKey);
+        const viewForRun = context.viewForRun || lastViewForRun || cameraView || "front";
         renderSegments(results);
         // ── 기합(음성) 검출: 기합 구간이 있으면 영상 오디오에서 함성을 확인한다 ──
         try {
@@ -5703,7 +5728,7 @@
             id: selectedPoomsaeKey,
             name: currentPoomsae().name,
             movement_count: OFFICIAL_MOVE_COUNT[selectedPoomsaeKey] || currentPoomsae().count || movements.length,
-            analysis_unit_count: movements.length,
+            analysis_unit_count: movementsForRun.length,
             data_note: currentPoomsae().note
           },
           file: selectedFile ? { name: selectedFile.name, size_bytes: selectedFile.size, type: selectedFile.type } : null,
@@ -5746,18 +5771,20 @@
           next_step: "관절 속도 피크와 정지점으로 실제 동작 전환점을 자동 감지하고, 지르기/막기/차기별 궤적 정확도 규칙을 연결"
         };
         // 수동 조정용 캐시 저장: 경계/모션/프레임을 보존해 재추출 없이 구간 재계산.
-        lastBoundaryCache = {
-          boundaries: boundaryDetection.boundaries.slice(),
-          autoBoundaries: boundaryDetection.boundaries.slice(), // 자동 결과 원본(복원용)
-          motionSamples: boundaryDetection.motionSamples,
-          frames: boundaryDetection.frames,
-          completionTimes: (boundaryDetection.completionTimes || []).slice(),
-          scanCount: boundaryDetection.scanCount,
-          sensitivity: boundaryDetection.sensitivity,
-          method: boundaryDetection.method
-        };
-        lastMovementsCache = movements.slice();
-        lastViewForRun = viewForRun;
+        if (boundaryDetectionForRun && Array.isArray(boundaryDetectionForRun.boundaries)) {
+          lastBoundaryCache = {
+            boundaries: boundaryDetectionForRun.boundaries.slice(),
+            autoBoundaries: boundaryDetectionForRun.boundaries.slice(), // 자동 결과 원본(복원용)
+            motionSamples: boundaryDetectionForRun.motionSamples,
+            frames: boundaryDetectionForRun.frames,
+            completionTimes: (boundaryDetectionForRun.completionTimes || []).slice(),
+            scanCount: boundaryDetectionForRun.scanCount,
+            sensitivity: boundaryDetectionForRun.sensitivity,
+            method: boundaryDetectionForRun.method
+          };
+          lastMovementsCache = movementsForRun.slice();
+          lastViewForRun = viewForRun;
+        }
         renderManualEditPanel();
         analyzeBtn.disabled = false;
         reanalyzeBtn.disabled = false;
@@ -6032,9 +6059,12 @@
           v.volume = 1;
           v.playsInline = true;
           let ctx, srcNode, analyser, gain, raf;
+          let timeout = null;
+          let settled = false;
           const rmsList = [];
           let lastSampleT = -1;
           const cleanup = () => {
+            if (timeout) clearTimeout(timeout);
             try { if (raf) cancelAnimationFrame(raf); } catch (e) {}
             try { v.pause(); } catch (e) {}
             try { if (srcNode) srcNode.disconnect(); } catch (e) {}
@@ -6043,8 +6073,13 @@
             try { if (ctx) ctx.close(); } catch (e) {}
             try { URL.revokeObjectURL(url); } catch (e) {}
           };
-          const fail = (reason) => { cleanup(); resolve({ ok: false, reason: reason || "no_audio" }); };
-          const timeout = setTimeout(() => finish(), 30000); // 안전장치: 최대 30초
+          const fail = (reason) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            resolve({ ok: false, reason: reason || "no_audio" });
+          };
+          timeout = setTimeout(() => fail("audio_timeout"), 8000); // 안전장치: 분석 완료를 오래 붙잡지 않는다.
           const buf = new Float32Array(2048);
           const sample = () => {
             if (!analyser) return;
@@ -6058,7 +6093,7 @@
             raf = requestAnimationFrame(sample);
           };
           const finish = () => {
-            clearTimeout(timeout);
+            if (settled) return;
             if (rmsList.length < 4) { fail("no_audio"); return; }
             const arr = Float32Array.from(rmsList);
             let mean = 0; for (let i = 0; i < arr.length; i += 1) mean += arr[i]; mean /= arr.length;
@@ -6067,6 +6102,7 @@
             const peak = Math.max(...arr);
             if (peak < 1e-4) { fail("silent"); return; }
             const profile = { ok: true, rms: arr, binSec: 0.05, duration: v.duration || (arr.length * 0.05), mean, std, peak };
+            settled = true;
             cleanup();
             resolve(profile);
           };
@@ -6082,7 +6118,10 @@
               analyser.connect(gain);
               gain.connect(ctx.destination);
               v.playbackRate = 1.0; // 정확한 음량 수집을 위해 정상 속도(배속은 샘플 누락 위험)
-              v.play().then(() => { sample(); }).catch(() => fail("play_blocked"));
+              Promise.resolve(ctx.resume ? ctx.resume() : undefined)
+                .then(() => v.play())
+                .then(() => { sample(); })
+                .catch(() => fail("play_blocked"));
             } catch (e) { fail("graph_error"); }
           }, { once: true });
           v.addEventListener("ended", () => finish(), { once: true });
@@ -6404,7 +6443,11 @@
           };
           await loadVideoFile(selectedFile);
           objectUrl = video.src;
-          await completeAnalysis(fused, sideRun.frameSamples || frontRun.frameSamples || diagRun.frameSamples || [], false, eff);
+          await completeAnalysis(fused, sideRun.frameSamples || frontRun.frameSamples || diagRun.frameSamples || [], false, eff, {
+            boundaryDetection: frontRun.boundaryDetection || sideRun.boundaryDetection || diagRun.boundaryDetection,
+            movements: frontRun.movements || sideRun.movements || diagRun.movements,
+            viewForRun: "front"
+          });
           setProgress(100, "정면+측면+대각선 융합 분석 완료: 세 각도 결과를 합쳤습니다.");
         } catch (error) {
           console.error(error);
@@ -6472,7 +6515,11 @@
           await loadVideoFile(selectedFile);
           if (objectUrl && objectUrl !== savedMainUrl) { /* keep */ }
           objectUrl = video.src;
-          await completeAnalysis(fused, sideRun.frameSamples || frontRun.frameSamples || [], false, eff);
+          await completeAnalysis(fused, sideRun.frameSamples || frontRun.frameSamples || [], false, eff, {
+            boundaryDetection: frontRun.boundaryDetection || sideRun.boundaryDetection,
+            movements: frontRun.movements || sideRun.movements,
+            viewForRun: "front"
+          });
           setProgress(100, "정면+측면 융합 분석 완료: 두 각도 결과를 합쳤습니다.");
         } catch (error) {
           console.error(error);
@@ -6525,8 +6572,11 @@
         const cacheKey = skipComplete ? "" : currentAnalysisCacheKey();
         const cached = cacheKey ? stableAnalysisCache.get(cacheKey) : null;
         if (cached) {
-          await completeAnalysis(cloneStableData(cached.results), cloneStableData(cached.frameSamples), true, cloneStableData(cached.analysisEfficiency || null));
-          return { results: cloneStableData(cached.results), frameSamples: cloneStableData(cached.frameSamples), analysisEfficiency: cloneStableData(cached.analysisEfficiency || null), view: viewForRun };
+          await completeAnalysis(cloneStableData(cached.results), cloneStableData(cached.frameSamples), true, cloneStableData(cached.analysisEfficiency || null), {
+            movements,
+            viewForRun
+          });
+          return { results: cloneStableData(cached.results), frameSamples: cloneStableData(cached.frameSamples), analysisEfficiency: cloneStableData(cached.analysisEfficiency || null), view: viewForRun, movements: movements.slice() };
         }
         setProgress(5, "동작 전환점을 먼저 찾아 구간 경계를 보정합니다.");
         const boundaryDetection = await detectMotionBoundaries(timestampBaseMs);
@@ -6648,10 +6698,10 @@
         };
         if (cacheKey) stableAnalysisCache.set(cacheKey, cloneStableData({ results, frameSamples, analysisEfficiency }));
         if (skipComplete) {
-          return { results, frameSamples, analysisEfficiency, view: viewForRun };
+          return { results, frameSamples, analysisEfficiency, view: viewForRun, boundaryDetection, movements: movements.slice() };
         }
-        await completeAnalysis(results, frameSamples, false, analysisEfficiency);
-        return { results, frameSamples, analysisEfficiency, view: viewForRun };
+        await completeAnalysis(results, frameSamples, false, analysisEfficiency, { boundaryDetection, movements, viewForRun });
+        return { results, frameSamples, analysisEfficiency, view: viewForRun, boundaryDetection, movements: movements.slice() };
         } catch (error) {
           console.error(error);
           const hadReport = !!latestReport;
@@ -6854,7 +6904,10 @@
           trainingMode = tab.dataset.mode || "competition";
           updateTrainingModeUi();
           if (latestReport?.segments?.length) {
-            await completeAnalysis(cloneStableData(latestReport.segments), cloneStableData(latestReport.frame_samples || []), true, cloneStableData(latestReport.analysis_efficiency || null));
+            await completeAnalysis(cloneStableData(latestReport.segments), cloneStableData(latestReport.frame_samples || []), true, cloneStableData(latestReport.analysis_efficiency || null), {
+              movements: lastMovementsCache || movements,
+              viewForRun: lastViewForRun
+            });
           } else {
             renderReport([{ type: "caution", text: `${modeLabel()} 모드를 선택했습니다. 품새와 영상을 준비한 뒤 분석 시작을 누르세요.` }]);
           }
