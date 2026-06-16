@@ -644,7 +644,9 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 8px;
+        align-items: stretch;
       }
+      .seg-edit__grid > .seg-edit-btn { width: 100%; }
       .seg-edit-btn {
         appearance: none;
         border: 1.5px solid color-mix(in srgb, var(--brand) 30%, var(--line));
@@ -652,25 +654,52 @@
         color: var(--ink, #1f2937);
         font-size: 14px;
         font-weight: 700;
-        padding: 11px 10px;
+        padding: 10px 8px;
         border-radius: 12px;
         cursor: pointer;
-        min-height: 48px;
-        display: inline-flex;
-        align-items: center;
+        min-height: 56px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
         justify-content: center;
-        gap: 6px;
-        line-height: 1.2;
+        gap: 2px;
+        line-height: 1.25;
         text-align: center;
+        white-space: normal;
+        word-break: keep-all;
+        writing-mode: horizontal-tb;
       }
       .seg-edit-btn:hover { background: var(--brand-soft); }
       .seg-edit-btn:active { transform: scale(0.97); }
+      .seg-apply-btn {
+        appearance: none;
+        border: 0;
+        background: var(--brand);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+        padding: 0 18px;
+        min-height: 44px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      .seg-apply-btn:active { transform: scale(0.97); }
+      .seg-edit-btn .seg-edit-btn__main {
+        display: block;
+        width: 100%;
+        white-space: nowrap;
+        writing-mode: horizontal-tb;
+      }
       .seg-edit-btn .seg-edit-btn__sub {
         display: block;
+        width: 100%;
         font-size: 11px;
         font-weight: 600;
         color: var(--muted);
-        margin-top: 1px;
+        white-space: normal;
+        word-break: keep-all;
+        writing-mode: horizontal-tb;
       }
       .seg-edit-btn--full { grid-column: 1 / -1; }
       /* "직접 시간 입력"은 기본 숨김(더보기) */
@@ -2156,7 +2185,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.58</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.61</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -2488,9 +2517,13 @@
       function inferMovementType(name) {
         // 기합은 동작이 아니라 '음성'. 별도 타입으로 분류해 오디오로 판정한다.
         if (/^기합$|기합$/.test(String(name || "").trim())) return "kihap";
-        if (/차기|찍기|꼬아서기|뛰어/.test(name)) return "kick_punch";
+        // 발차기(차기/차고/차며/찍기/뛰어/돌려차기 등)는 복합 발차기로 우선 분류.
+        // '앞차고 …지르기'처럼 발차기 뒤에 손기술이 붙는 동작도 발차기 기준으로 평가해야 한다.
+        if (/차기|차고|차며|차\s|찍기|꼬아서기|뛰어|돌려차/.test(name)) return "kick_punch";
         if (/막기|헤쳐|산틀|거들어막기/.test(name)) return "block";
-        if (/치기|찌르기|지르기|밀기|꺾기|표적/.test(name)) return "strike";
+        // 지르기는 '지르기' 계열(찌르기 포함)로 punch에 가깝게 평가한다.
+        if (/지르기|찌르기/.test(name)) return "punch";
+        if (/치기|밀기|꺾기|표적/.test(name)) return "strike";
         if (/준비|서기|멈추기|학다리/.test(name)) return "hold";
         return "punch";
       }
@@ -5601,11 +5634,11 @@
             <div class="segment-edit" style="display:${manualEditMode ? "flex" : "none"}">
               <div class="segment-edit__q">이 구간이 잘못 잡혔나요?</div>
               <div class="seg-edit__grid">
-                ${result.order > 1 ? `<button type="button" class="seg-edit-btn seg-merge" data-seg="${result.order - 1}">↑ 위 동작과 합치기<span class="seg-edit-btn__sub">두 칸이 한 동작일 때</span></button>` : ""}
-                <button type="button" class="seg-edit-btn seg-split" data-seg="${result.order - 1}">✂ 둘로 나누기<span class="seg-edit-btn__sub">한 칸에 두 동작일 때</span></button>
+                ${result.order > 1 ? `<button type="button" class="seg-edit-btn seg-merge" data-seg="${result.order - 1}"><span class="seg-edit-btn__main">↑ 위 동작과 합치기</span><span class="seg-edit-btn__sub">두 칸이 한 동작일 때</span></button>` : ""}
+                <button type="button" class="seg-edit-btn seg-split" data-seg="${result.order - 1}"><span class="seg-edit-btn__main">✂ 둘로 나누기</span><span class="seg-edit-btn__sub">한 칸에 두 동작일 때</span></button>
                 ${result.order > 1 ? `
-                <button type="button" class="seg-edit-btn boundary-nudge" data-boundary="${result.order - 1}" data-delta="-0.2">◀ 더 일찍 시작<span class="seg-edit-btn__sub">시작점 0.2초 앞으로</span></button>
-                <button type="button" class="seg-edit-btn boundary-nudge" data-boundary="${result.order - 1}" data-delta="0.2">더 늦게 시작 ▶<span class="seg-edit-btn__sub">시작점 0.2초 뒤로</span></button>` : ""}
+                <button type="button" class="seg-edit-btn boundary-nudge" data-boundary="${result.order - 1}" data-delta="-0.2"><span class="seg-edit-btn__main">◀ 더 일찍 시작</span><span class="seg-edit-btn__sub">시작점 0.2초 앞으로</span></button>
+                <button type="button" class="seg-edit-btn boundary-nudge" data-boundary="${result.order - 1}" data-delta="0.2"><span class="seg-edit-btn__main">더 늦게 시작 ▶</span><span class="seg-edit-btn__sub">시작점 0.2초 뒤로</span></button>` : ""}
               </div>
               ${result.order > 1 ? `
               <button type="button" class="seg-edit__more" data-more="${result.order - 1}">시간 직접 입력</button>
@@ -5614,6 +5647,7 @@
                   <input class="boundary-time-input" data-boundary="${result.order - 1}" type="number" step="0.05" inputmode="decimal" value="${result.startTime.toFixed(2)}" aria-label="${result.order}번 시작 시간(초)" />
                 </label>
                 <span class="small">초</span>
+                <button type="button" class="seg-apply-btn boundary-apply" data-boundary="${result.order - 1}">적용</button>
               </div>` : ""}
             </div>` : "";
           const connTag = result.connectionTag
@@ -5673,11 +5707,27 @@
           });
           segmentsEl.querySelectorAll(".boundary-time-input").forEach((input) => {
             input.addEventListener("click", (e) => e.stopPropagation());
-            input.addEventListener("keydown", (e) => e.stopPropagation());
+            input.addEventListener("keydown", (e) => {
+              e.stopPropagation();
+              if (e.key === "Enter") {
+                e.preventDefault();
+                input.blur();
+                adjustBoundary(Number(input.dataset.boundary), Number(input.value));
+              }
+            });
             input.addEventListener("change", (e) => {
               e.preventDefault();
               e.stopPropagation();
               adjustBoundary(Number(input.dataset.boundary), Number(input.value));
+            });
+          });
+          segmentsEl.querySelectorAll(".boundary-apply").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const idx = btn.dataset.boundary;
+              const input = segmentsEl.querySelector(`.boundary-time-input[data-boundary="${idx}"]`);
+              if (input) adjustBoundary(Number(idx), Number(input.value));
             });
           });
         }
@@ -6166,8 +6216,19 @@
         if (segCount <= 0) return;
         // 동작 배분: 구간 수에 맞춰 동작을 순서대로 1:1 매핑(구간이 동작보다 적으면 뒤 동작을 마지막에 묶음).
         const results = [];
+        // 성능: 이전 결과의 스냅샷을 (시작,끝) 시간 기준으로 캐시해 두고,
+        // 시간이 그대로인 구간은 영상 재탐색(seek) 없이 스냅샷을 재사용한다.
+        const prevSnapByTime = new Map();
+        if (latestReport && Array.isArray(latestReport.segments)) {
+          for (const s of latestReport.segments) {
+            if (s && s.snapshot) {
+              const key = `${Number(s.startTime).toFixed(2)}_${Number(s.endTime).toFixed(2)}`;
+              prevSnapByTime.set(key, s.snapshot);
+            }
+          }
+        }
         isAnalyzing = true;
-        setProgress(Number(progress.value || 100), "수동 조정 내용을 반영하는 중입니다.");
+        setProgress(Number(progress.value || 100), "수정한 구간을 다시 계산하는 중입니다… 잠시만요.");
         try {
           for (let i = 0; i < segCount; i += 1) {
             const segStart = boundaries[i];
@@ -6210,10 +6271,14 @@
             const reusable = selectReusableSegmentFrames(bc.frames || [], segStart, segEnd, sampleCount);
             const frames = reusable.length ? reusable : (bc.frames || []).filter((f) => f.time >= segStart && f.time < segEnd);
             const metrics = evaluateSegment(primary, frames, { view: lastViewForRun });
-            // 스냅샷: 구간 내 맺음 시점.
+            // 스냅샷: 구간 내 맺음 시점. 시간이 그대로면 이전 스냅샷 재사용(영상 재탐색 생략).
             const compTime = (segStart + segLen * 0.82);
-            let snapshot = "";
-            try { await waitForSeek(compTime); snapshot = captureVideoSnapshot(); } catch (e) { snapshot = ""; }
+            const snapKey = `${Number(segStart).toFixed(2)}_${Number(segEnd).toFixed(2)}`;
+            let snapshot = prevSnapByTime.get(snapKey) || "";
+            if (!snapshot) {
+              // 수동 조정은 속도가 중요: fast seek(페인트 완료 대기 생략)로 캡처.
+              try { await waitForSeek(compTime, true); await waitForPaint(); snapshot = captureVideoSnapshot(); } catch (e) { snapshot = ""; }
+            }
             results.push({
               order: i + 1, orderLabel,
               id: primary ? primary.id : `${selectedPoomsaeKey}_segment_${i + 1}`,
@@ -6249,6 +6314,7 @@
       // 인접 두 구간 합치기: i번째 경계(내부 경계)를 제거.
       async function mergeSegments(i) {
         if (!canManualEdit()) return;
+        if (isAnalyzing) return; // 처리 중 연타 방지
         const b = lastBoundaryCache.boundaries.slice();
         if (i < 1 || i > b.length - 2) return; // 내부 경계만 제거 가능
         // 1단계 기록: 자동이 둔 경계(b[i])를 사용자가 없앴다 = 두 동작을 한 동작으로 봐야 한다.
@@ -6264,6 +6330,7 @@
       // 한 구간 둘로 나누기: seg i를 절반(또는 지정 시각)에서 분할.
       async function splitSegment(i, atTime) {
         if (!canManualEdit()) return;
+        if (isAnalyzing) return; // 처리 중 연타 방지
         const b = lastBoundaryCache.boundaries.slice();
         if (i < 0 || i > b.length - 2) return;
         const s = b[i], e = b[i + 1];
@@ -6281,23 +6348,47 @@
         b.splice(i + 1, 0, Number(mid.toFixed(3)));
         await rebuildSegmentsFromBoundaries(b, i, "구간을 둘로 나눴습니다.");
       }
-      // 경계 시간 미세조정: 내부 경계 i를 newTime으로 이동(앞뒤 구간을 침범하지 않게 가드).
+      // 경계 시간 미세조정: 내부 경계 i를 newTime으로 이동.
+      // 구간이 매우 짧아 막힐 때는 인접 경계도 함께 밀어 최소 폭(0.1초)을 확보한다.
       async function adjustBoundary(i, newTime) {
         if (!canManualEdit()) return;
+        if (isAnalyzing) return; // 처리 중 연타 방지
         const b = lastBoundaryCache.boundaries.slice();
         if (i < 1 || i > b.length - 2) return;
-        const lo = b[i - 1] + 0.1, hi = b[i + 1] - 0.1;
+        const MIN = 0.1; // 구간 최소 폭
         const autoTime = b[i];
-        const userTime = clamp(Number(newTime), lo, hi);
-        // 1단계 기록: 자동 경계(autoTime)를 사용자가 userTime으로 옮겼다 = 오차 = userTime - autoTime.
+        let target = Number(newTime);
+        if (!Number.isFinite(target)) return;
+        const duration = (Number.isFinite(video.duration) && video.duration > 0) ? video.duration : b[b.length - 1];
+        target = clamp(target, MIN, Math.max(duration - MIN, MIN));
+
+        // 앞으로 당기는데 앞 구간이 좁으면 → 앞 경계들을 연쇄로 같이 당겨 공간 확보.
+        if (target < b[i]) {
+          b[i] = target;
+          for (let k = i - 1; k >= 1; k -= 1) {
+            if (b[k] > b[k + 1] - MIN) b[k] = b[k + 1] - MIN; else break;
+          }
+          if (b[0] > b[1] - MIN) b[0] = Math.max(0, b[1] - MIN);
+        } else if (target > b[i]) {
+          // 뒤로 미는데 뒤 구간이 좁으면 → 뒤 경계들을 연쇄로 같이 밀기.
+          b[i] = target;
+          for (let k = i + 1; k < b.length - 1; k += 1) {
+            if (b[k] < b[k - 1] + MIN) b[k] = b[k - 1] + MIN; else break;
+          }
+          if (b[b.length - 1] < b[b.length - 2] + MIN) b[b.length - 1] = b[b.length - 2] + MIN;
+        } else {
+          // 변화 없음: 끝까지 막힌 경우 안내.
+          setProgress(Number(progress.value || 100), "더 이상 이 방향으로 옮길 수 없습니다(영상 끝/시작에 닿음).");
+          return;
+        }
+        const moved = Number((b[i] - autoTime).toFixed(3));
         recordCorrection("adjust", {
           boundary_index: i,
           auto_time: Number(autoTime.toFixed(3)),
-          user_time: Number(userTime.toFixed(3)),
-          delta_seconds: Number((userTime - autoTime).toFixed(3))
+          user_time: Number(b[i].toFixed(3)),
+          delta_seconds: moved
         });
-        b[i] = userTime;
-        await rebuildSegmentsFromBoundaries(b, i, "시작 경계를 이동했습니다.");
+        await rebuildSegmentsFromBoundaries(b, i, moved < 0 ? "시작을 더 앞으로 옮겼습니다." : "시작을 더 뒤로 옮겼습니다.");
       }
       // 수집된 보정 기록을 화면에 요약/내보내기 위한 헬퍼.
       function correctionLogSummary() {

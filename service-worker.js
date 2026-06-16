@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-root-offline-engine-v9-simple-edit";
+const CACHE_NAME = "poomsae-training-root-offline-engine-v12-edit-ux-fix";
 const APP_URL = "./www/index.html";
 const CORE_ASSETS = [
   "./",
