@@ -469,6 +469,11 @@
         background: var(--brand-soft);
         outline: none;
       }
+      .segment.manual-preview {
+        border-color: var(--brand);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 24%, transparent), var(--shadow-sm);
+        background: var(--brand-soft);
+      }
       .segment-head {
         grid-column: 1 / -1;
         display: flex;
@@ -2212,7 +2217,7 @@
         <p id="segmentDescription">구간마다 여러 프레임을 분석해 속도, 맺음, 정지 안정성, 서기 안정성을 확인합니다.</p>
         <div id="manualEditBar" style="display:none;margin:10px 0 12px;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;background:#fff7ed;border:1px solid #fdba74;border-radius:10px">
           <button type="button" id="manualEditToggle" class="primary" style="font-size:14px;font-weight:700">✏️ 구간 수동 조정</button>
-          <span id="manualEditHint" class="small" style="color:var(--muted)">동작이 밀리면 '위 구간과 합치기', 한 동작이 두 칸이면 '둘로 나누기'를 누르세요. 즉시 반영됩니다.</span>
+          <span id="manualEditHint" class="small" style="color:var(--muted)">원본 영상은 바꾸지 않고 분석 구간만 바꿉니다. 조정하면 바뀐 구간이 바로 재생됩니다.</span>
           <span id="correctionLogStatus" class="small" style="color:var(--muted)"></span>
           <button type="button" id="restoreAutoBtn" class="secondary" style="font-size:12px;display:none">자동 결과로 되돌리기</button>
           <button type="button" id="exportCorrectionBtn" class="secondary" style="font-size:12px;display:none">보정 기록 내보내기</button>
@@ -5403,6 +5408,7 @@
             : `<div class="scene-shot scene-placeholder">장면 없음</div>`;
           row.dataset.start = String(result.startTime);
           row.dataset.end = String(result.endTime);
+          row.dataset.order = String(result.order);
           row.tabIndex = 0;
           row.setAttribute("role", "button");
           row.setAttribute("aria-label", `${result.order}번 ${result.name} 리플레이`);
@@ -5922,7 +5928,24 @@
         return !!(latestReport && lastBoundaryCache && lastBoundaryCache.boundaries && lastBoundaryCache.boundaries.length >= 2);
       }
       // 수정된 경계 배열로 구간을 다시 만들어 latestReport.segments를 갱신하고 화면을 다시 그린다.
-      async function rebuildSegmentsFromBoundaries(newBoundaries) {
+      function previewAdjustedSegment(segmentIndex, message = "수동 조정이 반영되었습니다.") {
+        if (!latestReport || !Array.isArray(latestReport.segments) || !latestReport.segments.length) return;
+        const index = clamp(Math.round(Number(segmentIndex) || 0), 0, latestReport.segments.length - 1);
+        const seg = latestReport.segments[index];
+        if (!seg) return;
+        const text = `${message} ${seg.orderLabel || seg.order}번 구간: ${seg.startTime.toFixed(2)}~${seg.endTime.toFixed(2)}초`;
+        setProgress(100, text);
+        const status = document.getElementById("correctionLogStatus");
+        if (status) status.textContent = text;
+        const row = segmentsEl.querySelector(`.segment[data-order="${seg.order}"]`);
+        if (row) {
+          row.classList.add("manual-preview");
+          row.scrollIntoView({ behavior: "smooth", block: "center" });
+          setTimeout(() => row.classList.remove("manual-preview"), 1400);
+        }
+        playRange(seg.startTime, seg.endTime);
+      }
+      async function rebuildSegmentsFromBoundaries(newBoundaries, previewSegmentIndex = null, message = "수동 조정이 반영되었습니다.") {
         if (!canManualEdit()) return;
         const bc = lastBoundaryCache;
         const movementsLocal = lastMovementsCache || movements;
@@ -6012,7 +6035,8 @@
           lastBoundaryCache.boundaries = boundaries;
           renderSegments(results);
           renderManualEditPanel();
-          setProgress(100, "수동 조정이 반영되었습니다.");
+          if (previewSegmentIndex != null) previewAdjustedSegment(previewSegmentIndex, message);
+          else setProgress(100, message);
         } catch (error) {
           console.warn("Manual segment rebuild failed.", error);
           setProgress(Number(progress.value || 0), "수동 조정 반영 중 오류가 있었습니다. 다른 경계로 다시 조정해 주세요.");
@@ -6034,7 +6058,7 @@
           result_segment_count: b.length - 2
         });
         b.splice(i, 1);
-        await rebuildSegmentsFromBoundaries(b);
+        await rebuildSegmentsFromBoundaries(b, Math.max(i - 1, 0), "구간을 합쳤습니다.");
       }
       // 한 구간 둘로 나누기: seg i를 절반(또는 지정 시각)에서 분할.
       async function splitSegment(i, atTime) {
@@ -6054,7 +6078,7 @@
           result_segment_count: b.length
         });
         b.splice(i + 1, 0, Number(mid.toFixed(3)));
-        await rebuildSegmentsFromBoundaries(b);
+        await rebuildSegmentsFromBoundaries(b, i, "구간을 둘로 나눴습니다.");
       }
       // 경계 시간 미세조정: 내부 경계 i를 newTime으로 이동(앞뒤 구간을 침범하지 않게 가드).
       async function adjustBoundary(i, newTime) {
@@ -6072,7 +6096,7 @@
           delta_seconds: Number((userTime - autoTime).toFixed(3))
         });
         b[i] = userTime;
-        await rebuildSegmentsFromBoundaries(b);
+        await rebuildSegmentsFromBoundaries(b, i, "시작 경계를 이동했습니다.");
       }
       // 수집된 보정 기록을 화면에 요약/내보내기 위한 헬퍼.
       function correctionLogSummary() {
