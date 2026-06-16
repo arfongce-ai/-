@@ -2102,7 +2102,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.56</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.57</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -2475,27 +2475,27 @@
         taegeuk_1: {
           name: "태극 1장",
           count: 18,
-          note: "국기원 공식 도해 기준(준비 + 18동작, 14·16 복합)",
+          note: "공식 자세 명칭표 기준(준비 + 18동작, 막기·지르기 앞서기·5/6/11/12/17/18 앞굽이, 14·16 앞차기 복합)",
           movements: [
             ["ready_stance", "준비서기", "hold"],
-            ["m1_left_low_block", "왼 앞굽이 아래막기", "block"],
-            ["m2_right_punch", "오른 앞굽이 몸통바로지르기", "punch"],
-            ["m3_right_low_block", "오른 앞굽이 아래막기", "block"],
-            ["m4_left_punch", "왼 앞굽이 몸통바로지르기", "punch"],
+            ["m1_left_low_block", "왼 앞서기 아래막기", "block"],
+            ["m2_right_punch", "오른 앞서기 몸통반대지르기", "punch"],
+            ["m3_right_low_block", "오른 앞서기 아래막기", "block"],
+            ["m4_left_punch", "왼 앞서기 몸통반대지르기", "punch"],
             ["m5_left_low_block", "왼 앞굽이 아래막기", "block"],
-            ["m6_right_punch", "오른 앞굽이 몸통바로지르기", "punch"],
-            ["m7_left_inside_block", "왼 앞서기 몸통안막기", "block"],
-            ["m8_right_punch", "오른 앞굽이 몸통바로지르기", "punch"],
-            ["m9_right_inside_block", "오른 앞서기 몸통안막기", "block"],
-            ["m10_left_punch", "왼 앞굽이 몸통바로지르기", "punch"],
-            ["m11_left_low_block", "왼 앞굽이 아래막기", "block"],
-            ["m12_right_punch", "오른 앞굽이 몸통바로지르기", "punch"],
-            ["m13_right_high_block", "오른 앞굽이 얼굴막기", "block"],
-            ["m14_kick_punch", "왼발 앞차고 왼 앞굽이 몸통바로지르기", "kick_punch"],
-            ["m15_left_high_block", "왼 앞굽이 얼굴막기", "block"],
-            ["m16_kick_punch", "오른발 앞차고 오른 앞굽이 몸통바로지르기", "kick_punch"],
+            ["m6_right_punch", "오른 앞굽이 몸통지르기", "punch"],
+            ["m7_right_inside_block", "오른 앞서기 몸통안막기", "block"],
+            ["m8_left_punch", "왼 앞서기 몸통지르기", "punch"],
+            ["m9_left_inside_block", "왼 앞서기 몸통안막기", "block"],
+            ["m10_right_punch", "오른 앞서기 몸통지르기", "punch"],
+            ["m11_right_low_block", "오른 앞굽이 아래막기", "block"],
+            ["m12_left_punch", "왼 앞굽이 몸통지르기", "punch"],
+            ["m13_left_high_block", "왼 앞서기 얼굴올려막기", "block"],
+            ["m14_kick_punch", "오른발 앞차고 오른 앞서기 몸통반대지르기", "kick_punch"],
+            ["m15_right_high_block", "오른 앞서기 얼굴올려막기", "block"],
+            ["m16_kick_punch", "왼발 앞차고 왼 앞서기 몸통반대지르기", "kick_punch"],
             ["m17_left_low_block", "왼 앞굽이 아래막기", "block"],
-            ["m18_right_punch", "오른 앞굽이 몸통바로지르기(기합)", "punch"]
+            ["m18_right_punch", "오른 앞굽이 몸통반대지르기(기합)", "punch"]
           ].map(([id, name, type]) => ({ id, name, type }))
         },
       };
@@ -2516,7 +2516,7 @@
             id: "T1-C02",
             movements: [11, 12],
             title: "11~12번 연결동작",
-            description: "같은 왼 앞굽이를 유지하며 아래막기에서 몸통지르기로 연결",
+            description: "같은 오른 앞굽이를 유지하며 아래막기에서 몸통지르기로 연결",
             practice: "막기 후 골반과 앞굽이를 유지하고, 지르기 마무리를 짧고 분명하게 고정하세요."
           }
         ]
@@ -2527,12 +2527,12 @@
         taegeuk_1: {
           14: {
             title: "14번 복합동작",
-            stages: "14-1 앞차기 준비·상승|14-2 차기 정점|14-3 무릎 회수·착지|14-4 앞굽이 몸통지르기".split("|"),
+            stages: "14-1 앞차기 준비·상승|14-2 차기 정점|14-3 무릎 회수·착지|14-4 앞서기 몸통반대지르기".split("|"),
             practice: "앞차기 후 무릎을 먼저 회수하고, 착지와 지르기를 한 흐름으로 연결하세요."
           },
           16: {
             title: "16번 복합동작",
-            stages: "16-1 앞차기 준비·상승|16-2 차기 정점|16-3 무릎 회수·착지|16-4 앞굽이 몸통지르기".split("|"),
+            stages: "16-1 앞차기 준비·상승|16-2 차기 정점|16-3 무릎 회수·착지|16-4 앞서기 몸통반대지르기".split("|"),
             practice: "차기 정점 뒤 무릎 회수와 착지를 안정시킨 다음 지르기 끝을 고정하세요."
           }
         }
