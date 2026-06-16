@@ -524,12 +524,138 @@
         font-size: 11px;
         font-weight: 800;
       }
-      .segment-edit {
+      /* ── 수정(수동 조정) UI: 깔끔한 재설계 ── */
+      .edit-bar {
+        margin: 12px 0 14px;
+        padding: 0;
+        border: 1px solid color-mix(in srgb, var(--brand) 26%, var(--line));
+        border-radius: 14px;
+        background: var(--card, #fff);
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+      }
+      .edit-bar__head {
+        display: flex;
         align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 14px;
+        background: color-mix(in srgb, var(--brand-soft) 60%, #fff);
+        border-bottom: 1px solid color-mix(in srgb, var(--brand) 16%, var(--line));
       }
-      .segment-edit button {
-        min-height: 32px;
+      .edit-bar__title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--brand-strong);
       }
+      .edit-bar__title .edit-bar__dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--brand);
+        flex: none;
+      }
+      .edit-toggle {
+        appearance: none;
+        border: 1px solid color-mix(in srgb, var(--brand) 40%, var(--line));
+        background: #fff;
+        color: var(--brand-strong);
+        font-size: 13px;
+        font-weight: 700;
+        padding: 7px 14px;
+        border-radius: 999px;
+        cursor: pointer;
+        min-height: 36px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+      }
+      .edit-toggle:hover {
+        background: var(--brand-soft);
+      }
+      .edit-toggle[aria-pressed="true"] {
+        background: var(--brand);
+        color: #fff;
+        border-color: var(--brand);
+      }
+      .edit-bar__body {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        padding: 11px 14px;
+      }
+      .edit-bar__body[hidden] { display: none; }
+      .edit-bar__hint {
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--muted);
+        flex: 1 1 240px;
+        min-width: 0;
+      }
+      .edit-bar__actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .edit-link-btn {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink, #1f2937);
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        min-height: 34px;
+      }
+      .edit-link-btn:hover { background: #f8fafc; }
+      .edit-link-btn--restore {
+        border-color: color-mix(in srgb, var(--brand) 40%, var(--line));
+        color: var(--brand-strong);
+      }
+      .edit-bar__status {
+        flex-basis: 100%;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      /* 구간 카드 내부 편집 컨트롤 */
+      .segment-edit {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed color-mix(in srgb, var(--brand) 28%, var(--line));
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .segment-edit__row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .seg-edit-btn {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink, #1f2937);
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 11px;
+        border-radius: 8px;
+        cursor: pointer;
+        min-height: 34px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .seg-edit-btn:hover { background: #f8fafc; border-color: color-mix(in srgb, var(--brand) 35%, var(--line)); }
+      .seg-edit-btn:active { transform: translateY(1px); }
       .boundary-controls {
         width: 100%;
         display: flex;
@@ -1976,7 +2102,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.55</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.56</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -2215,12 +2341,19 @@
       <section style="margin-top: 18px;">
         <h2 id="segmentTitle">태극 1장 구간별 파워·맺음 평가</h2>
         <p id="segmentDescription">구간마다 여러 프레임을 분석해 속도, 맺음, 정지 안정성, 서기 안정성을 확인합니다.</p>
-        <div id="manualEditBar" style="display:none;margin:10px 0 12px;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;background:#fff7ed;border:1px solid #fdba74;border-radius:10px">
-          <button type="button" id="manualEditToggle" class="primary" style="font-size:14px;font-weight:700">✏️ 구간 수동 조정</button>
-          <span id="manualEditHint" class="small" style="color:var(--muted)">원본 영상은 바꾸지 않고 분석 구간만 바꿉니다. 조정하면 바뀐 구간이 바로 재생됩니다.</span>
-          <span id="correctionLogStatus" class="small" style="color:var(--muted)"></span>
-          <button type="button" id="restoreAutoBtn" class="secondary" style="font-size:12px;display:none">자동 결과로 되돌리기</button>
-          <button type="button" id="exportCorrectionBtn" class="secondary" style="font-size:12px;display:none">보정 기록 내보내기</button>
+        <div id="manualEditBar" class="edit-bar" style="display:none">
+          <div class="edit-bar__head">
+            <span class="edit-bar__title"><span class="edit-bar__dot"></span>구간 수정</span>
+            <button type="button" id="manualEditToggle" class="edit-toggle" aria-pressed="false">✏️ 수정 켜기</button>
+          </div>
+          <div class="edit-bar__body" id="manualEditBody" hidden>
+            <span class="edit-bar__hint" id="manualEditHint">원본 영상은 그대로 두고 분석 구간만 바꿉니다. 각 구간 카드의 버튼으로 합치기·나누기·경계 이동을 하면 <b>바로 반영되어 다시 재생</b>됩니다.</span>
+            <div class="edit-bar__actions">
+              <button type="button" id="restoreAutoBtn" class="edit-link-btn edit-link-btn--restore" style="display:none">↺ 자동 결과로 되돌리기</button>
+              <button type="button" id="exportCorrectionBtn" class="edit-link-btn" style="display:none">보정 기록 내보내기</button>
+            </div>
+            <span id="correctionLogStatus" class="edit-bar__status"></span>
+          </div>
         </div>
         <div id="segments" class="segments"></div>
       </section>
@@ -2351,9 +2484,9 @@
             ["m4_left_punch", "왼 앞굽이 몸통바로지르기", "punch"],
             ["m5_left_low_block", "왼 앞굽이 아래막기", "block"],
             ["m6_right_punch", "오른 앞굽이 몸통바로지르기", "punch"],
-            ["m7_left_inside_block", "왼 뒷굽이 몸통안막기", "block"],
+            ["m7_left_inside_block", "왼 앞서기 몸통안막기", "block"],
             ["m8_right_punch", "오른 앞굽이 몸통바로지르기", "punch"],
-            ["m9_right_inside_block", "오른 뒷굽이 몸통안막기", "block"],
+            ["m9_right_inside_block", "오른 앞서기 몸통안막기", "block"],
             ["m10_left_punch", "왼 앞굽이 몸통바로지르기", "punch"],
             ["m11_left_low_block", "왼 앞굽이 아래막기", "block"],
             ["m12_right_punch", "오른 앞굽이 몸통바로지르기", "punch"],
@@ -2761,11 +2894,12 @@
         const bar = document.getElementById("manualEditBar");
         if (!bar) return;
         if (canManualEdit()) {
-          bar.style.display = "flex";
+          bar.style.display = "block";
         } else {
           bar.style.display = "none";
           manualEditMode = false;
         }
+        if (typeof window.syncEditToggle === "function") window.syncEditToggle();
         // 보정 기록 현황 표시 + 내보내기 버튼.
         const status = document.getElementById("correctionLogStatus");
         const exportBtn = document.getElementById("exportCorrectionBtn");
@@ -3140,10 +3274,7 @@
           if (manualBtn) {
             if (!canManualEdit()) return;
             manualEditMode = true;
-            const toggle = document.getElementById("manualEditToggle");
-            const hint = document.getElementById("manualEditHint");
-            if (toggle) toggle.textContent = "수동 조정 끝내기";
-            if (hint) hint.style.display = "inline";
+            if (typeof window.syncEditToggle === "function") window.syncEditToggle();
             showTrainingPage();
             if (latestReport && latestReport.segments) renderSegments(latestReport.segments);
             const bar = document.getElementById("manualEditBar");
@@ -5413,14 +5544,16 @@
           row.setAttribute("role", "button");
           row.setAttribute("aria-label", `${result.order}번 ${result.name} 리플레이`);
           const editControls = canManualEdit() ? `
-            <div class="segment-edit" style="display:${manualEditMode ? "flex" : "none"};gap:6px;flex-wrap:wrap;margin-top:8px">
-              ${result.order > 1 ? `<button type="button" class="secondary seg-merge" data-seg="${result.order - 1}" style="font-size:12px;padding:4px 8px">↑ 위 구간과 합치기</button>` : ""}
-              <button type="button" class="secondary seg-split" data-seg="${result.order - 1}" style="font-size:12px;padding:4px 8px">⊟ 둘로 나누기</button>
+            <div class="segment-edit" style="display:${manualEditMode ? "flex" : "none"}">
+              <div class="segment-edit__row">
+                ${result.order > 1 ? `<button type="button" class="seg-edit-btn seg-merge" data-seg="${result.order - 1}">↑ 위와 합치기</button>` : ""}
+                <button type="button" class="seg-edit-btn seg-split" data-seg="${result.order - 1}">⊟ 둘로 나누기</button>
+              </div>
               ${result.order > 1 ? `
                 <div class="boundary-controls" data-boundary="${result.order - 1}">
                   <span class="small">시작 경계</span>
-                  <button type="button" class="secondary boundary-nudge" data-boundary="${result.order - 1}" data-delta="-0.1" style="font-size:12px;padding:4px 8px">-0.1초</button>
-                  <button type="button" class="secondary boundary-nudge" data-boundary="${result.order - 1}" data-delta="0.1" style="font-size:12px;padding:4px 8px">+0.1초</button>
+                  <button type="button" class="seg-edit-btn boundary-nudge" data-boundary="${result.order - 1}" data-delta="-0.1">−0.1초</button>
+                  <button type="button" class="seg-edit-btn boundary-nudge" data-boundary="${result.order - 1}" data-delta="0.1">+0.1초</button>
                   <label>직접
                     <input class="boundary-time-input" data-boundary="${result.order - 1}" type="number" step="0.05" inputmode="decimal" value="${result.startTime.toFixed(2)}" aria-label="${result.order}번 시작 경계 시간" />
                   </label>
@@ -7065,11 +7198,18 @@
       // 수동 조정 토글: 켜면 각 구간에 합치기/나누기 버튼이 나타난다.
       (function () {
         const toggle = document.getElementById("manualEditToggle");
-        const hint = document.getElementById("manualEditHint");
+        const body = document.getElementById("manualEditBody");
+        function syncEditToggle() {
+          if (toggle) {
+            toggle.setAttribute("aria-pressed", manualEditMode ? "true" : "false");
+            toggle.textContent = manualEditMode ? "✓ 수정 끝내기" : "✏️ 수정 켜기";
+          }
+          if (body) body.hidden = !manualEditMode;
+        }
+        window.syncEditToggle = syncEditToggle;
         if (toggle) toggle.addEventListener("click", () => {
           manualEditMode = !manualEditMode;
-          toggle.textContent = manualEditMode ? "수동 조정 끝내기" : "구간 수동 조정";
-          if (hint) hint.style.display = manualEditMode ? "inline" : "none";
+          syncEditToggle();
           if (latestReport && latestReport.segments) renderSegments(latestReport.segments);
         });
         const exportBtn = document.getElementById("exportCorrectionBtn");
