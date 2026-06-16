@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-root-offline-engine-v8-taegeuk1-stance-table";
+const CACHE_NAME = "poomsae-training-root-offline-engine-v9-simple-edit";
 const APP_URL = "./www/index.html";
 const CORE_ASSETS = [
   "./",

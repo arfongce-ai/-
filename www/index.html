@@ -633,57 +633,111 @@
         flex-direction: column;
         gap: 8px;
       }
-      .segment-edit__row {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 6px;
+      .segment-edit__q {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--brand-strong);
+        margin-bottom: 2px;
+      }
+      /* 큰 행동 버튼 한 줄 (휴대폰 터치 친화) */
+      .seg-edit__grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
       }
       .seg-edit-btn {
         appearance: none;
-        border: 1px solid var(--line);
+        border: 1.5px solid color-mix(in srgb, var(--brand) 30%, var(--line));
         background: #fff;
         color: var(--ink, #1f2937);
-        font-size: 12px;
-        font-weight: 600;
-        padding: 6px 11px;
-        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 700;
+        padding: 11px 10px;
+        border-radius: 12px;
         cursor: pointer;
-        min-height: 34px;
+        min-height: 48px;
         display: inline-flex;
         align-items: center;
-        gap: 5px;
+        justify-content: center;
+        gap: 6px;
+        line-height: 1.2;
+        text-align: center;
       }
-      .seg-edit-btn:hover { background: #f8fafc; border-color: color-mix(in srgb, var(--brand) 35%, var(--line)); }
-      .seg-edit-btn:active { transform: translateY(1px); }
+      .seg-edit-btn:hover { background: var(--brand-soft); }
+      .seg-edit-btn:active { transform: scale(0.97); }
+      .seg-edit-btn .seg-edit-btn__sub {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--muted);
+        margin-top: 1px;
+      }
+      .seg-edit-btn--full { grid-column: 1 / -1; }
+      /* "직접 시간 입력"은 기본 숨김(더보기) */
+      .seg-edit__more {
+        margin-top: 2px;
+        border: 0;
+        background: none;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 0;
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        align-self: flex-start;
+      }
       .boundary-controls {
         width: 100%;
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         flex-wrap: wrap;
-        padding: 7px;
-        border: 1px dashed color-mix(in srgb, var(--brand) 44%, var(--line));
-        border-radius: 8px;
-        background: color-mix(in srgb, var(--brand-soft) 55%, transparent);
+        padding: 10px;
+        border: 1px dashed color-mix(in srgb, var(--brand) 40%, var(--line));
+        border-radius: 10px;
+        background: color-mix(in srgb, var(--brand-soft) 45%, transparent);
       }
+      .boundary-controls[hidden] { display: none; }
       .boundary-controls label {
         display: inline-flex;
         align-items: center;
-        gap: 5px;
+        gap: 6px;
         color: var(--muted);
-        font-size: 12px;
-        font-weight: 800;
+        font-size: 12.5px;
+        font-weight: 700;
       }
       .boundary-controls input {
-        width: 76px;
-        min-height: 32px;
-        padding: 4px 6px;
+        width: 88px;
+        min-height: 44px;
+        padding: 6px 8px;
         border: 1px solid var(--line);
-        border-radius: 6px;
+        border-radius: 8px;
         background: var(--panel);
         color: var(--text);
         font: inherit;
+        font-size: 15px;
+      }
+      /* 방금 조정된 구간 강조: 변화가 보이게 */
+      @keyframes segJustEdited {
+        0% { background: color-mix(in srgb, var(--brand) 22%, #fff); }
+        100% { background: transparent; }
+      }
+      .segment.just-edited {
+        animation: segJustEdited 1.4s ease-out;
+        border-color: var(--brand) !important;
+      }
+      .seg-edited-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--brand-strong);
+        background: var(--brand-soft);
+        border-radius: 999px;
+        padding: 2px 8px;
       }
       .segment strong { display: block; margin-bottom: 4px; }
       .segment span, .small {
@@ -2102,7 +2156,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.57</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.58</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -5545,20 +5599,22 @@
           row.setAttribute("aria-label", `${result.order}번 ${result.name} 리플레이`);
           const editControls = canManualEdit() ? `
             <div class="segment-edit" style="display:${manualEditMode ? "flex" : "none"}">
-              <div class="segment-edit__row">
-                ${result.order > 1 ? `<button type="button" class="seg-edit-btn seg-merge" data-seg="${result.order - 1}">↑ 위와 합치기</button>` : ""}
-                <button type="button" class="seg-edit-btn seg-split" data-seg="${result.order - 1}">⊟ 둘로 나누기</button>
+              <div class="segment-edit__q">이 구간이 잘못 잡혔나요?</div>
+              <div class="seg-edit__grid">
+                ${result.order > 1 ? `<button type="button" class="seg-edit-btn seg-merge" data-seg="${result.order - 1}">↑ 위 동작과 합치기<span class="seg-edit-btn__sub">두 칸이 한 동작일 때</span></button>` : ""}
+                <button type="button" class="seg-edit-btn seg-split" data-seg="${result.order - 1}">✂ 둘로 나누기<span class="seg-edit-btn__sub">한 칸에 두 동작일 때</span></button>
+                ${result.order > 1 ? `
+                <button type="button" class="seg-edit-btn boundary-nudge" data-boundary="${result.order - 1}" data-delta="-0.2">◀ 더 일찍 시작<span class="seg-edit-btn__sub">시작점 0.2초 앞으로</span></button>
+                <button type="button" class="seg-edit-btn boundary-nudge" data-boundary="${result.order - 1}" data-delta="0.2">더 늦게 시작 ▶<span class="seg-edit-btn__sub">시작점 0.2초 뒤로</span></button>` : ""}
               </div>
               ${result.order > 1 ? `
-                <div class="boundary-controls" data-boundary="${result.order - 1}">
-                  <span class="small">시작 경계</span>
-                  <button type="button" class="seg-edit-btn boundary-nudge" data-boundary="${result.order - 1}" data-delta="-0.1">−0.1초</button>
-                  <button type="button" class="seg-edit-btn boundary-nudge" data-boundary="${result.order - 1}" data-delta="0.1">+0.1초</button>
-                  <label>직접
-                    <input class="boundary-time-input" data-boundary="${result.order - 1}" type="number" step="0.05" inputmode="decimal" value="${result.startTime.toFixed(2)}" aria-label="${result.order}번 시작 경계 시간" />
-                  </label>
-                  <span class="small">초</span>
-                </div>` : ""}
+              <button type="button" class="seg-edit__more" data-more="${result.order - 1}">시간 직접 입력</button>
+              <div class="boundary-controls" data-boundary="${result.order - 1}" hidden>
+                <label>이 구간 시작
+                  <input class="boundary-time-input" data-boundary="${result.order - 1}" type="number" step="0.05" inputmode="decimal" value="${result.startTime.toFixed(2)}" aria-label="${result.order}번 시작 시간(초)" />
+                </label>
+                <span class="small">초</span>
+              </div>` : ""}
             </div>` : "";
           const connTag = result.connectionTag
             ? `<span class="conn-tag" style="display:inline-block;margin-top:6px;font-size:11px;color:#1d6fa5;background:#e7f2fb;border-radius:10px;padding:2px 8px">↔ ${result.connectionTag} · 앞 동작과 한 자리에서 이어집니다</span>`
@@ -5601,6 +5657,18 @@
               const current = lastBoundaryCache?.boundaries?.[idx];
               if (!Number.isFinite(current)) return;
               adjustBoundary(idx, current + delta);
+            });
+          });
+          segmentsEl.querySelectorAll(".seg-edit__more").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const idx = btn.dataset.more;
+              const panel = segmentsEl.querySelector(`.boundary-controls[data-boundary="${idx}"]`);
+              if (!panel) return;
+              const showing = panel.hasAttribute("hidden");
+              if (showing) { panel.removeAttribute("hidden"); btn.textContent = "직접 입력 닫기"; }
+              else { panel.setAttribute("hidden", ""); btn.textContent = "시간 직접 입력"; }
             });
           });
           segmentsEl.querySelectorAll(".boundary-time-input").forEach((input) => {
