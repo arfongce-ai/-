@@ -519,6 +519,41 @@
         font-size: 11px;
         font-weight: 800;
       }
+      .segment-edit {
+        align-items: center;
+      }
+      .segment-edit button {
+        min-height: 32px;
+      }
+      .boundary-controls {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        padding: 7px;
+        border: 1px dashed color-mix(in srgb, var(--brand) 44%, var(--line));
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--brand-soft) 55%, transparent);
+      }
+      .boundary-controls label {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .boundary-controls input {
+        width: 76px;
+        min-height: 32px;
+        padding: 4px 6px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--panel);
+        color: var(--text);
+        font: inherit;
+      }
       .segment strong { display: block; margin-bottom: 4px; }
       .segment span, .small {
         color: var(--muted);
@@ -5375,6 +5410,16 @@
             <div class="segment-edit" style="display:${manualEditMode ? "flex" : "none"};gap:6px;flex-wrap:wrap;margin-top:8px">
               ${result.order > 1 ? `<button type="button" class="secondary seg-merge" data-seg="${result.order - 1}" style="font-size:12px;padding:4px 8px">↑ 위 구간과 합치기</button>` : ""}
               <button type="button" class="secondary seg-split" data-seg="${result.order - 1}" style="font-size:12px;padding:4px 8px">⊟ 둘로 나누기</button>
+              ${result.order > 1 ? `
+                <div class="boundary-controls" data-boundary="${result.order - 1}">
+                  <span class="small">시작 경계</span>
+                  <button type="button" class="secondary boundary-nudge" data-boundary="${result.order - 1}" data-delta="-0.1" style="font-size:12px;padding:4px 8px">-0.1초</button>
+                  <button type="button" class="secondary boundary-nudge" data-boundary="${result.order - 1}" data-delta="0.1" style="font-size:12px;padding:4px 8px">+0.1초</button>
+                  <label>직접
+                    <input class="boundary-time-input" data-boundary="${result.order - 1}" type="number" step="0.05" inputmode="decimal" value="${result.startTime.toFixed(2)}" aria-label="${result.order}번 시작 경계 시간" />
+                  </label>
+                  <span class="small">초</span>
+                </div>` : ""}
             </div>` : "";
           const connTag = result.connectionTag
             ? `<span class="conn-tag" style="display:inline-block;margin-top:6px;font-size:11px;color:#1d6fa5;background:#e7f2fb;border-radius:10px;padding:2px 8px">↔ ${result.connectionTag} · 앞 동작과 한 자리에서 이어집니다</span>`
@@ -5403,10 +5448,30 @@
         // 조정 버튼 이벤트 연결
         if (canManualEdit()) {
           segmentsEl.querySelectorAll(".seg-merge").forEach((btn) => {
-            btn.addEventListener("click", (e) => { e.stopPropagation(); mergeSegments(Number(btn.dataset.seg)); });
+            btn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); mergeSegments(Number(btn.dataset.seg)); });
           });
           segmentsEl.querySelectorAll(".seg-split").forEach((btn) => {
-            btn.addEventListener("click", (e) => { e.stopPropagation(); splitSegment(Number(btn.dataset.seg)); });
+            btn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); splitSegment(Number(btn.dataset.seg)); });
+          });
+          segmentsEl.querySelectorAll(".boundary-nudge").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const idx = Number(btn.dataset.boundary);
+              const delta = Number(btn.dataset.delta || 0);
+              const current = lastBoundaryCache?.boundaries?.[idx];
+              if (!Number.isFinite(current)) return;
+              adjustBoundary(idx, current + delta);
+            });
+          });
+          segmentsEl.querySelectorAll(".boundary-time-input").forEach((input) => {
+            input.addEventListener("click", (e) => e.stopPropagation());
+            input.addEventListener("keydown", (e) => e.stopPropagation());
+            input.addEventListener("change", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              adjustBoundary(Number(input.dataset.boundary), Number(input.value));
+            });
           });
         }
         // 구간이 그려지면 수동 조정 바도 확실히 표시(분석 완료 신호).
@@ -5861,79 +5926,100 @@
         if (!canManualEdit()) return;
         const bc = lastBoundaryCache;
         const movementsLocal = lastMovementsCache || movements;
-        const boundaries = newBoundaries.slice().sort((a, b) => a - b);
+        const duration = Number.isFinite(video.duration) && video.duration > 0
+          ? video.duration
+          : Math.max(...newBoundaries.filter(Number.isFinite), 0);
+        const boundaries = newBoundaries
+          .map((v) => Number(v))
+          .filter(Number.isFinite)
+          .sort((a, b) => a - b)
+          .map((v, idx, arr) => {
+            if (idx === 0) return Math.max(0, v);
+            if (idx === arr.length - 1) return Math.min(Math.max(v, 0.05), duration || v);
+            return Math.min(Math.max(v, 0.05), Math.max(duration - 0.05, 0.05));
+          });
         const segCount = boundaries.length - 1;
+        if (segCount <= 0) return;
         // 동작 배분: 구간 수에 맞춰 동작을 순서대로 1:1 매핑(구간이 동작보다 적으면 뒤 동작을 마지막에 묶음).
         const results = [];
         isAnalyzing = true;
-        for (let i = 0; i < segCount; i += 1) {
-          const segStart = boundaries[i];
-          const segEnd = boundaries[i + 1];
-          const segLen = Math.max(segEnd - segStart, 0.01);
-          // 이 구간에 해당하는 동작 인덱스: 구간 수와 동작 수가 같으면 1:1, 합쳐졌으면 범위.
-          let indices;
-          if (segCount === movementsLocal.length) {
-            indices = [i];
-          } else {
-            // 구간이 줄었으면(합치기), 비례로 동작 범위를 매핑.
-            const from = Math.round((i * movementsLocal.length) / segCount);
-            const to = Math.round(((i + 1) * movementsLocal.length) / segCount) - 1;
-            indices = [];
-            for (let k = from; k <= Math.max(from, to) && k < movementsLocal.length; k += 1) indices.push(k);
-            if (!indices.length) indices = [Math.min(i, movementsLocal.length - 1)];
+        setProgress(Number(progress.value || 100), "수동 조정 내용을 반영하는 중입니다.");
+        try {
+          for (let i = 0; i < segCount; i += 1) {
+            const segStart = boundaries[i];
+            const segEnd = boundaries[i + 1];
+            const segLen = Math.max(segEnd - segStart, 0.01);
+            // 이 구간에 해당하는 동작 인덱스: 구간 수와 동작 수가 같으면 1:1, 합쳐졌으면 범위.
+            let indices;
+            if (segCount === movementsLocal.length) {
+              indices = [i];
+            } else {
+              // 구간이 줄었으면(합치기), 비례로 동작 범위를 매핑.
+              const from = Math.round((i * movementsLocal.length) / segCount);
+              const to = Math.round(((i + 1) * movementsLocal.length) / segCount) - 1;
+              indices = [];
+              for (let k = from; k <= Math.max(from, to) && k < movementsLocal.length; k += 1) indices.push(k);
+              if (!indices.length) indices = [Math.min(i, movementsLocal.length - 1)];
+            }
+            const segMovements = indices.map((mi) => movementsLocal[mi]).filter(Boolean);
+            const primary = segMovements[0] || movementsLocal[Math.min(i, movementsLocal.length - 1)];
+            const labelOf = (m) => {
+              if (!m) return "";
+              if (m.isPrep) return "준비 자세";
+              if (m.isKihap || m.type === "kihap") return "기합(소리)";
+              return m.name;
+            };
+            const mergedName = segMovements.length > 1 ? segMovements.map(labelOf).join(" + ") : (primary ? labelOf(primary) : `구간 ${i + 1}`);
+            const numLabelOf = (m) => {
+              if (!m) return "";
+              if (m.isPrep) return "준비";
+              if (m.isKihap || m.type === "kihap") return "기합";
+              return m.moveNo ? `${m.moveNo}번` : "";
+            };
+            const nums = segMovements.map(numLabelOf).filter(Boolean);
+            const movementLabel = nums.length ? (nums.length > 1 ? `${nums[0]}~${nums[nums.length - 1]}` : nums[0]) : `${i + 1}번`;
+            const orderLabel = primary && primary.isPrep ? "준비"
+              : (primary && (primary.isKihap || primary.type === "kihap")) ? "기합"
+              : (primary && primary.moveNo ? String(primary.moveNo) : String(i + 1));
+            // 캐시된 스캔 프레임 재사용으로 평가, 스냅샷만 영상에서 다시 가져온다.
+            const sampleCount = chooseSampleCount(segLen);
+            const reusable = selectReusableSegmentFrames(bc.frames || [], segStart, segEnd, sampleCount);
+            const frames = reusable.length ? reusable : (bc.frames || []).filter((f) => f.time >= segStart && f.time < segEnd);
+            const metrics = evaluateSegment(primary, frames, { view: lastViewForRun });
+            // 스냅샷: 구간 내 맺음 시점.
+            const compTime = (segStart + segLen * 0.82);
+            let snapshot = "";
+            try { await waitForSeek(compTime); snapshot = captureVideoSnapshot(); } catch (e) { snapshot = ""; }
+            results.push({
+              order: i + 1, orderLabel,
+              id: primary ? primary.id : `${selectedPoomsaeKey}_segment_${i + 1}`,
+              name: mergedName,
+              movementType: primary ? primary.type : "",
+              movementNumbers: segMovements.map((m) => m && m.moveNo).filter((n) => Number.isFinite(n) && n > 0),
+              mergedMovementCount: segMovements.length,
+              mergedMovementNumbers: movementLabel,
+              allocConfidence: 1,
+              startTime: Number(segStart.toFixed(3)),
+              endTime: Number(segEnd.toFixed(3)),
+              manualEdited: true,
+              snapshot,
+              ...metrics
+            });
           }
-          const segMovements = indices.map((mi) => movementsLocal[mi]).filter(Boolean);
-          const primary = segMovements[0] || movementsLocal[Math.min(i, movementsLocal.length - 1)];
-          const labelOf = (m) => {
-            if (!m) return "";
-            if (m.isPrep) return "준비 자세";
-            if (m.isKihap || m.type === "kihap") return "기합(소리)";
-            return m.name;
-          };
-          const mergedName = segMovements.length > 1 ? segMovements.map(labelOf).join(" + ") : (primary ? labelOf(primary) : `구간 ${i + 1}`);
-          const numLabelOf = (m) => {
-            if (!m) return "";
-            if (m.isPrep) return "준비";
-            if (m.isKihap || m.type === "kihap") return "기합";
-            return m.moveNo ? `${m.moveNo}번` : "";
-          };
-          const nums = segMovements.map(numLabelOf).filter(Boolean);
-          const movementLabel = nums.length ? (nums.length > 1 ? `${nums[0]}~${nums[nums.length - 1]}` : nums[0]) : `${i + 1}번`;
-          const orderLabel = primary && primary.isPrep ? "준비"
-            : (primary && (primary.isKihap || primary.type === "kihap")) ? "기합"
-            : (primary && primary.moveNo ? String(primary.moveNo) : String(i + 1));
-          // 캐시된 스캔 프레임 재사용으로 평가, 스냅샷만 영상에서 다시 가져온다.
-          const sampleCount = chooseSampleCount(segLen);
-          const reusable = selectReusableSegmentFrames(bc.frames, segStart, segEnd, sampleCount);
-          const frames = reusable.length ? reusable : bc.frames.filter((f) => f.time >= segStart && f.time < segEnd);
-          const metrics = evaluateSegment(primary, frames, { view: lastViewForRun });
-          // 스냅샷: 구간 내 맺음 시점.
-          const compTime = (segStart + segLen * 0.82);
-          let snapshot = "";
-          try { const t = await waitForSeek(compTime); snapshot = captureVideoSnapshot(); } catch (e) { snapshot = ""; }
-          results.push({
-            order: i + 1, orderLabel,
-            id: primary ? primary.id : `${selectedPoomsaeKey}_segment_${i + 1}`,
-            name: mergedName,
-            movementType: primary ? primary.type : "",
-            movementNumbers: segMovements.map((m) => m && m.moveNo).filter((n) => Number.isFinite(n) && n > 0),
-            mergedMovementCount: segMovements.length,
-            mergedMovementNumbers: movementLabel,
-            allocConfidence: 1,
-            startTime: Number(segStart.toFixed(3)),
-            endTime: Number(segEnd.toFixed(3)),
-            manualEdited: true,
-            snapshot,
-            ...metrics
-          });
+          const semanticResults = applySemanticSceneRules(results, bc.motionSamples, selectedPoomsaeKey);
+          results.splice(0, results.length, ...semanticResults);
+          latestReport.segments = results;
+          lastBoundaryCache.boundaries = boundaries;
+          renderSegments(results);
+          renderManualEditPanel();
+          setProgress(100, "수동 조정이 반영되었습니다.");
+        } catch (error) {
+          console.warn("Manual segment rebuild failed.", error);
+          setProgress(Number(progress.value || 0), "수동 조정 반영 중 오류가 있었습니다. 다른 경계로 다시 조정해 주세요.");
+        } finally {
+          isAnalyzing = false;
+          updateAnalyzeButtonState();
         }
-        isAnalyzing = false;
-        const semanticResults = applySemanticSceneRules(results, bc.motionSamples, selectedPoomsaeKey);
-        results.splice(0, results.length, ...semanticResults);
-        latestReport.segments = results;
-        lastBoundaryCache.boundaries = boundaries;
-        renderSegments(results);
-        renderManualEditPanel();
       }
       // 인접 두 구간 합치기: i번째 경계(내부 경계)를 제거.
       async function mergeSegments(i) {
@@ -7079,12 +7165,14 @@
       replayAllBtn.addEventListener("click", replayWholeVideo);
       replayWeakBtn.addEventListener("click", replayWeakestSegment);
       segmentsEl.addEventListener("click", (event) => {
+        if (event.target.closest(".segment-edit")) return;
         const row = event.target.closest(".segment");
         if (!row) return;
         openVideoReplay(Number(row.dataset.start), Number(row.dataset.end), row.getAttribute("aria-label"));
       });
       segmentsEl.addEventListener("keydown", (event) => {
         if (event.key !== "Enter" && event.key !== " ") return;
+        if (event.target.closest(".segment-edit")) return;
         const row = event.target.closest(".segment");
         if (!row) return;
         event.preventDefault();
