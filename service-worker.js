@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-root-offline-engine-v15-report-image-save";
+const CACHE_NAME = "poomsae-training-root-offline-engine-v16-final-correction";
 const APP_URL = "./www/index.html";
 const CORE_ASSETS = [
   "./",

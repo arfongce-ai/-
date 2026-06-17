@@ -294,11 +294,11 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v17-report-image-save", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v18-final-correction", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
-assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v15-report-image-save", "최상단 배포용 오프라인 엔진 서비스워커 존재");
+assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v16-final-correction", "최상단 배포용 오프라인 엔진 서비스워커 존재");
 assertContains(readUtf8(rootManifestPath), "app-icon-192.png", "최상단 manifest에 192 아이콘 등록");
 assertContains(readUtf8(rootManifestPath), "app-icon-512.png", "최상단 manifest에 512 아이콘 등록");
 assertContains(readUtf8(path.join(root, "www", "manifest.webmanifest")), "app-icon-192.png", "www manifest에 192 아이콘 등록");

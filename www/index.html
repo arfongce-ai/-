@@ -2247,7 +2247,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.64</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.65</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -2549,6 +2549,42 @@
           await _fbAddDoc(_fbCollection(_fbDB, "corrections"), { ...safe, created: _fbServerTs() });
           return true;
         } catch (e) { return false; }
+      }
+      // '수정 끝내기' 시 호출. 이번 영상의 자동 경계(autoBoundaries) 대비 사용자가
+      // 최종 확정한 경계(boundaries)만 한 건의 '최종 보정'으로 Firebase에 보낸다.
+      // 중간에 몇 번을 옮겼든 결과만 남기므로 분석 데이터의 신뢰도가 높아진다.
+      // 자동과 최종이 같으면(사용자가 결국 손대지 않음) 아무것도 보내지 않는다.
+      async function sendFinalCorrectionToCloud() {
+        if (!_fbReady || !_fbDB) return { sent: false, reason: "offline" };
+        if (!lastBoundaryCache || !lastBoundaryCache.autoBoundaries || !lastBoundaryCache.boundaries) {
+          return { sent: false, reason: "no_cache" };
+        }
+        const auto = lastBoundaryCache.autoBoundaries.map((t) => Number(Number(t).toFixed(3)));
+        const finalB = lastBoundaryCache.boundaries.map((t) => Number(Number(t).toFixed(3)));
+        // 자동과 최종이 동일하면 보낼 보정이 없다.
+        if (JSON.stringify(auto) === JSON.stringify(finalB)) {
+          return { sent: false, reason: "unchanged" };
+        }
+        try {
+          const payload = {
+            ts: new Date().toISOString(),
+            poomsae: selectedPoomsaeKey,
+            poomsae_name: (currentPoomsae() && currentPoomsae().name) || "",
+            video_duration: video && Number.isFinite(video.duration) ? Number(video.duration.toFixed(2)) : null,
+            auto_method: lastBoundaryCache.method || "",
+            kind: "final_boundaries",          // 최종 확정형 기록임을 표시
+            auto_boundaries: auto,             // 자동이 잡은 경계(정답 학습의 입력)
+            final_boundaries: finalB,          // 사용자가 확정한 경계(정답)
+            auto_segment_count: Math.max(auto.length - 1, 0),
+            final_segment_count: Math.max(finalB.length - 1, 0),
+            edits_in_session: editSessionCorrectionCount, // 참고: 이번에 몇 번 만졌는지
+            created: _fbServerTs()
+          };
+          await _fbAddDoc(_fbCollection(_fbDB, "corrections"), payload);
+          return { sent: true };
+        } catch (e) {
+          return { sent: false, reason: "error" };
+        }
       }
       const LOCAL_MODEL_URL = "./models/pose_landmarker_lite.task";
       const REMOTE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task";
@@ -2991,6 +3027,9 @@
       let lastMovementsCache = null;  // movements 배열 스냅샷
       let lastViewForRun = "front";
       let manualEditMode = false;
+      // 이번 '수정 켜기~끝내기' 한 세션 동안 사용자가 실제로 보정한 건수.
+      // 끝내기를 누를 때 이 값이 0보다 크면 보정 기록을 자동으로 파일 저장한다.
+      let editSessionCorrectionCount = 0;
       // ── 1단계: 보정 기록 수집 ──
       // 사용자가 자동 분석을 수동으로 고칠 때마다 '자동값 vs 사용자값'을 기록한다.
       // 이 데이터가 2단계(규칙 보정)와 이후 AI 학습의 재료가 된다. 서버 없이 기기에 누적하고,
@@ -3026,8 +3065,12 @@
           const log = loadCorrectionLog();
           log.push(record);
           saveCorrectionLog(log);
-          // 클라우드(Firestore)에도 자동 전송(파일명 제외, 익명). 실패해도 로컬엔 이미 저장됨.
-          sendCorrectionToCloud(record);
+          // 이번 편집 세션의 보정 건수 +1 (끝내기 시 전송/저장 여부 판단에 사용).
+          editSessionCorrectionCount += 1;
+          // 주의: 여기서는 클라우드로 보내지 않는다. 사용자가 시험 삼아 옮긴 중간
+          // 과정까지 쌓이면 데이터 신뢰도가 떨어지기 때문. '수정 끝내기'를 누를 때
+          // 자동 대비 최종 결과만 한 번에 Firebase로 보낸다(sendFinalCorrectionToCloud).
+          // 로컬 기록은 유실 방지를 위해 그대로 누적한다.
         } catch (e) { /* 무시 */ }
       }
       // 분석 완료 후 수동 조정 바를 보이게 하고, 토글 버튼을 연결한다.
@@ -7528,10 +7571,36 @@
           if (body) body.hidden = !manualEditMode;
         }
         window.syncEditToggle = syncEditToggle;
-        if (toggle) toggle.addEventListener("click", () => {
+        if (toggle) toggle.addEventListener("click", async () => {
+          const wasEditing = manualEditMode;
           manualEditMode = !manualEditMode;
-          syncEditToggle();
-          if (latestReport && latestReport.segments) renderSegments(latestReport.segments);
+          if (manualEditMode) {
+            // 수정 켜기: 이번 세션 보정 카운터 초기화.
+            editSessionCorrectionCount = 0;
+            syncEditToggle();
+            if (latestReport && latestReport.segments) renderSegments(latestReport.segments);
+          } else if (wasEditing && editSessionCorrectionCount > 0) {
+            // 수정 끝내기: 이번 세션에 실제로 보정한 게 있으면, 자동 대비 '최종 결과'만
+            // 한 번에 Firebase로 보낸다(중간 과정은 보내지 않아 신뢰도 ↑).
+            syncEditToggle();
+            if (latestReport && latestReport.segments) renderSegments(latestReport.segments);
+            setProgress(Number(progress.value || 100), "수정 결과를 보내는 중…");
+            const result = await sendFinalCorrectionToCloud();
+            if (result.sent) {
+              setProgress(Number(progress.value || 100), "수정한 최종 결과를 저장했습니다. 분석 개선에 반영됩니다.");
+            } else if (result.reason === "unchanged") {
+              setProgress(Number(progress.value || 100), "자동 결과와 같아 저장할 변경이 없습니다.");
+            } else if (result.reason === "offline") {
+              setProgress(Number(progress.value || 100), "지금은 연결이 안 돼 저장하지 못했습니다. 인터넷 연결 후 다시 시도해 주세요.");
+            } else {
+              setProgress(Number(progress.value || 100), "수정 결과 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+            }
+            editSessionCorrectionCount = 0;
+          } else {
+            // 보정 없이 그냥 끈 경우: 보낼 것도 없음.
+            syncEditToggle();
+            if (latestReport && latestReport.segments) renderSegments(latestReport.segments);
+          }
         });
         const exportBtn = document.getElementById("exportCorrectionBtn");
         if (exportBtn) exportBtn.addEventListener("click", exportCorrectionLog);
