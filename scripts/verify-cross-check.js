@@ -234,7 +234,7 @@ assertContains(readUtf8(capacitorConfigPath), "\"appName\": \"태권도 품새 �
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련품새 · 경기품새", "헤더 훈련 목적 배지 적용");
-assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.61", "헤더 설명 문구 적용");
+assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.64", "헤더 설명 문구 적용");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
@@ -276,7 +276,7 @@ assertContains(webHtml, "disabled hidden>재분석(초기화)</button>", "불필
 assertContains(webHtml, "detectPoomsaeKeyFromFilename", "파일명에서 품새를 확인하는 함수 존재");
 assertContains(webHtml, "warnIfFilenamePoomsaeMismatch", "선택 품새와 파일명 불일치 경고 존재");
 assertContains(webHtml, "<h2>리포트</h2>", "결과 페이지 이름을 리포트로 통일");
-assertContains(webHtml, "A4 요약 JPG 만들기", "A4 리포트 JPG 기능 존재");
+assertContains(webHtml, "리포트 이미지 · ", "리포트 이미지 카드(탭하여 확대·저장) 존재");
 assertContains(webHtml, "let mainReplayRange = null", "메인 영상 구간 재생 상태 분리");
 assertContains(webHtml, "let modalReplayRange = null", "팝업 영상 구간 재생 상태 분리");
 assertContains(webHtml, "video.pause();\n        clearReplayRange();\n        modalReplayRange", "팝업 재생 시작 시 메인 영상 중복 재생 방지");
@@ -294,11 +294,11 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v14-edit-ux-fix", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v17-report-image-save", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
-assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v12-edit-ux-fix", "최상단 배포용 오프라인 엔진 서비스워커 존재");
+assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v15-report-image-save", "최상단 배포용 오프라인 엔진 서비스워커 존재");
 assertContains(readUtf8(rootManifestPath), "app-icon-192.png", "최상단 manifest에 192 아이콘 등록");
 assertContains(readUtf8(rootManifestPath), "app-icon-512.png", "최상단 manifest에 512 아이콘 등록");
 assertContains(readUtf8(path.join(root, "www", "manifest.webmanifest")), "app-icon-192.png", "www manifest에 192 아이콘 등록");

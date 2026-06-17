@@ -1553,12 +1553,57 @@
       }
       button.secondary:hover:not(:disabled) { border-color: var(--gold); color: var(--brand-strong); }
       button.secondary:disabled { color: var(--muted); opacity: .5; border-color: var(--line); }
-      #resultJpgBtn, .result-actions button {
-        background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, #000));
-        color: #fff; border: none;
-        box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 28%, transparent);
+      /* 리포트 이미지 카드(탭하면 확대·저장) */
+      .report-image-card {
+        cursor: pointer;
+        border: 1.5px solid color-mix(in srgb, var(--brand) 30%, var(--line));
+        border-radius: 14px;
+        padding: 10px;
+        background: var(--panel);
+        margin-bottom: 14px;
+        transition: transform .12s ease, box-shadow .18s ease;
+        box-shadow: 0 3px 10px rgba(23,32,43,.05);
       }
-      #resultJpgBtn:hover { transform: translateY(-1px); }
+      .report-image-card:active { transform: scale(0.99); }
+      .report-image-card__hint {
+        font-size: 13px; font-weight: 700; color: var(--brand-strong);
+        margin-bottom: 8px; text-align: center;
+      }
+      .report-image-card img {
+        width: 100%; height: auto; display: block;
+        border-radius: 8px; border: 1px solid var(--line);
+      }
+      /* 전체화면 이미지 보기 + 저장 */
+      .report-image-modal {
+        position: fixed; inset: 0; z-index: 1000;
+        background: rgba(8,10,14,.92);
+        display: flex; flex-direction: column;
+      }
+      .report-image-modal[hidden] { display: none; }
+      .report-image-modal__bar {
+        display: flex; gap: 10px; justify-content: space-between;
+        padding: 12px; flex: 0 0 auto;
+      }
+      .report-image-modal__bar button {
+        appearance: none; border: 0; border-radius: 12px;
+        font-size: 16px; font-weight: 800; padding: 14px 18px;
+        min-height: 52px; cursor: pointer;
+      }
+      .rim-save { background: var(--brand); color: #fff; flex: 1; }
+      .rim-save:disabled { opacity: .7; }
+      .rim-close { background: #ffffff22; color: #fff; }
+      .report-image-modal__scroll {
+        flex: 1 1 auto; overflow: auto; padding: 0 12px;
+        display: flex; justify-content: center; align-items: flex-start;
+      }
+      .report-image-modal__scroll img {
+        max-width: 100%; height: auto; border-radius: 8px;
+        box-shadow: 0 8px 30px rgba(0,0,0,.5);
+      }
+      .report-image-modal__tip {
+        flex: 0 0 auto; padding: 12px 16px; color: #e5e7eb;
+        font-size: 13px; text-align: center;
+      }
 
       /* select / input */
       select, input[type="file"] {
@@ -2202,7 +2247,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.62</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.64</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -2425,16 +2470,10 @@
         </ul>
       </section>
 
-      <section style="margin-top: 18px;">
+      <section style="margin-top: 18px;" hidden>
         <h2>리포트 출력</h2>
-        <p>저장 버튼이 모바일 브라우저에서 막힐 때는 아래 출력 내용을 길게 눌러 복사할 수 있습니다.</p>
         <div class="report-box">
-          <textarea id="reportOutput" readonly placeholder="분석 후 리포트 화면 출력 버튼을 누르면 결과가 여기에 표시됩니다."></textarea>
-          <div id="jpgPreviewBox" class="jpg-preview">
-            <p>A4 리포트 JPG가 아래에 생성됩니다. 폰에서는 이미지를 길게 눌러 저장하거나, `새 탭으로 열기`를 눌러 저장하세요.</p>
-            <img id="jpgPreview" alt="A4 리포트 JPG 미리보기" />
-            <a id="jpgOpenLink" href="#" target="_blank" rel="noopener">JPG 새 탭으로 열기</a>
-          </div>
+          <textarea id="reportOutput" readonly></textarea>
         </div>
       </section>
 
@@ -2929,7 +2968,6 @@
       const reportOutput = document.getElementById("reportOutput");
       const jpgPreviewBox = document.getElementById("jpgPreviewBox");
       const jpgPreview = document.getElementById("jpgPreview");
-      const jpgOpenLink = document.getElementById("jpgOpenLink");
       const segmentsEl = document.getElementById("segments");
       const segmentTitle = document.getElementById("segmentTitle");
       const segmentDescription = document.getElementById("segmentDescription");
@@ -2937,7 +2975,6 @@
       let resultPage = null;
       let resultPageContent = null;
       let backToTrainingBtn = null;
-      let resultJpgBtn = null;
       let replayModal = null;
       let replayVideo = null;
       let replayModalTitle = null;
@@ -3320,13 +3357,6 @@
               <button id="backToTrainingBtn" class="secondary" type="button">훈련 화면으로</button>
             </div>
           </section>
-          <section class="result-card">
-            <h3>A4 리포트 JPG</h3>
-            <p>핵심 결과를 A4 한 장 크기의 JPG로 만들고 저장할 수 있습니다.</p>
-            <div class="result-actions">
-              <button id="resultJpgBtn" type="button">A4 요약 JPG 만들기</button>
-            </div>
-          </section>
           <section id="resultPageContent" class="result-card">
             <p class="result-empty">아직 생성된 리포트가 없습니다. 먼저 분석을 실행하세요.</p>
           </section>
@@ -3336,11 +3366,7 @@
         if (appFooter) document.body.appendChild(appFooter);
         resultPageContent = document.getElementById("resultPageContent");
         backToTrainingBtn = document.getElementById("backToTrainingBtn");
-        resultJpgBtn = document.getElementById("resultJpgBtn");
-        const jpgSection = resultJpgBtn ? resultJpgBtn.closest(".result-card") : null;
-        if (jpgSection && jpgPreviewBox) jpgSection.appendChild(jpgPreviewBox);
         if (backToTrainingBtn) backToTrainingBtn.addEventListener("click", showTrainingPage);
-        if (resultJpgBtn) resultJpgBtn.addEventListener("click", saveJpgReport);
         replayModal = document.createElement("div");
         replayModal.className = "replay-modal";
         replayModal.hidden = true;
@@ -3739,6 +3765,10 @@
           ? ""
           : `<div class="metric"><strong>경기품새 참고점수</strong><span>${escapeHtml(latestReport.summary.competition_score_10)} / 10.0</span></div>`;
         resultPageContent.innerHTML = `
+          <div class="report-image-card" id="reportImageCard">
+            <div class="report-image-card__hint">리포트 이미지 · <strong>탭하면 크게 보고 저장</strong></div>
+            <img id="reportImageThumb" alt="리포트 요약 이미지" />
+          </div>
           <div class="result-grid">
             <div class="metric"><strong>품새</strong><span>${escapeHtml(latestReport.poomsae?.name || currentPoomsae().name)}</span></div>
             ${scoreMetric}
@@ -3823,6 +3853,64 @@
             <div class="scene-list">${latestReport.segments.map((segment) => renderSceneCard(segment, false)).join("")}</div>
           </div>
         `;
+        // 리포트 이미지 생성 후 카드에 표시. 탭하면 전체화면으로 확대 + 저장.
+        try {
+          const dataUrl = buildReportImage();
+          const thumb = document.getElementById("reportImageThumb");
+          const card = document.getElementById("reportImageCard");
+          if (dataUrl && thumb) {
+            thumb.src = dataUrl;
+            if (card) {
+              card.addEventListener("click", () => openReportImageModal(dataUrl));
+              card.setAttribute("role", "button");
+              card.setAttribute("tabindex", "0");
+              card.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openReportImageModal(dataUrl); } });
+            }
+          }
+        } catch (error) {
+          console.warn("리포트 이미지 생성 실패", error);
+        }
+      }
+      // 리포트 이미지 전체화면 보기 + 갤러리 저장
+      function openReportImageModal(dataUrl) {
+        let modal = document.getElementById("reportImageModal");
+        if (!modal) {
+          modal = document.createElement("div");
+          modal.id = "reportImageModal";
+          modal.className = "report-image-modal";
+          modal.innerHTML = `
+            <div class="report-image-modal__bar">
+              <button type="button" class="rim-save" id="rimSaveBtn">⬇ 갤러리에 저장</button>
+              <button type="button" class="rim-close" id="rimCloseBtn" aria-label="닫기">✕ 닫기</button>
+            </div>
+            <div class="report-image-modal__scroll"><img id="rimImage" alt="리포트 이미지 전체 보기" /></div>
+            <div class="report-image-modal__tip" id="rimTip">저장이 안 되면 이미지를 길게 눌러 \u201c이미지 저장\u201d을 선택하세요.</div>
+          `;
+          document.body.appendChild(modal);
+          modal.addEventListener("click", (e) => { if (e.target === modal) closeReportImageModal(); });
+          document.getElementById("rimCloseBtn").addEventListener("click", closeReportImageModal);
+          document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeReportImageModal(); });
+        }
+        document.getElementById("rimImage").src = dataUrl;
+        const saveBtn = document.getElementById("rimSaveBtn");
+        saveBtn.onclick = async () => {
+          saveBtn.disabled = true;
+          const prev = saveBtn.textContent;
+          saveBtn.textContent = "저장 중…";
+          const result = await saveReportImage(dataUrl);
+          const tip = document.getElementById("rimTip");
+          if (result === "shared") { saveBtn.textContent = "✓ 저장됨"; }
+          else if (result === "downloaded") { saveBtn.textContent = "✓ 내려받음"; if (tip) tip.textContent = "다운로드 폴더에 저장되었습니다. 갤러리에 안 보이면 이미지를 길게 눌러 저장하세요."; }
+          else { saveBtn.textContent = prev; if (tip) tip.textContent = "자동 저장이 막혔습니다. 이미지를 길게 눌러 \u201c이미지 저장\u201d을 선택하세요."; }
+          setTimeout(() => { saveBtn.disabled = false; saveBtn.textContent = prev; }, 2200);
+        };
+        modal.hidden = false;
+        document.body.style.overflow = "hidden";
+      }
+      function closeReportImageModal() {
+        const modal = document.getElementById("reportImageModal");
+        if (modal) modal.hidden = true;
+        document.body.style.overflow = "";
       }
       function saveBlob(blob, filename) {
         const url = URL.createObjectURL(blob);
@@ -3891,11 +3979,12 @@
         reportOutput.value = text || "아직 생성된 리포트가 없습니다. 먼저 평가를 실행하세요.";
         showResultPage();
       }
-      function saveJpgReport() {
-        if (!latestReport) return;
+      // 리포트를 캔버스에 그려 JPG dataURL을 반환(저장/미리보기 공통 사용)
+      function buildReportImage() {
+        if (!latestReport) return null;
         const canvas = document.createElement("canvas");
         canvas.width = 1400;
-        canvas.height = 1980;
+        canvas.height = 2200;
         const ctx = canvas.getContext("2d");
         const poomsaeName = latestReport.poomsae?.name || currentPoomsae().name;
         const avg = latestReport.summary.competition_score_10;
@@ -3990,41 +4079,101 @@
           bar("서기 안정성", stanceAvg, 110, 895, 790);
         }
 
-        rr(70, 970, 1260, 520, 18, "#ffffff", "#d9dee8");
+        // 우선 보완할 구간 — 긴 피드백 대신 핵심 한 줄만, 줄바꿈 높이에 맞춰 동적 배치(겹침 방지)
+        // 각 구간의 짧은 핵심 코칭만 뽑는다.
+        function shortCue(segment) {
+          const fb = String(segment.feedback || "");
+          const m = fb.match(/우선 연습 포인트:\s*(.+)$/);
+          if (m) return m[1].trim();
+          // 안정적인 구간은 마지막 안내 문장만
+          const tail = fb.split(/[.!]\s/).filter(Boolean).pop();
+          return (tail || fb).trim();
+        }
+        // 동적 높이 측정을 위해 먼저 각 항목의 줄 수를 계산
+        const itemFont = 23;        // 본문 글자 크기(축소)
+        const titleFont = 27;
+        const lineGap = itemFont * 1.45;
+        const cueWidth = 1090;
+        function countLines(value, w, size) {
+          ctx.font = `400 ${size}px Arial, "Malgun Gothic", sans-serif`;
+          let line = "", lines = 1;
+          for (const ch of value) {
+            const test = line + ch;
+            if (ctx.measureText(test).width > w && line) { lines++; line = ch; }
+            else line = test;
+          }
+          return lines;
+        }
+        const cues = topWeak.map((seg) => shortCue(seg));
+        // 패널 높이 동적 계산
+        let needed = 60; // 헤더 여백
+        const itemHeights = cues.map((cue) => {
+          const lines = countLines(cue, cueWidth, itemFont);
+          return 38 + lines * lineGap + 22; // 제목+본문+간격
+        });
+        const panelH = needed + itemHeights.reduce((a, b) => a + b, 0) + 20;
+
+        rr(70, 970, 1260, panelH, 18, "#ffffff", "#d9dee8");
         text("우선 보완할 구간", 110, 1010, 30, "#111827", "800");
         let y = 1070;
         topWeak.forEach((segment, index) => {
           rr(110, y, 72, 52, 12, "#eef4ff");
           text(String(index + 1), 138, y + 9, 28, "#174ea6", "800");
           const segmentTitle = trainingMode === "exam" ? `${segment.orderLabel || segment.order}. ${segment.name}` : `${segment.orderLabel || segment.order}. ${segment.name} (${segment.competitionScore10.toFixed(1)}점)`;
-          text(segmentTitle, 210, y, 27, "#111827", "800");
-          wrap(segment.feedback, 210, y + 38, 1060, 22, "#6b7280");
-          y += 108;
+          text(segmentTitle, 210, y, titleFont, "#111827", "800");
+          wrap(cues[index], 210, y + 38, cueWidth, itemFont, "#6b7280");
+          y += itemHeights[index];
         });
 
-        rr(70, 1530, 1260, 170, 18, "#fff4df", "#f4c56a");
-        text("안내", 110, 1565, 28, "#92400e", "800");
-        wrap("이 결과는 영상 관절 좌표 기반 수련 피드백입니다. 실제 물리적 힘이나 공식 심사 판정을 직접 측정하지 않습니다.", 110, 1608, 1160, 24, "#78350f");
-        text(`Generated · ${new Date().toLocaleString()}`, 70, 1780, 22, "#6b7280");
+        // 안내·생성시각은 패널 아래로 동적 배치
+        const noticeY = 970 + panelH + 40;
+        rr(70, noticeY, 1260, 170, 18, "#fff4df", "#f4c56a");
+        text("안내", 110, noticeY + 35, 28, "#92400e", "800");
+        wrap("이 결과는 영상 관절 좌표 기반 수련 피드백입니다. 실제 물리적 힘이나 공식 심사 판정을 직접 측정하지 않습니다.", 110, noticeY + 78, 1160, 24, "#78350f");
+        text(`Generated · ${new Date().toLocaleString()}`, 70, noticeY + 220, 22, "#6b7280");
+        const contentBottom = noticeY + 260;
 
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
-        jpgPreview.src = dataUrl;
-        jpgOpenLink.href = dataUrl;
-        jpgPreviewBox.style.display = "grid";
-
+        // 실제 내용 높이에 맞춰 잘라내기(아래 빈 공간 제거)
+        let exportCanvas = canvas;
+        if (contentBottom < canvas.height - 10) {
+          const cropped = document.createElement("canvas");
+          cropped.width = canvas.width;
+          cropped.height = Math.round(contentBottom);
+          const cctx = cropped.getContext("2d");
+          cctx.drawImage(canvas, 0, 0);
+          exportCanvas = cropped;
+        }
+        const dataUrl = exportCanvas.toDataURL("image/jpeg", 0.92);
+        return dataUrl;
+      }
+      // 이미지를 기기에 저장(갤러리/다운로드). 모바일은 Web Share(파일)로 '사진에 저장'을 유도하고,
+      // 안 되면 다운로드로 폴백한다.
+      async function saveReportImage(dataUrl) {
+        const fileName = `품새리포트-${latestReport?.poomsae?.id || "report"}.jpg`;
+        try {
+          const res = await fetch(dataUrl);
+          const blob = await res.blob();
+          const file = new File([blob], fileName, { type: "image/jpeg" });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: "품새 리포트" });
+            return "shared";
+          }
+        } catch (error) {
+          // 공유 취소/미지원 → 다운로드 폴백
+        }
         try {
           const a = document.createElement("a");
           a.href = dataUrl;
-          a.download = `poomsae-${latestReport.poomsae?.id || "report"}-result.jpg`;
+          a.download = fileName;
           a.rel = "noopener";
           document.body.appendChild(a);
           a.click();
           a.remove();
+          return "downloaded";
         } catch (error) {
-          console.warn("JPG download was blocked by the browser.", error);
+          console.warn("이미지 저장이 브라우저에서 막혔습니다.", error);
+          return "blocked";
         }
-
-        reportOutput.value = "A4 리포트 JPG가 생성되었습니다.\n\nPC: 자동 저장이 안 되면 `JPG 새 탭으로 열기`를 눌러 저장하세요.\n폰/태블릿: 이미지를 길게 눌러 사진으로 저장하세요.";
       }
       function formatDuration(seconds) {
         return Number.isFinite(seconds) ? `${seconds.toFixed(1)}초` : "-";
@@ -5923,9 +6072,8 @@
         replayWeakBtn.disabled = true;
         reanalyzeBtn.disabled = !selectedFile || !videoDecodeReady(video);
         reportOutput.value = "";
-        jpgPreviewBox.style.display = "none";
-        jpgPreview.removeAttribute("src");
-        jpgOpenLink.href = "#";
+        if (jpgPreviewBox) jpgPreviewBox.style.display = "none";
+        if (jpgPreview) jpgPreview.removeAttribute("src");
         segmentsEl.innerHTML = "";
         detectRateText.textContent = "-";
         powerScoreText.textContent = trainingMode === "exam" ? "문제점 확인" : "-";
@@ -6980,9 +7128,8 @@
         replayWeakBtn.disabled = true;
         latestReport = null;
         reportOutput.value = "";
-        jpgPreviewBox.style.display = "none";
-        jpgPreview.removeAttribute("src");
-        jpgOpenLink.href = "#";
+        if (jpgPreviewBox) jpgPreviewBox.style.display = "none";
+        if (jpgPreview) jpgPreview.removeAttribute("src");
         segmentsEl.innerHTML = "";
         video.pause();
         // 분석 중에는 사용자가 영상을 직접 조작하면 seek가 충돌하므로 컨트롤을 잠근다.
@@ -7232,9 +7379,8 @@
         replayAllBtn.disabled = true;
         replayWeakBtn.disabled = true;
         reportOutput.value = "";
-        jpgPreviewBox.style.display = "none";
-        jpgPreview.removeAttribute("src");
-        jpgOpenLink.href = "#";
+        if (jpgPreviewBox) jpgPreviewBox.style.display = "none";
+        if (jpgPreview) jpgPreview.removeAttribute("src");
         segmentsEl.innerHTML = "";
         closeReplayModal();
         analyzeBtn.disabled = true;
@@ -7301,9 +7447,8 @@
         replayAllBtn.disabled = true;
         replayWeakBtn.disabled = true;
         reportOutput.value = "";
-        jpgPreviewBox.style.display = "none";
-        jpgPreview.removeAttribute("src");
-        jpgOpenLink.href = "#";
+        if (jpgPreviewBox) jpgPreviewBox.style.display = "none";
+        if (jpgPreview) jpgPreview.removeAttribute("src");
         segmentsEl.innerHTML = "";
         detectRateText.textContent = "-";
         powerScoreText.textContent = trainingMode === "exam" ? "문제점 확인" : "-";
@@ -7526,7 +7671,6 @@
       showReportBtn.addEventListener("click", showResultPage);
       jpgBtn.addEventListener("click", () => {
         showResultPage();
-        saveJpgReport();
       });
       window.addEventListener("pagehide", () => {
         closeReplayModal();

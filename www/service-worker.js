@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v15-button-overflow-fix";
+const CACHE_NAME = "poomsae-training-v17-report-image-save";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",
