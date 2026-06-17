@@ -624,8 +624,12 @@
         font-size: 12px;
         color: var(--muted);
       }
-      /* 구간 카드 내부 편집 컨트롤 */
+      /* 구간 카드 내부 편집 컨트롤 — 카드 전체 폭을 차지(가운데 좁은 칸에 갇히지 않게) */
       .segment-edit {
+        grid-column: 1 / -1;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
         margin-top: 10px;
         padding-top: 10px;
         border-top: 1px dashed color-mix(in srgb, var(--brand) 28%, var(--line));
@@ -639,14 +643,20 @@
         color: var(--brand-strong);
         margin-bottom: 2px;
       }
-      /* 큰 행동 버튼 한 줄 (휴대폰 터치 친화) */
+      /* 큰 행동 버튼 (휴대폰 터치 친화) — 2열 그리드가 화면 밖으로 넘치지 않도록 minmax(0,1fr) */
       .seg-edit__grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         gap: 8px;
         align-items: stretch;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
       }
-      .seg-edit__grid > .seg-edit-btn { width: 100%; }
+      .seg-edit__grid > .seg-edit-btn {
+        width: 100%;
+        min-width: 0; /* grid 셀이 콘텐츠 폭에 끌려 늘어나는 것 방지 */
+      }
       .seg-edit-btn {
         appearance: none;
         border: 1.5px solid color-mix(in srgb, var(--brand) 30%, var(--line));
@@ -654,14 +664,18 @@
         color: var(--ink, #1f2937);
         font-size: 14px;
         font-weight: 700;
-        padding: 10px 8px;
+        padding: 10px 6px;
         border-radius: 12px;
         cursor: pointer;
         min-height: 56px;
         width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
-        align-items: stretch;
+        align-items: center;
         justify-content: center;
         gap: 2px;
         line-height: 1.25;
@@ -688,7 +702,10 @@
       .seg-edit-btn .seg-edit-btn__main {
         display: block;
         width: 100%;
-        white-space: nowrap;
+        max-width: 100%;
+        white-space: normal;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
         writing-mode: horizontal-tb;
       }
       .seg-edit-btn .seg-edit-btn__sub {
@@ -2185,7 +2202,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.61</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.62</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -5635,7 +5652,7 @@
               <div class="segment-edit__q">이 구간이 잘못 잡혔나요?</div>
               <div class="seg-edit__grid">
                 ${result.order > 1 ? `<button type="button" class="seg-edit-btn seg-merge" data-seg="${result.order - 1}"><span class="seg-edit-btn__main">↑ 위 동작과 합치기</span><span class="seg-edit-btn__sub">두 칸이 한 동작일 때</span></button>` : ""}
-                <button type="button" class="seg-edit-btn seg-split" data-seg="${result.order - 1}"><span class="seg-edit-btn__main">✂ 둘로 나누기</span><span class="seg-edit-btn__sub">한 칸에 두 동작일 때</span></button>
+                <button type="button" class="seg-edit-btn seg-split${result.order > 1 ? "" : " seg-edit-btn--full"}" data-seg="${result.order - 1}"><span class="seg-edit-btn__main">✂ 둘로 나누기</span><span class="seg-edit-btn__sub">한 칸에 두 동작일 때</span></button>
                 ${result.order > 1 ? `
                 <button type="button" class="seg-edit-btn boundary-nudge" data-boundary="${result.order - 1}" data-delta="-0.2"><span class="seg-edit-btn__main">◀ 더 일찍 시작</span><span class="seg-edit-btn__sub">시작점 0.2초 앞으로</span></button>
                 <button type="button" class="seg-edit-btn boundary-nudge" data-boundary="${result.order - 1}" data-delta="0.2"><span class="seg-edit-btn__main">더 늦게 시작 ▶</span><span class="seg-edit-btn__sub">시작점 0.2초 뒤로</span></button>` : ""}
@@ -5666,11 +5683,11 @@
               <span class="segment-feedback">${result.feedback}</span>
               ${connTag}
               ${scoreBars}
-              ${editControls}
             </div>
             <div class="segment-score">
               <span>${trainingMode === "exam" ? "확인" : result.competitionScore10.toFixed(1)}</span>
             </div>
+            ${editControls}
           `;
           segmentsEl.appendChild(row);
         }
