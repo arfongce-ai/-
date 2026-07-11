@@ -505,11 +505,40 @@
         min-width: 0;
       }
       .segment-feedback {
-        display: -webkit-box;
-        overflow: hidden;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 3;
+        display: grid;
+        gap: 6px;
+        overflow: visible;
         line-height: 1.45;
+      }
+      .segment-feedback-summary {
+        color: var(--text);
+        font-weight: 800;
+      }
+      .segment-feedback-details {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .segment-feedback-details summary {
+        width: fit-content;
+        cursor: pointer;
+        color: var(--brand-strong);
+        font-weight: 800;
+        list-style: none;
+      }
+      .segment-feedback-details summary::-webkit-details-marker {
+        display: none;
+      }
+      .segment-feedback-details summary::after {
+        content: " +";
+      }
+      .segment-feedback-details[open] summary::after {
+        content: " -";
+      }
+      .segment-feedback-full {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
       }
       .segment-score {
         display: grid;
@@ -524,266 +553,40 @@
         font-size: 11px;
         font-weight: 800;
       }
-      /* ── 수정(수동 조정) UI: 깔끔한 재설계 ── */
-      .edit-bar {
-        margin: 12px 0 14px;
-        padding: 0;
-        border: 1px solid color-mix(in srgb, var(--brand) 26%, var(--line));
-        border-radius: 14px;
-        background: var(--card, #fff);
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
-      }
-      .edit-bar__head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 12px 14px;
-        background: color-mix(in srgb, var(--brand-soft) 60%, #fff);
-        border-bottom: 1px solid color-mix(in srgb, var(--brand) 16%, var(--line));
-      }
-      .edit-bar__title {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 14px;
-        font-weight: 800;
-        color: var(--brand-strong);
-      }
-      .edit-bar__title .edit-bar__dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--brand);
-        flex: none;
-      }
-      .edit-toggle {
-        appearance: none;
-        border: 1px solid color-mix(in srgb, var(--brand) 40%, var(--line));
-        background: #fff;
-        color: var(--brand-strong);
-        font-size: 13px;
-        font-weight: 700;
-        padding: 7px 14px;
-        border-radius: 999px;
-        cursor: pointer;
-        min-height: 36px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-      }
-      .edit-toggle:hover {
-        background: var(--brand-soft);
-      }
-      .edit-toggle[aria-pressed="true"] {
-        background: var(--brand);
-        color: #fff;
-        border-color: var(--brand);
-      }
-      .edit-bar__body {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 8px 14px;
-        padding: 11px 14px;
-      }
-      .edit-bar__body[hidden] { display: none; }
-      .edit-bar__hint {
-        font-size: 12px;
-        line-height: 1.5;
-        color: var(--muted);
-        flex: 1 1 240px;
-        min-width: 0;
-      }
-      .edit-bar__actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      .edit-link-btn {
-        appearance: none;
-        border: 1px solid var(--line);
-        background: #fff;
-        color: var(--ink, #1f2937);
-        font-size: 12px;
-        font-weight: 600;
-        padding: 6px 12px;
-        border-radius: 8px;
-        cursor: pointer;
-        min-height: 34px;
-      }
-      .edit-link-btn:hover { background: #f8fafc; }
-      .edit-link-btn--restore {
-        border-color: color-mix(in srgb, var(--brand) 40%, var(--line));
-        color: var(--brand-strong);
-      }
-      .edit-bar__status {
-        flex-basis: 100%;
-        font-size: 12px;
-        color: var(--muted);
-      }
-      /* 구간 카드 내부 편집 컨트롤 — 카드 전체 폭을 차지(가운데 좁은 칸에 갇히지 않게) */
       .segment-edit {
-        grid-column: 1 / -1;
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px dashed color-mix(in srgb, var(--brand) 28%, var(--line));
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .segment-edit__q {
-        font-size: 12.5px;
-        font-weight: 700;
-        color: var(--brand-strong);
-        margin-bottom: 2px;
-      }
-      /* 큰 행동 버튼 (휴대폰 터치 친화) — 2열 그리드가 화면 밖으로 넘치지 않도록 minmax(0,1fr) */
-      .seg-edit__grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: 8px;
-        align-items: stretch;
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-      }
-      .seg-edit__grid > .seg-edit-btn {
-        width: 100%;
-        min-width: 0; /* grid 셀이 콘텐츠 폭에 끌려 늘어나는 것 방지 */
-      }
-      .seg-edit-btn {
-        appearance: none;
-        border: 1.5px solid color-mix(in srgb, var(--brand) 30%, var(--line));
-        background: #fff;
-        color: var(--ink, #1f2937);
-        font-size: 14px;
-        font-weight: 700;
-        padding: 10px 6px;
-        border-radius: 12px;
-        cursor: pointer;
-        min-height: 56px;
-        width: 100%;
-        min-width: 0;
-        max-width: 100%;
-        box-sizing: border-box;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
         align-items: center;
-        justify-content: center;
-        gap: 2px;
-        line-height: 1.25;
-        text-align: center;
-        white-space: normal;
-        word-break: keep-all;
-        writing-mode: horizontal-tb;
       }
-      .seg-edit-btn:hover { background: var(--brand-soft); }
-      .seg-edit-btn:active { transform: scale(0.97); }
-      .seg-apply-btn {
-        appearance: none;
-        border: 0;
-        background: var(--brand);
-        color: #fff;
-        font-size: 14px;
-        font-weight: 700;
-        padding: 0 18px;
-        min-height: 44px;
-        border-radius: 10px;
-        cursor: pointer;
-      }
-      .seg-apply-btn:active { transform: scale(0.97); }
-      .seg-edit-btn .seg-edit-btn__main {
-        display: block;
-        width: 100%;
-        max-width: 100%;
-        white-space: normal;
-        word-break: keep-all;
-        overflow-wrap: anywhere;
-        writing-mode: horizontal-tb;
-      }
-      .seg-edit-btn .seg-edit-btn__sub {
-        display: block;
-        width: 100%;
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--muted);
-        white-space: normal;
-        word-break: keep-all;
-        writing-mode: horizontal-tb;
-      }
-      .seg-edit-btn--full { grid-column: 1 / -1; }
-      /* "직접 시간 입력"은 기본 숨김(더보기) */
-      .seg-edit__more {
-        margin-top: 2px;
-        border: 0;
-        background: none;
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 600;
-        padding: 4px 0;
-        cursor: pointer;
-        text-decoration: underline;
-        text-underline-offset: 2px;
-        align-self: flex-start;
+      .segment-edit button {
+        min-height: 32px;
       }
       .boundary-controls {
         width: 100%;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         flex-wrap: wrap;
-        padding: 10px;
-        border: 1px dashed color-mix(in srgb, var(--brand) 40%, var(--line));
-        border-radius: 10px;
-        background: color-mix(in srgb, var(--brand-soft) 45%, transparent);
+        padding: 7px;
+        border: 1px dashed color-mix(in srgb, var(--brand) 44%, var(--line));
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--brand-soft) 55%, transparent);
       }
-      .boundary-controls[hidden] { display: none; }
       .boundary-controls label {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 5px;
         color: var(--muted);
-        font-size: 12.5px;
-        font-weight: 700;
+        font-size: 12px;
+        font-weight: 800;
       }
       .boundary-controls input {
-        width: 88px;
-        min-height: 44px;
-        padding: 6px 8px;
+        width: 76px;
+        min-height: 32px;
+        padding: 4px 6px;
         border: 1px solid var(--line);
-        border-radius: 8px;
+        border-radius: 6px;
         background: var(--panel);
         color: var(--text);
         font: inherit;
-        font-size: 15px;
-      }
-      /* 방금 조정된 구간 강조: 변화가 보이게 */
-      @keyframes segJustEdited {
-        0% { background: color-mix(in srgb, var(--brand) 22%, #fff); }
-        100% { background: transparent; }
-      }
-      .segment.just-edited {
-        animation: segJustEdited 1.4s ease-out;
-        border-color: var(--brand) !important;
-      }
-      .seg-edited-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        margin-left: 6px;
-        font-size: 11px;
-        font-weight: 700;
-        color: var(--brand-strong);
-        background: var(--brand-soft);
-        border-radius: 999px;
-        padding: 2px 8px;
       }
       .segment strong { display: block; margin-bottom: 4px; }
       .segment span, .small {
@@ -1411,7 +1214,9 @@
         }
         .segment-head strong { font-size: 14px; }
         .segment-head .status { padding: 4px 7px; font-size: 10px; }
-        .segment-feedback { -webkit-line-clamp: 2; font-size: 11px; }
+        .segment-feedback,
+        .segment-feedback-details,
+        .segment-feedback-full { font-size: 11px; }
         .segment .bars { display: none; }
         .segment-score { font-size: 16px; }
         .segment-hint { font-size: 9px; }
@@ -1553,57 +1358,12 @@
       }
       button.secondary:hover:not(:disabled) { border-color: var(--gold); color: var(--brand-strong); }
       button.secondary:disabled { color: var(--muted); opacity: .5; border-color: var(--line); }
-      /* 리포트 이미지 카드(탭하면 확대·저장) */
-      .report-image-card {
-        cursor: pointer;
-        border: 1.5px solid color-mix(in srgb, var(--brand) 30%, var(--line));
-        border-radius: 14px;
-        padding: 10px;
-        background: var(--panel);
-        margin-bottom: 14px;
-        transition: transform .12s ease, box-shadow .18s ease;
-        box-shadow: 0 3px 10px rgba(23,32,43,.05);
+      #resultJpgBtn, .result-actions button {
+        background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, #000));
+        color: #fff; border: none;
+        box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 28%, transparent);
       }
-      .report-image-card:active { transform: scale(0.99); }
-      .report-image-card__hint {
-        font-size: 13px; font-weight: 700; color: var(--brand-strong);
-        margin-bottom: 8px; text-align: center;
-      }
-      .report-image-card img {
-        width: 100%; height: auto; display: block;
-        border-radius: 8px; border: 1px solid var(--line);
-      }
-      /* 전체화면 이미지 보기 + 저장 */
-      .report-image-modal {
-        position: fixed; inset: 0; z-index: 1000;
-        background: rgba(8,10,14,.92);
-        display: flex; flex-direction: column;
-      }
-      .report-image-modal[hidden] { display: none; }
-      .report-image-modal__bar {
-        display: flex; gap: 10px; justify-content: space-between;
-        padding: 12px; flex: 0 0 auto;
-      }
-      .report-image-modal__bar button {
-        appearance: none; border: 0; border-radius: 12px;
-        font-size: 16px; font-weight: 800; padding: 14px 18px;
-        min-height: 52px; cursor: pointer;
-      }
-      .rim-save { background: var(--brand); color: #fff; flex: 1; }
-      .rim-save:disabled { opacity: .7; }
-      .rim-close { background: #ffffff22; color: #fff; }
-      .report-image-modal__scroll {
-        flex: 1 1 auto; overflow: auto; padding: 0 12px;
-        display: flex; justify-content: center; align-items: flex-start;
-      }
-      .report-image-modal__scroll img {
-        max-width: 100%; height: auto; border-radius: 8px;
-        box-shadow: 0 8px 30px rgba(0,0,0,.5);
-      }
-      .report-image-modal__tip {
-        flex: 0 0 auto; padding: 12px 16px; color: #e5e7eb;
-        font-size: 13px; text-align: center;
-      }
+      #resultJpgBtn:hover { transform: translateY(-1px); }
 
       /* select / input */
       select, input[type="file"] {
@@ -2247,7 +2007,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.65</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.55</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -2401,7 +2161,7 @@
             <div class="utility-actions" hidden>
               <button id="downloadBtn" class="secondary" disabled>JSON 저장</button>
               <button id="showReportBtn" class="secondary" disabled hidden>리포트</button>
-              <button id="jpgBtn" class="secondary" disabled hidden>JPG 저장</button>
+              <button id="jpgBtn" class="secondary" disabled hidden>A4 카드 JPG 저장</button>
             </div>
             <div class="code" style="margin-top: 12px;">
               잘 찍는 법: 가로 영상 · 온몸이 다 나오게 · 폰 고정 · 밝은 곳
@@ -2470,29 +2230,28 @@
         </ul>
       </section>
 
-      <section style="margin-top: 18px;" hidden>
+      <section style="margin-top: 18px;">
         <h2>리포트 출력</h2>
+        <p>저장 버튼이 모바일 브라우저에서 막힐 때는 아래 출력 내용을 길게 눌러 복사할 수 있습니다.</p>
         <div class="report-box">
-          <textarea id="reportOutput" readonly></textarea>
+          <textarea id="reportOutput" readonly placeholder="분석 후 리포트 화면 출력 버튼을 누르면 결과가 여기에 표시됩니다."></textarea>
+          <div id="jpgPreviewBox" class="jpg-preview">
+            <p>A4 리포트 JPG가 아래에 생성됩니다. 폰에서는 이미지를 길게 눌러 저장하거나, `새 탭으로 열기`를 눌러 저장하세요.</p>
+            <img id="jpgPreview" alt="A4 리포트 JPG 미리보기" />
+            <a id="jpgOpenLink" href="#" target="_blank" rel="noopener">JPG 새 탭으로 열기</a>
+          </div>
         </div>
       </section>
 
       <section style="margin-top: 18px;">
         <h2 id="segmentTitle">태극 1장 구간별 파워·맺음 평가</h2>
         <p id="segmentDescription">구간마다 여러 프레임을 분석해 속도, 맺음, 정지 안정성, 서기 안정성을 확인합니다.</p>
-        <div id="manualEditBar" class="edit-bar" style="display:none">
-          <div class="edit-bar__head">
-            <span class="edit-bar__title"><span class="edit-bar__dot"></span>구간 수정</span>
-            <button type="button" id="manualEditToggle" class="edit-toggle" aria-pressed="false">✏️ 수정 켜기</button>
-          </div>
-          <div class="edit-bar__body" id="manualEditBody" hidden>
-            <span class="edit-bar__hint" id="manualEditHint">원본 영상은 그대로 두고 분석 구간만 바꿉니다. 각 구간 카드의 버튼으로 합치기·나누기·경계 이동을 하면 <b>바로 반영되어 다시 재생</b>됩니다.</span>
-            <div class="edit-bar__actions">
-              <button type="button" id="restoreAutoBtn" class="edit-link-btn edit-link-btn--restore" style="display:none">↺ 자동 결과로 되돌리기</button>
-              <button type="button" id="exportCorrectionBtn" class="edit-link-btn" style="display:none">보정 기록 내보내기</button>
-            </div>
-            <span id="correctionLogStatus" class="edit-bar__status"></span>
-          </div>
+        <div id="manualEditBar" style="display:none;margin:10px 0 12px;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;background:#fff7ed;border:1px solid #fdba74;border-radius:10px">
+          <button type="button" id="manualEditToggle" class="primary" style="font-size:14px;font-weight:700">✏️ 구간 수동 조정</button>
+          <span id="manualEditHint" class="small" style="color:var(--muted)">원본 영상은 바꾸지 않고 분석 구간만 바꿉니다. 조정하면 바뀐 구간이 바로 재생됩니다.</span>
+          <span id="correctionLogStatus" class="small" style="color:var(--muted)"></span>
+          <button type="button" id="restoreAutoBtn" class="secondary" style="font-size:12px;display:none">자동 결과로 되돌리기</button>
+          <button type="button" id="exportCorrectionBtn" class="secondary" style="font-size:12px;display:none">보정 기록 내보내기</button>
         </div>
         <div id="segments" class="segments"></div>
       </section>
@@ -2550,42 +2309,6 @@
           return true;
         } catch (e) { return false; }
       }
-      // '수정 끝내기' 시 호출. 이번 영상의 자동 경계(autoBoundaries) 대비 사용자가
-      // 최종 확정한 경계(boundaries)만 한 건의 '최종 보정'으로 Firebase에 보낸다.
-      // 중간에 몇 번을 옮겼든 결과만 남기므로 분석 데이터의 신뢰도가 높아진다.
-      // 자동과 최종이 같으면(사용자가 결국 손대지 않음) 아무것도 보내지 않는다.
-      async function sendFinalCorrectionToCloud() {
-        if (!_fbReady || !_fbDB) return { sent: false, reason: "offline" };
-        if (!lastBoundaryCache || !lastBoundaryCache.autoBoundaries || !lastBoundaryCache.boundaries) {
-          return { sent: false, reason: "no_cache" };
-        }
-        const auto = lastBoundaryCache.autoBoundaries.map((t) => Number(Number(t).toFixed(3)));
-        const finalB = lastBoundaryCache.boundaries.map((t) => Number(Number(t).toFixed(3)));
-        // 자동과 최종이 동일하면 보낼 보정이 없다.
-        if (JSON.stringify(auto) === JSON.stringify(finalB)) {
-          return { sent: false, reason: "unchanged" };
-        }
-        try {
-          const payload = {
-            ts: new Date().toISOString(),
-            poomsae: selectedPoomsaeKey,
-            poomsae_name: (currentPoomsae() && currentPoomsae().name) || "",
-            video_duration: video && Number.isFinite(video.duration) ? Number(video.duration.toFixed(2)) : null,
-            auto_method: lastBoundaryCache.method || "",
-            kind: "final_boundaries",          // 최종 확정형 기록임을 표시
-            auto_boundaries: auto,             // 자동이 잡은 경계(정답 학습의 입력)
-            final_boundaries: finalB,          // 사용자가 확정한 경계(정답)
-            auto_segment_count: Math.max(auto.length - 1, 0),
-            final_segment_count: Math.max(finalB.length - 1, 0),
-            edits_in_session: editSessionCorrectionCount, // 참고: 이번에 몇 번 만졌는지
-            created: _fbServerTs()
-          };
-          await _fbAddDoc(_fbCollection(_fbDB, "corrections"), payload);
-          return { sent: true };
-        } catch (e) {
-          return { sent: false, reason: "error" };
-        }
-      }
       const LOCAL_MODEL_URL = "./models/pose_landmarker_lite.task";
       const REMOTE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task";
       const LOCAL_WASM_URL = "./vendor/mediapipe/tasks-vision/wasm";
@@ -2609,13 +2332,9 @@
       function inferMovementType(name) {
         // 기합은 동작이 아니라 '음성'. 별도 타입으로 분류해 오디오로 판정한다.
         if (/^기합$|기합$/.test(String(name || "").trim())) return "kihap";
-        // 발차기(차기/차고/차며/찍기/뛰어/돌려차기 등)는 복합 발차기로 우선 분류.
-        // '앞차고 …지르기'처럼 발차기 뒤에 손기술이 붙는 동작도 발차기 기준으로 평가해야 한다.
-        if (/차기|차고|차며|차\s|찍기|꼬아서기|뛰어|돌려차/.test(name)) return "kick_punch";
+        if (/차기|찍기|꼬아서기|뛰어/.test(name)) return "kick_punch";
         if (/막기|헤쳐|산틀|거들어막기/.test(name)) return "block";
-        // 지르기는 '지르기' 계열(찌르기 포함)로 punch에 가깝게 평가한다.
-        if (/지르기|찌르기/.test(name)) return "punch";
-        if (/치기|밀기|꺾기|표적/.test(name)) return "strike";
+        if (/치기|찌르기|지르기|밀기|꺾기|표적/.test(name)) return "strike";
         if (/준비|서기|멈추기|학다리/.test(name)) return "hold";
         return "punch";
       }
@@ -2654,27 +2373,27 @@
         taegeuk_1: {
           name: "태극 1장",
           count: 18,
-          note: "공식 자세 명칭표 기준(준비 + 18동작, 막기·지르기 앞서기·5/6/11/12/17/18 앞굽이, 14·16 앞차기 복합)",
+          note: "국기원 공식 도해 기준(준비 + 18동작, 14·16 복합)",
           movements: [
             ["ready_stance", "준비서기", "hold"],
-            ["m1_left_low_block", "왼 앞서기 아래막기", "block"],
-            ["m2_right_punch", "오른 앞서기 몸통반대지르기", "punch"],
-            ["m3_right_low_block", "오른 앞서기 아래막기", "block"],
-            ["m4_left_punch", "왼 앞서기 몸통반대지르기", "punch"],
+            ["m1_left_low_block", "왼 앞굽이 아래막기", "block"],
+            ["m2_right_punch", "오른 앞굽이 몸통바로지르기", "punch"],
+            ["m3_right_low_block", "오른 앞굽이 아래막기", "block"],
+            ["m4_left_punch", "왼 앞굽이 몸통바로지르기", "punch"],
             ["m5_left_low_block", "왼 앞굽이 아래막기", "block"],
-            ["m6_right_punch", "오른 앞굽이 몸통지르기", "punch"],
-            ["m7_right_inside_block", "오른 앞서기 몸통안막기", "block"],
-            ["m8_left_punch", "왼 앞서기 몸통지르기", "punch"],
-            ["m9_left_inside_block", "왼 앞서기 몸통안막기", "block"],
-            ["m10_right_punch", "오른 앞서기 몸통지르기", "punch"],
-            ["m11_right_low_block", "오른 앞굽이 아래막기", "block"],
-            ["m12_left_punch", "왼 앞굽이 몸통지르기", "punch"],
-            ["m13_left_high_block", "왼 앞서기 얼굴올려막기", "block"],
-            ["m14_kick_punch", "오른발 앞차고 오른 앞서기 몸통반대지르기", "kick_punch"],
-            ["m15_right_high_block", "오른 앞서기 얼굴올려막기", "block"],
-            ["m16_kick_punch", "왼발 앞차고 왼 앞서기 몸통반대지르기", "kick_punch"],
+            ["m6_right_punch", "오른 앞굽이 몸통바로지르기", "punch"],
+            ["m7_left_inside_block", "왼 뒷굽이 몸통안막기", "block"],
+            ["m8_right_punch", "오른 앞굽이 몸통바로지르기", "punch"],
+            ["m9_right_inside_block", "오른 뒷굽이 몸통안막기", "block"],
+            ["m10_left_punch", "왼 앞굽이 몸통바로지르기", "punch"],
+            ["m11_left_low_block", "왼 앞굽이 아래막기", "block"],
+            ["m12_right_punch", "오른 앞굽이 몸통바로지르기", "punch"],
+            ["m13_right_high_block", "오른 앞굽이 얼굴막기", "block"],
+            ["m14_kick_punch", "왼발 앞차고 왼 앞굽이 몸통바로지르기", "kick_punch"],
+            ["m15_left_high_block", "왼 앞굽이 얼굴막기", "block"],
+            ["m16_kick_punch", "오른발 앞차고 오른 앞굽이 몸통바로지르기", "kick_punch"],
             ["m17_left_low_block", "왼 앞굽이 아래막기", "block"],
-            ["m18_right_punch", "오른 앞굽이 몸통반대지르기(기합)", "punch"]
+            ["m18_right_punch", "오른 앞굽이 몸통바로지르기(기합)", "punch"]
           ].map(([id, name, type]) => ({ id, name, type }))
         },
       };
@@ -2695,7 +2414,7 @@
             id: "T1-C02",
             movements: [11, 12],
             title: "11~12번 연결동작",
-            description: "같은 오른 앞굽이를 유지하며 아래막기에서 몸통지르기로 연결",
+            description: "같은 왼 앞굽이를 유지하며 아래막기에서 몸통지르기로 연결",
             practice: "막기 후 골반과 앞굽이를 유지하고, 지르기 마무리를 짧고 분명하게 고정하세요."
           }
         ]
@@ -2706,12 +2425,12 @@
         taegeuk_1: {
           14: {
             title: "14번 복합동작",
-            stages: "14-1 앞차기 준비·상승|14-2 차기 정점|14-3 무릎 회수·착지|14-4 앞서기 몸통반대지르기".split("|"),
+            stages: "14-1 앞차기 준비·상승|14-2 차기 정점|14-3 무릎 회수·착지|14-4 앞굽이 몸통지르기".split("|"),
             practice: "앞차기 후 무릎을 먼저 회수하고, 착지와 지르기를 한 흐름으로 연결하세요."
           },
           16: {
             title: "16번 복합동작",
-            stages: "16-1 앞차기 준비·상승|16-2 차기 정점|16-3 무릎 회수·착지|16-4 앞서기 몸통반대지르기".split("|"),
+            stages: "16-1 앞차기 준비·상승|16-2 차기 정점|16-3 무릎 회수·착지|16-4 앞굽이 몸통지르기".split("|"),
             practice: "차기 정점 뒤 무릎 회수와 착지를 안정시킨 다음 지르기 끝을 고정하세요."
           }
         }
@@ -3004,6 +2723,7 @@
       const reportOutput = document.getElementById("reportOutput");
       const jpgPreviewBox = document.getElementById("jpgPreviewBox");
       const jpgPreview = document.getElementById("jpgPreview");
+      const jpgOpenLink = document.getElementById("jpgOpenLink");
       const segmentsEl = document.getElementById("segments");
       const segmentTitle = document.getElementById("segmentTitle");
       const segmentDescription = document.getElementById("segmentDescription");
@@ -3011,6 +2731,7 @@
       let resultPage = null;
       let resultPageContent = null;
       let backToTrainingBtn = null;
+      let resultJpgBtn = null;
       let replayModal = null;
       let replayVideo = null;
       let replayModalTitle = null;
@@ -3027,9 +2748,6 @@
       let lastMovementsCache = null;  // movements 배열 스냅샷
       let lastViewForRun = "front";
       let manualEditMode = false;
-      // 이번 '수정 켜기~끝내기' 한 세션 동안 사용자가 실제로 보정한 건수.
-      // 끝내기를 누를 때 이 값이 0보다 크면 보정 기록을 자동으로 파일 저장한다.
-      let editSessionCorrectionCount = 0;
       // ── 1단계: 보정 기록 수집 ──
       // 사용자가 자동 분석을 수동으로 고칠 때마다 '자동값 vs 사용자값'을 기록한다.
       // 이 데이터가 2단계(규칙 보정)와 이후 AI 학습의 재료가 된다. 서버 없이 기기에 누적하고,
@@ -3065,12 +2783,8 @@
           const log = loadCorrectionLog();
           log.push(record);
           saveCorrectionLog(log);
-          // 이번 편집 세션의 보정 건수 +1 (끝내기 시 전송/저장 여부 판단에 사용).
-          editSessionCorrectionCount += 1;
-          // 주의: 여기서는 클라우드로 보내지 않는다. 사용자가 시험 삼아 옮긴 중간
-          // 과정까지 쌓이면 데이터 신뢰도가 떨어지기 때문. '수정 끝내기'를 누를 때
-          // 자동 대비 최종 결과만 한 번에 Firebase로 보낸다(sendFinalCorrectionToCloud).
-          // 로컬 기록은 유실 방지를 위해 그대로 누적한다.
+          // 클라우드(Firestore)에도 자동 전송(파일명 제외, 익명). 실패해도 로컬엔 이미 저장됨.
+          sendCorrectionToCloud(record);
         } catch (e) { /* 무시 */ }
       }
       // 분석 완료 후 수동 조정 바를 보이게 하고, 토글 버튼을 연결한다.
@@ -3078,12 +2792,11 @@
         const bar = document.getElementById("manualEditBar");
         if (!bar) return;
         if (canManualEdit()) {
-          bar.style.display = "block";
+          bar.style.display = "flex";
         } else {
           bar.style.display = "none";
           manualEditMode = false;
         }
-        if (typeof window.syncEditToggle === "function") window.syncEditToggle();
         // 보정 기록 현황 표시 + 내보내기 버튼.
         const status = document.getElementById("correctionLogStatus");
         const exportBtn = document.getElementById("exportCorrectionBtn");
@@ -3400,6 +3113,13 @@
               <button id="backToTrainingBtn" class="secondary" type="button">훈련 화면으로</button>
             </div>
           </section>
+          <section class="result-card">
+            <h3>A4 리포트 JPG</h3>
+            <p>핵심 결과를 A4 한 장 크기의 JPG로 만들고 저장할 수 있습니다.</p>
+            <div class="result-actions">
+              <button id="resultJpgBtn" type="button" aria-label="A4 요약 JPG 만들기">A4 리포트 카드 JPG 만들기</button>
+            </div>
+          </section>
           <section id="resultPageContent" class="result-card">
             <p class="result-empty">아직 생성된 리포트가 없습니다. 먼저 분석을 실행하세요.</p>
           </section>
@@ -3409,7 +3129,11 @@
         if (appFooter) document.body.appendChild(appFooter);
         resultPageContent = document.getElementById("resultPageContent");
         backToTrainingBtn = document.getElementById("backToTrainingBtn");
+        resultJpgBtn = document.getElementById("resultJpgBtn");
+        const jpgSection = resultJpgBtn ? resultJpgBtn.closest(".result-card") : null;
+        if (jpgSection && jpgPreviewBox) jpgSection.appendChild(jpgPreviewBox);
         if (backToTrainingBtn) backToTrainingBtn.addEventListener("click", showTrainingPage);
+        if (resultJpgBtn) resultJpgBtn.addEventListener("click", saveJpgReport);
         replayModal = document.createElement("div");
         replayModal.className = "replay-modal";
         replayModal.hidden = true;
@@ -3447,7 +3171,10 @@
           if (manualBtn) {
             if (!canManualEdit()) return;
             manualEditMode = true;
-            if (typeof window.syncEditToggle === "function") window.syncEditToggle();
+            const toggle = document.getElementById("manualEditToggle");
+            const hint = document.getElementById("manualEditHint");
+            if (toggle) toggle.textContent = "수동 조정 끝내기";
+            if (hint) hint.style.display = "inline";
             showTrainingPage();
             if (latestReport && latestReport.segments) renderSegments(latestReport.segments);
             const bar = document.getElementById("manualEditBar");
@@ -3808,10 +3535,6 @@
           ? ""
           : `<div class="metric"><strong>경기품새 참고점수</strong><span>${escapeHtml(latestReport.summary.competition_score_10)} / 10.0</span></div>`;
         resultPageContent.innerHTML = `
-          <div class="report-image-card" id="reportImageCard">
-            <div class="report-image-card__hint">리포트 이미지 · <strong>탭하면 크게 보고 저장</strong></div>
-            <img id="reportImageThumb" alt="리포트 요약 이미지" />
-          </div>
           <div class="result-grid">
             <div class="metric"><strong>품새</strong><span>${escapeHtml(latestReport.poomsae?.name || currentPoomsae().name)}</span></div>
             ${scoreMetric}
@@ -3896,64 +3619,6 @@
             <div class="scene-list">${latestReport.segments.map((segment) => renderSceneCard(segment, false)).join("")}</div>
           </div>
         `;
-        // 리포트 이미지 생성 후 카드에 표시. 탭하면 전체화면으로 확대 + 저장.
-        try {
-          const dataUrl = buildReportImage();
-          const thumb = document.getElementById("reportImageThumb");
-          const card = document.getElementById("reportImageCard");
-          if (dataUrl && thumb) {
-            thumb.src = dataUrl;
-            if (card) {
-              card.addEventListener("click", () => openReportImageModal(dataUrl));
-              card.setAttribute("role", "button");
-              card.setAttribute("tabindex", "0");
-              card.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openReportImageModal(dataUrl); } });
-            }
-          }
-        } catch (error) {
-          console.warn("리포트 이미지 생성 실패", error);
-        }
-      }
-      // 리포트 이미지 전체화면 보기 + 갤러리 저장
-      function openReportImageModal(dataUrl) {
-        let modal = document.getElementById("reportImageModal");
-        if (!modal) {
-          modal = document.createElement("div");
-          modal.id = "reportImageModal";
-          modal.className = "report-image-modal";
-          modal.innerHTML = `
-            <div class="report-image-modal__bar">
-              <button type="button" class="rim-save" id="rimSaveBtn">⬇ 갤러리에 저장</button>
-              <button type="button" class="rim-close" id="rimCloseBtn" aria-label="닫기">✕ 닫기</button>
-            </div>
-            <div class="report-image-modal__scroll"><img id="rimImage" alt="리포트 이미지 전체 보기" /></div>
-            <div class="report-image-modal__tip" id="rimTip">저장이 안 되면 이미지를 길게 눌러 \u201c이미지 저장\u201d을 선택하세요.</div>
-          `;
-          document.body.appendChild(modal);
-          modal.addEventListener("click", (e) => { if (e.target === modal) closeReportImageModal(); });
-          document.getElementById("rimCloseBtn").addEventListener("click", closeReportImageModal);
-          document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeReportImageModal(); });
-        }
-        document.getElementById("rimImage").src = dataUrl;
-        const saveBtn = document.getElementById("rimSaveBtn");
-        saveBtn.onclick = async () => {
-          saveBtn.disabled = true;
-          const prev = saveBtn.textContent;
-          saveBtn.textContent = "저장 중…";
-          const result = await saveReportImage(dataUrl);
-          const tip = document.getElementById("rimTip");
-          if (result === "shared") { saveBtn.textContent = "✓ 저장됨"; }
-          else if (result === "downloaded") { saveBtn.textContent = "✓ 내려받음"; if (tip) tip.textContent = "다운로드 폴더에 저장되었습니다. 갤러리에 안 보이면 이미지를 길게 눌러 저장하세요."; }
-          else { saveBtn.textContent = prev; if (tip) tip.textContent = "자동 저장이 막혔습니다. 이미지를 길게 눌러 \u201c이미지 저장\u201d을 선택하세요."; }
-          setTimeout(() => { saveBtn.disabled = false; saveBtn.textContent = prev; }, 2200);
-        };
-        modal.hidden = false;
-        document.body.style.overflow = "hidden";
-      }
-      function closeReportImageModal() {
-        const modal = document.getElementById("reportImageModal");
-        if (modal) modal.hidden = true;
-        document.body.style.overflow = "";
       }
       function saveBlob(blob, filename) {
         const url = URL.createObjectURL(blob);
@@ -4022,12 +3687,11 @@
         reportOutput.value = text || "아직 생성된 리포트가 없습니다. 먼저 평가를 실행하세요.";
         showResultPage();
       }
-      // 리포트를 캔버스에 그려 JPG dataURL을 반환(저장/미리보기 공통 사용)
-      function buildReportImage() {
-        if (!latestReport) return null;
+      function saveJpgReport() {
+        if (!latestReport) return;
         const canvas = document.createElement("canvas");
         canvas.width = 1400;
-        canvas.height = 2200;
+        canvas.height = 1980;
         const ctx = canvas.getContext("2d");
         const poomsaeName = latestReport.poomsae?.name || currentPoomsae().name;
         const avg = latestReport.summary.competition_score_10;
@@ -4122,101 +3786,41 @@
           bar("서기 안정성", stanceAvg, 110, 895, 790);
         }
 
-        // 우선 보완할 구간 — 긴 피드백 대신 핵심 한 줄만, 줄바꿈 높이에 맞춰 동적 배치(겹침 방지)
-        // 각 구간의 짧은 핵심 코칭만 뽑는다.
-        function shortCue(segment) {
-          const fb = String(segment.feedback || "");
-          const m = fb.match(/우선 연습 포인트:\s*(.+)$/);
-          if (m) return m[1].trim();
-          // 안정적인 구간은 마지막 안내 문장만
-          const tail = fb.split(/[.!]\s/).filter(Boolean).pop();
-          return (tail || fb).trim();
-        }
-        // 동적 높이 측정을 위해 먼저 각 항목의 줄 수를 계산
-        const itemFont = 23;        // 본문 글자 크기(축소)
-        const titleFont = 27;
-        const lineGap = itemFont * 1.45;
-        const cueWidth = 1090;
-        function countLines(value, w, size) {
-          ctx.font = `400 ${size}px Arial, "Malgun Gothic", sans-serif`;
-          let line = "", lines = 1;
-          for (const ch of value) {
-            const test = line + ch;
-            if (ctx.measureText(test).width > w && line) { lines++; line = ch; }
-            else line = test;
-          }
-          return lines;
-        }
-        const cues = topWeak.map((seg) => shortCue(seg));
-        // 패널 높이 동적 계산
-        let needed = 60; // 헤더 여백
-        const itemHeights = cues.map((cue) => {
-          const lines = countLines(cue, cueWidth, itemFont);
-          return 38 + lines * lineGap + 22; // 제목+본문+간격
-        });
-        const panelH = needed + itemHeights.reduce((a, b) => a + b, 0) + 20;
-
-        rr(70, 970, 1260, panelH, 18, "#ffffff", "#d9dee8");
+        rr(70, 970, 1260, 520, 18, "#ffffff", "#d9dee8");
         text("우선 보완할 구간", 110, 1010, 30, "#111827", "800");
         let y = 1070;
         topWeak.forEach((segment, index) => {
           rr(110, y, 72, 52, 12, "#eef4ff");
           text(String(index + 1), 138, y + 9, 28, "#174ea6", "800");
           const segmentTitle = trainingMode === "exam" ? `${segment.orderLabel || segment.order}. ${segment.name}` : `${segment.orderLabel || segment.order}. ${segment.name} (${segment.competitionScore10.toFixed(1)}점)`;
-          text(segmentTitle, 210, y, titleFont, "#111827", "800");
-          wrap(cues[index], 210, y + 38, cueWidth, itemFont, "#6b7280");
-          y += itemHeights[index];
+          text(segmentTitle, 210, y, 27, "#111827", "800");
+          wrap(compactFeedback(segment.feedback, 112).summary, 210, y + 38, 1060, 22, "#6b7280");
+          y += 108;
         });
 
-        // 안내·생성시각은 패널 아래로 동적 배치
-        const noticeY = 970 + panelH + 40;
-        rr(70, noticeY, 1260, 170, 18, "#fff4df", "#f4c56a");
-        text("안내", 110, noticeY + 35, 28, "#92400e", "800");
-        wrap("이 결과는 영상 관절 좌표 기반 수련 피드백입니다. 실제 물리적 힘이나 공식 심사 판정을 직접 측정하지 않습니다.", 110, noticeY + 78, 1160, 24, "#78350f");
-        text(`Generated · ${new Date().toLocaleString()}`, 70, noticeY + 220, 22, "#6b7280");
-        const contentBottom = noticeY + 260;
+        rr(70, 1530, 1260, 170, 18, "#fff4df", "#f4c56a");
+        text("안내", 110, 1565, 28, "#92400e", "800");
+        wrap("이 결과는 영상 관절 좌표 기반 수련 피드백입니다. 실제 물리적 힘이나 공식 심사 판정을 직접 측정하지 않습니다.", 110, 1608, 1160, 24, "#78350f");
+        text(`Generated · ${new Date().toLocaleString()}`, 70, 1780, 22, "#6b7280");
 
-        // 실제 내용 높이에 맞춰 잘라내기(아래 빈 공간 제거)
-        let exportCanvas = canvas;
-        if (contentBottom < canvas.height - 10) {
-          const cropped = document.createElement("canvas");
-          cropped.width = canvas.width;
-          cropped.height = Math.round(contentBottom);
-          const cctx = cropped.getContext("2d");
-          cctx.drawImage(canvas, 0, 0);
-          exportCanvas = cropped;
-        }
-        const dataUrl = exportCanvas.toDataURL("image/jpeg", 0.92);
-        return dataUrl;
-      }
-      // 이미지를 기기에 저장(갤러리/다운로드). 모바일은 Web Share(파일)로 '사진에 저장'을 유도하고,
-      // 안 되면 다운로드로 폴백한다.
-      async function saveReportImage(dataUrl) {
-        const fileName = `품새리포트-${latestReport?.poomsae?.id || "report"}.jpg`;
-        try {
-          const res = await fetch(dataUrl);
-          const blob = await res.blob();
-          const file = new File([blob], fileName, { type: "image/jpeg" });
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: "품새 리포트" });
-            return "shared";
-          }
-        } catch (error) {
-          // 공유 취소/미지원 → 다운로드 폴백
-        }
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+        jpgPreview.src = dataUrl;
+        jpgOpenLink.href = dataUrl;
+        jpgPreviewBox.style.display = "grid";
+
         try {
           const a = document.createElement("a");
           a.href = dataUrl;
-          a.download = fileName;
+          a.download = `poomsae-${latestReport.poomsae?.id || "report"}-a4-card-report.jpg`;
           a.rel = "noopener";
           document.body.appendChild(a);
           a.click();
           a.remove();
-          return "downloaded";
         } catch (error) {
-          console.warn("이미지 저장이 브라우저에서 막혔습니다.", error);
-          return "blocked";
+          console.warn("JPG download was blocked by the browser.", error);
         }
+
+        reportOutput.value = "A4 리포트 JPG가 생성되었습니다.\n\nPC: 자동 저장이 안 되면 `JPG 새 탭으로 열기`를 눌러 저장하세요.\n폰/태블릿: 이미지를 길게 눌러 사진으로 저장하세요.";
       }
       function formatDuration(seconds) {
         return Number.isFinite(seconds) ? `${seconds.toFixed(1)}초` : "-";
@@ -5817,6 +5421,39 @@
           </div>
         `;
       }
+      function compactFeedback(value, maxChars = 92) {
+        const full = String(value ?? "").replace(/\s+/g, " ").trim();
+        if (!full) return { summary: "-", full: "", expandable: false };
+        const sentenceParts = full.match(/[^.!?。！？]+[.!?。！？]?/g) || [full];
+        let summary = sentenceParts[0].trim();
+        if (summary.length < 44 && sentenceParts[1]) summary = `${summary} ${sentenceParts[1].trim()}`.trim();
+        if (summary.length > maxChars) {
+          const clipped = summary.slice(0, maxChars).trim();
+          const lastSpace = clipped.lastIndexOf(" ");
+          summary = (lastSpace > 40 ? clipped.slice(0, lastSpace) : clipped).trim();
+        }
+        return {
+          summary,
+          full,
+          expandable: full.length > summary.length + 10
+        };
+      }
+      function segmentFeedbackMarkup(value) {
+        const feedback = compactFeedback(value);
+        const details = feedback.expandable
+          ? `
+            <details class="segment-feedback-details">
+              <summary>전체 설명 보기</summary>
+              <p class="segment-feedback-full">${escapeHtml(feedback.full)}</p>
+            </details>`
+          : "";
+        return `
+          <div class="segment-feedback">
+            <span class="segment-feedback-summary"><b>핵심</b> ${escapeHtml(feedback.summary)}</span>
+            ${details}
+          </div>
+        `;
+      }
       function renderSegments(results) {
         segmentsEl.innerHTML = "";
         for (const result of results) {
@@ -5840,31 +5477,27 @@
           row.setAttribute("role", "button");
           row.setAttribute("aria-label", `${result.order}번 ${result.name} 리플레이`);
           const editControls = canManualEdit() ? `
-            <div class="segment-edit" style="display:${manualEditMode ? "flex" : "none"}">
-              <div class="segment-edit__q">이 구간이 잘못 잡혔나요?</div>
-              <div class="seg-edit__grid">
-                ${result.order > 1 ? `<button type="button" class="seg-edit-btn seg-merge" data-seg="${result.order - 1}"><span class="seg-edit-btn__main">↑ 위 동작과 합치기</span><span class="seg-edit-btn__sub">두 칸이 한 동작일 때</span></button>` : ""}
-                <button type="button" class="seg-edit-btn seg-split${result.order > 1 ? "" : " seg-edit-btn--full"}" data-seg="${result.order - 1}"><span class="seg-edit-btn__main">✂ 둘로 나누기</span><span class="seg-edit-btn__sub">한 칸에 두 동작일 때</span></button>
-                ${result.order > 1 ? `
-                <button type="button" class="seg-edit-btn boundary-nudge" data-boundary="${result.order - 1}" data-delta="-0.2"><span class="seg-edit-btn__main">◀ 더 일찍 시작</span><span class="seg-edit-btn__sub">시작점 0.2초 앞으로</span></button>
-                <button type="button" class="seg-edit-btn boundary-nudge" data-boundary="${result.order - 1}" data-delta="0.2"><span class="seg-edit-btn__main">더 늦게 시작 ▶</span><span class="seg-edit-btn__sub">시작점 0.2초 뒤로</span></button>` : ""}
-              </div>
+            <div class="segment-edit" style="display:${manualEditMode ? "flex" : "none"};gap:6px;flex-wrap:wrap;margin-top:8px">
+              ${result.order > 1 ? `<button type="button" class="secondary seg-merge" data-seg="${result.order - 1}" style="font-size:12px;padding:4px 8px">↑ 위 구간과 합치기</button>` : ""}
+              <button type="button" class="secondary seg-split" data-seg="${result.order - 1}" style="font-size:12px;padding:4px 8px">⊟ 둘로 나누기</button>
               ${result.order > 1 ? `
-              <button type="button" class="seg-edit__more" data-more="${result.order - 1}">시간 직접 입력</button>
-              <div class="boundary-controls" data-boundary="${result.order - 1}" hidden>
-                <label>이 구간 시작
-                  <input class="boundary-time-input" data-boundary="${result.order - 1}" type="number" step="0.05" inputmode="decimal" value="${result.startTime.toFixed(2)}" aria-label="${result.order}번 시작 시간(초)" />
-                </label>
-                <span class="small">초</span>
-                <button type="button" class="seg-apply-btn boundary-apply" data-boundary="${result.order - 1}">적용</button>
-              </div>` : ""}
+                <div class="boundary-controls" data-boundary="${result.order - 1}">
+                  <span class="small">시작 경계</span>
+                  <button type="button" class="secondary boundary-nudge" data-boundary="${result.order - 1}" data-delta="-0.1" style="font-size:12px;padding:4px 8px">-0.1초</button>
+                  <button type="button" class="secondary boundary-nudge" data-boundary="${result.order - 1}" data-delta="0.1" style="font-size:12px;padding:4px 8px">+0.1초</button>
+                  <label>직접
+                    <input class="boundary-time-input" data-boundary="${result.order - 1}" type="number" step="0.05" inputmode="decimal" value="${result.startTime.toFixed(2)}" aria-label="${result.order}번 시작 경계 시간" />
+                  </label>
+                  <span class="small">초</span>
+                </div>` : ""}
             </div>` : "";
           const connTag = result.connectionTag
             ? `<span class="conn-tag" style="display:inline-block;margin-top:6px;font-size:11px;color:#1d6fa5;background:#e7f2fb;border-radius:10px;padding:2px 8px">↔ ${result.connectionTag} · 앞 동작과 한 자리에서 이어집니다</span>`
             : "";
+          const feedbackMarkup = segmentFeedbackMarkup(result.feedback);
           row.innerHTML = `
             <div class="segment-head">
-              <strong><span class="segment-number">${String(result.order).padStart(2, "0")}.</span>${result.name}</strong>
+              <strong><span class="segment-number">${String(result.order).padStart(2, "0")}.</span>${escapeHtml(result.name)}</strong>
               <span class="status ${result.type}">${result.label}</span>
             </div>
             <div class="segment-media">
@@ -5872,14 +5505,14 @@
               <span>${result.startTime.toFixed(1)}-${result.endTime.toFixed(1)}초</span>
             </div>
             <div class="segment-body">
-              <span class="segment-feedback">${result.feedback}</span>
+              ${feedbackMarkup}
               ${connTag}
               ${scoreBars}
+              ${editControls}
             </div>
             <div class="segment-score">
               <span>${trainingMode === "exam" ? "확인" : result.competitionScore10.toFixed(1)}</span>
             </div>
-            ${editControls}
           `;
           segmentsEl.appendChild(row);
         }
@@ -5902,41 +5535,13 @@
               adjustBoundary(idx, current + delta);
             });
           });
-          segmentsEl.querySelectorAll(".seg-edit__more").forEach((btn) => {
-            btn.addEventListener("click", (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              const idx = btn.dataset.more;
-              const panel = segmentsEl.querySelector(`.boundary-controls[data-boundary="${idx}"]`);
-              if (!panel) return;
-              const showing = panel.hasAttribute("hidden");
-              if (showing) { panel.removeAttribute("hidden"); btn.textContent = "직접 입력 닫기"; }
-              else { panel.setAttribute("hidden", ""); btn.textContent = "시간 직접 입력"; }
-            });
-          });
           segmentsEl.querySelectorAll(".boundary-time-input").forEach((input) => {
             input.addEventListener("click", (e) => e.stopPropagation());
-            input.addEventListener("keydown", (e) => {
-              e.stopPropagation();
-              if (e.key === "Enter") {
-                e.preventDefault();
-                input.blur();
-                adjustBoundary(Number(input.dataset.boundary), Number(input.value));
-              }
-            });
+            input.addEventListener("keydown", (e) => e.stopPropagation());
             input.addEventListener("change", (e) => {
               e.preventDefault();
               e.stopPropagation();
               adjustBoundary(Number(input.dataset.boundary), Number(input.value));
-            });
-          });
-          segmentsEl.querySelectorAll(".boundary-apply").forEach((btn) => {
-            btn.addEventListener("click", (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              const idx = btn.dataset.boundary;
-              const input = segmentsEl.querySelector(`.boundary-time-input[data-boundary="${idx}"]`);
-              if (input) adjustBoundary(Number(idx), Number(input.value));
             });
           });
         }
@@ -6115,8 +5720,9 @@
         replayWeakBtn.disabled = true;
         reanalyzeBtn.disabled = !selectedFile || !videoDecodeReady(video);
         reportOutput.value = "";
-        if (jpgPreviewBox) jpgPreviewBox.style.display = "none";
-        if (jpgPreview) jpgPreview.removeAttribute("src");
+        jpgPreviewBox.style.display = "none";
+        jpgPreview.removeAttribute("src");
+        jpgOpenLink.href = "#";
         segmentsEl.innerHTML = "";
         detectRateText.textContent = "-";
         powerScoreText.textContent = trainingMode === "exam" ? "문제점 확인" : "-";
@@ -6424,19 +6030,8 @@
         if (segCount <= 0) return;
         // 동작 배분: 구간 수에 맞춰 동작을 순서대로 1:1 매핑(구간이 동작보다 적으면 뒤 동작을 마지막에 묶음).
         const results = [];
-        // 성능: 이전 결과의 스냅샷을 (시작,끝) 시간 기준으로 캐시해 두고,
-        // 시간이 그대로인 구간은 영상 재탐색(seek) 없이 스냅샷을 재사용한다.
-        const prevSnapByTime = new Map();
-        if (latestReport && Array.isArray(latestReport.segments)) {
-          for (const s of latestReport.segments) {
-            if (s && s.snapshot) {
-              const key = `${Number(s.startTime).toFixed(2)}_${Number(s.endTime).toFixed(2)}`;
-              prevSnapByTime.set(key, s.snapshot);
-            }
-          }
-        }
         isAnalyzing = true;
-        setProgress(Number(progress.value || 100), "수정한 구간을 다시 계산하는 중입니다… 잠시만요.");
+        setProgress(Number(progress.value || 100), "수동 조정 내용을 반영하는 중입니다.");
         try {
           for (let i = 0; i < segCount; i += 1) {
             const segStart = boundaries[i];
@@ -6479,14 +6074,10 @@
             const reusable = selectReusableSegmentFrames(bc.frames || [], segStart, segEnd, sampleCount);
             const frames = reusable.length ? reusable : (bc.frames || []).filter((f) => f.time >= segStart && f.time < segEnd);
             const metrics = evaluateSegment(primary, frames, { view: lastViewForRun });
-            // 스냅샷: 구간 내 맺음 시점. 시간이 그대로면 이전 스냅샷 재사용(영상 재탐색 생략).
+            // 스냅샷: 구간 내 맺음 시점.
             const compTime = (segStart + segLen * 0.82);
-            const snapKey = `${Number(segStart).toFixed(2)}_${Number(segEnd).toFixed(2)}`;
-            let snapshot = prevSnapByTime.get(snapKey) || "";
-            if (!snapshot) {
-              // 수동 조정은 속도가 중요: fast seek(페인트 완료 대기 생략)로 캡처.
-              try { await waitForSeek(compTime, true); await waitForPaint(); snapshot = captureVideoSnapshot(); } catch (e) { snapshot = ""; }
-            }
+            let snapshot = "";
+            try { await waitForSeek(compTime); snapshot = captureVideoSnapshot(); } catch (e) { snapshot = ""; }
             results.push({
               order: i + 1, orderLabel,
               id: primary ? primary.id : `${selectedPoomsaeKey}_segment_${i + 1}`,
@@ -6522,7 +6113,6 @@
       // 인접 두 구간 합치기: i번째 경계(내부 경계)를 제거.
       async function mergeSegments(i) {
         if (!canManualEdit()) return;
-        if (isAnalyzing) return; // 처리 중 연타 방지
         const b = lastBoundaryCache.boundaries.slice();
         if (i < 1 || i > b.length - 2) return; // 내부 경계만 제거 가능
         // 1단계 기록: 자동이 둔 경계(b[i])를 사용자가 없앴다 = 두 동작을 한 동작으로 봐야 한다.
@@ -6538,7 +6128,6 @@
       // 한 구간 둘로 나누기: seg i를 절반(또는 지정 시각)에서 분할.
       async function splitSegment(i, atTime) {
         if (!canManualEdit()) return;
-        if (isAnalyzing) return; // 처리 중 연타 방지
         const b = lastBoundaryCache.boundaries.slice();
         if (i < 0 || i > b.length - 2) return;
         const s = b[i], e = b[i + 1];
@@ -6556,47 +6145,23 @@
         b.splice(i + 1, 0, Number(mid.toFixed(3)));
         await rebuildSegmentsFromBoundaries(b, i, "구간을 둘로 나눴습니다.");
       }
-      // 경계 시간 미세조정: 내부 경계 i를 newTime으로 이동.
-      // 구간이 매우 짧아 막힐 때는 인접 경계도 함께 밀어 최소 폭(0.1초)을 확보한다.
+      // 경계 시간 미세조정: 내부 경계 i를 newTime으로 이동(앞뒤 구간을 침범하지 않게 가드).
       async function adjustBoundary(i, newTime) {
         if (!canManualEdit()) return;
-        if (isAnalyzing) return; // 처리 중 연타 방지
         const b = lastBoundaryCache.boundaries.slice();
         if (i < 1 || i > b.length - 2) return;
-        const MIN = 0.1; // 구간 최소 폭
+        const lo = b[i - 1] + 0.1, hi = b[i + 1] - 0.1;
         const autoTime = b[i];
-        let target = Number(newTime);
-        if (!Number.isFinite(target)) return;
-        const duration = (Number.isFinite(video.duration) && video.duration > 0) ? video.duration : b[b.length - 1];
-        target = clamp(target, MIN, Math.max(duration - MIN, MIN));
-
-        // 앞으로 당기는데 앞 구간이 좁으면 → 앞 경계들을 연쇄로 같이 당겨 공간 확보.
-        if (target < b[i]) {
-          b[i] = target;
-          for (let k = i - 1; k >= 1; k -= 1) {
-            if (b[k] > b[k + 1] - MIN) b[k] = b[k + 1] - MIN; else break;
-          }
-          if (b[0] > b[1] - MIN) b[0] = Math.max(0, b[1] - MIN);
-        } else if (target > b[i]) {
-          // 뒤로 미는데 뒤 구간이 좁으면 → 뒤 경계들을 연쇄로 같이 밀기.
-          b[i] = target;
-          for (let k = i + 1; k < b.length - 1; k += 1) {
-            if (b[k] < b[k - 1] + MIN) b[k] = b[k - 1] + MIN; else break;
-          }
-          if (b[b.length - 1] < b[b.length - 2] + MIN) b[b.length - 1] = b[b.length - 2] + MIN;
-        } else {
-          // 변화 없음: 끝까지 막힌 경우 안내.
-          setProgress(Number(progress.value || 100), "더 이상 이 방향으로 옮길 수 없습니다(영상 끝/시작에 닿음).");
-          return;
-        }
-        const moved = Number((b[i] - autoTime).toFixed(3));
+        const userTime = clamp(Number(newTime), lo, hi);
+        // 1단계 기록: 자동 경계(autoTime)를 사용자가 userTime으로 옮겼다 = 오차 = userTime - autoTime.
         recordCorrection("adjust", {
           boundary_index: i,
           auto_time: Number(autoTime.toFixed(3)),
-          user_time: Number(b[i].toFixed(3)),
-          delta_seconds: moved
+          user_time: Number(userTime.toFixed(3)),
+          delta_seconds: Number((userTime - autoTime).toFixed(3))
         });
-        await rebuildSegmentsFromBoundaries(b, i, moved < 0 ? "시작을 더 앞으로 옮겼습니다." : "시작을 더 뒤로 옮겼습니다.");
+        b[i] = userTime;
+        await rebuildSegmentsFromBoundaries(b, i, "시작 경계를 이동했습니다.");
       }
       // 수집된 보정 기록을 화면에 요약/내보내기 위한 헬퍼.
       function correctionLogSummary() {
@@ -7171,8 +6736,9 @@
         replayWeakBtn.disabled = true;
         latestReport = null;
         reportOutput.value = "";
-        if (jpgPreviewBox) jpgPreviewBox.style.display = "none";
-        if (jpgPreview) jpgPreview.removeAttribute("src");
+        jpgPreviewBox.style.display = "none";
+        jpgPreview.removeAttribute("src");
+        jpgOpenLink.href = "#";
         segmentsEl.innerHTML = "";
         video.pause();
         // 분석 중에는 사용자가 영상을 직접 조작하면 seek가 충돌하므로 컨트롤을 잠근다.
@@ -7422,8 +6988,9 @@
         replayAllBtn.disabled = true;
         replayWeakBtn.disabled = true;
         reportOutput.value = "";
-        if (jpgPreviewBox) jpgPreviewBox.style.display = "none";
-        if (jpgPreview) jpgPreview.removeAttribute("src");
+        jpgPreviewBox.style.display = "none";
+        jpgPreview.removeAttribute("src");
+        jpgOpenLink.href = "#";
         segmentsEl.innerHTML = "";
         closeReplayModal();
         analyzeBtn.disabled = true;
@@ -7490,8 +7057,9 @@
         replayAllBtn.disabled = true;
         replayWeakBtn.disabled = true;
         reportOutput.value = "";
-        if (jpgPreviewBox) jpgPreviewBox.style.display = "none";
-        if (jpgPreview) jpgPreview.removeAttribute("src");
+        jpgPreviewBox.style.display = "none";
+        jpgPreview.removeAttribute("src");
+        jpgOpenLink.href = "#";
         segmentsEl.innerHTML = "";
         detectRateText.textContent = "-";
         powerScoreText.textContent = trainingMode === "exam" ? "문제점 확인" : "-";
@@ -7562,45 +7130,12 @@
       // 수동 조정 토글: 켜면 각 구간에 합치기/나누기 버튼이 나타난다.
       (function () {
         const toggle = document.getElementById("manualEditToggle");
-        const body = document.getElementById("manualEditBody");
-        function syncEditToggle() {
-          if (toggle) {
-            toggle.setAttribute("aria-pressed", manualEditMode ? "true" : "false");
-            toggle.textContent = manualEditMode ? "✓ 수정 끝내기" : "✏️ 수정 켜기";
-          }
-          if (body) body.hidden = !manualEditMode;
-        }
-        window.syncEditToggle = syncEditToggle;
-        if (toggle) toggle.addEventListener("click", async () => {
-          const wasEditing = manualEditMode;
+        const hint = document.getElementById("manualEditHint");
+        if (toggle) toggle.addEventListener("click", () => {
           manualEditMode = !manualEditMode;
-          if (manualEditMode) {
-            // 수정 켜기: 이번 세션 보정 카운터 초기화.
-            editSessionCorrectionCount = 0;
-            syncEditToggle();
-            if (latestReport && latestReport.segments) renderSegments(latestReport.segments);
-          } else if (wasEditing && editSessionCorrectionCount > 0) {
-            // 수정 끝내기: 이번 세션에 실제로 보정한 게 있으면, 자동 대비 '최종 결과'만
-            // 한 번에 Firebase로 보낸다(중간 과정은 보내지 않아 신뢰도 ↑).
-            syncEditToggle();
-            if (latestReport && latestReport.segments) renderSegments(latestReport.segments);
-            setProgress(Number(progress.value || 100), "수정 결과를 보내는 중…");
-            const result = await sendFinalCorrectionToCloud();
-            if (result.sent) {
-              setProgress(Number(progress.value || 100), "수정한 최종 결과를 저장했습니다. 분석 개선에 반영됩니다.");
-            } else if (result.reason === "unchanged") {
-              setProgress(Number(progress.value || 100), "자동 결과와 같아 저장할 변경이 없습니다.");
-            } else if (result.reason === "offline") {
-              setProgress(Number(progress.value || 100), "지금은 연결이 안 돼 저장하지 못했습니다. 인터넷 연결 후 다시 시도해 주세요.");
-            } else {
-              setProgress(Number(progress.value || 100), "수정 결과 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.");
-            }
-            editSessionCorrectionCount = 0;
-          } else {
-            // 보정 없이 그냥 끈 경우: 보낼 것도 없음.
-            syncEditToggle();
-            if (latestReport && latestReport.segments) renderSegments(latestReport.segments);
-          }
+          toggle.textContent = manualEditMode ? "수동 조정 끝내기" : "구간 수동 조정";
+          if (hint) hint.style.display = manualEditMode ? "inline" : "none";
+          if (latestReport && latestReport.segments) renderSegments(latestReport.segments);
         });
         const exportBtn = document.getElementById("exportCorrectionBtn");
         if (exportBtn) exportBtn.addEventListener("click", exportCorrectionLog);
@@ -7719,14 +7254,14 @@
       replayAllBtn.addEventListener("click", replayWholeVideo);
       replayWeakBtn.addEventListener("click", replayWeakestSegment);
       segmentsEl.addEventListener("click", (event) => {
-        if (event.target.closest(".segment-edit")) return;
+        if (event.target.closest(".segment-edit, .segment-feedback-details")) return;
         const row = event.target.closest(".segment");
         if (!row) return;
         openVideoReplay(Number(row.dataset.start), Number(row.dataset.end), row.getAttribute("aria-label"));
       });
       segmentsEl.addEventListener("keydown", (event) => {
         if (event.key !== "Enter" && event.key !== " ") return;
-        if (event.target.closest(".segment-edit")) return;
+        if (event.target.closest(".segment-edit, .segment-feedback-details")) return;
         const row = event.target.closest(".segment");
         if (!row) return;
         event.preventDefault();
@@ -7740,6 +7275,7 @@
       showReportBtn.addEventListener("click", showResultPage);
       jpgBtn.addEventListener("click", () => {
         showResultPage();
+        saveJpgReport();
       });
       window.addEventListener("pagehide", () => {
         closeReplayModal();
