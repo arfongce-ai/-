@@ -2000,6 +2000,154 @@
       .camera-view-tab.active .cv-cams { color: var(--brand-strong); }
       .camera-view-tab strong { font-size: 16px; line-height: 1.2; margin: 0; }
       .camera-view-tab span { font-size: 12px; line-height: 1.35; }
+      .multi-device-panel {
+        display: grid;
+        gap: 12px;
+        margin-top: 12px;
+        padding: 13px;
+        border: 1px solid var(--panel-line);
+        border-radius: var(--radius-sm);
+        background: color-mix(in srgb, var(--panel-2) 88%, var(--brand-soft));
+      }
+      .multi-device-head {
+        display: grid;
+        gap: 4px;
+      }
+      .multi-device-head span {
+        width: fit-content;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: var(--brand-soft);
+        color: var(--brand-strong);
+        font-size: 11px;
+        font-weight: 900;
+      }
+      .multi-device-head strong {
+        color: var(--text);
+        font-size: 16px;
+      }
+      .multi-device-head p,
+      .multi-device-ready {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+      .multi-device-ready.is-ready {
+        color: var(--good);
+        font-weight: 900;
+      }
+      .device-map {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .device-node {
+        min-height: 82px;
+        display: grid;
+        align-content: center;
+        gap: 4px;
+        padding: 10px;
+        border: 1px dashed var(--panel-line);
+        border-radius: 10px;
+        background: var(--panel);
+        color: var(--muted);
+      }
+      .device-node.is-needed {
+        border-style: solid;
+        border-color: color-mix(in srgb, var(--brand) 54%, var(--panel-line));
+        background: var(--brand-soft);
+        color: var(--text);
+      }
+      .device-node span {
+        width: 26px;
+        height: 26px;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--panel-2);
+        color: var(--brand-strong);
+        font-weight: 900;
+        font-size: 13px;
+      }
+      .device-node b {
+        color: inherit;
+        font-size: 14px;
+      }
+      .device-node small {
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.35;
+      }
+      .device-flow {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .device-flow div {
+        min-height: 64px;
+        padding: 9px 10px;
+        border-radius: 9px;
+        background: var(--panel);
+        color: var(--text);
+        font-size: 12px;
+        line-height: 1.4;
+        font-weight: 800;
+      }
+      .device-flow small {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+      .upload-slot {
+        display: grid;
+        gap: 7px;
+        padding: 12px;
+        border: 1px solid var(--panel-line);
+        border-radius: var(--radius-sm);
+        background: var(--panel-2);
+      }
+      .upload-slot.is-ready {
+        border-color: color-mix(in srgb, var(--good) 58%, var(--panel-line));
+        box-shadow: inset 4px 0 0 var(--good);
+      }
+      .upload-slot.is-needed:not(.is-ready) {
+        box-shadow: inset 4px 0 0 var(--caution);
+      }
+      .upload-status {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.4;
+      }
+      .upload-slot.is-ready .upload-status {
+        color: var(--good);
+      }
+      @media (min-width: 769px) {
+        .upload-slot {
+          grid-template-columns: minmax(170px, .62fr) minmax(0, 1.38fr);
+          align-items: center;
+        }
+        .upload-slot .upload-status {
+          grid-column: 1 / -1;
+        }
+      }
+      @media (max-width: 768px) {
+        .device-map,
+        .device-flow {
+          grid-template-columns: 1fr;
+        }
+        .device-node {
+          min-height: 66px;
+          grid-template-columns: 32px minmax(0, 1fr);
+          align-items: center;
+        }
+        .device-node small {
+          grid-column: 2;
+        }
+      }
     </style>
   </head>
   <body>
@@ -2128,23 +2276,50 @@
               <summary>이렇게 찍으면 돼요 (체크리스트)</summary>
               <div class="program-guide-body" id="cameraViewChecklistBody"></div>
             </details>
+            <div class="multi-device-panel" id="multiDevicePanel">
+              <div class="multi-device-head">
+                <span>PC · 태블릿 · 폰 공통</span>
+                <strong id="deviceModeTitle">정면 1대</strong>
+                <p id="deviceModeText">촬영한 영상을 이 기기에서 선택해 분석합니다.</p>
+              </div>
+              <div class="device-map" aria-label="카메라 배치">
+                <div class="device-node is-needed" data-device-node="front">
+                  <span>1</span><b>정면</b><small>몸 앞 0도 · 기준 영상</small>
+                </div>
+                <div class="device-node" data-device-node="side">
+                  <span>2</span><b>측면</b><small>왼쪽 옆 90도 · 깊이/보폭</small>
+                </div>
+                <div class="device-node" data-device-node="diagonal">
+                  <span>3</span><b>대각선</b><small>오른쪽 앞 45도 · 궤적 보완</small>
+                </div>
+              </div>
+              <div class="device-flow" aria-label="기기별 사용 순서">
+                <div>PC에서 분석<small>폰·태블릿으로 찍은 뒤 PC로 보내서 아래 칸에 넣기</small></div>
+                <div>태블릿에서 분석<small>파일/사진 앱에서 영상을 고르고 분석 시작</small></div>
+                <div>폰에서 분석<small>한 기기에서 찍은 영상을 선택하거나 공유받은 영상 넣기</small></div>
+              </div>
+              <p class="multi-device-ready" id="multiDeviceReady">1번 정면 영상이 준비되면 분석할 수 있습니다.</p>
+            </div>
           </div>
 
           <!-- 4단계: 영상 넣고 분석 -->
           <div class="wizard-step" data-step="4">
             <div class="wizard-steplabel">4단계 / 4</div>
             <h3 class="wizard-steptitle">영상을 넣고 시작해요</h3>
-            <div class="control-grid" id="fileInputAWrap">
+            <div class="control-grid upload-slot is-needed" id="fileInputAWrap">
               <div class="field-label" id="fileInputALabel" style="margin:0 0 6px;">정면 영상 <span id="fileInputAHint">1번 카메라(앞에서)</span></div>
               <input id="fileInput" type="file" accept="video/mp4,video/*" />
+              <p class="upload-status" id="uploadStatusA">1번 정면 영상 대기 중</p>
             </div>
-            <div class="control-grid dual-only" id="fileInputBWrap" hidden style="margin-top:8px;">
+            <div class="control-grid upload-slot dual-only" id="fileInputBWrap" hidden style="margin-top:8px;">
               <div class="field-label" style="margin:0 0 6px;">측면 영상 <span>2번 카메라(왼쪽 옆 90°)</span></div>
               <input id="fileInputB" type="file" accept="video/mp4,video/*" />
+              <p class="upload-status" id="uploadStatusB">2번 측면 영상 대기 중</p>
             </div>
-            <div class="control-grid triple-only" id="fileInputCWrap" hidden style="margin-top:8px;">
+            <div class="control-grid upload-slot triple-only" id="fileInputCWrap" hidden style="margin-top:8px;">
               <div class="field-label" style="margin:0 0 6px;">대각선 영상 <span>3번 카메라(오른쪽 앞 45°)</span></div>
               <input id="fileInputC" type="file" accept="video/mp4,video/*" />
+              <p class="upload-status" id="uploadStatusC">3번 대각선 영상 대기 중</p>
             </div>
             <div class="field-label">구간 감지 민감도 <span>동작 전환점이 잘못 잡히면 높여 보세요</span></div>
             <select id="boundarySensitivitySelect" aria-label="구간 감지 민감도">
@@ -3442,6 +3617,102 @@
       function modeLabel() {
         return trainingMode === "exam" ? "수련품새" : "경기품새";
       }
+      const DEVICE_MODE_COPY = {
+        front: {
+          title: "정면 1대",
+          text: "가장 기본 방식입니다. 1번 정면 영상만 넣으면 바로 분석할 수 있습니다.",
+          nodes: ["front"],
+          ready: "1번 정면 영상이 준비되면 분석할 수 있습니다.",
+          missing: "1번 정면 영상을 넣어 주세요."
+        },
+        diagonal: {
+          title: "대각선 1대",
+          text: "한 대만 쓸 때 전후 이동과 궤적을 조금 더 보기 좋은 방식입니다.",
+          nodes: ["front"],
+          ready: "1번 대각선 영상이 준비되면 분석할 수 있습니다.",
+          missing: "1번 대각선 영상을 넣어 주세요."
+        },
+        dual: {
+          title: "정면 + 측면 2대",
+          text: "정면은 좌우 대칭과 서기, 측면은 깊이·보폭·맺음을 보완해 함께 분석합니다.",
+          nodes: ["front", "side"],
+          ready: "1번 정면과 2번 측면 영상이 모두 준비되면 융합 분석을 시작할 수 있습니다.",
+          missing: "1번 정면 영상과 2번 측면 영상을 모두 넣어 주세요."
+        },
+        triple: {
+          title: "정면 + 측면 + 대각선 3대",
+          text: "세 각도를 신뢰도 가중으로 합쳐 폐색을 줄이고 가장 안정적으로 분석합니다.",
+          nodes: ["front", "side", "diagonal"],
+          ready: "1번 정면, 2번 측면, 3번 대각선 영상이 모두 준비되면 세 각도 융합 분석을 시작할 수 있습니다.",
+          missing: "1번 정면, 2번 측면, 3번 대각선 영상을 모두 넣어 주세요."
+        }
+      };
+      function shortFileLabel(file) {
+        if (!file) return "";
+        const mb = file.size ? ` · ${(file.size / 1024 / 1024).toFixed(1)}MB` : "";
+        const name = String(file.name || "선택됨");
+        return `${name.length > 34 ? `${name.slice(0, 18)}…${name.slice(-12)}` : name}${mb}`;
+      }
+      function setUploadSlotState(wrapId, statusId, file, needed, ready, label) {
+        const wrap = document.getElementById(wrapId);
+        const status = document.getElementById(statusId);
+        if (!wrap) return;
+        wrap.classList.toggle("is-needed", needed);
+        wrap.classList.toggle("is-ready", needed && ready);
+        if (status) {
+          status.textContent = !needed
+            ? `${label} 영상은 현재 촬영 방식에서 필요하지 않습니다.`
+            : ready
+              ? `${label} 준비 완료: ${shortFileLabel(file)}`
+              : `${label} 영상을 넣어 주세요.`;
+        }
+      }
+      function setDeviceNode(role, number, title, helper) {
+        const node = document.querySelector(`[data-device-node="${role}"]`);
+        if (!node) return;
+        const no = node.querySelector("span");
+        const name = node.querySelector("b");
+        const small = node.querySelector("small");
+        if (no) no.textContent = number;
+        if (name) name.textContent = title;
+        if (small) small.textContent = helper;
+      }
+      function updateMultiDeviceUi() {
+        const copy = DEVICE_MODE_COPY[cameraView] || DEVICE_MODE_COPY.front;
+        const title = document.getElementById("deviceModeTitle");
+        const text = document.getElementById("deviceModeText");
+        const readyText = document.getElementById("multiDeviceReady");
+        if (title) title.textContent = copy.title;
+        if (text) text.textContent = copy.text;
+        if (cameraView === "diagonal") {
+          setDeviceNode("front", "1", "대각선", "오른쪽 앞 45도 · 단일 영상");
+        } else {
+          setDeviceNode("front", "1", "정면", "몸 앞 0도 · 기준 영상");
+        }
+        setDeviceNode("side", "2", "측면", "왼쪽 옆 90도 · 깊이/보폭");
+        setDeviceNode("diagonal", "3", "대각선", "오른쪽 앞 45도 · 궤적 보완");
+        document.querySelectorAll("[data-device-node]").forEach((node) => {
+          node.classList.toggle("is-needed", copy.nodes.includes(node.dataset.deviceNode));
+        });
+        const isDiagSingle = cameraView === "diagonal";
+        const needsB = cameraView === "dual" || cameraView === "triple";
+        const needsC = cameraView === "triple";
+        const mainReady = !!selectedFile && videoDecodeReady(video);
+        const sideReady = !!selectedFileB;
+        const diagReady = !!selectedFileC;
+        setUploadSlotState("fileInputAWrap", "uploadStatusA", selectedFile, true, mainReady, isDiagSingle ? "1번 대각선" : "1번 정면");
+        setUploadSlotState("fileInputBWrap", "uploadStatusB", selectedFileB, needsB, sideReady, "2번 측면");
+        setUploadSlotState("fileInputCWrap", "uploadStatusC", selectedFileC, needsC, diagReady, "3번 대각선");
+        const allReady = cameraView === "triple" ? mainReady && sideReady && diagReady
+          : cameraView === "dual" ? mainReady && sideReady
+          : mainReady;
+        if (readyText) {
+          readyText.textContent = allReady
+            ? `${copy.title} 준비 완료. 분석 시작을 누르면 ${cameraView === "front" || cameraView === "diagonal" ? "단일 영상 분석" : "다중 각도 융합 분석"}을 시작합니다.`
+            : copy.missing;
+          readyText.classList.toggle("is-ready", allReady);
+        }
+      }
       function updateCameraViewUi() {
         const info = CAMERA_VIEW_INFO[cameraView] || CAMERA_VIEW_INFO.front;
         document.querySelectorAll("[data-view]").forEach((tab) => {
@@ -3506,6 +3777,7 @@
         if (cameraView === "dual") ready = hasMain && !!selectedFileB;
         else if (cameraView === "triple") ready = hasMain && !!selectedFileB && !!selectedFileC;
         if (typeof analyzeBtn !== "undefined" && analyzeBtn) analyzeBtn.disabled = !ready || isAnalyzing;
+        updateMultiDeviceUi();
       }
       function updateTrainingModeUi() {
         document.querySelectorAll("[data-mode]").forEach((tab) => {
