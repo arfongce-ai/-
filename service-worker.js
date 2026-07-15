@@ -1,24 +1,23 @@
-const CACHE_NAME = "poomsae-training-root-offline-engine-v7-data-coverage";
-const APP_URL = "./www/index.html";
+const CACHE_NAME = "poomsae-training-v9-taegeuk-3-8-corrected";
+const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  APP_URL,
-  "./www/assets/app-icon-192.png",
-  "./www/assets/app-icon-512.png",
-  "./www/assets/app-icon-1024.png",
-  "./www/assets/momgagym-logo.jpg",
-  "./www/assets/partner-taekwondo-logos.png",
-  "./www/assets/fonts/NotoSerifKR-SemiBold.woff2",
-  "./www/assets/fonts/NotoSerifKR-Bold.woff2",
-  "./www/assets/fonts/NotoSerifKR-Black.woff2"
+  "./assets/app-icon-192.png",
+  "./assets/app-icon-512.png",
+  "./assets/app-icon-1024.png",
+  "./assets/momgagym-logo.jpg",
+  "./assets/partner-taekwondo-logos.png",
+  "./assets/fonts/NotoSerifKR-SemiBold.woff2",
+  "./assets/fonts/NotoSerifKR-Bold.woff2",
+  "./assets/fonts/NotoSerifKR-Black.woff2"
 ];
 const ENGINE_ASSETS = [
-  "./www/models/pose_landmarker_lite.task",
-  "./www/vendor/mediapipe/tasks-vision/vision_bundle.mjs",
-  "./www/vendor/mediapipe/tasks-vision/wasm/vision_wasm_internal.js",
-  "./www/vendor/mediapipe/tasks-vision/wasm/vision_wasm_internal.wasm"
+  "./models/pose_landmarker_lite.task",
+  "./vendor/mediapipe/tasks-vision/vision_bundle.mjs",
+  "./vendor/mediapipe/tasks-vision/wasm/vision_wasm_internal.js",
+  "./vendor/mediapipe/tasks-vision/wasm/vision_wasm_internal.wasm"
 ];
 
 self.addEventListener("install", (event) => {
