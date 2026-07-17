@@ -588,6 +588,53 @@
         color: var(--text);
         font: inherit;
       }
+      .boundary-filmstrip {
+        width: 100%;
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 8px 4px 4px;
+        margin-top: 2px;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+      }
+      .filmstrip-frame {
+        flex: 0 0 auto;
+        display: grid;
+        gap: 3px;
+        justify-items: center;
+        padding: 3px;
+        border: 2px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        cursor: pointer;
+        scroll-snap-align: center;
+        min-height: 48px;
+      }
+      .filmstrip-frame img {
+        width: 76px;
+        height: 46px;
+        object-fit: cover;
+        border-radius: 5px;
+        display: block;
+        pointer-events: none;
+      }
+      .filmstrip-frame span {
+        font-size: 10px;
+        color: var(--muted);
+        font-weight: 800;
+        pointer-events: none;
+      }
+      .filmstrip-frame.selected {
+        border-color: var(--brand);
+        background: color-mix(in srgb, var(--brand-soft) 70%, transparent);
+      }
+      .filmstrip-frame.selected span { color: var(--brand-strong); }
+      .filmstrip-loading {
+        color: var(--muted);
+        font-size: 12px;
+        padding: 6px 2px;
+      }
       .segment strong { display: block; margin-bottom: 4px; }
       .segment span, .small {
         color: var(--muted);
@@ -782,6 +829,41 @@
         cursor: pointer;
       }
       .gangyu-toggle span { flex: 1 1 auto; }
+      .beginner-tag {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        background: var(--brand);
+        color: #fff;
+        font-size: 10px;
+        font-style: normal;
+        font-weight: 800;
+        vertical-align: middle;
+        white-space: nowrap;
+      }
+      .advanced-fold {
+        margin-top: 10px;
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        background: var(--panel-2);
+      }
+      .advanced-fold > summary {
+        cursor: pointer;
+        list-style: none;
+        padding: 14px 12px;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        box-sizing: border-box;
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--muted);
+      }
+      .advanced-fold > summary::-webkit-details-marker { display: none; }
+      .advanced-fold > summary::before { content: "▸ "; }
+      .advanced-fold[open] > summary::before { content: "▾ "; }
+      .advanced-fold-body { padding: 0 12px 12px; }
       .repeat-options label {
         justify-content: center;
         gap: 8px;
@@ -2213,7 +2295,7 @@
             <div class="field-label">훈련 목적 <span>고른 것에 따라 결과 보여주는 방식이 달라져요</span></div>
             <div class="poomsae-tabs mode-tabs" role="tablist" aria-label="훈련 목적">
               <button type="button" class="poomsae-tab mode-tab" data-mode="exam">
-                <strong>수련품새</strong>
+                <strong>수련품새 <em class="beginner-tag">처음이면 이거</em></strong>
                 <span>점수 없이, 쉬운 말로 고칠 점 알려주기</span>
               </button>
               <button type="button" class="poomsae-tab mode-tab active" data-mode="competition">
@@ -2226,7 +2308,7 @@
             </div>
             <label class="gangyu-toggle" style="margin-top:10px;">
               <input id="gangyuToggle" type="checkbox" />
-              <span>강유(剛柔) 분석 추가 — 동작별 강(剛)·유(柔)와 완급·리듬을 함께 표시</span>
+              <span><b>고급(선택)</b> · 강유(剛柔) 분석 추가 — 동작이 언제 힘 있게, 언제 부드럽게 나오는지도 함께 보고 싶으면 켜세요. 몰라도 괜찮아요.</span>
             </label>
           </div>
 
@@ -2250,12 +2332,12 @@
           <div class="wizard-step" data-step="3">
             <div class="wizard-steplabel">3단계 / 4</div>
             <h3 class="wizard-steptitle">어떻게 찍었나요?</h3>
-            <div class="field-label">촬영 방식 <span>폰을 몇 대로, 어디에 놓고 찍었나요</span></div>
+            <div class="field-label">촬영 방식 <span>폰 1대로 정면에서 찍으면 가장 쉬워요</span></div>
             <div class="poomsae-tabs mode-tabs camera-view-tabs" role="tablist" aria-label="촬영 방식">
               <div class="camera-view-row">
-                <button type="button" class="poomsae-tab mode-tab camera-view-tab active" data-view="front">
+                <button type="button" class="poomsae-tab mode-tab camera-view-tab active" data-view="front" data-label="정면">
                   <span class="cv-cams">폰 1대</span>
-                  <strong>정면</strong>
+                  <strong>정면 <em class="beginner-tag">추천</em></strong>
                   <span>가장 쉬워요</span>
                 </button>
                 <button type="button" class="poomsae-tab mode-tab camera-view-tab" data-view="diagonal">
@@ -2264,19 +2346,26 @@
                   <span>앞뒤도 조금 보여요</span>
                 </button>
               </div>
-              <div class="camera-view-row">
-                <button type="button" class="poomsae-tab mode-tab camera-view-tab" data-view="dual">
-                  <span class="cv-cams">폰 2대</span>
-                  <strong>정면 + 측면</strong>
-                  <span>더 정확해요</span>
-                </button>
-                <button type="button" class="poomsae-tab mode-tab camera-view-tab" data-view="triple">
-                  <span class="cv-cams">폰 3대</span>
-                  <strong>3방향</strong>
-                  <span>정면+측면+대각선 · 가장 정확</span>
-                </button>
-              </div>
             </div>
+            <details class="advanced-fold" id="multiCameraFold">
+              <summary>더 정확하게 찍고 싶다면 (폰 2~3대, 선택)</summary>
+              <div class="advanced-fold-body">
+                <div class="poomsae-tabs mode-tabs camera-view-tabs">
+                  <div class="camera-view-row">
+                    <button type="button" class="poomsae-tab mode-tab camera-view-tab" data-view="dual">
+                      <span class="cv-cams">폰 2대</span>
+                      <strong>정면 + 측면</strong>
+                      <span>더 정확해요</span>
+                    </button>
+                    <button type="button" class="poomsae-tab mode-tab camera-view-tab" data-view="triple">
+                      <span class="cv-cams">폰 3대</span>
+                      <strong>3방향</strong>
+                      <span>정면+측면+대각선 · 가장 정확</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </details>
             <div class="code camera-view-guide" id="cameraViewGuide" style="margin-top:10px;"></div>
             <details class="program-guide camera-view-checklist" id="cameraViewChecklist" style="margin-top:10px;">
               <summary>이렇게 찍으면 돼요 (체크리스트)</summary>
@@ -2327,12 +2416,17 @@
               <input id="fileInputC" type="file" accept="video/mp4,video/*" />
               <p class="upload-status" id="uploadStatusC">3번 대각선 영상 대기 중</p>
             </div>
-            <div class="field-label">구간 감지 민감도 <span>동작 전환점이 잘못 잡히면 높여 보세요</span></div>
-            <select id="boundarySensitivitySelect" aria-label="구간 감지 민감도">
-              <option value="0.65">보통 · 경계 이동 적음</option>
-              <option value="0.82">높음 · 빠른 분석</option>
-              <option value="0.95" selected>매우 높음 · 권장</option>
-            </select>
+            <details class="advanced-fold" id="sensitivityFold">
+              <summary>동작이 잘못 나뉘면 여기서 조정 (고급, 보통은 그대로 두세요)</summary>
+              <div class="advanced-fold-body">
+                <div class="field-label" style="margin-top:0">구간 감지 민감도 <span>동작 전환점이 잘못 잡히면 높여 보세요</span></div>
+                <select id="boundarySensitivitySelect" aria-label="구간 감지 민감도">
+                  <option value="0.65">보통 · 안정적으로</option>
+                  <option value="0.82">높음 · 빠르게</option>
+                  <option value="0.95" selected>매우 높음 · 정확하게(권장)</option>
+                </select>
+              </div>
+            </details>
             <div class="field-label">분석 실행 <span>영상이 준비되면 시작할 수 있어요</span></div>
             <div class="primary-actions">
               <button id="analyzeBtn" disabled>분석 시작</button>
@@ -2430,7 +2524,7 @@
         <p id="dataCoverageNote" class="movement-estimate-note" style="display:none"></p>
         <div id="manualEditBar" style="display:none;margin:10px 0 12px;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;background:#fff7ed;border:1px solid #fdba74;border-radius:10px">
           <button type="button" id="manualEditToggle" class="primary" style="font-size:14px;font-weight:700">✏️ 구간 수동 조정</button>
-          <span id="manualEditHint" class="small" style="color:var(--muted)">원본 영상은 바꾸지 않고 분석 구간만 바꿉니다. 조정하면 바뀐 구간이 바로 재생됩니다.</span>
+          <span id="manualEditHint" class="small" style="color:var(--muted)">원본 영상은 그대로 두고 분석 구간만 바꿔요. 각 구간에서 "🎞 프레임으로 찾기"를 누르면 사진을 보고 탭으로 정확한 지점을 고를 수 있어요.</span>
           <span id="correctionLogStatus" class="small" style="color:var(--muted)"></span>
           <button type="button" id="restoreAutoBtn" class="secondary" style="font-size:12px;display:none">자동 결과로 되돌리기</button>
           <button type="button" id="exportCorrectionBtn" class="secondary" style="font-size:12px;display:none">보정 기록 내보내기</button>
@@ -3772,6 +3866,8 @@
           tab.classList.toggle("active", on);
           tab.setAttribute("aria-selected", on ? "true" : "false");
         });
+        const multiFoldEl = document.getElementById("multiCameraFold");
+        if (multiFoldEl) multiFoldEl.open = (cameraView === "dual" || cameraView === "triple");
         const guideEl = document.getElementById("cameraViewGuide");
         if (guideEl) {
           const badges = `
@@ -3866,7 +3962,7 @@
             <div class="metric"><strong>구간 수</strong><span>${latestReport.segments.length}</span></div>
           </div>
           <div class="result-card" style="margin-top:14px;">
-            <h3>판정 범위 및 교차검증 안내</h3>
+            <h3>${trainingMode === "exam" ? "이 결과에서 알 수 있는 것" : "판정 범위 및 교차검증 안내"}</h3>
             <ul class="list">
               ${summaryItems.map((item) => `<li class="${borderClass(item.type)}">${escapeHtml(item.text)}</li>`).join("")}
             </ul>
@@ -3911,10 +4007,10 @@
           <div class="result-card" style="margin-top:14px;">
             <div class="result-section-title">
               <div>
-                <h3>2. 핵심 모션 매칭 피드백</h3>
+                <h3>2. ${trainingMode === "exam" ? "시선·자세·발동작 확인" : "시선·자세·발동작 핵심 체크"}</h3>
                 <p class="small">시선, 중심·서기, 차기 회수 항목을 영상 좌표의 판정 가능 범위와 함께 표시합니다.</p>
               </div>
-              <span class="badge">교차검증</span>
+              <span class="badge">체크리스트</span>
             </div>
             <ul class="list">
               ${keyMotionFeedback(latestReport.segments).map((item) => `<li class="${borderClass(item.type)}"><b>${escapeHtml(item.label)}:</b> ${escapeHtml(item.text)}</li>`).join("")}
@@ -3923,7 +4019,7 @@
           <div class="result-card" style="margin-top:14px;">
             <div class="result-section-title">
               <div>
-                <h3>3. 지도자 추천 피드백 및 훈련법</h3>
+                <h3>3. ${trainingMode === "exam" ? "다음에 연습할 점" : "추천 훈련법"}</h3>
                 <p class="small">${trainingMode === "competition"
                   ? "어느 항목을 어떻게 고쳐야 점수가 오르는지, 수정 우선순위 순으로 짚어 드립니다."
                   : "가장 반복되는 문제와 분절·균형 훈련을 우선순위로 제안합니다."}</p>
@@ -3937,7 +4033,7 @@
           </div>
           <div class="result-card" style="margin-top:14px;">
             <div class="result-section-title">
-              <div><h3>전체 부분</h3><p class="small">전체 동작마다 가장 중요한 문제 최대 2개만 표시합니다.</p></div>
+              <div><h3>동작 하나씩 자세히 보기</h3><p class="small">전체 동작마다 가장 중요한 문제 최대 2개만 표시합니다.</p></div>
               <span class="badge">${latestReport.segments.length}개</span>
             </div>
             <div class="scene-list">${latestReport.segments.map((segment) => renderSceneCard(segment, false)).join("")}</div>
@@ -4011,12 +4107,17 @@
         reportOutput.value = text || "아직 생성된 리포트가 없습니다. 먼저 평가를 실행하세요.";
         showResultPage();
       }
-      function saveJpgReport() {
+      function loadImageAsync(src) {
+        if (!src) return Promise.resolve(null);
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(null);
+          img.src = src;
+        });
+      }
+      async function saveJpgReport() {
         if (!latestReport) return;
-        const canvas = document.createElement("canvas");
-        canvas.width = 1400;
-        canvas.height = 1980;
-        const ctx = canvas.getContext("2d");
         const poomsaeName = latestReport.poomsae?.name || currentPoomsae().name;
         const avg = latestReport.summary.competition_score_10;
         const detectRate = Math.round(latestReport.summary.detection_rate * 100);
@@ -4025,6 +4126,23 @@
           .slice()
           .sort((a, b) => a.powerScore - b.powerScore)
           .slice(0, 4);
+        // 캡처된 동작 프레임을 카드에 그리려면 캔버스 작업 전에 이미지 로드를 먼저 끝내야 한다.
+        const topWeakShots = await Promise.all(topWeak.map((segment) => loadImageAsync(segment.snapshot)));
+
+        // 우선 보완할 구간 카드 높이는 구간 수·사진에 따라 달라지므로 캔버스 생성 전에 미리 계산한다.
+        // (그린 뒤에 canvas.height를 바꾸면 기존 그림이 전부 지워지기 때문에 사전 계산이 필수.)
+        const weakRowH = 150;
+        const weakHeaderH = 60;
+        const weakSectionTop = 970;
+        const weakSectionH = weakHeaderH + topWeak.length * weakRowH + 24;
+        const noticeTop = weakSectionTop + weakSectionH + 40;
+        const footerY = noticeTop + 170 + 80;
+        const canvasHeight = footerY + 60;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = 1400;
+        canvas.height = canvasHeight;
+        const ctx = canvas.getContext("2d");
 
         function rr(x, y, w, h, r, fill, stroke) {
           ctx.beginPath();
@@ -4076,6 +4194,35 @@
           rr(x + 150, y + 7, Math.max(0, Math.min(w, w * value / 100)), 20, 10, "#1665d8");
           text(String(value), x + 150 + w + 20, y - 2, 26, "#111827", "800");
         }
+        // 캡처된 동작 프레임을 라운드 박스에 비율 유지(letterbox)로 그린다. 캡처가 없으면 안내 문구로 대체.
+        function shot(img, x, y, w, h, radius = 12) {
+          rr(x, y, w, h, radius, "#eef1f6", "#d9dee8");
+          if (img && img.naturalWidth) {
+            const scale = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+            const dw = img.naturalWidth * scale;
+            const dh = img.naturalHeight * scale;
+            const dx = x + (w - dw) / 2;
+            const dy = y + (h - dh) / 2;
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + w - radius, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+            ctx.lineTo(x + w, y + h - radius);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+            ctx.lineTo(x + radius, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(img, dx, dy, dw, dh);
+            ctx.restore();
+            rr(x, y, w, h, radius, null, "#d9dee8");
+          } else {
+            text("장면 없음", x + w / 2 - 34, y + h / 2 - 10, 18, "#9aa4b2", "600");
+          }
+        }
 
         ctx.fillStyle = "#f7f8fb";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -4110,22 +4257,29 @@
           bar("서기 안정성", stanceAvg, 110, 895, 790);
         }
 
-        rr(70, 970, 1260, 520, 18, "#ffffff", "#d9dee8");
-        text("우선 보완할 구간", 110, 1010, 30, "#111827", "800");
-        let y = 1070;
+        rr(70, weakSectionTop, 1260, weakSectionH, 18, "#ffffff", "#d9dee8");
+        text("우선 보완할 구간", 110, weakSectionTop + 40, 30, "#111827", "800");
+        const badgeSize = 40, shotW = 190, shotH = 120;
+        let y = weakSectionTop + weakHeaderH + 20;
         topWeak.forEach((segment, index) => {
-          rr(110, y, 72, 52, 12, "#eef4ff");
-          text(String(index + 1), 138, y + 9, 28, "#174ea6", "800");
+          const rowTop = y;
+          const badgeY = rowTop + (shotH - badgeSize) / 2;
+          rr(110, badgeY, badgeSize, badgeSize, 10, "#eef4ff");
+          text(String(index + 1), 110 + badgeSize / 2 - 8, badgeY + 7, 24, "#174ea6", "800");
+          const shotX = 110 + badgeSize + 14;
+          shot(topWeakShots[index], shotX, rowTop, shotW, shotH);
+          const textX = shotX + shotW + 26;
+          const textW = 70 + 1260 - 30 - textX;
           const segmentTitle = trainingMode === "exam" ? `${segment.orderLabel || segment.order}. ${segment.name}` : `${segment.orderLabel || segment.order}. ${segment.name} (${segment.competitionScore10.toFixed(1)}점)`;
-          text(segmentTitle, 210, y, 27, "#111827", "800");
-          wrap(compactFeedback(segment.feedback, 112).summary, 210, y + 38, 1060, 22, "#6b7280");
-          y += 108;
+          text(segmentTitle, textX, rowTop, 26, "#111827", "800");
+          wrap(compactFeedback(segment.feedback, 96).summary, textX, rowTop + 40, textW, 21, "#6b7280");
+          y += weakRowH;
         });
 
-        rr(70, 1530, 1260, 170, 18, "#fff4df", "#f4c56a");
-        text("안내", 110, 1565, 28, "#92400e", "800");
-        wrap("이 결과는 영상 관절 좌표 기반 수련 피드백입니다. 실제 물리적 힘이나 공식 심사 판정을 직접 측정하지 않습니다.", 110, 1608, 1160, 24, "#78350f");
-        text(`Generated · ${new Date().toLocaleString()}`, 70, 1780, 22, "#6b7280");
+        rr(70, noticeTop, 1260, 170, 18, "#fff4df", "#f4c56a");
+        text("안내", 110, noticeTop + 35, 28, "#92400e", "800");
+        wrap("이 결과는 영상 관절 좌표 기반 수련 피드백입니다. 실제 물리적 힘이나 공식 심사 판정을 직접 측정하지 않습니다.", 110, noticeTop + 78, 1160, 24, "#78350f");
+        text(`Generated · ${new Date().toLocaleString()}`, 70, footerY, 22, "#6b7280");
 
         const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
         jpgPreview.src = dataUrl;
@@ -4166,6 +4320,43 @@
           console.warn("Snapshot capture failed.", error);
           return "";
         }
+      }
+      // 필름스트립용 작은 썸네일 캡처: 지정 시각으로 빠르게 seek한 뒤 저해상도로 찍는다(정밀 스냅샷보다 가벼움).
+      async function captureThumbAt(time) {
+        try {
+          await waitForSeek(time, true);
+          const sourceWidth = video.videoWidth || 640;
+          const sourceHeight = video.videoHeight || 360;
+          const targetWidth = 120;
+          const targetHeight = Math.max(1, Math.round(sourceHeight / sourceWidth * targetWidth));
+          const canvas = document.createElement("canvas");
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return null;
+          ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+          return { time, dataUrl: canvas.toDataURL("image/jpeg", 0.6) };
+        } catch (error) {
+          console.warn("Thumbnail capture failed.", error);
+          return null;
+        }
+      }
+      // 경계(또는 분할 지점) 주변 프레임을 여러 장 뽑아 눈으로 골라 정확한 시각을 고를 수 있게 한다.
+      // lo/hi를 넘지 않도록 구간을 침범하지 않는 범위로 제한.
+      async function buildFilmstrip(centerTime, lo, hi, windowRadius = 0.9, count = 9) {
+        const safeLo = Number.isFinite(lo) ? lo : 0;
+        const safeHi = Number.isFinite(hi) ? hi : (video.duration || centerTime + windowRadius);
+        const from = Math.max(safeLo, centerTime - windowRadius);
+        const to = Math.min(safeHi, centerTime + windowRadius);
+        const span = Math.max(to - from, 0.02);
+        const n = Math.max(2, count);
+        const times = Array.from({ length: n }, (_, i) => from + (span * i) / (n - 1));
+        const shots = [];
+        for (const t of times) {
+          const shot = await captureThumbAt(t);
+          if (shot) shots.push(shot);
+        }
+        return shots;
       }
       // requestVideoFrameCallback이 있으면 실제 화면에 그려진 프레임의 mediaTime을 사용한다.
       // seeked 이벤트만으로는 디코딩/페인트 완료가 보장되지 않아 분석 포즈와 표시 시각이 어긋난다.
@@ -5804,6 +5995,8 @@
             <div class="segment-edit" style="display:${manualEditMode ? "flex" : "none"};gap:6px;flex-wrap:wrap;margin-top:8px">
               ${result.order > 1 ? `<button type="button" class="secondary seg-merge" data-seg="${result.order - 1}" style="font-size:12px;padding:4px 8px">↑ 위 구간과 합치기</button>` : ""}
               <button type="button" class="secondary seg-split" data-seg="${result.order - 1}" style="font-size:12px;padding:4px 8px">⊟ 둘로 나누기</button>
+              <button type="button" class="secondary split-filmstrip-btn" data-seg="${result.order - 1}" style="font-size:12px;padding:4px 8px">🎞 나눌 지점 찾기</button>
+              <div class="boundary-filmstrip" data-split="${result.order - 1}" hidden></div>
               ${result.order > 1 ? `
                 <div class="boundary-controls" data-boundary="${result.order - 1}">
                   <span class="small">시작 경계</span>
@@ -5813,6 +6006,8 @@
                     <input class="boundary-time-input" data-boundary="${result.order - 1}" type="number" step="0.05" inputmode="decimal" value="${result.startTime.toFixed(2)}" aria-label="${result.order}번 시작 경계 시간" />
                   </label>
                   <span class="small">초</span>
+                  <button type="button" class="secondary boundary-filmstrip-btn" data-boundary="${result.order - 1}" style="font-size:12px;padding:4px 8px">🎞 프레임으로 찾기</button>
+                  <div class="boundary-filmstrip" data-boundary="${result.order - 1}" hidden></div>
                 </div>` : ""}
             </div>` : "";
           const verifyTag = result.needsVerification
@@ -5870,6 +6065,64 @@
               e.preventDefault();
               e.stopPropagation();
               adjustBoundary(Number(input.dataset.boundary), Number(input.value));
+            });
+          });
+          // 경계를 프레임을 보면서 정확히 고르는 필름스트립: 현재 경계 주변 프레임을 뽑아 탭으로 선택.
+          segmentsEl.querySelectorAll(".boundary-filmstrip-btn").forEach((btn) => {
+            btn.addEventListener("click", async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const idx = Number(btn.dataset.boundary);
+              const container = segmentsEl.querySelector(`.boundary-filmstrip[data-boundary="${idx}"]`);
+              const b = lastBoundaryCache?.boundaries;
+              if (!container || !b) return;
+              if (!container.hidden) { container.hidden = true; return; }
+              const current = b[idx];
+              const lo = b[idx - 1] + 0.1, hi = b[idx + 1] - 0.1;
+              container.hidden = false;
+              container.innerHTML = `<span class="filmstrip-loading">프레임 불러오는 중...</span>`;
+              const shots = await buildFilmstrip(current, lo, hi);
+              if (container.hidden) return; // 불러오는 중 사용자가 닫았으면 무시
+              container.innerHTML = shots.length
+                ? shots.map((s) => `<button type="button" class="filmstrip-frame${Math.abs(s.time - current) < 0.05 ? " selected" : ""}" data-time="${s.time.toFixed(3)}"><img src="${s.dataUrl}" alt="${s.time.toFixed(2)}초 지점" /><span>${s.time.toFixed(2)}s</span></button>`).join("")
+                : `<span class="filmstrip-loading">프레임을 가져오지 못했습니다.</span>`;
+              container.querySelectorAll(".filmstrip-frame").forEach((fbtn) => {
+                fbtn.addEventListener("click", (ev) => {
+                  ev.preventDefault();
+                  ev.stopPropagation();
+                  adjustBoundary(idx, Number(fbtn.dataset.time));
+                });
+              });
+            });
+          });
+          // 분할 지점을 프레임을 보면서 고르는 필름스트립: 구간 전체 범위에서 뽑아 탭으로 선택.
+          segmentsEl.querySelectorAll(".split-filmstrip-btn").forEach((btn) => {
+            btn.addEventListener("click", async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const idx = Number(btn.dataset.seg);
+              const container = segmentsEl.querySelector(`.boundary-filmstrip[data-split="${idx}"]`);
+              const b = lastBoundaryCache?.boundaries;
+              if (!container || !b) return;
+              if (!container.hidden) { container.hidden = true; return; }
+              const s = b[idx], segEnd = b[idx + 1];
+              if (!Number.isFinite(s) || !Number.isFinite(segEnd)) return;
+              const mid = (s + segEnd) / 2;
+              const guard = Math.min(0.15, Math.max((segEnd - s) / 2 - 0.01, 0));
+              container.hidden = false;
+              container.innerHTML = `<span class="filmstrip-loading">프레임 불러오는 중...</span>`;
+              const shots = await buildFilmstrip(mid, s + guard, segEnd - guard, (segEnd - s) / 2 - guard);
+              if (container.hidden) return;
+              container.innerHTML = shots.length
+                ? shots.map((sh) => `<button type="button" class="filmstrip-frame" data-time="${sh.time.toFixed(3)}"><img src="${sh.dataUrl}" alt="${sh.time.toFixed(2)}초 지점" /><span>${sh.time.toFixed(2)}s</span></button>`).join("")
+                : `<span class="filmstrip-loading">프레임을 가져오지 못했습니다.</span>`;
+              container.querySelectorAll(".filmstrip-frame").forEach((fbtn) => {
+                fbtn.addEventListener("click", (ev) => {
+                  ev.preventDefault();
+                  ev.stopPropagation();
+                  splitSegment(idx, Number(fbtn.dataset.time));
+                });
+              });
             });
           });
         }
@@ -7425,7 +7678,7 @@
           cameraView = tab.dataset.view || "front";
           updateCameraViewUi();
           const info = CAMERA_VIEW_INFO[cameraView];
-          renderReport([{ type: "caution", text: `촬영 방식을 '${tab.querySelector("strong")?.textContent || cameraView}'으로 설정했습니다. ${info ? info.guide : ""}` }]);
+          renderReport([{ type: "caution", text: `촬영 방식을 '${tab.dataset.label || tab.querySelector("strong")?.textContent || cameraView}'으로 설정했습니다. ${info ? info.guide : ""}` }]);
         });
       });
       if (fileInputB) {
