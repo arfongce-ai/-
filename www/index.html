@@ -2519,8 +2519,8 @@
       </section>
 
       <section style="margin-top: 18px;">
-        <h2 id="segmentTitle">태극 1장 구간별 파워·맺음 평가</h2>
-        <p id="segmentDescription">구간마다 여러 프레임을 분석해 속도, 맺음, 정지 안정성, 서기 안정성을 확인합니다.</p>
+        <h2 id="segmentTitle" style="display:none"></h2>
+        <p id="segmentDescription" style="display:none"></p>
         <p id="dataCoverageNote" class="movement-estimate-note" style="display:none"></p>
         <div id="manualEditBar" style="display:none;margin:10px 0 12px;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;background:#fff7ed;border:1px solid #fdba74;border-radius:10px">
           <button type="button" id="manualEditToggle" class="primary" style="font-size:14px;font-weight:700">✏️ 구간 수동 조정</button>
@@ -3196,8 +3196,8 @@
         movements = buildGenericMovements(selectedPoomsaeKey);
         const poomsae = currentPoomsae();
         const officialCount = OFFICIAL_MOVE_COUNT[selectedPoomsaeKey] || poomsae.count || movements.length;
-        segmentTitle.textContent = `${poomsae.name} 공식 ${officialCount}개 동작 분석`;
-        segmentDescription.textContent = `${poomsae.name}의 공식 동작은 ${officialCount}개입니다. 앱은 준비·기합을 포함해 총 ${movements.length}개 구간으로 나눠 확인하며, 품새 의미상 빠르게 이어지는 동작은 한 연결 장면으로 묶어 설명합니다. 연결 장면과 내부 단계의 정확한 판정은 영상 근거와 지도자 검수를 함께 확인하세요.`;
+        segmentTitle.textContent = `${poomsae.name} · 총 ${officialCount}개 동작`;
+        segmentDescription.textContent = `준비 자세와 기합까지 합쳐서 ${movements.length}개 장면으로 보여드려요.`;
         // [v3.60] 확인된 동작명 수(이미지 전사 자료 기준) vs 공식 동작 수 — 데이터 보완 상태를 정직하게 안내.
         if (dataCoverageNote) {
           const confirmedCount = coreMovementNames(selectedPoomsaeKey).length;
