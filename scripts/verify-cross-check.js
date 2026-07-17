@@ -259,7 +259,7 @@ assertContains(webHtml, "captureVideoSnapshot", "구간 장면 사진 캡처 함
 assertContains(webHtml, "1. 구간별 상세 분석 및", "요청 형식의 구간별 상세 분석 영역 존재");
 assertContains(webHtml, "2. 핵심 모션 매칭 피드백", "요청 형식의 핵심 모션 피드백 영역 존재");
 assertContains(webHtml, "3. 지도자 추천 피드백 및 훈련법", "요청 형식의 지도자 훈련법 영역 존재");
-assertContains(webHtml, "전체 부분", "결과지 전체 영역 존재");
+assertContains(webHtml, "동작 하나씩 자세히 보기", "결과지 전체 영역 존재");
 assertContains(webHtml, "analysisTimestampOffsetMs", "재분석 MediaPipe 타임스탬프 보정 존재");
 assertContains(webHtml, "이미 분석 중입니다", "분석 중 중복 클릭 방지 안내 존재");
 assertContains(webHtml, "poomsae-tab", "v3 품새 구분 탭 UI 존재");
@@ -294,7 +294,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v9-data-coverage", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v12-beginner-friendly-ui", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -361,6 +361,15 @@ assertContains(webHtml, "function briefIssueText(segment)", "전체 부분의 �
 assertContains(webHtml, "확인할 문제:", "전체 부분의 간략한 문제점 문구 존재");
 assertContains(webHtml, "function segmentIssueDetails(segment, limit = 2)", "리포트 카드 핵심 문제 선별 함수 존재");
 assertContains(webHtml, ".slice(0, 4)", "우선 확인 구간을 최대 4개로 제한");
+assertContains(webHtml, "async function saveJpgReport()", "A4 카드 리포트 생성 시 캡처 이미지 로드를 기다리는 비동기 처리 적용");
+assertContains(webHtml, "function loadImageAsync(src)", "캡처 이미지 사전 로드 함수 존재");
+assertContains(webHtml, "function shot(img, x, y, w, h", "A4 카드 리포트에 동작별 캡처 프레임 표시 함수 존재");
+assertContains(webHtml, "topWeakShots[index]", "우선 보완할 구간 카드에 캡처 프레임 연결");
+assertContains(webHtml, "async function buildFilmstrip(", "경계·분할 지점 프레임 필름스트립 생성 함수 존재");
+assertContains(webHtml, "async function captureThumbAt(", "필름스트립용 썸네일 캡처 함수 존재");
+assertContains(webHtml, "boundary-filmstrip-btn", "경계 조정용 프레임 찾기 버튼 존재");
+assertContains(webHtml, "split-filmstrip-btn", "분할 지점용 프레임 찾기 버튼 존재");
+assertContains(webHtml, ".filmstrip-frame {", "필름스트립 프레임 탭 UI 스타일 존재");
 assertContains(webHtml, "동작명 자동 추정", "동작명과 영상 불일치 가능성 안내 존재");
 assertContains(webHtml, "skeletonMotionScore", "관절 각도와 중심 이동을 포함한 스켈레톤 움직임 분석");
 assertContains(webHtml, "chooseCompletionSnapshotTimes", "구간 후반 가장 안정적인 스켈레톤 자세를 대표 장면으로 선택");
