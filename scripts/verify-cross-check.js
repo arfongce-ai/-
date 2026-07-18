@@ -234,7 +234,7 @@ assertContains(readUtf8(capacitorConfigPath), "\"appName\": \"태권도 품새 �
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련품새 · 경기품새", "헤더 훈련 목적 배지 적용");
-assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.63", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
+assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.64", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
@@ -294,7 +294,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v12-beginner-friendly-ui", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v14-stance-cross-check", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -370,6 +370,11 @@ assertContains(webHtml, "async function captureThumbAt(", "필름스트립용 �
 assertContains(webHtml, "boundary-filmstrip-btn", "경계 조정용 프레임 찾기 버튼 존재");
 assertContains(webHtml, "split-filmstrip-btn", "분할 지점용 프레임 찾기 버튼 존재");
 assertContains(webHtml, ".filmstrip-frame {", "필름스트립 프레임 탭 UI 스타일 존재");
+assertContains(webHtml, "function classifyStanceFromLandmarks(", "서기 자동 분류 함수 존재");
+assertContains(webHtml, "function expectedStanceFor(", "동작명에서 기대 서기 추출 함수 존재");
+assertContains(webHtml, "function checkStanceMatch(", "서기 교차검증 함수 존재");
+assertContains(webHtml, "stanceCheck = checkStanceMatch(", "구간 평가에 서기 교차검증 연결");
+assertContains(webHtml, "서기 불일치", "서기 불일치 경고 배지 존재");
 assertContains(webHtml, "동작명 자동 추정", "동작명과 영상 불일치 가능성 안내 존재");
 assertContains(webHtml, "skeletonMotionScore", "관절 각도와 중심 이동을 포함한 스켈레톤 움직임 분석");
 assertContains(webHtml, "chooseCompletionSnapshotTimes", "구간 후반 가장 안정적인 스켈레톤 자세를 대표 장면으로 선택");

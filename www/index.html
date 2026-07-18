@@ -2243,7 +2243,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.63</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.64</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -5768,6 +5768,93 @@
         cos = Math.max(-1, Math.min(1, cos));
         return (Math.acos(cos) * 180) / Math.PI;
       }
+      // ── 서기(자세) 교차검증 ──
+      // 목적: "이 자세가 예쁜가"가 아니라 "이 프레임이 맞는 동작 번호인가"를 확인하는 용도.
+      // 국기원 2026 경기규칙 기본동작(서기) 채점기준의 객관적 수치(각도·체중비)를 근거로 함:
+      //  - 앞굽이: 뒷다리 편다(뒷무릎 거의 일직선), 체중 2/3 앞발.
+      //  - 뒷굽이: 양 무릎 다 굽힘(약 90°씩), 체중은 뒷발.
+      //  - 주춤서기: 무릎-발끝 수직 정렬, 좌우로 넓은 자세, 무릎 둘 다 굽힘.
+      //  - 모아서기: 두 발 붙이고 무릎 곧게 편다(폭 거의 0).
+      // 사람마다 다른 건 "각도의 예쁨"이지 "다리가 펴져 있나 굽어 있나"가 아니므로,
+      // 개인차에 흔들리지 않는 이분법적 특징만 쓴다. 정면 카메라는 앞/뒤 깊이 구분이
+      // 약해 앞굽이 vs 뒷굽이 신뢰도가 낮아지므로, 카메라 각도에 따라 신뢰도를 낮춘다.
+      // 학다리서기·꼬아서기·범서기처럼 드문 자세는 오판 위험이 커서 판별하지 않는다(null).
+      const STANCE_KEYWORDS = [
+        { key: "앞굽이", label: "앞굽이" },
+        { key: "뒷굽이", label: "뒷굽이" },
+        { key: "주춤서기", label: "주춤서기" },
+        { key: "모아서기", label: "모아서기" }
+      ];
+      function expectedStanceFor(movementName) {
+        if (!movementName) return null;
+        for (const s of STANCE_KEYWORDS) {
+          if (movementName.includes(s.key)) return s.label;
+        }
+        return null; // 범서기/학다리서기/꼬아서기/준비서기 등은 판별하지 않음(오판 방지).
+      }
+      function classifyStanceFromLandmarks(landmarks, view) {
+        const lHip = getPoint(landmarks, 23), rHip = getPoint(landmarks, 24);
+        const lKnee = getPoint(landmarks, 25), rKnee = getPoint(landmarks, 26);
+        const lAnkle = getPoint(landmarks, 27), rAnkle = getPoint(landmarks, 28);
+        if (!lHip || !rHip || !lKnee || !rKnee || !lAnkle || !rAnkle) return { category: null, confidence: 0 };
+        const scale = bodyScale(landmarks);
+        if (scale <= 0) return { category: null, confidence: 0 };
+        const lKneeAngle = jointAngleDeg(lHip, lKnee, lAnkle);
+        const rKneeAngle = jointAngleDeg(rHip, rKnee, rAnkle);
+        if (lKneeAngle == null || rKneeAngle == null) return { category: null, confidence: 0 };
+        const straighter = Math.max(lKneeAngle, rKneeAngle);
+        const bent = Math.min(lKneeAngle, rKneeAngle);
+        const widthNorm = distance(lAnkle, rAnkle) / scale;
+        // 정면 카메라는 앞/뒤 비대칭(앞굽이·뒷굽이 구분)에 대한 신뢰도를 낮춘다(깊이 구분 약함).
+        const asymmetryConfidenceBoost = (view === "side" || view === "diagonal") ? 1.0 : 0.7;
+
+        // 둘 다 편 다리(서 있는 자세류): 모아서기 vs 그 외.
+        if (straighter > 155 && bent > 150) {
+          if (widthNorm < 0.35) return { category: "모아서기", confidence: 0.75 };
+          return { category: null, confidence: 0 }; // 나란히서기/앞서기 등 — 이번 버전은 판별 보류
+        }
+        // 한쪽만 편 다리(비대칭): 앞굽이류.
+        if (straighter > 155 && bent < 140) {
+          return { category: "앞굽이", confidence: 0.7 * asymmetryConfidenceBoost };
+        }
+        // 둘 다 굽힌 다리(대칭): 뒷굽이 vs 주춤서기는 폭으로 구분.
+        if (straighter < 145 && bent < 145) {
+          if (widthNorm > 1.5) return { category: "주춤서기", confidence: 0.7 };
+          return { category: "뒷굽이", confidence: 0.65 * asymmetryConfidenceBoost };
+        }
+        return { category: null, confidence: 0 }; // 경계값 — 애매하면 판별하지 않음
+      }
+      // 구간의 완료 시점 부근 프레임들로 서기를 판별하고, 기대 서기와 비교한다.
+      function checkStanceMatch(movement, rawFrames, view) {
+        const expected = expectedStanceFor(movement.name);
+        if (!expected) return null;
+        const detected = rawFrames.filter((f) => f.landmarks);
+        if (detected.length < 3) return { expected, detectedCategory: null, mismatch: false, confidence: 0 };
+        // 완료 시점 부근(마지막 25%) 프레임에서 판별 — 정지 자세가 완성된 구간.
+        const tail = detected.slice(Math.floor(detected.length * 0.75));
+        const votes = {};
+        let confidenceSum = 0, voteCount = 0;
+        for (const f of tail) {
+          const r = classifyStanceFromLandmarks(f.landmarks, view);
+          if (r.category) {
+            votes[r.category] = (votes[r.category] || 0) + 1;
+            confidenceSum += r.confidence;
+            voteCount += 1;
+          }
+        }
+        if (!voteCount) return { expected, detectedCategory: null, mismatch: false, confidence: 0 };
+        const detectedCategory = Object.entries(votes).sort((a, b) => b[1] - a[1])[0][0];
+        const avgConfidence = Number((confidenceSum / voteCount).toFixed(2));
+        // 과반 이상 프레임이 같은 판정일 때만 신뢰(흔들리는 판정은 무시).
+        const agreement = votes[detectedCategory] / voteCount;
+        if (agreement < 0.6) return { expected, detectedCategory: null, mismatch: false, confidence: 0 };
+        return {
+          expected,
+          detectedCategory,
+          mismatch: detectedCategory !== expected,
+          confidence: avgConfidence
+        };
+      }
       // 한 동작 구간에서 주요 관절 각도를 측정한다(정점 부근 프레임들의 중앙값).
       // 2D 한계: 카메라가 잘 보는 관절만 신뢰. 가시성이 낮으면 null(점수 반영 제외).
       // 반환: { straightArm, frontStanceKnee, confidence } — 각도(도)와 신뢰도(0~1).
@@ -5891,6 +5978,7 @@
         });
         const evidence = evidenceScopeFor(movement, { visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore });
         const referenceDeduction = referenceDeductionFor({ visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore });
+        const stanceCheck = checkStanceMatch(movement, rawFrames, view);
         return {
           detected: detectedFrames.length > 0,
           detectionRate: Number((detectedFrames.length / Math.max(frames.length, 1)).toFixed(3)),
@@ -5903,6 +5991,7 @@
           ...competitionScores,
           evidence,
           referenceDeduction,
+          stanceCheck,
           peakSpeed: Number(peakSpeed.toFixed(4)),
           finalSpeed: Number(finalSpeed.toFixed(4)),
           endJitter: Number(endJitter.toFixed(4)),
@@ -6013,6 +6102,9 @@
           const verifyTag = result.needsVerification
             ? `<span class="conn-tag" style="display:inline-block;margin-top:6px;font-size:11px;color:var(--caution);background:var(--caution-soft);border-radius:10px;padding:2px 8px">⚠ 명칭 확인 필요 · 지도자 검수 전까지 참고용입니다</span>`
             : "";
+          const stanceTag = (result.stanceCheck && result.stanceCheck.mismatch && result.stanceCheck.confidence >= 0.5)
+            ? `<span class="conn-tag" style="display:inline-block;margin-top:6px;font-size:11px;color:var(--caution);background:var(--caution-soft);border-radius:10px;padding:2px 8px">⚠ 서기 불일치 · 이 동작은 ${escapeHtml(result.stanceCheck.expected)}이어야 하는데 ${escapeHtml(result.stanceCheck.detectedCategory)}로 보여요 · 경계 확인 필요</span>`
+            : "";
           const connTag = result.connectionTag
             ? `<span class="conn-tag" style="display:inline-block;margin-top:6px;font-size:11px;color:#1d6fa5;background:#e7f2fb;border-radius:10px;padding:2px 8px">↔ ${result.connectionTag} · 앞 동작과 한 자리에서 이어집니다</span>`
             : "";
@@ -6029,6 +6121,7 @@
             <div class="segment-body">
               ${feedbackMarkup}
               ${verifyTag}
+              ${stanceTag}
               ${connTag}
               ${scoreBars}
               ${editControls}
