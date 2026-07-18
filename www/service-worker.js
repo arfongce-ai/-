@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v20-simplify-edit-ui";
+const CACHE_NAME = "poomsae-training-v23-kukkiwon-complete";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",
