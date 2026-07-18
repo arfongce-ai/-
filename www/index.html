@@ -392,7 +392,43 @@
         background: #050505;
         border: 2px solid #263748;
         border-radius: 8px;
+        object-fit: contain;
       }
+      .video-stage {
+        position: relative;
+        width: 100%;
+        line-height: 0;
+      }
+      .skeleton-canvas {
+        position: absolute;
+        left: 0; top: 0;
+        width: 100%; height: 100%;
+        pointer-events: none;
+      }
+      .skeleton-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 8px 0;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .skeleton-toggle input { width: 20px; height: 20px; }
+      .skeleton-legend {
+        display: flex;
+        gap: 12px;
+        font-size: 11px;
+        color: var(--muted);
+        flex-wrap: wrap;
+      }
+      .skeleton-legend span::before {
+        content: "●";
+        margin-right: 4px;
+      }
+      .skeleton-legend .sk-good::before { color: #2ecc71; }
+      .skeleton-legend .sk-caution::before { color: #f1c40f; }
+      .skeleton-legend .sk-bad::before { color: #e74c3c; }
       .sticky-note { display: none; }
       .metrics {
         display: grid;
@@ -2320,7 +2356,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.65</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.68</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -2530,7 +2566,19 @@
 
         <section id="videoSection">
           <div style="margin-top: 0;">
-            <video id="video" controls muted playsinline></video>
+            <div class="video-stage">
+              <video id="video" controls muted playsinline></video>
+              <canvas id="skeletonCanvas" class="skeleton-canvas"></canvas>
+            </div>
+            <div class="skeleton-toggle">
+              <input type="checkbox" id="skeletonToggle" />
+              <label for="skeletonToggle">스켈레톤(관절선) 표시</label>
+              <div class="skeleton-legend">
+                <span class="sk-good">잘 보임</span>
+                <span class="sk-caution">주의</span>
+                <span class="sk-bad">불안정</span>
+              </div>
+            </div>
             <div class="player-controls">
               <div class="playback-settings">
                 <label class="speed-control">
@@ -3261,6 +3309,7 @@
       const video = document.getElementById("video");
       const speedSelect = document.getElementById("speedSelect");
       const loopVideoToggle = document.getElementById("loopVideoToggle");
+      const skeletonToggle = document.getElementById("skeletonToggle");
       const gangyuToggle = document.getElementById("gangyuToggle");
       const loopSegmentToggle = document.getElementById("loopSegmentToggle");
       const replayAllBtn = document.getElementById("replayAllBtn");
@@ -3710,7 +3759,10 @@
               <strong id="replayModalTitle">선택 구간</strong>
               <button id="closeReplayModalBtn" class="secondary" type="button" aria-label="재생창 닫기">닫기</button>
             </div>
-            <video id="replayModalVideo" controls muted playsinline></video>
+            <div class="video-stage">
+              <video id="replayModalVideo" controls muted playsinline></video>
+              <canvas id="replaySkeletonCanvas" class="skeleton-canvas"></canvas>
+            </div>
           </div>
         `;
         document.body.appendChild(replayModal);
@@ -4549,6 +4601,117 @@
       function formatDuration(seconds) {
         return Number.isFinite(seconds) ? `${seconds.toFixed(1)}초` : "-";
       }
+      // ── 녹화 영상 스켈레톤(골격) 오버레이 ──
+      // 데이터 출처: 분석 중 이미 수집된 lastBoundaryCache.frames(영상 전체, 초당 약 2.6샘플).
+      // 새로 촬영/검출하지 않고 재생 시간에 맞춰 보간(interpolate)해서 부드럽게 잇는다.
+      const POSE_CONNECTIONS = [
+        [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+        [11, 23], [12, 24], [23, 24],
+        [23, 25], [25, 27], [27, 29], [27, 31],
+        [24, 26], [26, 28], [28, 30], [28, 32]
+      ];
+      const SKELETON_JOINTS = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
+      let skeletonEnabled = false;
+      function loadSkeletonPref() {
+        try { skeletonEnabled = localStorage.getItem("poomsae-skeleton") === "1"; } catch (e) { skeletonEnabled = false; }
+      }
+      function saveSkeletonPref(value) {
+        try { localStorage.setItem("poomsae-skeleton", value ? "1" : "0"); } catch (e) { /* noop */ }
+      }
+      // 저장된 프레임(sparse) 사이를 재생 시각 t 기준으로 선형 보간한 관절 배열을 만든다.
+      // 간격이 너무 크면(사람이 화면 밖으로 나갔다 옴 등) 보간하지 않고 더 가까운 쪽만 사용.
+      function interpolateLandmarksAt(frames, t) {
+        if (!frames || !frames.length) return null;
+        let before = null, after = null;
+        for (const f of frames) {
+          if (!f.landmarks) continue;
+          if (f.time <= t) { if (!before || f.time > before.time) before = f; }
+          if (f.time >= t) { if (!after || f.time < after.time) after = f; }
+        }
+        if (!before && !after) return null;
+        if (!before) return after.landmarks;
+        if (!after || before === after) return before.landmarks;
+        const span = after.time - before.time;
+        if (!(span > 0)) return before.landmarks;
+        const frac = clamp((t - before.time) / span, 0, 1);
+        if (span > 1.2) return frac < 0.5 ? before.landmarks : after.landmarks;
+        const n = Math.min(before.landmarks.length, after.landmarks.length);
+        const out = [];
+        for (let i = 0; i < n; i += 1) {
+          const a = before.landmarks[i], b = after.landmarks[i];
+          if (!a || !b) { out[i] = a || b || null; continue; }
+          out[i] = {
+            x: a.x + (b.x - a.x) * frac,
+            y: a.y + (b.y - a.y) * frac,
+            visibility: (a.visibility ?? 1) + ((b.visibility ?? 1) - (a.visibility ?? 1)) * frac
+          };
+        }
+        return out;
+      }
+      function skeletonColorFor(visibility) {
+        if (visibility == null) return { stroke: "#e74c3c", dash: [5, 4] };
+        if (visibility >= 0.7) return { stroke: "#2ecc71", dash: [] };
+        if (visibility >= 0.4) return { stroke: "#f1c40f", dash: [] };
+        return { stroke: "#e74c3c", dash: [5, 4] };
+      }
+      // video의 실제 화면 표시 영역(object-fit:contain 레터박스 보정)에 맞춰 관절을 그린다.
+      function drawSkeletonFrame(canvas, videoEl, landmarks) {
+        if (!canvas || !videoEl) return;
+        const rect = videoEl.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const dpr = window.devicePixelRatio || 1;
+        const wantW = Math.round(rect.width * dpr), wantH = Math.round(rect.height * dpr);
+        if (canvas.width !== wantW || canvas.height !== wantH) { canvas.width = wantW; canvas.height = wantH; }
+        const ctx = canvas.getContext("2d");
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, rect.width, rect.height);
+        if (!landmarks) return;
+        const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
+        if (!vw || !vh) return;
+        const boxRatio = rect.width / rect.height;
+        const videoRatio = vw / vh;
+        let drawW, drawH, offX, offY;
+        if (videoRatio > boxRatio) { drawW = rect.width; drawH = rect.width / videoRatio; offX = 0; offY = (rect.height - drawH) / 2; }
+        else { drawH = rect.height; drawW = rect.height * videoRatio; offY = 0; offX = (rect.width - drawW) / 2; }
+        const toXY = (lm) => ({ x: offX + lm.x * drawW, y: offY + lm.y * drawH });
+        ctx.lineWidth = 3;
+        for (const [ai, bi] of POSE_CONNECTIONS) {
+          const a = landmarks[ai], b = landmarks[bi];
+          if (!a || !b) continue;
+          const c = skeletonColorFor(Math.min(a.visibility ?? 1, b.visibility ?? 1));
+          ctx.strokeStyle = c.stroke;
+          ctx.setLineDash(c.dash);
+          const pa = toXY(a), pb = toXY(b);
+          ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        for (const idx of SKELETON_JOINTS) {
+          const lm = landmarks[idx];
+          if (!lm) continue;
+          const c = skeletonColorFor(lm.visibility);
+          const p = toXY(lm);
+          ctx.fillStyle = c.stroke;
+          ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      // 메인/리플레이 팝업 두 영상 모두를 매 프레임 갱신(구간 반복 재생에도 끊김 없이 이어짐).
+      function skeletonRenderLoop() {
+        requestAnimationFrame(skeletonRenderLoop);
+        const targets = [
+          [typeof video !== "undefined" ? video : null, document.getElementById("skeletonCanvas")],
+          [typeof replayVideo !== "undefined" ? replayVideo : null, document.getElementById("replaySkeletonCanvas")]
+        ];
+        for (const [vEl, cEl] of targets) {
+          if (!vEl || !cEl) continue;
+          if (!skeletonEnabled || !lastBoundaryCache || !lastBoundaryCache.frames || !lastBoundaryCache.frames.length) {
+            const ctx = cEl.getContext("2d");
+            if (cEl.width && cEl.height) ctx.clearRect(0, 0, cEl.width, cEl.height);
+            continue;
+          }
+          const lm = interpolateLandmarksAt(lastBoundaryCache.frames, vEl.currentTime);
+          drawSkeletonFrame(cEl, vEl, lm);
+        }
+      }
       function captureVideoSnapshot() {
         try {
           const sourceWidth = video.videoWidth || 640;
@@ -5043,6 +5206,33 @@
           }
           return start + span * 0.78;
         });
+      }
+      // 박수 시점 감지: 손목 두 개가 급격히 가까워졌다가(짝) 다시 벌어지는 패턴을 초반 구간에서 찾는다.
+      // 오디오가 아니라 이미 계산된 관절 좌표(손목)로 판별 — 새 연산 없이 기존 프레임을 재사용.
+      // 확신이 낮으면(뾰족한 다운/근접 정도 부족) null을 반환해 기존 정점 기반 시작점 탐지로 조용히 대체된다.
+      function detectClapMoment(frames, searchEndTime) {
+        const early = frames
+          .filter((f) => f.landmarks && Number.isFinite(f.time) && f.time <= searchEndTime)
+          .slice()
+          .sort((a, b) => a.time - b.time);
+        if (early.length < 5) return null;
+        const wristDist = early.map((f) => {
+          const lw = getPoint(f.landmarks, 15), rw = getPoint(f.landmarks, 16);
+          if (!lw || !rw) return null;
+          const scale = bodyScale(f.landmarks);
+          return scale > 0 ? distance(lw, rw) / scale : null;
+        });
+        let bestIdx = -1, bestScore = -Infinity;
+        for (let i = 1; i < wristDist.length - 1; i += 1) {
+          if (wristDist[i] == null) continue;
+          const before = wristDist[Math.max(0, i - 2)];
+          const after = wristDist[Math.min(wristDist.length - 1, i + 2)];
+          if (before == null || after == null) continue;
+          const drop = Math.min(before, after) - wristDist[i];
+          if (wristDist[i] < 0.5 && drop > bestScore) { bestScore = drop; bestIdx = i; }
+        }
+        if (bestIdx < 0 || bestScore < 0.35) return null; // 뚜렷한 박수 신호 없음 — 기존 방식 사용
+        return early[bestIdx].time;
       }
       function detectActiveMotionRange(duration, motionSamples) {
         const valid = motionSamples.filter((sample) => sample.valid !== false && Number.isFinite(sample.motion));
@@ -5683,6 +5873,16 @@
         const motionSamples = buildMotionSamples(frames);
 
         const activeRange = detectActiveMotionRange(duration, motionSamples);
+        // 박수 감지: 있으면 정점 기반 시작점보다 우선 사용(사용자가 의도적으로 준 신호이므로 더 신뢰).
+        const clapSearchEnd = Math.min(duration, Math.max(activeRange.start + 3, duration * 0.4));
+        const clapTime = detectClapMoment(frames, clapSearchEnd);
+        if (clapTime != null) {
+          activeRange.start = clamp(clapTime + 0.15, 0, duration);
+          activeRange.clapDetected = true;
+          activeRange.clapTime = clapTime;
+        } else {
+          activeRange.clapDetected = false;
+        }
         // ── 영상-분석 통일성 원칙 (v3.44) ──
         // 핵심 교정: 준비자세가 길면(영상 앞 정지가 수 초) N등분이 그 정지를 동작 여러 개로
         // 쪼개, 진짜 1번 동작이 4~5번째로 밀리는 문제가 있었다.
@@ -6515,7 +6715,7 @@
           return "촬영 구도 점검: 머리, 양손, 양발이 화면 안에 들어오도록 카메라를 더 멀리 고정하세요.";
         });
       }
-      function summarize(results, view) {
+      function summarize(results, view, clapInfo) {
         const avg = results.reduce((sum, r) => sum + r.powerScore, 0) / Math.max(results.length, 1);
         const baseCompetitionScore10 = results.reduce((sum, r) => sum + r.competitionScore10, 0) / Math.max(results.length, 1);
         const accuracyScore4 = results.reduce((sum, r) => sum + r.accuracyScore4, 0) / Math.max(results.length, 1);
@@ -6574,6 +6774,13 @@
         const ded01 = results.filter((r) => r.referenceDeduction && r.referenceDeduction.amount === 0.1).length;
         const dedHold = results.filter((r) => r.referenceDeduction && r.referenceDeduction.amount == null).length;
         const estDeduction = (ded03 * 0.3 + ded01 * 0.1);
+        if (clapInfo) {
+          if (clapInfo.clapDetected) {
+            items.push({ type: "good", text: `박수 소리(신호) 감지됨: ${clapInfo.clapTime.toFixed(2)}초 지점부터 분석을 시작했어요.` });
+          } else {
+            items.push({ type: "caution", text: "박수 신호를 찾지 못해 일반적인 방식(첫 큰 동작 기준)으로 시작점을 잡았어요. 다음엔 영상 시작하자마자 크게 박수 한 번 쳐보세요." });
+          }
+        }
         if (trainingMode === "exam") {
           items.push({ type, text: "수련품새 결과입니다. 점수 대신, 동작이 또렷하게 됐는지와 고칠 점을 쉬운 말로 알려드립니다." });
           items.push({ type: clearCount >= totalSegments * 0.7 ? "good" : "caution", text: `또렷하게 잘 된 동작: ${clearCount}개 / ${totalSegments}개${mergedCount ? `, 두 동작이 이어진 구간: ${mergedCount}개` : ""}. 동작 끝에서 잠깐 멈추면 하나씩 더 또렷해져요.` });
@@ -6685,7 +6892,7 @@
           }
         } catch (e) { /* 오디오 분석 실패는 무시(분석은 계속) */ }
         const fusedView = (analysisEfficiency && (analysisEfficiency.triple_view ? "triple" : analysisEfficiency.dual_view ? "dual" : null)) || cameraView;
-        const summary = summarize(results, fusedView);
+        const summary = summarize(results, fusedView, boundaryDetectionForRun ? boundaryDetectionForRun.activeRange : null);
         if (results._kihapNote) summary.items.unshift(results._kihapNote);
         // 분석 품새의 본동작 수가 공식과 다르면(데이터 누락 가능성) 사용자에게 투명하게 안내.
         try {
@@ -6997,7 +7204,7 @@
             // 스냅샷: 구간 내 맺음 시점.
             const compTime = (segStart + segLen * 0.82);
             let snapshot = "";
-            try { await waitForSeek(compTime); snapshot = captureVideoSnapshot(); } catch (e) { snapshot = ""; }
+            try { await waitForSeek(compTime, true); snapshot = captureVideoSnapshot(); } catch (e) { snapshot = ""; }
             results.push({
               order: i + 1, orderLabel,
               id: primary ? primary.id : `${selectedPoomsaeKey}_segment_${i + 1}`,
@@ -7726,7 +7933,8 @@
             }
           }
           const completionTime = boundaryDetection.completionTimes[i] ?? segmentStart + segmentLength * 0.82;
-          const snapshotTime = await waitForSeek(completionTime);
+          // 스냅샷은 화면 참고용이라 정밀 페인트 대기 없이 빠른 seek로 충분(필름스트립과 동일 방식).
+          const snapshotTime = await waitForSeek(completionTime, true);
           snapshot = captureVideoSnapshot();
           const metrics = evaluateSegment(primary, frames, { view: viewForRun });
           // 영상-분석 통일: 표시 번호는 구간 순번이 아니라 실제 동작 번호(moveNo)를 쓴다.
@@ -8156,6 +8364,15 @@
       loopVideoToggle.addEventListener("change", () => {
         video.loop = loopVideoToggle.checked && !mainReplayRange;
       });
+      loadSkeletonPref();
+      if (skeletonToggle) {
+        skeletonToggle.checked = skeletonEnabled;
+        skeletonToggle.addEventListener("change", () => {
+          skeletonEnabled = skeletonToggle.checked;
+          saveSkeletonPref(skeletonEnabled);
+        });
+      }
+      skeletonRenderLoop();
       gangyuToggle.addEventListener("change", () => {
         gangyuMode = gangyuToggle.checked;
         // 이미 분석 결과가 있으면 다시 그려 강유 표시를 즉시 반영한다.

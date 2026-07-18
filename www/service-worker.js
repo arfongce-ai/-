@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v15-partner-banner";
+const CACHE_NAME = "poomsae-training-v18-fast-snapshot-seek";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",

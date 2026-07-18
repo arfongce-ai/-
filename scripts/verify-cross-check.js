@@ -234,7 +234,7 @@ assertContains(readUtf8(capacitorConfigPath), "\"appName\": \"태권도 품새 �
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련품새 · 경기품새", "헤더 훈련 목적 배지 적용");
-assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.65", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
+assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.68", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
@@ -294,7 +294,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v15-partner-banner", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v18-fast-snapshot-seek", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -381,6 +381,17 @@ assertContains(webHtml, "@keyframes partner-marquee", "파트너 배너 흐름 �
 assertContains(webHtml, "prefers-reduced-motion", "파트너 배너 모션 최소화 대응 존재");
 assertContains(webHtml, "id=\"adminModeTrigger\"", "관리자 모드 진입 버튼 존재");
 assertContains(webHtml, "pinInput.value === ADMIN_PIN", "관리자 PIN 확인 로직 존재");
+assertContains(webHtml, "function detectClapMoment(", "박수 시점 감지 함수 존재");
+assertContains(webHtml, "activeRange.clapDetected = true", "박수 감지 시 분석 시작점 우선 적용");
+assertContains(webHtml, "박수 신호를 찾지 못해", "박수 미감지 시 안내 문구 존재");
+assertContains(webHtml, "function interpolateLandmarksAt(", "스켈레톤 좌표 보간 함수 존재");
+assertContains(webHtml, "function drawSkeletonFrame(", "스켈레톤 그리기 함수 존재");
+assertContains(webHtml, "function skeletonRenderLoop(", "스켈레톤 렌더 루프 함수 존재");
+assertContains(webHtml, "id=\"skeletonToggle\"", "스켈레톤 ON/OFF 스위치 존재");
+assertContains(webHtml, "poomsae-skeleton", "스켈레톤 설정 자동 저장(localStorage) 존재");
+assertContains(webHtml, "id=\"replaySkeletonCanvas\"", "구간 반복 재생 창에도 스켈레톤 캔버스 존재");
+assertContains(webHtml, "function summarize(results, view, clapInfo)", "summarize 함수가 박수 정보를 매개변수로 받음(범위 밖 변수 참조 버그 방지)");
+assertContains(webHtml, "summarize(results, fusedView, boundaryDetectionForRun ? boundaryDetectionForRun.activeRange : null)", "summarize 호출부에서 박수 정보를 명시적으로 전달");
 assertContains(webHtml, "동작명 자동 추정", "동작명과 영상 불일치 가능성 안내 존재");
 assertContains(webHtml, "skeletonMotionScore", "관절 각도와 중심 이동을 포함한 스켈레톤 움직임 분석");
 assertContains(webHtml, "chooseCompletionSnapshotTimes", "구간 후반 가장 안정적인 스켈레톤 자세를 대표 장면으로 선택");
