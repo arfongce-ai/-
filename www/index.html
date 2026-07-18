@@ -1605,6 +1605,83 @@
         color: var(--muted);
         text-align: left;
       }
+      /* ── 파트너 배너(하단 흐름 광고) ── */
+      .partner-banner {
+        overflow: hidden;
+        border-top: 1px solid var(--panel-line);
+        border-bottom: 1px solid var(--panel-line);
+        background: #05080b;
+      }
+      .partner-banner-track {
+        display: flex;
+        align-items: center;
+        width: max-content;
+        padding: 10px 0;
+        animation: partner-marquee 10s linear infinite;
+      }
+      .partner-banner:hover .partner-banner-track { animation-play-state: paused; }
+      .partner-banner-track img {
+        height: 44px;
+        display: block;
+        margin: 0 28px;
+      }
+      @keyframes partner-marquee {
+        from { transform: translateX(0); }
+        to { transform: translateX(-50%); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .partner-banner-track {
+          animation: none;
+          width: 100%;
+          justify-content: center;
+        }
+        .partner-banner-track img:nth-child(2) { display: none; }
+      }
+      .admin-mode-trigger {
+        display: block;
+        margin: 10px auto 0;
+        background: none;
+        border: none;
+        color: var(--panel-line);
+        font-size: 11px;
+        opacity: .5;
+        padding: 6px;
+      }
+      .admin-panel-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,.6);
+        display: flex; align-items: flex-end;
+        z-index: 200;
+      }
+      .admin-panel {
+        width: 100%;
+        max-height: 88vh;
+        overflow-y: auto;
+        background: var(--panel);
+        border-radius: 18px 18px 0 0;
+        padding: 20px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+      }
+      .admin-panel label {
+        display: block;
+        font-size: 13px;
+        font-weight: 700;
+        margin: 14px 0 6px;
+        color: var(--text);
+      }
+      .admin-panel input[type="text"],
+      .admin-panel input[type="url"],
+      .admin-panel input[type="datetime-local"],
+      .admin-panel input[type="password"] {
+        width: 100%;
+        min-height: 44px;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel-2);
+        color: var(--text);
+        font: inherit;
+        box-sizing: border-box;
+      }
       .app-footer-inner {
         display: grid;
         grid-template-columns: 118px minmax(0, 1fr);
@@ -2243,7 +2320,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.64</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.65</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -2549,12 +2626,51 @@
       </div>
     </footer>
 
+    <div id="partnerBanner" class="partner-banner" style="display:none">
+      <a id="partnerBannerLink" class="partner-banner-track" href="#" target="_blank" rel="noopener" aria-label="파트너 배너, 눌러서 이동">
+        <img id="partnerBannerImg1" src="" alt="파트너 배너" />
+        <img id="partnerBannerImg2" src="" alt="" aria-hidden="true" />
+      </a>
+    </div>
+    <button type="button" id="adminModeTrigger" class="admin-mode-trigger">관리자 모드</button>
+
+    <div id="adminPanelOverlay" class="admin-panel-overlay" style="display:none">
+      <div class="admin-panel">
+        <h2 style="margin-top:0">관리자 모드 · 배너 설정</h2>
+        <p class="small" id="adminPanelStatus"></p>
+
+        <label for="adminPinInput">관리자 PIN</label>
+        <input type="password" id="adminPinInput" inputmode="numeric" placeholder="PIN 입력" />
+
+        <div id="adminPanelFields" style="display:none">
+          <label for="adminBannerEnabled">
+            <input type="checkbox" id="adminBannerEnabled" style="width:18px;height:18px;vertical-align:middle" /> 배너 노출 사용
+          </label>
+          <label for="adminBannerImage">배너 이미지 주소(URL)</label>
+          <input type="url" id="adminBannerImage" placeholder="https://..." />
+          <label for="adminBannerLink">클릭 시 이동할 주소(URL)</label>
+          <input type="url" id="adminBannerLink" placeholder="https://..." />
+          <label for="adminBannerStart">노출 시작(한국 시간)</label>
+          <input type="datetime-local" id="adminBannerStart" />
+          <label for="adminBannerEnd">노출 종료(한국 시간)</label>
+          <input type="datetime-local" id="adminBannerEnd" />
+          <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
+            <button type="button" class="primary" id="adminBannerSave" style="flex:1;min-height:44px">저장</button>
+            <button type="button" class="secondary" id="adminBannerHideNow" style="min-height:44px">즉시 숨기기</button>
+            <button type="button" class="secondary" id="adminPanelClose" style="min-height:44px">닫기</button>
+          </div>
+        </div>
+        <button type="button" class="secondary" id="adminPinSubmit" style="width:100%;min-height:44px;margin-top:10px">확인</button>
+      </div>
+    </div>
+
     <script type="module">
       // ── Firebase 연동(보정 기록 자동 수집) ──
       // 보정 기록을 사장님 Firestore(momgagym-cms)에 자동으로 모은다.
       // 실패해도(오프라인/차단) 앱 본체는 정상 동작하며, 기록은 로컬에도 항상 저장된다(이중 안전).
       let _fbDB = null;          // Firestore 인스턴스
       let _fbAddDoc = null, _fbCollection = null, _fbServerTs = null;
+      let _fbDoc = null, _fbGetDoc = null, _fbSetDoc = null;
       let _fbReady = false;
       (async function initFirebase() {
         try {
@@ -2571,7 +2687,9 @@
           const app = appMod.initializeApp(firebaseConfig);
           _fbDB = fsMod.getFirestore(app);
           _fbAddDoc = fsMod.addDoc; _fbCollection = fsMod.collection; _fbServerTs = fsMod.serverTimestamp;
+          _fbDoc = fsMod.doc; _fbGetDoc = fsMod.getDoc; _fbSetDoc = fsMod.setDoc;
           _fbReady = true;
+          initPartnerBanner(); // Firebase 준비된 뒤 배너 설정을 불러온다.
         } catch (e) {
           _fbReady = false; // 조용히 실패. 로컬 기록은 계속 동작.
         }
@@ -2585,6 +2703,134 @@
           return true;
         } catch (e) { return false; }
       }
+
+      // ── 파트너 배너(하단 흐름 광고) ──
+      // 저장 위치: Firestore 'app_config/banner' 문서. corrections/momgagym-cms 데이터와 완전히 분리된 새 경로.
+      // 보안: 로그인 시스템이 없어 PIN 방식(관리자 모드 진입 시 확인 + 저장 시 규칙에서도 재확인)을
+      // 씀. 은행 수준 보안은 아님(문서에 pin 필드가 함께 저장되어 기술적으로는 조회 가능) — 회원/매출
+      // 같은 민감 정보가 아닌 홍보 배너용이라 이 정도로 설계함. PIN을 바꾸려면 아래 상수와
+      // firebase/firestore.rules의 값을 함께 바꿔야 함.
+      const ADMIN_PIN = "0713";
+      // datetime-local 입력값("2026-07-20T09:00")을 "한국 시간"으로 해석해 UTC 타임스탬프(ms)로 변환.
+      function parseKSTLocalInput(value) {
+        if (!value) return null;
+        const t = new Date(`${value}:00+09:00`).getTime();
+        return Number.isFinite(t) ? t : null;
+      }
+      // UTC 타임스탬프(ms)를 한국 시간 기준 datetime-local 입력 형식 문자열로 변환(입력창 채우기용).
+      function formatKSTForInput(ms) {
+        if (!Number.isFinite(ms)) return "";
+        const kst = new Date(ms + 9 * 3600 * 1000);
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${kst.getUTCFullYear()}-${pad(kst.getUTCMonth() + 1)}-${pad(kst.getUTCDate())}T${pad(kst.getUTCHours())}:${pad(kst.getUTCMinutes())}`;
+      }
+      function bannerShouldBeVisible(config) {
+        if (!config || !config.enabled) return false;
+        const now = Date.now();
+        if (Number.isFinite(config.startAt) && now < config.startAt) return false;
+        if (Number.isFinite(config.endAt) && now > config.endAt) return false;
+        if (!config.imageUrl) return false;
+        return true;
+      }
+      let _bannerConfigCache = null;
+      let _bannerCheckTimer = null;
+      function applyBannerToDom(config) {
+        const el = document.getElementById("partnerBanner");
+        const link = document.getElementById("partnerBannerLink");
+        const img1 = document.getElementById("partnerBannerImg1");
+        const img2 = document.getElementById("partnerBannerImg2");
+        if (!el || !link || !img1 || !img2) return;
+        const visible = bannerShouldBeVisible(config);
+        el.style.display = visible ? "block" : "none";
+        if (visible) {
+          img1.src = config.imageUrl; img2.src = config.imageUrl;
+          link.href = config.linkUrl || "#";
+        }
+      }
+      async function initPartnerBanner() {
+        try {
+          const snap = await _fbGetDoc(_fbDoc(_fbDB, "app_config", "banner"));
+          _bannerConfigCache = snap.exists() ? snap.data() : null;
+        } catch (e) {
+          _bannerConfigCache = null; // 오프라인/차단이어도 앱은 정상 동작(배너만 안 보임).
+        }
+        applyBannerToDom(_bannerConfigCache);
+        // 앱을 켜둔 채로 종료 시각이 지나면 실시간으로 사라지도록 1분마다 재확인.
+        if (_bannerCheckTimer) clearInterval(_bannerCheckTimer);
+        _bannerCheckTimer = setInterval(() => applyBannerToDom(_bannerConfigCache), 60000);
+      }
+      async function saveBannerConfig(partial) {
+        if (!_fbReady || !_fbDB) return { ok: false, reason: "오프라인 상태라 저장할 수 없어요. 인터넷 연결을 확인해주세요." };
+        try {
+          const payload = { ...partial, pin: ADMIN_PIN };
+          await _fbSetDoc(_fbDoc(_fbDB, "app_config", "banner"), payload);
+          _bannerConfigCache = partial;
+          applyBannerToDom(_bannerConfigCache);
+          return { ok: true };
+        } catch (e) {
+          return { ok: false, reason: "저장에 실패했어요. PIN이 맞는지, 인터넷 연결을 확인해주세요." };
+        }
+      }
+      // ── 관리자 모드 패널 배선 ──
+      (function wireAdminPanel() {
+        const trigger = document.getElementById("adminModeTrigger");
+        const overlay = document.getElementById("adminPanelOverlay");
+        const pinInput = document.getElementById("adminPinInput");
+        const pinSubmit = document.getElementById("adminPinSubmit");
+        const fields = document.getElementById("adminPanelFields");
+        const status = document.getElementById("adminPanelStatus");
+        const closeBtn = document.getElementById("adminPanelClose");
+        const saveBtn = document.getElementById("adminBannerSave");
+        const hideNowBtn = document.getElementById("adminBannerHideNow");
+        if (!trigger || !overlay) return;
+
+        function resetPanel() {
+          pinInput.value = "";
+          pinInput.style.display = "";
+          pinSubmit.style.display = "";
+          fields.style.display = "none";
+          status.textContent = "";
+        }
+        function unlockFields() {
+          const c = _bannerConfigCache || {};
+          document.getElementById("adminBannerEnabled").checked = !!c.enabled;
+          document.getElementById("adminBannerImage").value = c.imageUrl || "";
+          document.getElementById("adminBannerLink").value = c.linkUrl || "";
+          document.getElementById("adminBannerStart").value = formatKSTForInput(c.startAt);
+          document.getElementById("adminBannerEnd").value = formatKSTForInput(c.endAt);
+          pinInput.style.display = "none";
+          pinSubmit.style.display = "none";
+          fields.style.display = "block";
+          status.textContent = "";
+        }
+        trigger.addEventListener("click", () => { overlay.style.display = "flex"; resetPanel(); });
+        closeBtn.addEventListener("click", () => { overlay.style.display = "none"; });
+        overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.style.display = "none"; });
+        pinSubmit.addEventListener("click", () => {
+          if (pinInput.value === ADMIN_PIN) unlockFields();
+          else status.textContent = "PIN이 올바르지 않아요.";
+        });
+        pinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") pinSubmit.click(); });
+        saveBtn.addEventListener("click", async () => {
+          status.textContent = "저장 중...";
+          const config = {
+            enabled: document.getElementById("adminBannerEnabled").checked,
+            imageUrl: document.getElementById("adminBannerImage").value.trim(),
+            linkUrl: document.getElementById("adminBannerLink").value.trim(),
+            startAt: parseKSTLocalInput(document.getElementById("adminBannerStart").value),
+            endAt: parseKSTLocalInput(document.getElementById("adminBannerEnd").value)
+          };
+          const result = await saveBannerConfig(config);
+          status.textContent = result.ok ? "저장했어요." : result.reason;
+        });
+        hideNowBtn.addEventListener("click", async () => {
+          status.textContent = "숨기는 중...";
+          const base = _bannerConfigCache || {};
+          const result = await saveBannerConfig({ ...base, enabled: false });
+          if (result.ok) { document.getElementById("adminBannerEnabled").checked = false; }
+          status.textContent = result.ok ? "즉시 숨김 처리했어요." : result.reason;
+        });
+      })();
       const LOCAL_MODEL_URL = "./models/pose_landmarker_lite.task";
       const REMOTE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task";
       const LOCAL_WASM_URL = "./vendor/mediapipe/tasks-vision/wasm";
