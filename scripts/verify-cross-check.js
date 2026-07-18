@@ -234,7 +234,7 @@ assertContains(readUtf8(capacitorConfigPath), "\"appName\": \"태권도 품새 �
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련품새 · 경기품새", "헤더 훈련 목적 배지 적용");
-assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.73", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
+assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.75", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
@@ -294,7 +294,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v23-kukkiwon-complete", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v25-playback-trim-lock", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -373,6 +373,10 @@ assertContains(webHtml, "class=\"seg-time-input\"", "동작 카드 시작/종료
 assertContains(webHtml, "cascadeAdjustBoundary(Number(input.dataset.boundary)", "동작 카드 초 입력이 연쇄 재조정 함수와 연결됨");
 assertContains(webHtml, "async function findStanceMatch(", "서기 자동 탐색 함수 존재");
 assertContains(webHtml, "class=\"secondary seg-find-match\"", "맞는 위치 찾기 버튼 존재");
+assertContains(webHtml, "const prepStart = activeRange.clapDetected", "박수 감지 시 준비 구간이 0초가 아닌 박수 시점부터 시작하도록 처리");
+assertContains(webHtml, "function getEffectiveTrimStart(", "박수 이전 재생 잠금용 실질 시작점 함수 존재");
+assertContains(webHtml, "video.currentTime < trimStart - 0.05", "박수 이전으로 탐색 시 자동으로 앞으로 밀어내는 로직 존재");
+assertContains(webHtml, "video.currentTime = trimStart;\n          video.play", "전체 반복재생이 0초가 아닌 박수 시점으로 되돌아가도록 처리");
 assertContains(webHtml, "segmentsEl.dataset.applyMatchDelegated", "동적 적용 버튼에 이벤트 위임 적용(직접 바인딩 시 늦게 생긴 버튼은 반응 안 함)");
 assertContains(webHtml, "function expectedStanceFor(", "동작명에서 기대 서기 추출 함수 존재");
 assertContains(webHtml, "function checkStanceMatch(", "서기 교차검증 함수 존재");

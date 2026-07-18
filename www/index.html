@@ -2299,7 +2299,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.73</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.75</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -4862,10 +4862,16 @@
         if (replayVideo.readyState >= 1) beginReplay();
         else replayVideo.addEventListener("loadedmetadata", beginReplay, { once: true });
       }
+      // 박수가 감지됐으면 그 시점이 실질적인 영상 시작점(boundaries[0]에 이미 반영됨, v3.74).
+      // 재생·탐색·반복재생 전부 이 지점 이전으로는 못 가게 막는 데 재사용한다.
+      function getEffectiveTrimStart() {
+        const b = lastBoundaryCache && lastBoundaryCache.boundaries;
+        return (b && Number.isFinite(b[0]) && b[0] > 0) ? b[0] : 0;
+      }
       function replayWholeVideo() {
         clearReplayRange();
-        video.loop = loopVideoToggle.checked;
-        video.currentTime = 0;
+        video.loop = false;
+        video.currentTime = getEffectiveTrimStart();
         video.playbackRate = Number(speedSelect.value || 1);
         video.play().catch(() => {});
       }
@@ -5836,11 +5842,16 @@
         if (hasPrep) {
           // 준비 종료점(onset) = 활성구간 시작점. detectActiveMotionRange가 이미 앞쪽 정지/
           // 준비 흔들림을 12% 임계와 onset 보정으로 제외하고 '첫 동작 시작'을 잡아 둔다.
-          // 그 한 점을 신뢰해, 0~onset 전체를 '준비' 1칸으로 고정하고 1번부터 onset 이후를 N등분.
+          // 그 한 점을 신뢰해, 준비시작~onset을 '준비' 1칸으로 고정하고 1번부터 onset 이후를 N등분.
           const onset = activeRange.start;
+          // 박수가 감지됐으면 '준비' 구간도 0초가 아니라 박수 시점부터 시작한다(박수 전 영상은
+          // 완전히 제외 — 카메라 준비/이동 등은 분석에 포함하지 않음).
+          const prepStart = activeRange.clapDetected && Number.isFinite(activeRange.clapTime)
+            ? clamp(activeRange.clapTime, 0, onset)
+            : 0;
           const moveCount = count - 1;
           const moveBoundaries = refineSegmentBoundaries(duration, moveCount, motionSamples, sensitivity, onset, activeRange.end);
-          boundaries = [0, ...moveBoundaries];
+          boundaries = [prepStart, ...moveBoundaries];
           detectMotionBoundaries.lastOnset = onset;
         } else {
           boundaries = refineSegmentBoundaries(duration, count, motionSamples, sensitivity, activeRange.start, activeRange.end);
@@ -8101,7 +8112,7 @@
         durationText.textContent = formatDuration(video.duration);
         resolutionText.textContent = `${video.videoWidth}x${video.videoHeight}`;
         video.playbackRate = Number(speedSelect.value || 1);
-        video.loop = loopVideoToggle.checked;
+        video.loop = false;
         setProgress(0, videoDecodeReady(video)
           ? (poseLandmarker ? "영상 준비 완료. 분석 시작을 누르세요." : "영상 준비 완료. 분석 시작을 누르면 모델을 불러온 뒤 평가합니다.")
           : "영상 정보는 읽었습니다. 실제 화면 프레임을 해석하는 중입니다.");
@@ -8321,7 +8332,7 @@
         video.playbackRate = Number(speedSelect.value || 1);
       });
       loopVideoToggle.addEventListener("change", () => {
-        video.loop = loopVideoToggle.checked && !mainReplayRange;
+        video.loop = false; // 반복재생은 timeupdate에서 trimStart 기준으로 직접 처리(박수 이전으로 안 감).
       });
       loadSkeletonPref();
       if (skeletonToggle) {
@@ -8341,15 +8352,29 @@
         }
       });
       video.addEventListener("timeupdate", () => {
-        if (!mainReplayRange) return;
-        if (video.currentTime >= mainReplayRange.end) {
-          if (loopSegmentToggle.checked) {
-            video.currentTime = mainReplayRange.start;
-            video.play().catch(() => {});
-          } else {
-            video.pause();
-            clearReplayRange();
+        const trimStart = getEffectiveTrimStart();
+        // 박수 이전으로는 손으로 끌어도, 되감아도 못 가게 항상 앞으로 밀어낸다.
+        if (trimStart > 0 && video.currentTime < trimStart - 0.05) {
+          video.currentTime = trimStart;
+          return;
+        }
+        if (mainReplayRange) {
+          if (video.currentTime >= mainReplayRange.end) {
+            if (loopSegmentToggle.checked) {
+              video.currentTime = mainReplayRange.start;
+              video.play().catch(() => {});
+            } else {
+              video.pause();
+              clearReplayRange();
+            }
           }
+          return;
+        }
+        // 전체 영상 반복: 네이티브 loop 대신 직접 처리 — 끝에 도달하면 0초가 아니라
+        // trimStart(박수 시점)로 되돌아가서, 반복재생에서도 박수 전은 다시 안 보인다.
+        if (loopVideoToggle.checked && video.duration && video.currentTime >= video.duration - 0.08) {
+          video.currentTime = trimStart;
+          video.play().catch(() => {});
         }
       });
       video.addEventListener("play", () => {
