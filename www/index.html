@@ -2299,7 +2299,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.75</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.78</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -5156,7 +5156,72 @@
           return start + span * 0.78;
         });
       }
-      // 박수 시점 감지: 손목 두 개가 급격히 가까워졌다가(짝) 다시 벌어지는 패턴을 초반 구간에서 찾는다.
+      // ── 오디오 기반 박수 감지(정확도 우선) ──
+      // 순수 함수: 짧은 구간별 에너지(RMS) 배열에서 "직전 구간 대비 급격히 커진" 지점을 찾는다.
+      // 박수는 짧고(수십ms) broadband하며 직전보다 훨씬 큰 소리라 이 패턴에 잘 맞는다.
+      // 단위 테스트 가능하도록 오디오 디코딩과 분리(브라우저 AudioContext 없이도 검증 가능).
+      function findEnergySpike(energies, baselineWindows = 8, minAbs = 0.04, minRiseRatio = 1.5, minRise = 0.02) {
+        if (!Array.isArray(energies) || energies.length <= baselineWindows) return null;
+        let best = null;
+        for (let i = baselineWindows; i < energies.length; i += 1) {
+          let baseline = 0;
+          for (let k = i - baselineWindows; k < i; k += 1) baseline += energies[k].rms;
+          baseline /= baselineWindows;
+          const current = energies[i].rms;
+          const rise = current - baseline;
+          if (current > minAbs && rise > baseline * minRiseRatio && rise > minRise) {
+            if (!best || rise > best.rise) best = { time: energies[i].time, rise };
+          }
+        }
+        return best ? best.time : null;
+      }
+      // 실제 파일의 오디오 트랙을 디코딩해 박수 시점을 찾는다. 오디오가 없거나 디코딩에
+      // 실패하면(무음 영상, 코덱 문제 등) 조용히 null을 반환 — 호출부가 기존 동작 기반
+      // 감지(detectClapMoment)로 대체한다.
+      // 오디오 트랙의 [startTime, endTime] 구간을 디코딩해 20ms 단위 에너지(RMS) 배열을 만든다.
+      // 박수(영상 초반)와 기합(영상 어디든) 탐색이 이 함수를 공유해서 재사용한다.
+      async function computeAudioEnergyEnvelope(file, startTime, endTime) {
+        let audioCtx = null;
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+          const sampleRate = audioBuffer.sampleRate;
+          const numChannels = audioBuffer.numberOfChannels;
+          const startSample = Math.max(0, Math.floor(startTime * sampleRate));
+          const endSample = Math.min(audioBuffer.length, Math.ceil(endTime * sampleRate));
+          const length = endSample - startSample;
+          if (length < sampleRate * 0.05) return null;
+          const mixed = new Float32Array(length);
+          for (let ch = 0; ch < numChannels; ch += 1) {
+            const data = audioBuffer.getChannelData(ch);
+            for (let i = 0; i < length; i += 1) mixed[i] += data[startSample + i] / numChannels;
+          }
+          const windowSize = Math.round(sampleRate * 0.02); // 20ms
+          const hopSize = Math.round(sampleRate * 0.01); // 10ms(50% 겹침)
+          const energies = [];
+          for (let start = 0; start + windowSize <= length; start += hopSize) {
+            let sumSq = 0;
+            for (let i = start; i < start + windowSize; i += 1) sumSq += mixed[i] * mixed[i];
+            energies.push({ time: startTime + start / sampleRate, rms: Math.sqrt(sumSq / windowSize) });
+          }
+          return energies;
+        } catch (e) {
+          return null;
+        } finally {
+          if (audioCtx) { try { await audioCtx.close(); } catch (e) { /* noop */ } }
+        }
+      }
+      async function detectClapMomentFromAudio(file, searchEndTime) {
+        const energies = await computeAudioEnergyEnvelope(file, 0, searchEndTime);
+        return energies ? findEnergySpike(energies) : null;
+      }
+      // 기합(음성) 지점을 오디오로 찾는다. 사람마다 기합 크기 편차가 커서 박수보다 기준을 살짝 낮춘다.
+      async function findKihapAudioMatch(file, searchStart, searchEnd) {
+        const energies = await computeAudioEnergyEnvelope(file, searchStart, searchEnd);
+        if (!energies) return null;
+        return findEnergySpike(energies, 8, 0.03, 1.4, 0.015);
+      }
       // 오디오가 아니라 이미 계산된 관절 좌표(손목)로 판별 — 새 연산 없이 기존 프레임을 재사용.
       // 확신이 낮으면(뾰족한 다운/근접 정도 부족) null을 반환해 기존 정점 기반 시작점 탐지로 조용히 대체된다.
       function detectClapMoment(frames, searchEndTime) {
@@ -5823,12 +5888,24 @@
 
         const activeRange = detectActiveMotionRange(duration, motionSamples);
         // 박수 감지: 있으면 정점 기반 시작점보다 우선 사용(사용자가 의도적으로 준 신호이므로 더 신뢰).
+        // 1순위: 실제 박수 "소리"(오디오 파형)로 정확히 찾기. 무음 영상이거나 디코딩 실패 시에만
+        // 2순위인 손목 움직임 기반 추정으로 조용히 대체된다.
         const clapSearchEnd = Math.min(duration, Math.max(activeRange.start + 3, duration * 0.4));
-        const clapTime = detectClapMoment(frames, clapSearchEnd);
+        let clapTime = null;
+        let clapSource = null;
+        if (selectedFile) {
+          clapTime = await detectClapMomentFromAudio(selectedFile, clapSearchEnd);
+          if (clapTime != null) clapSource = "audio";
+        }
+        if (clapTime == null) {
+          clapTime = detectClapMoment(frames, clapSearchEnd);
+          if (clapTime != null) clapSource = "motion";
+        }
         if (clapTime != null) {
           activeRange.start = clamp(clapTime + 0.15, 0, duration);
           activeRange.clapDetected = true;
           activeRange.clapTime = clapTime;
+          activeRange.clapSource = clapSource;
         } else {
           activeRange.clapDetected = false;
         }
@@ -6497,6 +6574,13 @@
                  <span class="seg-find-status small" data-seg="${result.order - 1}"></span>
                </div>`
             : "";
+          // 기합(음성) 구간은 서기가 아니라 소리로 확인 — 실제 기합 소리 위치를 찾아 대조.
+          const kihapFindTag = (manualEditMode && canManualEdit() && result.movementType === "kihap")
+            ? `<div style="margin-top:6px">
+                 <button type="button" class="secondary seg-find-kihap" data-seg="${result.order - 1}" style="font-size:12px;padding:4px 8px">🔊 소리로 확인하기</button>
+                 <span class="seg-find-status small" data-seg="${result.order - 1}"></span>
+               </div>`
+            : "";
           const connTag = result.connectionTag
             ? `<span class="conn-tag" style="display:inline-block;margin-top:6px;font-size:11px;color:#1d6fa5;background:#e7f2fb;border-radius:10px;padding:2px 8px">↔ ${result.connectionTag} · 앞 동작과 한 자리에서 이어집니다</span>`
             : "";
@@ -6510,7 +6594,7 @@
               ${shot}
               ${manualEditMode && canManualEdit() ? `
                 <div class="seg-time-edit">
-                  ${result.order > 1 ? `<input type="number" class="seg-time-input" data-boundary="${result.order - 1}" step="0.1" value="${result.startTime.toFixed(1)}" aria-label="${result.order}번 시작 초" />` : `<span>${result.startTime.toFixed(1)}</span>`}
+                  <input type="number" class="seg-time-input" data-boundary="${result.order - 1}" step="0.1" value="${result.startTime.toFixed(1)}" aria-label="${result.order}번 시작 초" />${result.order === 1 ? `<span class="small" style="margin-left:4px">(박수 지점 · 잘못됐으면 여기서 고치세요)</span>` : ""}
                   <span>-</span>
                   <input type="number" class="seg-time-input" data-boundary="${result.order}" step="0.1" value="${result.endTime.toFixed(1)}" aria-label="${result.order}번 종료 초" />
                   <span class="small">초</span>
@@ -6522,6 +6606,7 @@
               ${verifyTag}
               ${stanceTag}
               ${stanceFindTag}
+              ${kihapFindTag}
               ${connTag}
               ${scoreBars}
               ${editControls}
@@ -6569,6 +6654,32 @@
                 status.innerHTML = ` ✓ ${found.time.toFixed(2)}초에서 ${expected} 확인됨 <button type="button" class="primary seg-apply-match" data-seg="${idx + 1}" data-time="${found.time.toFixed(3)}" style="font-size:12px;padding:3px 8px">여기로 이동</button>`;
               } else {
                 status.textContent = " 이 근처에서 못 찾았어요. 사진 밑 칸에 직접 입력해주세요.";
+              }
+            });
+          });
+          // 기합(음성) 구간: 오디오 파형에서 실제 기합 소리 위치를 찾아 현재 구간과 대조.
+          segmentsEl.querySelectorAll(".seg-find-kihap").forEach((btn) => {
+            btn.addEventListener("click", async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const idx = Number(btn.dataset.seg);
+              const status = segmentsEl.querySelector(`.seg-find-status[data-seg="${idx}"]`);
+              const b = lastBoundaryCache?.boundaries;
+              if (!status || !b || !b[idx + 1] || !selectedFile) return;
+              status.innerHTML = " 소리 분석 중...";
+              const searchLo = Math.max(0, b[idx] - 1.0);
+              const searchHi = Math.min(video.duration, (b[idx + 2] ?? b[idx + 1]) + 1.0);
+              const foundTime = await findKihapAudioMatch(selectedFile, searchLo, searchHi);
+              if (foundTime != null) {
+                const current = b[idx];
+                const diff = Math.abs(foundTime - current);
+                if (diff < 0.15) {
+                  status.innerHTML = ` ✓ 소리 위치가 일치해요(${foundTime.toFixed(2)}초)`;
+                } else {
+                  status.innerHTML = ` ⚠ 실제 기합 소리는 ${foundTime.toFixed(2)}초예요(현재 ${current.toFixed(2)}초) <button type="button" class="primary seg-apply-match" data-seg="${idx}" data-time="${foundTime.toFixed(3)}" style="font-size:12px;padding:3px 8px">여기로 이동</button>`;
+                }
+              } else {
+                status.textContent = " 이 근처에서 뚜렷한 소리를 못 찾았어요.";
               }
             });
           });
@@ -6696,7 +6807,8 @@
         const estDeduction = (ded03 * 0.3 + ded01 * 0.1);
         if (clapInfo) {
           if (clapInfo.clapDetected) {
-            items.push({ type: "good", text: `박수 소리(신호) 감지됨: ${clapInfo.clapTime.toFixed(2)}초 지점부터 분석을 시작했어요.` });
+            const sourceLabel = clapInfo.clapSource === "audio" ? "박수 소리(오디오)로 정확히 감지됨" : "손 움직임으로 박수 지점 추정됨";
+            items.push({ type: "good", text: `${sourceLabel}: ${clapInfo.clapTime.toFixed(2)}초 지점부터 분석을 시작했어요.` });
           } else {
             items.push({ type: "caution", text: "박수 신호를 찾지 못해 일반적인 방식(첫 큰 동작 기준)으로 시작점을 잡았어요. 다음엔 영상 시작하자마자 크게 박수 한 번 쳐보세요." });
           }
@@ -7239,8 +7351,9 @@
       async function cascadeAdjustBoundary(i, newTime) {
         if (!canManualEdit()) return;
         const b = lastBoundaryCache.boundaries.slice();
-        if (i < 1 || i > b.length - 1) return;
-        const lo = b[i - 1] + 0.1;
+        if (i < 0 || i > b.length - 1) return;
+        // 0번 경계(박수 감지 지점 = 준비 시작)는 앞에 다른 경계가 없어 하한이 0초.
+        const lo = i === 0 ? 0 : b[i - 1] + 0.1;
         let userTime = Math.max(Number(newTime), lo);
         const autoTime = b[i];
         const delta = userTime - autoTime;
@@ -7259,7 +7372,8 @@
           shifted_count: b.length - i
         });
         for (let k = i; k <= lastIndex; k += 1) b[k] = Number((b[k] + safeDelta).toFixed(3));
-        await rebuildSegmentsFromBoundaries(b, i, `${i}번 경계부터 뒤 구간 전체를 ${safeDelta >= 0 ? "+" : ""}${safeDelta.toFixed(2)}초 만큼 함께 옮겼습니다.`);
+        const label = i === 0 ? "박수 지점(준비 시작)부터" : `${i}번 경계부터`;
+        await rebuildSegmentsFromBoundaries(b, i, `${label} 뒤 구간 전체를 ${safeDelta >= 0 ? "+" : ""}${safeDelta.toFixed(2)}초 만큼 함께 옮겼습니다.`);
       }
       // 수집된 보정 기록을 화면에 요약/내보내기 위한 헬퍼.
       function correctionLogSummary() {
@@ -8354,7 +8468,8 @@
       video.addEventListener("timeupdate", () => {
         const trimStart = getEffectiveTrimStart();
         // 박수 이전으로는 손으로 끌어도, 되감아도 못 가게 항상 앞으로 밀어낸다.
-        if (trimStart > 0 && video.currentTime < trimStart - 0.05) {
+        // 단, 수동 조정 모드에서는 박수 지점이 맞는지 직접 확인/수정해야 하므로 잠금을 풀어준다.
+        if (!manualEditMode && trimStart > 0 && video.currentTime < trimStart - 0.05) {
           video.currentTime = trimStart;
           return;
         }
