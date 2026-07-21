@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v29-correction-log-count-fix";
+const CACHE_NAME = "poomsae-training-v35-taegeuk6-poomsae-line";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",

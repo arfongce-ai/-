@@ -67,21 +67,22 @@ function countArrayItems(arraySource) {
 
 function extractPoomsaeDefinitions(html) {
   const result = new Map();
-  const oneStart = html.indexOf("taegeuk_1:");
-  const twoStart = html.indexOf("taegeuk_2:", oneStart);
-  if (oneStart >= 0 && twoStart > oneStart) {
-    const oneBlock = html.slice(oneStart, twoStart);
-    const countMatch = oneBlock.match(/count:\s*(\d+)/);
-    const movementsMatch = oneBlock.match(/movements:\s*\[([\s\S]*?)\]\.map/);
-    const numberedMovements = movementsMatch
-      ? [...movementsMatch[1].matchAll(/\["([^"]+)"/g)]
-        .map((match) => match[1])
-        .filter((id) => id !== "ready_stance" && !id.startsWith("kihap_"))
-      : [];
-    result.set("taegeuk_1", {
-      count: countMatch ? Number(countMatch[1]) : NaN,
-      actual: numberedMovements.length,
-      source: "numbered movements",
+  // movements:[...].map 형식(품새선 데이터 포함 형식)을 쓰는 모든 품새를 일반적으로 처리.
+  // 이전에는 taegeuk_1 하나만 하드코딩되어 있었으나, 다른 품새도 같은 형식으로
+  // 전환될 수 있으므로 키에 관계없이 동작하도록 일반화함(2026-07-21).
+  for (const match of html.matchAll(/([a-z_0-9]+):\s*\{[^}]*?count:\s*(\d+)[^}]*?movements:\s*\[([\s\S]*?)\]\s*\.map/g)) {
+    const key = match[1];
+    const arraySource = match[3];
+    const rows = [...arraySource.matchAll(/\[([^\[\]]*)\]/g)];
+    const numberedRows = rows.filter((row) => {
+      const firstString = row[1].match(/"([^"]*)"/);
+      const first = firstString ? firstString[1] : "";
+      return first !== "ready_stance" && first !== "준비서기" && first !== "기합" && !first.startsWith("kihap_");
+    });
+    result.set(key, {
+      count: Number(match[2]),
+      actual: numberedRows.length,
+      source: "movements",
     });
   }
 
@@ -294,7 +295,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v29-correction-log-count-fix", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v35-taegeuk6-poomsae-line", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
