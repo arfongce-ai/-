@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v9-taegeuk-3-8-corrected";
+const CACHE_NAME = "poomsae-training-v10-6poomsae-reconciled";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",

@@ -235,7 +235,7 @@ assertContains(readUtf8(capacitorConfigPath), "\"appName\": \"태권도 품새 �
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련품새 · 경기품새", "헤더 훈련 목적 배지 적용");
-assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.78", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
+assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.87", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
@@ -295,7 +295,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v35-taegeuk6-poomsae-line", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v38-jitae-poomsae-line", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
