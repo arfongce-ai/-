@@ -7444,7 +7444,12 @@
       function correctionLogSummary() {
         const log = loadCorrectionLog();
         const byAction = { merge: 0, split: 0, adjust: 0 };
-        log.forEach((r) => { if (byAction[r.action] != null) byAction[r.action] += 1; });
+        // cascade_adjust(뒷 경계 전체를 함께 미는 조정)는 adjust의 일종으로 집계한다.
+        // 과거엔 별도 키로 취급되지 않아 byAction에서 통째로 누락되었음(집계 버그 수정).
+        log.forEach((r) => {
+          const key = r.action === "cascade_adjust" ? "adjust" : r.action;
+          if (byAction[key] != null) byAction[key] += 1;
+        });
         return { total: log.length, byAction, log };
       }
       // ── 기합(음성) 검출 ──

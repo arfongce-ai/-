@@ -50,6 +50,8 @@ function loadRecords(files) {
     let arr;
     if (Array.isArray(raw)) arr = raw;
     else if (Array.isArray(raw.log)) arr = raw.log;
+    // 앱의 "보정 기록 내보내기"가 실제로 만드는 형식: { exported_at, count, by_action, records:[...] }
+    else if (Array.isArray(raw.records)) arr = raw.records;
     else if (raw && typeof raw === "object") arr = Object.values(raw);
     else arr = [];
     arr.forEach((r) => { if (r && (r.action || r.kind)) all.push(r); });
@@ -98,7 +100,9 @@ function expandFinalRecords(records) {
 function locationKey(r) {
   const p = r.poomsae || r.poomsae_name || "unknown";
   let idx = "?";
-  if (r.action === "adjust") idx = r.boundary_index;
+  // cascade_adjust(뒤 경계 전체를 함께 미는 조정)는 adjust와 같은 위치 기준(boundary_index)을 쓴다.
+  // 과거엔 이 분기가 없어 cascade_adjust 표본(실제 데이터의 대다수)이 전부 버려졌음(버그 수정).
+  if (r.action === "adjust" || r.action === "cascade_adjust") idx = r.boundary_index;
   else if (r.action === "split") idx = r.segment_index;
   else if (r.action === "merge") idx = r.merged_segment_index;
   return `${p}#${idx}`;
@@ -127,9 +131,10 @@ function analyze(records) {
       });
     }
     const e = byLocation.get(key);
-    e.counts[r.action] = (e.counts[r.action] || 0) + 1;
+    const effAction = r.action === "cascade_adjust" ? "adjust" : r.action;
+    e.counts[effAction] = (e.counts[effAction] || 0) + 1;
     e.total += 1;
-    if (r.action === "adjust" && typeof r.delta_seconds === "number") {
+    if (effAction === "adjust" && typeof r.delta_seconds === "number") {
       e.adjust_deltas.push(r.delta_seconds);
     }
     if (r.action === "split" && typeof r.split_ratio === "number") {

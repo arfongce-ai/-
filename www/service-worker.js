@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v28-kihap-audio-check";
+const CACHE_NAME = "poomsae-training-v29-correction-log-count-fix";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",
