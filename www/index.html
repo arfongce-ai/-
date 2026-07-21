@@ -2299,7 +2299,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.87</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.89</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -3957,7 +3957,9 @@
       // 자동 분석 결과로 되돌리기(수동 조정 취소).
       async function restoreAutoBoundaries() {
         if (!canManualEdit() || !lastBoundaryCache.autoBoundaries) return;
-        await rebuildSegmentsFromBoundaries(lastBoundaryCache.autoBoundaries.slice());
+        // 자동 경계는 항상 동작과 1:1이므로 매핑도 항등으로 되돌린다.
+        const mi = defaultMoveIndexBoundaries(lastBoundaryCache.autoBoundaries.length);
+        await rebuildSegmentsFromBoundaries(lastBoundaryCache.autoBoundaries.slice(), null, "수동 조정이 반영되었습니다.", mi);
       }
       // 보정 기록을 JSON 파일로 내보낸다(서버 없이 데이터 축적 → 나중에 규칙보정/학습에 사용).
       function exportCorrectionLog() {
@@ -6924,7 +6926,92 @@
           confidence: avgConfidence
         };
       }
-      // ── 품새선(위치·방향) 교차검증 ──
+      // ── 처음/마지막 준비 자세 확인 ──
+      // 목적: 절대 '너비 기준값'(예: 한 발 길이)으로 나란히서기를 판별하려 했으나,
+      // 실제 촬영 영상으로 검증한 결과 카메라 각도·거리에 따라 같은 자세도 widthNorm이
+      // 0.36~1.2까지(3배 이상) 달라져 절대 기준은 오판 위험이 큼을 확인했다(2026-07-21).
+      // 대신 '같은 영상 안에서' 처음 준비와 마지막 준비를 서로 비교한다 — 같은 카메라·
+      // 같은 거리이므로 왜곡이 상쇄되어 절대 기준보다 훨씬 안전하다.
+      // 다리가 편 자세(무릎 155°↑)일 때만 재고, 그 프레임들의 발목 간격/몸통길이 비율
+      // 평균을 '이 영상에서의 준비 너비'로 삼는다.
+      function measureReadyStanceWidth(rawFrames, view) {
+        const detected = (rawFrames || []).filter((f) => f.landmarks);
+        if (detected.length < 2) return null;
+        const widths = [];
+        for (const f of detected) {
+          const lHip = getPoint(f.landmarks, 23), rHip = getPoint(f.landmarks, 24);
+          const lKnee = getPoint(f.landmarks, 25), rKnee = getPoint(f.landmarks, 26);
+          const lAnkle = getPoint(f.landmarks, 27), rAnkle = getPoint(f.landmarks, 28);
+          if (!(lHip && rHip && lKnee && rKnee && lAnkle && rAnkle)) continue;
+          const scale = bodyScale(f.landmarks);
+          if (scale <= 0) continue;
+          const lKneeAngle = jointAngleDeg(lHip, lKnee, lAnkle);
+          const rKneeAngle = jointAngleDeg(rHip, rKnee, rAnkle);
+          if (lKneeAngle == null || rKneeAngle == null) continue;
+          // 준비 자세는 다리를 편 정지 자세여야 한다 — 굽힌 다리 프레임(아직 동작 중 등)은 제외.
+          if (Math.min(lKneeAngle, rKneeAngle) <= 150) continue;
+          widths.push(distance(lAnkle, rAnkle) / scale);
+        }
+        if (widths.length < 2) return null;
+        widths.sort((a, b) => a - b);
+        // 중앙값 — 순간적으로 스친 프레임(발 떼는 중 등) 이상치에 덜 흔들리게.
+        const median = widths[Math.floor(widths.length / 2)];
+        return { widthNorm: median, sampleCount: widths.length };
+      }
+      // motionSamples 구간 [rangeStart, rangeEnd] 안에서 가장 정지된(움직임이 가장 적은) 짧은
+      // 구간을 찾는다. 마지막 동작 뒤 '돌아서기→준비 복귀' 흐름 어딘가에 있을 마지막 준비 자세를
+      // 새로운 정점 탐지 없이, 가장 단순하고 안전한 방식(구간 내 최소 평균 움직임 창)으로 찾는다.
+      function findStillestWindow(motionSamples, rangeStart, rangeEnd, windowLen = 0.6) {
+        const valid = (motionSamples || [])
+          .filter((s) => s.valid !== false && Number.isFinite(s.time) && Number.isFinite(s.motion) && s.time >= rangeStart && s.time <= rangeEnd)
+          .sort((a, b) => a.time - b.time);
+        if (valid.length < 3 || rangeEnd - rangeStart < windowLen) return null;
+        let best = null;
+        for (let i = 0; i < valid.length; i += 1) {
+          const wEnd = valid[i].time + windowLen;
+          if (wEnd > rangeEnd) break;
+          let sum = 0, count = 0, j = i;
+          while (j < valid.length && valid[j].time <= wEnd) { sum += valid[j].motion; count += 1; j += 1; }
+          if (!count) continue;
+          const avg = sum / count;
+          if (!best || avg < best.avg) best = { avg, start: valid[i].time, end: wEnd };
+        }
+        if (!best) return null;
+        return { start: best.start, end: best.end, time: (best.start + best.end) / 2 };
+      }
+      // 처음 준비(이미 알려진 준비 구간)와 마지막 준비(활성 구간 끝~영상 끝의 가장 정지된 구간)를
+      // 비교해, 두 준비 자세의 너비가 이 영상 안에서 서로 일관됐는지 안내 문구를 만든다.
+      // 데이터가 부족하면 아무 것도 단정하지 않고 null을 반환한다(과잉 확신 방지).
+      function checkReadyStanceConsistency(boundaryDetectionForRun, results, duration, view) {
+        if (!boundaryDetectionForRun) return null;
+        const frames = boundaryDetectionForRun.frames || [];
+        const motionSamples = boundaryDetectionForRun.motionSamples || [];
+        const activeRange = boundaryDetectionForRun.activeRange;
+        const openingSeg = results && results[0] && results[0].orderLabel === "준비" ? results[0] : null;
+        if (!openingSeg || !activeRange) return null;
+        const openingFrames = frames.filter((f) => f.time >= openingSeg.startTime && f.time <= openingSeg.endTime);
+        const opening = measureReadyStanceWidth(openingFrames, view);
+        if (!opening) return null; // 처음 준비를 못 재면 비교 자체를 하지 않는다.
+        const tailStart = Number(activeRange.end);
+        const tailEnd = Number.isFinite(duration) ? duration : tailStart;
+        if (!(tailEnd - tailStart >= 0.5)) return null; // 마지막 동작 뒤 영상이 거의 안 남으면 판단 보류.
+        const stillest = findStillestWindow(motionSamples, tailStart, tailEnd, Math.min(0.6, tailEnd - tailStart));
+        if (!stillest) return null;
+        const closingFrames = frames.filter((f) => f.time >= stillest.start && f.time <= stillest.end);
+        const closing = measureReadyStanceWidth(closingFrames, view);
+        if (!closing) return null;
+        const ratio = closing.widthNorm / Math.max(opening.widthNorm, 0.001);
+        const consistent = ratio >= 0.6 && ratio <= 1.7;
+        return {
+          consistent,
+          openingWidthNorm: Number(opening.widthNorm.toFixed(3)),
+          closingWidthNorm: Number(closing.widthNorm.toFixed(3)),
+          closingTime: Number(stillest.time.toFixed(2)),
+          note: consistent
+            ? { type: "good", text: `처음 준비 자세(${openingSeg.startTime.toFixed(1)}초)와 마지막 준비 자세(${stillest.time.toFixed(1)}초)의 발 너비가 비슷하게 유지됐어요.` }
+            : { type: "caution", text: `처음 준비 자세(${openingSeg.startTime.toFixed(1)}초)와 마지막 준비 자세(${stillest.time.toFixed(1)}초)의 발 너비 차이가 커요. 두 준비 자세를 같은 너비로 맞춰보세요.` }
+        };
+      }
       // 목적: 절대 좌표(다①/라① 등 실제 바닥 위치)는 카메라만으로 확인할 수 없으므로,
       // "이 구간에서 몸이 회전했는가(turn) / 하지 않았는가"라는 이분법적 신호만 쓴다.
       // stepType(교본 요약표 '동작' 열)에 '돌아'가 있으면 회전이 있어야 하고,
@@ -7276,12 +7363,26 @@
           // 동작 카드 사진 밑 시작/종료 초 직접 입력: 뒤 구간 전체를 함께 밀어주는 방식(cascade).
           segmentsEl.querySelectorAll(".seg-time-input").forEach((input) => {
             input.addEventListener("click", (e) => e.stopPropagation());
-            input.addEventListener("keydown", (e) => e.stopPropagation());
-            input.addEventListener("change", (e) => {
-              e.preventDefault();
+            input.addEventListener("keydown", (e) => {
               e.stopPropagation();
-              cascadeAdjustBoundary(Number(input.dataset.boundary), Number(input.value));
+              // 모바일 키보드의 '완료/Go'가 change를 안 보내는 기기가 있어, Enter를 명시적으로 커밋 처리.
+              if (e.key === "Enter") { e.preventDefault(); input.blur(); }
             });
+            let committed = false; // change+blur가 겹쳐 같은 입력을 두 번 커밋(=중복 rebuild 경합)하는 것 방지.
+            const commitTimeEdit = () => {
+              if (committed) return;
+              committed = true;
+              const raw = input.value;
+              const val = Number(raw);
+              // 입력칸이 비었거나(전체 선택 후 지우는 중 blur 등) 숫자가 아니면, 0으로 밀어버리지 않고
+              // 원래 값(마지막으로 반영된 시간)으로 되돌린다 — 이게 "리셋되어 이전 시간으로 돌아간다"의
+              // 실제 원인 중 하나였음: Number("")가 0이 되어 경계가 엉뚱하게 맨 앞으로 튀었었다.
+              if (raw.trim() === "" || !Number.isFinite(val)) { input.value = input.defaultValue; return; }
+              if (Math.abs(val - Number(input.defaultValue)) < 0.001) return; // 실제 변경 없으면 재계산 생략
+              cascadeAdjustBoundary(Number(input.dataset.boundary), val);
+            };
+            input.addEventListener("change", (e) => { e.preventDefault(); e.stopPropagation(); commitTimeEdit(); });
+            input.addEventListener("blur", () => commitTimeEdit()); // change 미발생 기기 대비 보조 경로(중복 호출은 안전).
           });
           // 서기 불일치 구간에서 "맞는 위치 찾기": 실제 영상을 훑어 기대 서기와 맞는 지점을 찾고,
           // 찾으면 한 번 탭으로 그 지점부터 뒤 구간 전체를 함께 재조정(cascade)한다.
@@ -7571,9 +7672,16 @@
             }
           }
         } catch (e) { /* 오디오 분석 실패는 무시(분석은 계속) */ }
+        // ── 처음/마지막 준비 자세 확인 ──
+        // 실패해도 본 분석에는 영향 없게 완전히 격리(기합 확인과 동일한 방식).
+        try {
+          const readyCheck = checkReadyStanceConsistency(boundaryDetectionForRun, results, video.duration, viewForRun);
+          if (readyCheck && readyCheck.note) results._readyStanceNote = readyCheck.note;
+        } catch (e) { /* 준비 자세 비교 실패는 무시(분석은 계속) */ }
         const fusedView = (analysisEfficiency && (analysisEfficiency.triple_view ? "triple" : analysisEfficiency.dual_view ? "dual" : null)) || cameraView;
         const summary = summarize(results, fusedView, boundaryDetectionForRun ? boundaryDetectionForRun.activeRange : null);
         if (results._kihapNote) summary.items.unshift(results._kihapNote);
+        if (results._readyStanceNote) summary.items.unshift(results._readyStanceNote);
         // 분석 품새의 본동작 수가 공식과 다르면(데이터 누락 가능성) 사용자에게 투명하게 안내.
         try {
           const pk = selectedPoomsaeKey;
@@ -7718,6 +7826,11 @@
           lastBoundaryCache = {
             boundaries: boundaryDetectionForRun.boundaries.slice(),
             autoBoundaries: boundaryDetectionForRun.boundaries.slice(), // 자동 결과 원본(복원용)
+            // 경계 i가 '동작 배열의 몇 번 인덱스부터'인지 기록. 처음엔 항상 1:1(항등 매핑)이며,
+            // 합치기/나누기 때 이 배열도 경계와 함께 잘라/끼워 넣어 정확한 위치만 바뀌게 한다.
+            // (이전엔 매번 세그먼트 수 vs 동작 수 비율로 전체를 다시 계산해, 5·6번을 합쳤는데
+            //  엉뚱하게 14·15번이 합쳐지는 등 실제 편집 위치와 무관한 동작이 뒤섞이는 버그가 있었음)
+            moveIndexBoundaries: Array.from({ length: boundaryDetectionForRun.boundaries.length }, (_, idx) => idx),
             motionSamples: boundaryDetectionForRun.motionSamples,
             frames: boundaryDetectionForRun.frames,
             completionTimes: (boundaryDetectionForRun.completionTimes || []).slice(),
@@ -7817,8 +7930,14 @@
         }
         playRange(seg.startTime, seg.endTime);
       }
-      async function rebuildSegmentsFromBoundaries(newBoundaries, previewSegmentIndex = null, message = "수동 조정이 반영되었습니다.") {
+      async function rebuildSegmentsFromBoundaries(newBoundaries, previewSegmentIndex = null, message = "수동 조정이 반영되었습니다.", newMoveIndexBoundaries = null) {
         if (!canManualEdit()) return;
+        // 이전 조정이 아직 반영 중이면 새 요청을 무시한다(동시에 두 번 반영되면 서로 덮어써서
+        // 방금 한 수정이 사라진 것처럼 보이는 경합이 생길 수 있음). 완료된 뒤 다시 시도하면 된다.
+        if (isAnalyzing) {
+          setProgress(Number(progress.value || 0), "이전 조정을 반영하는 중입니다. 잠시 후 다시 시도해 주세요.");
+          return;
+        }
         const bc = lastBoundaryCache;
         const movementsLocal = lastMovementsCache || movements;
         const duration = Number.isFinite(video.duration) && video.duration > 0
@@ -7835,8 +7954,16 @@
           });
         const segCount = boundaries.length - 1;
         if (segCount <= 0) return;
+        // 경계별 동작 인덱스 매핑: merge/split이 넘겨준 값 우선, 없으면 캐시된 값,
+        // 길이가 새 경계 수와 안 맞으면(구조가 바뀌었는데 매핑을 못 받은 경우) null로 두고
+        // 아래에서 안전하게 폴백한다.
+        const moveIndexSource = newMoveIndexBoundaries || bc.moveIndexBoundaries;
+        const moveIndexLocal = (Array.isArray(moveIndexSource) && moveIndexSource.length === boundaries.length)
+          ? moveIndexSource
+          : null;
         // 동작 배분: 구간 수에 맞춰 동작을 순서대로 1:1 매핑(구간이 동작보다 적으면 뒤 동작을 마지막에 묶음).
         const results = [];
+        const rebuiltMoveIndexBoundaries = [];
         isAnalyzing = true;
         setProgress(Number(progress.value || 100), "수동 조정 내용을 반영하는 중입니다.");
         try {
@@ -7844,18 +7971,33 @@
             const segStart = boundaries[i];
             const segEnd = boundaries[i + 1];
             const segLen = Math.max(segEnd - segStart, 0.01);
-            // 이 구간에 해당하는 동작 인덱스: 구간 수와 동작 수가 같으면 1:1, 합쳐졌으면 범위.
+            // 이 구간에 해당하는 동작 인덱스.
             let indices;
-            if (segCount === movementsLocal.length) {
+            if (moveIndexLocal) {
+              // 정확한 경로: 합치기/나누기 때 실제로 편집된 위치만 반영된 매핑을 그대로 사용.
+              const from = moveIndexLocal[i];
+              const to = moveIndexLocal[i + 1] - 1;
+              indices = [];
+              // to를 그대로 상한으로 써서, from > to(나누기로 경계값이 겹쳐진 경우)일 땐
+              // 자연스럽게 범위가 비게 한다(Math.max(from,to)를 쓰면 from이 섞여 아래 폴백이
+              // 걸리지 않고 엉뚱한 다음 동작을 골라버린다).
+              for (let k = from; k <= to && k >= 0 && k < movementsLocal.length; k += 1) indices.push(k);
+              // 범위가 비면(나누기로 경계값이 겹쳐진 경우) 'to' 쪽(바로 앞 동작)을 재사용한다.
+              // from을 쓰면 엉뚱하게 다음 동작으로 넘어가 버린다(예: 12번을 나눴는데 둘째 조각이 13번으로 표시됨).
+              if (!indices.length) indices = [clamp(to >= 0 ? to : from, 0, movementsLocal.length - 1)];
+            } else if (segCount === movementsLocal.length) {
               indices = [i];
             } else {
-              // 구간이 줄었으면(합치기), 비례로 동작 범위를 매핑.
+              // 폴백(매핑이 없을 때만): 비례 배분. 편집 위치와 무관하게 전체를 다시 나누므로
+              // 정확하지 않을 수 있다 — moveIndexBoundaries가 있으면 항상 위 경로를 우선한다.
               const from = Math.round((i * movementsLocal.length) / segCount);
               const to = Math.round(((i + 1) * movementsLocal.length) / segCount) - 1;
               indices = [];
               for (let k = from; k <= Math.max(from, to) && k < movementsLocal.length; k += 1) indices.push(k);
               if (!indices.length) indices = [Math.min(i, movementsLocal.length - 1)];
             }
+            if (i === 0) rebuiltMoveIndexBoundaries.push(indices[0]);
+            rebuiltMoveIndexBoundaries.push(indices[indices.length - 1] + 1);
             const segMovements = indices.map((mi) => movementsLocal[mi]).filter(Boolean);
             const primary = segMovements[0] || movementsLocal[Math.min(i, movementsLocal.length - 1)];
             const labelOf = (m) => {
@@ -7906,17 +8048,33 @@
           results.splice(0, results.length, ...semanticResults);
           latestReport.segments = results;
           lastBoundaryCache.boundaries = boundaries;
+          lastBoundaryCache.moveIndexBoundaries = rebuiltMoveIndexBoundaries;
           renderSegments(results);
           renderManualEditPanel();
           if (previewSegmentIndex != null) previewAdjustedSegment(previewSegmentIndex, message);
           else setProgress(100, message);
         } catch (error) {
           console.warn("Manual segment rebuild failed.", error);
-          setProgress(Number(progress.value || 0), "수동 조정 반영 중 오류가 있었습니다. 다른 경계로 다시 조정해 주세요.");
+          const failMsg = "수동 조정 반영 중 오류가 있어 변경 전 상태로 남아 있습니다. 다시 시도해 주세요.";
+          setProgress(Number(progress.value || 0), failMsg);
+          // 수정 중엔 화면이 구간 카드 쪽에 있어 상단 progress 문구를 놓치기 쉽다.
+          // 수동 조정 바(가까운 위치)에도 같은 오류를 표시한다.
+          const status = document.getElementById("correctionLogStatus");
+          if (status) status.textContent = failMsg;
         } finally {
           isAnalyzing = false;
           updateAnalyzeButtonState();
         }
+      }
+      // moveIndexBoundaries가 아직 없거나(구버전 캐시) 길이가 안 맞을 때 쓸 항등 매핑.
+      // 이 시점엔 구간 수와 동작 수가 같다고 가정할 수 있는 경우에만 안전하다.
+      function defaultMoveIndexBoundaries(boundariesLen) {
+        return Array.from({ length: boundariesLen }, (_, idx) => idx);
+      }
+      function currentMoveIndexBoundaries() {
+        const mi = lastBoundaryCache.moveIndexBoundaries;
+        const b = lastBoundaryCache.boundaries;
+        return (Array.isArray(mi) && mi.length === b.length) ? mi.slice() : defaultMoveIndexBoundaries(b.length);
       }
       // 인접 두 구간 합치기: i번째 경계(내부 경계)를 제거.
       async function mergeSegments(i) {
@@ -7930,8 +8088,13 @@
           auto_segment_count: b.length - 1,
           result_segment_count: b.length - 2
         });
+        // 경계와 함께 동작-인덱스 매핑도 '같은 위치'만 제거한다(전체 재계산 금지).
+        // → 5·6번을 합쳤는데 14·15번이 합쳐지는 등, 편집한 위치와 무관한 동작이
+        //   뒤섞이던 문제의 근본 원인이었음.
+        const mi = currentMoveIndexBoundaries();
+        mi.splice(i, 1);
         b.splice(i, 1);
-        await rebuildSegmentsFromBoundaries(b, Math.max(i - 1, 0), "구간을 합쳤습니다.");
+        await rebuildSegmentsFromBoundaries(b, Math.max(i - 1, 0), "구간을 합쳤습니다.", mi);
       }
       // 한 구간 둘로 나누기: seg i를 절반(또는 지정 시각)에서 분할.
       async function splitSegment(i, atTime) {
@@ -7950,8 +8113,15 @@
           auto_segment_count: b.length - 1,
           result_segment_count: b.length
         });
+        // 나눌 위치(i, i+1 사이)의 동작 인덱스 범위를 반으로 갈라 끼워 넣는다.
+        // 이 구간이 원래 동작 1개짜리였으면(범위폭 1) 두 조각 모두 같은 동작을 가리키게 되고,
+        // 자동 분석이 실제로 두 동작을 하나로 묶었던 경우(범위폭 2 이상)엔 그 중간에서 갈린다.
+        const mi = currentMoveIndexBoundaries();
+        const startMi = mi[i], endMi = mi[i + 1];
+        const insertMi = (endMi - startMi >= 2) ? (startMi + Math.round((endMi - startMi) / 2)) : endMi;
+        mi.splice(i + 1, 0, insertMi);
         b.splice(i + 1, 0, Number(mid.toFixed(3)));
-        await rebuildSegmentsFromBoundaries(b, i, "구간을 둘로 나눴습니다.");
+        await rebuildSegmentsFromBoundaries(b, i, "구간을 둘로 나눴습니다.", mi);
       }
       // 경계 시간 미세조정: 내부 경계 i를 newTime으로 이동(앞뒤 구간을 침범하지 않게 가드).
       async function adjustBoundary(i, newTime) {
