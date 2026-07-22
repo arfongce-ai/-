@@ -59,6 +59,26 @@ function loadRecords(files) {
   return all;
 }
 
+// confirm_all("자동 감지 결과가 정확해요" 확인, 고치지 않음) 기록을 위치별 confirm 신호로
+// 펼친다. 배경(2026-07-22 사용자 확인): 지금까지는 "고친" 기록만 데이터가 됐다 — 자동 감지가
+// 이미 정확해 아무도 안 고친 대다수 분석은 통계에 전혀 안 잡혀, 위치별 진짜 정확도(정확했던
+// 비율)를 계산할 분모 자체가 없었다. 이 확장으로 "고칠 필요 없었음"도 명시적 데이터가 된다.
+function expandConfirmRecords(records) {
+  const out = [];
+  for (const r of records) {
+    if (r.action !== "confirm_all") { out.push(r); continue; }
+    const n = Number.isFinite(r.boundary_count) ? r.boundary_count : 0;
+    for (let i = 0; i < n; i += 1) {
+      out.push({
+        ts: r.ts, poomsae: r.poomsae, poomsae_name: r.poomsae_name,
+        video_duration: r.video_duration, auto_method: r.auto_method,
+        action: "confirm", boundary_index: i, _from_confirm_all: true
+      });
+    }
+  }
+  return out;
+}
+
 // 최종확정형(kind:"final_boundaries") 기록을 동작별 경계 이동으로 펼친다.
 // auto vs final 경계를 비교해, 위치가 바뀐 경계마다 가상의 'adjust' 기록을 만든다.
 // 이렇게 하면 기존 동작별 집계 로직을 그대로 재사용할 수 있다.
@@ -102,7 +122,8 @@ function locationKey(r) {
   let idx = "?";
   // cascade_adjust(뒤 경계 전체를 함께 미는 조정)는 adjust와 같은 위치 기준(boundary_index)을 쓴다.
   // 과거엔 이 분기가 없어 cascade_adjust 표본(실제 데이터의 대다수)이 전부 버려졌음(버그 수정).
-  if (r.action === "adjust" || r.action === "cascade_adjust") idx = r.boundary_index;
+  // confirm(고칠 필요 없었음 확인)도 같은 boundary_index 기준을 공유한다.
+  if (r.action === "adjust" || r.action === "cascade_adjust" || r.action === "confirm") idx = r.boundary_index;
   else if (r.action === "split") idx = r.segment_index;
   else if (r.action === "merge") idx = r.merged_segment_index;
   return `${p}#${idx}`;
@@ -121,10 +142,10 @@ function analyze(records) {
         location: key,
         poomsae: p,
         poomsae_name: r.poomsae_name || "",
-        segment_index: r.action === "adjust" ? r.boundary_index
+        segment_index: r.action === "adjust" || r.action === "confirm" ? r.boundary_index
                       : r.action === "split" ? r.segment_index
                       : r.merged_segment_index,
-        counts: { merge: 0, split: 0, adjust: 0 },
+        counts: { merge: 0, split: 0, adjust: 0, confirm: 0 },
         adjust_deltas: [],   // adjust의 delta_seconds 모음(부호 = 방향)
         split_ratios: [],    // split의 split_at 위치 비율
         total: 0
@@ -162,6 +183,9 @@ function analyze(records) {
       adjust_mean_delta: Number(mean.toFixed(3)),
       adjust_std: Number(std.toFixed(3)),
       direction_agreement: Number(directionAgreement.toFixed(2)),
+      // 정확도 = 확인(고칠 필요 없음) / 전체 리뷰(확인+합치기+나누기+이동). '고친 기록'만 보던
+      // 이전과 달리, 이제 e.total에 confirm도 포함되므로 진짜 비율을 계산할 수 있다.
+      accuracy_rate: e.total > 0 ? Number((e.counts.confirm / e.total).toFixed(3)) : null,
       // '치우침'이 분명한가: 평균 이동이 임계 넘고 방향이 일관될 때
       systematic_bias: Math.abs(mean) >= BIAS_THRESHOLD_SEC && directionAgreement >= 0.7,
       confidence: e.total >= MIN_SAMPLES_ML ? "ml_ready"
@@ -253,7 +277,7 @@ function main() {
   }
   fs.mkdirSync(outDir, { recursive: true });
 
-  const records = expandFinalRecords(loadRecords(files));
+  const records = expandConfirmRecords(expandFinalRecords(loadRecords(files)));
   if (records.length === 0) {
     console.error("! 유효한 보정 기록이 없습니다. 입력 파일을 확인하세요.");
     process.exit(2);
@@ -274,16 +298,18 @@ function main() {
     .sort((a, b) => b[1] - a[1])
     .forEach(([p, n]) => console.log(`  ${p.padEnd(16)} ${n}건`));
 
-  console.log("\n── 보정이 가장 많은 동작 Top 15 ──");
-  console.log("  위치               표본  합치기 나누기 이동  평균이동(s) 방향일치 신뢰도");
+  console.log("\n── 표본이 많은 순 Top 15 (정확도 = 확인/전체) ──");
+  console.log("  위치               표본  확인 합치기 나누기 이동  평균이동(s) 방향일치 정확도 신뢰도");
   locations.slice(0, 15).forEach((l) => {
     console.log(
       `  ${l.location.padEnd(18)} ${String(l.total).padStart(4)}`
+      + ` ${String(l.counts.confirm).padStart(4)}`
       + ` ${String(l.counts.merge).padStart(5)}`
       + ` ${String(l.counts.split).padStart(5)}`
       + ` ${String(l.counts.adjust).padStart(5)}`
       + ` ${String(l.adjust_mean_delta).padStart(9)}`
       + ` ${String((l.direction_agreement * 100).toFixed(0) + "%").padStart(7)}`
+      + ` ${l.accuracy_rate != null ? (l.accuracy_rate * 100).toFixed(0) + "%" : "-"}`.padStart(6)
       + `  ${l.confidence}`
     );
   });

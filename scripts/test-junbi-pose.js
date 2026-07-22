@@ -26,8 +26,10 @@ function extractConst(sig) {
 
 const fns = new Function("clamp",
   extractConst("const JUNBI_MATCH_THRESHOLD =") + "\n" +
-  extractConst("const JUNBI_SUSTAIN_FRAMES =") + "\n" +
+  extractConst("const JUNBI_SUSTAIN_WINDOW =") + "\n" +
+  extractConst("const JUNBI_SUSTAIN_MIN_PASS =") + "\n" +
   extractFn("function getPoint(landmarks") + "\n" +
+  extractFn("function getPointLenient(landmarks") + "\n" +
   extractFn("function distance(a, b)") + "\n" +
   extractFn("function bodyScale(landmarks)") + "\n" +
   extractFn("function jointAngleDeg(a, b, c)") + "\n" +
@@ -116,6 +118,38 @@ function makeLandmarks(overrides = {}) {
   check(fns.rangeScore(70, 90, 110, 80, 120) === 0, "하드 리밋 밖은 0점");
   const mid = fns.rangeScore(85, 90, 110, 80, 120);
   check(mid > 0 && mid < 1, `이상~하드 리밋 사이는 선형 감쇠(${mid})`);
+}
+
+// 8) 실측 검증(2026-07-22, 실제 촬영본)에서 발견한 케이스: 완전히 정지된 준비자세인데도
+//    한 손목의 visibility가 0.35 경계값 부근에서 흔들려 프레임 하나가 순간적으로 0점(랜드마크
+//    결측)이 되는 경우가 있었다. 5프레임 중 4프레임 이상 통과 기준이 이 1프레임 결측을
+//    허용하면서도 시작 시각(첫 통과 프레임)을 정확히 찾아야 한다.
+{
+  const frames = [];
+  for (let i = 0; i < 3; i += 1) frames.push({ time: Number((i * 0.2).toFixed(2)), landmarks: makeLandmarks({ 15: { x: 0.30, y: 0.40 }, 16: { x: 0.70, y: 0.60 } }) });
+  for (let i = 3; i < 10; i += 1) {
+    // 4번째 프레임(인덱스 4)만 왼손목 visibility를 낮춰 결측(0점) 프레임을 흉내낸다.
+    const overrides = i === 4 ? { 15: { x: 0.47, y: 0.56, visibility: 0.1 } } : {};
+    frames.push({ time: Number((i * 0.2).toFixed(2)), landmarks: makeLandmarks(overrides) });
+  }
+  const result = fns.findJunbiPoseStart(frames, 2.0);
+  check(result.time != null, "1프레임 순간 결측이 섞여도 시작 시각을 찾음(과민 반응 아님)");
+  check(result.time != null && Math.abs(result.time - 0.6) < 0.01, `시작 시각(${result.time})이 준비자세 첫 통과 프레임(0.6s)과 일치`);
+}
+
+// 9) 실측 검증(2026-07-22, 실제 촬영본)에서 발견한 두 번째 케이스: 1프레임의 순간 결측이
+//    아니라, 준비자세를 유지하는 내내(수 초간) 한쪽 손목의 visibility가 지속적으로 0.27~0.36
+//    사이(표준 임계 0.35 부근/미만)로 나왔다 — 실측값 그대로 재현. getPointLenient(0.15)
+//    덕분에 좌표는 여전히 유효하게 읽혀 정상적으로 준비자세로 인식돼야 한다.
+{
+  const observedLeftWristVisibility = [0.288, 0.315, 0.308, 0.351, 0.338, 0.333, 0.359, 0.306, 0.354];
+  const frames = observedLeftWristVisibility.map((vis, i) => ({
+    time: Number((i * 0.3).toFixed(2)),
+    landmarks: makeLandmarks({ 15: { x: 0.47, y: 0.56, visibility: vis } })
+  }));
+  const result = fns.findJunbiPoseStart(frames, 3.0);
+  check(result.time != null, "지속적인 낮은 손목 visibility(실측값)에도 준비자세를 인식함");
+  check(result.time === 0, `시작 시각(${result.time})이 첫 프레임(0초)과 일치 — 처음부터 준비자세였음을 정확히 반영`);
 }
 
 console.log(fail ? `\n실패 ${fail}건` : "\n준비자세 포즈 매칭 회귀 테스트 통과");

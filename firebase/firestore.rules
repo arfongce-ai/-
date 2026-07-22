@@ -4,10 +4,15 @@ service cloud.firestore {
 
     // 보정 기록(corrections): 학습 데이터 수집용.
     // - create(추가): 누구나 가능. 단, 형식이 올바를 때만(악용 방지).
-    // - read/update/delete: 금지(관리자는 Firebase 콘솔에서 직접 조회).
+    // - read: 인증된 관리자 계정(아래 ADMIN_EMAILS)만 가능 — "학습 리포트" 기능용.
+    //   ⚠️ 배포 전 확인: ADMIN_EMAILS를 실제 관리자 이메일로 바꾸고, Firebase 콘솔
+    //   Authentication에서 같은 이메일로 사용자를 먼저 만들어 둬야 로그인이 된다.
+    //   (Authentication → Sign-in method → 이메일/비밀번호 사용 설정 → Users → 사용자 추가)
+    // - update/delete: 금지(그 누구도 기존 기록을 고치거나 지울 수 없음 — 데이터 무결성 보호).
     match /corrections/{docId} {
       allow create: if isValidCorrection(request.resource.data);
-      allow read, update, delete: if false;
+      allow read: if request.auth != null && request.auth.token.email in ADMIN_EMAILS();
+      allow update, delete: if false;
     }
 
     // ── 파트너 배너 설정 (신규, corrections/CMS와 완전히 분리된 경로) ──
@@ -22,13 +27,29 @@ service cloud.firestore {
         && request.resource.data.enabled is bool;
     }
 
+    // ── 학습된 경계 타이밍 보정 (신규) ──
+    // 배경: "학습 리포트"에서 관리자가 승인한 체계적 치우침(위치키→초 단위 보정)을 게시하면,
+    // 모든 사용자의 앱이 이 값을 읽어 자동 감지 경계에 작은 타이밍 보정만 더한다(동작 분류·
+    // 명칭·개수는 절대 바꾸지 않음 — 클라이언트에서도 ±1.5초로 다시 한번 제한함).
+    // - read: 누구나(전 사용자의 분석에 반영되어야 하므로).
+    // - write: 인증된 관리자만(위 corrections read와 같은 ADMIN_EMAILS 기준).
+    match /app_config/boundary_bias {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email in ADMIN_EMAILS()
+        && request.resource.data.size() < 200; // 문서 비대화 방지(스팸/실수 보호).
+    }
+
     // 그 외 모든 경로는 차단(기존 momgagym-cms 데이터 보호).
     // ※ 기존에 다른 컬렉션 규칙이 있으면 이 블록과 합쳐서 쓰세요.
 
     function isValidCorrection(d) {
-      return d.action in ['merge', 'split', 'adjust']
+      return d.action in ['merge', 'split', 'adjust', 'confirm_all']
         && d.poomsae is string
         && d.size() < 30;  // 필드 수 제한(스팸 방지)
+    }
+    // 학습 리포트를 읽을 수 있는 관리자 이메일 목록. 배포 전 실제 이메일로 교체할 것.
+    function ADMIN_EMAILS() {
+      return ['momgagym@naver.com'];
     }
   }
 }

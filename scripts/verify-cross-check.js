@@ -235,7 +235,7 @@ assertContains(readUtf8(capacitorConfigPath), "\"appName\": \"태권도 품새 �
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련품새 · 경기품새", "헤더 훈련 목적 배지 적용");
-assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.90", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
+assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.97", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
@@ -295,7 +295,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v41-junbi-pose-start", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v48-auto-confirm-simple-ux", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -354,6 +354,10 @@ assertContains(webHtml, "function browserCanPlayHevc", "브라우저 HEVC 재생
 assertContains(webHtml, "hvc1|hev1|hvcC", "HEVC 박스 마커 검사 존재");
 assertContains(webHtml, "file.size - tailLen", "파일 끝(moov)까지 HEVC 검사 존재");
 assertContains(webHtml, "HEVC(H.265)", "HEVC 미지원 안내 문구 존재");
+assertContains(webHtml, "async function probeSeekReliability()", "영상 중~후반 탐색 신뢰성 사전 점검 함수 존재(첫 프레임만으로는 불충분한 HEVC 사례 대응)");
+assertContains(webHtml, "function tinyFrameChecksum(", "프레임 변화 감지용 체크섬 함수 존재");
+assertContains(webHtml, "const hasMain = !!selectedFile && videoDecodeReady(video) && seekProbeOk", "분석 버튼 활성화 조건에 탐색 신뢰성 결과 포함");
+assertContains(webHtml, "probeSeekReliability(); // 첫 프레임이 확인된 뒤에만", "loadeddata 시점에 탐색 신뢰성 점검이 실제로 연결됨");
 assertContains(webHtml, "또렷하게 잘 된 동작", "수련품새 동작 확실성 요약 존재");
 assertContains(webHtml, ".scene-card.priority .scene-shot", "우선 확인 카드의 캡처를 상단 중앙에 배치");
 assertContains(webHtml, ".scene-card.report-full .scene-shot", "수련품새와 경기품새 전체 부분 카드의 캡처를 상단 중앙에 배치");
@@ -404,6 +408,22 @@ assertContains(webHtml, "function detectClapMoment(", "박수 시점 감지 함�
 assertContains(webHtml, "activeRange.clapDetected = clapTime != null", "박수 감지 결과는 기록만 하고(참고용) 시작점 판정에는 관여하지 않음");
 assertNotContains(webHtml, "activeRange.start = clamp(clapTime + 0.15", "박수가 정점 기반 동작1 온셋(activeRange.start)을 덮어쓰던 예전 버그 재발 방지");
 assertContains(webHtml, "function scoreJunbiPose(", "국기원 준비서기 기준 포즈 매칭 점수 함수 존재");
+assertContains(webHtml, "function getPointLenient(", "준비자세 손목 판정용 완화된 visibility 임계값 함수 존재(실측: 손이 겹쳐 가려지는 손목 대응)");
+assertContains(webHtml, "function videoFingerprint(", "영상별 보정 저장용 지문(파일명+크기) 함수 존재");
+assertContains(webHtml, "function saveVideoCorrection(", "영상별 보정 로컬 저장 함수 존재");
+assertContains(webHtml, "function getVideoCorrection(", "영상별 보정 로컬 조회 함수 존재");
+assertContains(webHtml, "async function loadSavedVideoCorrection()", "저장된 영상별 보정을 불러와 적용하는 함수 존재");
+assertContains(webHtml, "function analyzeCorrectionRecords(", "보정 기록 분석 함수(analyze-corrections.js 이식) 존재");
+assertContains(webHtml, "function buildCorrectionRuleSuggestions(", "규칙 개선 제안 생성 함수 존재");
+assertContains(webHtml, "async function loadAndRenderCorrectionReport()", "학습 리포트 조회·렌더 함수 존재");
+assertContains(webHtml, "_fbSignIn = authMod.signInWithEmailAndPassword", "관리자 이메일/비밀번호 로그인 연동 존재(배너 PIN과 별개의 진짜 인증)");
+assertContains(webHtml, 'id="adminEmailInput"', "학습 리포트 로그인 폼 존재");
+assertContains(webHtml, 'id="adminReportPanel"', "학습 리포트 패널 존재");
+assertContains(webHtml, "loadSavedVideoCorrection();\n            }, 300);", "저장된 영상별 보정이 재분석 시 자동으로(클릭 없이) 적용됨");
+assertContains(webHtml, "saveVideoCorrection(videoFingerprint(selectedFile), selectedPoomsaeKey, boundaries, rebuiltMoveIndexBoundaries)", "수동 조정이 반영될 때마다 영상별 보정이 자동 저장됨");
+assertContains(webHtml, 'id="loadSavedCorrectionBtn"', "저장된 보정 불러오기 버튼 존재");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "allow update, delete: if false", "corrections 컬렉션은 그 누구도 고치거나 지울 수 없음(무결성 보호)");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "request.auth != null && request.auth.token.email in ADMIN_EMAILS()", "corrections 컬렉션 읽기는 인증된 관리자로만 제한됨(익명 읽기 차단, 학습 리포트 기능용)");
 assertContains(webHtml, "function findJunbiPoseStart(", "준비자세(이미지1) 매칭으로 품새 시작점을 찾는 함수 존재");
 assertContains(webHtml, "const JUNBI_MATCH_THRESHOLD = 0.8", "준비자세 인식 임계값(80%) 존재");
 assertContains(webHtml, "준비자세를 뚜렷하게 인식하지 못해", "준비자세 미인식 시 안내 문구 존재");
@@ -506,6 +526,37 @@ assertNotContainsInFiles("공식 판정", [webIndexPath, androidIndexPath], "공
 assertNotContainsInFiles("합격", [webIndexPath, androidIndexPath], "합격 판정 표현 금지");
 assertNotContainsInFiles("불합격", [webIndexPath, androidIndexPath], "불합격 판정 표현 금지");
 assertNotContainsInFiles("실격", [webIndexPath, androidIndexPath], "실격 판정 표현 금지");
+
+// ── 학습된 경계 타이밍 보정(원격, 공개 읽기) ──
+assertContains(webHtml, "function loadBoundaryBias(", "경계 보정값 로드 함수 존재");
+assertContains(webHtml, "function getBoundaryBias(", "경계 보정값 조회 함수 존재");
+assertContains(webHtml, "function applyLearnedBoundaryBias(", "경계 보정 적용 함수 존재");
+assertContains(webHtml, "async function publishBoundaryBiasEntry(", "관리자용 보정값 게시 함수 존재");
+assertContains(webHtml, "async function removeBoundaryBiasEntry(", "관리자용 보정값 제거 함수 존재");
+assertContains(webHtml, "const BOUNDARY_BIAS_MAX_SHIFT = 1.5", "경계 보정 안전 상한(±1.5초) 존재");
+assertContains(webHtml, "boundaries = applyLearnedBoundaryBias(boundaries, selectedPoomsaeKey, duration)", "감지된 경계에 학습 보정이 실제로 적용됨");
+assertContains(webHtml, "apply-bias-btn", "학습 리포트에 보정 적용 버튼 존재");
+assertContains(webHtml, "remove-bias-btn", "학습 리포트에 보정 제거 버튼 존재");
+assertContains(webHtml, "bodyEl.dataset.biasDelegated", "보정 버튼 이벤트 위임 처리(동적 생성 버튼 대응)");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "match /app_config/boundary_bias", "경계 보정값 문서 규칙 존재");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "allow write: if request.auth != null && request.auth.token.email in ADMIN_EMAILS()\n        && request.resource.data.size() < 200", "경계 보정값 쓰기는 인증된 관리자로만 제한됨");
+
+// ── 관리자 비밀번호 재설정 ──
+assertContains(webHtml, "id=\"adminForgotPasswordBtn\"", "비밀번호 재설정 버튼 존재");
+assertContains(webHtml, "_fbSendPasswordReset = authMod.sendPasswordResetEmail", "비밀번호 재설정 함수 임포트됨");
+assertContains(webHtml, "await _fbSendPasswordReset(_fbAuth, email)", "재설정 버튼이 실제로 Firebase 재설정 메일 발송을 호출함");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "return ['momgagym@naver.com']", "관리자 이메일이 실제 값으로 설정됨(플레이스홀더 아님)");
+
+// ── "이 결과 정확해요" 확인(confirm_all) — 안 고친 정상 케이스도 데이터로 수집 ──
+assertNotContains(webHtml, "id=\"confirmAccurateBtn\"", "번거로운 '확인' 버튼이 제거되고 자동 확인으로 대체됨(UX 단순화)");
+assertContains(webHtml, "function autoConfirmIfUnedited(", "자동 확인 함수 존재(버튼 없이 다음 영상으로 넘어갈 때 기록)");
+assertContains(webHtml, "autoConfirmIfUnedited(); // 직전 영상이 안 고쳐진 채였다면", "새 영상 선택 시 자동 확인이 실제로 호출됨");
+assertContains(webHtml, "document.addEventListener(\"visibilitychange\"", "탭 닫기 등에도 자동 확인이 누락되지 않도록 안전망 존재");
+assertContains(webHtml, "recordCorrection(\"confirm_all\"", "확인 버튼이 confirm_all 액션으로 기록함");
+assertContains(webHtml, "function expandConfirmRecords(records)", "확인 신호를 위치별로 펼치는 함수 존재(브라우저)");
+assertContains(webHtml, "accuracy_rate: e.total > 0", "위치별 정확도(정확도=확인/전체) 계산 존재");
+assertContains(readUtf8(path.join(root, "scripts", "analyze-corrections.js")), "function expandConfirmRecords(records)", "확인 신호를 위치별로 펼치는 함수 존재(Node)");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "'merge', 'split', 'adjust', 'confirm_all'", "confirm_all 액션이 유효한 보정 기록으로 허용됨");
 
 if (failures.length) {
   console.error(`\nCross-check failed: ${failures.length} issue(s)`);
