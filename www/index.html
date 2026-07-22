@@ -2299,7 +2299,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.89</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.90</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -5908,6 +5908,109 @@
         }
         return { start, end: endVal };
       }
+      // ── 준비자세(기본 준비서기) 포즈 매칭으로 품새 실제 시작점을 찾는다 ──
+      // 배경(2026-07-22 사용자 확인): 박수는 두 대 이상의 폰 영상 싱크를 맞추기 위한
+      // 기준점일 뿐, 품새(태극1장~8장)의 실제 시작은 준비자세(이미지1)이다. 박수 유무나
+      // 정확도와 무관하게, 프레임의 포즈가 준비자세 기준과 얼마나 일치하는지를 직접 계산해
+      // 판별해야 한다.
+      // 기준 근거: 국기원 2026 태권도 품새 경기규칙 채점 기술지침 '준비서기(기본)' 항목.
+      //  - 모아서기에서 한 발 길이로 나란히 서며, 다리는 편 상태를 유지한다.
+      //  - 손바닥을 단전에서 명치 앞까지 끌어올린 뒤 주먹을 쥐고 서서히 내려 아랫배(단전)
+      //    앞에 멈춘다 — 즉 손은 항상 명치보다 낮은 단전 높이에 있어야 한다.
+      //  - 주먹과 주먹 사이는 한주먹, 몸통과 주먹 사이는 세운주먹 간격.
+      // 단, 실제 촬영 영상 검증 결과 카메라 각도·거리에 따라 절대 폭(widthNorm)이 같은
+      // 자세에서도 0.36~1.2까지(3배 이상) 흔들림이 이미 확인되었다(measureReadyStanceWidth
+      // 주석 참고). 그래서 발 너비는 보조 신호로만 낮은 가중치로 반영하고, 카메라 왜곡에
+      // 상대적으로 덜 흔들리는 무릎 각도·손목의 상대적 높이·손 모음 정도를 주로 사용한다.
+      // 값 하나가 이상 범위를 살짝 벗어나도 전체가 0/1로 튀지 않도록, 각 항목은 idealLo~idealHi
+      // 구간에서 1, hardLo~hardHi 밖에서 0으로 선형 감쇠하는 연속 점수를 준다.
+      function rangeScore(value, idealLo, idealHi, hardLo, hardHi) {
+        if (value == null || !Number.isFinite(value)) return 0;
+        if (value >= idealLo && value <= idealHi) return 1;
+        if (value < idealLo) return clamp((value - hardLo) / Math.max(idealLo - hardLo, 1e-6), 0, 1);
+        return clamp((hardHi - value) / Math.max(hardHi - idealHi, 1e-6), 0, 1);
+      }
+      // 프레임 하나의 포즈가 준비자세(이미지1)와 얼마나 일치하는지 0~1 점수로 반환한다.
+      function scoreJunbiPose(landmarks) {
+        const ls = getPoint(landmarks, 11), rs = getPoint(landmarks, 12);
+        const lh = getPoint(landmarks, 23), rh = getPoint(landmarks, 24);
+        const lk = getPoint(landmarks, 25), rk = getPoint(landmarks, 26);
+        const la = getPoint(landmarks, 27), ra = getPoint(landmarks, 28);
+        const lw = getPoint(landmarks, 15), rw = getPoint(landmarks, 16);
+        if (!(ls && rs && lh && rh && lk && rk && la && ra && lw && rw)) return { score: 0, detail: null };
+        const scale = bodyScale(landmarks);
+        if (scale <= 0) return { score: 0, detail: null };
+        const lKneeAngle = jointAngleDeg(lh, lk, la);
+        const rKneeAngle = jointAngleDeg(rh, rk, ra);
+        if (lKneeAngle == null || rKneeAngle == null) return { score: 0, detail: null };
+
+        // 1) 다리를 펴고 서 있는가(무릎 각도) — 동작 중이거나 쪼그린 자세를 배제.
+        const kneeScore = rangeScore(Math.min(lKneeAngle, rKneeAngle), 158, 180, 128, 158);
+
+        const shoulderMid = { x: (ls.x + rs.x) / 2, y: (ls.y + rs.y) / 2 };
+        const hipMid = { x: (lh.x + rh.x) / 2, y: (lh.y + rh.y) / 2 };
+        const wristMid = { x: (lw.x + rw.x) / 2, y: (lw.y + rw.y) / 2 };
+
+        // 2) 손목 높이: 명치보다 낮고 대략 골반(단전) 높이 — 어깨 기준 몸통길이 대비 비율.
+        const dropRatio = (wristMid.y - shoulderMid.y) / scale;
+        const heightScore = rangeScore(dropRatio, 0.72, 1.28, 0.4, 1.7);
+
+        // 3) 두 주먹 사이 간격: 한주먹 정도로 가까이 모음(붙잡거나 서로 감싼 상태 포함).
+        const wristGap = distance(lw, rw) / scale;
+        const gapScore = rangeScore(wristGap, 0, 0.30, 0, 0.62);
+
+        // 4) 손이 몸통 중심선 앞에 있는가(옆으로 벌어지거나 몸 뒤로 가지 않음).
+        const centerOffset = Math.abs(wristMid.x - (shoulderMid.x + hipMid.x) / 2) / scale;
+        const centerScore = rangeScore(centerOffset, 0, 0.22, 0, 0.5);
+
+        // 5) 좌우 손목 높이 대칭 — 준비자세는 좌우 대칭, 동작 중이거나 경례 등은 비대칭.
+        const asymmetry = Math.abs(lw.y - rw.y) / scale;
+        const symmetryScore = rangeScore(asymmetry, 0, 0.12, 0, 0.35);
+
+        // 6) 보조 신호: 발 너비(나란히서기). 절대기준 신뢰도가 낮으므로 가중치를 낮게 둔다.
+        const widthNorm = distance(la, ra) / scale;
+        const widthScore = rangeScore(widthNorm, 0.35, 1.1, 0.15, 1.5);
+
+        // 가중치: 손목 간격(gapScore)이 준비자세를 다른 자세(특히 차렷처럼 손을 몸 옆에
+        // 늘어뜨린 자세)와 가장 결정적으로 구분한다 — 차렷은 무릎·손높이·좌우대칭·발너비가
+        // 모두 우연히 준비자세와 비슷해도 손이 모여있지 않으므로, 이 항목의 비중을 가장
+        // 높게 둔다(합성 테스트로 검증: scripts/test-junbi-pose.js).
+        const score =
+          kneeScore * 0.22 +
+          heightScore * 0.18 +
+          gapScore * 0.32 +
+          centerScore * 0.10 +
+          symmetryScore * 0.08 +
+          widthScore * 0.10;
+
+        return {
+          score: Number(score.toFixed(3)),
+          detail: { kneeScore, heightScore, gapScore, centerScore, symmetryScore, widthScore }
+        };
+      }
+      const JUNBI_MATCH_THRESHOLD = 0.8; // 사용자 요청: 80~90% 일치 시 시작으로 인식.
+      const JUNBI_SUSTAIN_FRAMES = 4; // 순간적 오검출(스친 프레임) 방지용 최소 연속 프레임 수.
+      // frames를 시간순으로 훑어, 준비자세 매칭 점수가 임계값 이상으로 연속 유지되는
+      // 첫 지점을 '품새 시작'으로 반환한다. 박수 유무와 무관하게 항상 동작(단일/2대/3대 공통).
+      function findJunbiPoseStart(frames, searchEndTime, threshold = JUNBI_MATCH_THRESHOLD) {
+        const seq = (frames || [])
+          .filter((f) => f.landmarks && Number.isFinite(f.time) && f.time <= searchEndTime)
+          .slice()
+          .sort((a, b) => a.time - b.time);
+        if (seq.length < JUNBI_SUSTAIN_FRAMES) return { time: null, bestScore: 0, bestTime: null };
+        const scored = seq.map((f) => ({ time: f.time, score: scoreJunbiPose(f.landmarks).score }));
+        for (let i = 0; i <= scored.length - JUNBI_SUSTAIN_FRAMES; i += 1) {
+          let ok = true;
+          for (let j = i; j < i + JUNBI_SUSTAIN_FRAMES; j += 1) {
+            if (scored[j].score < threshold) { ok = false; break; }
+          }
+          if (ok) return { time: scored[i].time, score: scored[i].score, matchedAt: i };
+        }
+        // 임계값을 넘는 지점을 못 찾았으면 참고용으로 최고점만 반환(시작점은 null → 호출부가 안전 폴백).
+        let best = scored[0];
+        for (const s of scored) if (s.score > best.score) best = s;
+        return { time: null, bestScore: best.score, bestTime: best.time };
+      }
       // 동작 경계 탐지: 움직임의 국소 최저점(valley)을 prominence(깊이)로 평가해
       // 길이가 들쭉날쭉한 동작도 실제 정지점에서 끊는다. 균등분할을 강제하지 않는다.
       // 뚜렷한 valley가 부족하면 부족한 만큼만 균등분할로 안전하게 메운다(절대 실패하지 않음).
@@ -6481,9 +6584,11 @@
         const motionSamples = buildMotionSamples(frames);
 
         const activeRange = detectActiveMotionRange(duration, motionSamples);
-        // 박수 감지: 있으면 정점 기반 시작점보다 우선 사용(사용자가 의도적으로 준 신호이므로 더 신뢰).
-        // 1순위: 실제 박수 "소리"(오디오 파형)로 정확히 찾기. 무음 영상이거나 디코딩 실패 시에만
-        // 2순위인 손목 움직임 기반 추정으로 조용히 대체된다.
+        // 박수는 다중 카메라(2대·3대) 동기화 참고용 신호일 뿐, 품새(태극1장~8장)의 실제
+        // 시작점이 아니다(2026-07-22 사용자 확인). 계속 감지는 하되(오디오 1순위·손동작
+        // 폴백 — 아래 로직은 기존과 동일) activeRange.start(정점 기반 동작1 온셋)는 더 이상
+        // 덮어쓰지 않는다. 품새의 실제 시작(=준비 구간의 시작)은 이 아래에서 준비자세(이미지1)
+        // 포즈 매칭으로 독립적으로 판정한다.
         const clapSearchEnd = Math.min(duration, Math.max(activeRange.start + 3, duration * 0.4));
         let clapTime = null;
         let clapSource = null;
@@ -6495,14 +6600,17 @@
           clapTime = detectClapMoment(frames, clapSearchEnd);
           if (clapTime != null) clapSource = "motion";
         }
-        if (clapTime != null) {
-          activeRange.start = clamp(clapTime + 0.15, 0, duration);
-          activeRange.clapDetected = true;
-          activeRange.clapTime = clapTime;
-          activeRange.clapSource = clapSource;
-        } else {
-          activeRange.clapDetected = false;
-        }
+        // 박수 결과는 참고 정보로만 기록한다(다중 카메라 동기화용 · 시작점 판정에는 미사용).
+        activeRange.clapDetected = clapTime != null;
+        activeRange.clapTime = clapTime;
+        activeRange.clapSource = clapSource;
+        // ── 준비자세(이미지1) 포즈 매칭으로 품새 실제 시작점을 찾는다 ──
+        // 박수 감지 여부·1대/2대/3대 촬영과 무관하게 항상 동일한 기준(국기원 준비서기 객관
+        // 기준)으로 동작한다. onset(동작1 시작) 이전 구간에서 준비자세와 80%↑ 일치하는
+        // 가장 이른 지점을 찾는다.
+        const junbiSearchEnd = clamp(activeRange.start + 0.5, 0, duration);
+        const junbiMatch = findJunbiPoseStart(frames, junbiSearchEnd);
+        activeRange.junbiMatch = junbiMatch;
         // ── 영상-분석 통일성 원칙 (v3.44) ──
         // 핵심 교정: 준비자세가 길면(영상 앞 정지가 수 초) N등분이 그 정지를 동작 여러 개로
         // 쪼개, 진짜 1번 동작이 4~5번째로 밀리는 문제가 있었다.
@@ -6515,10 +6623,10 @@
           // 준비 흔들림을 12% 임계와 onset 보정으로 제외하고 '첫 동작 시작'을 잡아 둔다.
           // 그 한 점을 신뢰해, 준비시작~onset을 '준비' 1칸으로 고정하고 1번부터 onset 이후를 N등분.
           const onset = activeRange.start;
-          // 박수가 감지됐으면 '준비' 구간도 0초가 아니라 박수 시점부터 시작한다(박수 전 영상은
-          // 완전히 제외 — 카메라 준비/이동 등은 분석에 포함하지 않음).
-          const prepStart = activeRange.clapDetected && Number.isFinite(activeRange.clapTime)
-            ? clamp(activeRange.clapTime, 0, onset)
+          // '준비' 구간 시작 = 준비자세 포즈 매칭 성공 지점(이미지1과 80%↑ 일치하는 가장
+          // 이른 지점). 매칭 실패 시(포즈 신뢰도 낮음 등) 영상 맨 앞(0초)으로 안전 폴백한다.
+          const prepStart = (junbiMatch && Number.isFinite(junbiMatch.time))
+            ? clamp(junbiMatch.time, 0, onset)
             : 0;
           const moveCount = count - 1;
           const moveBoundaries = refineSegmentBoundaries(duration, moveCount, motionSamples, sensitivity, onset, activeRange.end);
@@ -7328,7 +7436,7 @@
               ${shot}
               ${manualEditMode && canManualEdit() ? `
                 <div class="seg-time-edit">
-                  <input type="number" class="seg-time-input" data-boundary="${result.order - 1}" step="0.1" value="${result.startTime.toFixed(1)}" aria-label="${result.order}번 시작 초" />${result.order === 1 ? `<span class="small" style="margin-left:4px">(박수 지점 · 잘못됐으면 여기서 고치세요)</span>` : ""}
+                  <input type="number" class="seg-time-input" data-boundary="${result.order - 1}" step="0.1" value="${result.startTime.toFixed(1)}" aria-label="${result.order}번 시작 초" />${result.order === 1 ? `<span class="small" style="margin-left:4px">(준비자세 지점 · 잘못됐으면 여기서 고치세요)</span>` : ""}
                   <span>-</span>
                   <input type="number" class="seg-time-input" data-boundary="${result.order}" step="0.1" value="${result.endTime.toFixed(1)}" aria-label="${result.order}번 종료 초" />
                   <span class="small">초</span>
@@ -7495,7 +7603,7 @@
           return "촬영 구도 점검: 머리, 양손, 양발이 화면 안에 들어오도록 카메라를 더 멀리 고정하세요.";
         });
       }
-      function summarize(results, view, clapInfo) {
+      function summarize(results, view, rangeInfo) {
         const avg = results.reduce((sum, r) => sum + r.powerScore, 0) / Math.max(results.length, 1);
         const baseCompetitionScore10 = results.reduce((sum, r) => sum + r.competitionScore10, 0) / Math.max(results.length, 1);
         const accuracyScore4 = results.reduce((sum, r) => sum + r.accuracyScore4, 0) / Math.max(results.length, 1);
@@ -7554,12 +7662,16 @@
         const ded01 = results.filter((r) => r.referenceDeduction && r.referenceDeduction.amount === 0.1).length;
         const dedHold = results.filter((r) => r.referenceDeduction && r.referenceDeduction.amount == null).length;
         const estDeduction = (ded03 * 0.3 + ded01 * 0.1);
-        if (clapInfo) {
-          if (clapInfo.clapDetected) {
-            const sourceLabel = clapInfo.clapSource === "audio" ? "박수 소리(오디오)로 정확히 감지됨" : "손 움직임으로 박수 지점 추정됨";
-            items.push({ type: "good", text: `${sourceLabel}: ${clapInfo.clapTime.toFixed(2)}초 지점부터 분석을 시작했어요.` });
+        if (rangeInfo) {
+          const jm = rangeInfo.junbiMatch;
+          if (jm && Number.isFinite(jm.time)) {
+            items.push({ type: "good", text: `준비자세 인식: ${jm.time.toFixed(2)}초 지점부터 분석을 시작했어요.` });
           } else {
-            items.push({ type: "caution", text: "박수 신호를 찾지 못해 일반적인 방식(첫 큰 동작 기준)으로 시작점을 잡았어요. 다음엔 영상 시작하자마자 크게 박수 한 번 쳐보세요." });
+            items.push({ type: "caution", text: "준비자세를 뚜렷하게 인식하지 못해 영상 맨 앞부터 분석했어요. 이미지1처럼 두 주먹을 모아 쥐고 서 있는 준비자세가 화면에 잘 보이는지 확인해보세요." });
+          }
+          if (rangeInfo.clapDetected) {
+            const sourceLabel = rangeInfo.clapSource === "audio" ? "박수 소리(오디오)" : "손 움직임";
+            items.push({ type: "good", text: `${sourceLabel}로 박수 지점(${rangeInfo.clapTime.toFixed(2)}초)도 참고로 확인했어요. (다중 카메라 동기화 참고용 · 시작점 판정에는 사용하지 않아요)` });
           }
         }
         if (trainingMode === "exam") {
@@ -8170,7 +8282,7 @@
         if (!canManualEdit()) return;
         const b = lastBoundaryCache.boundaries.slice();
         if (i < 0 || i > b.length - 1) return;
-        // 0번 경계(박수 감지 지점 = 준비 시작)는 앞에 다른 경계가 없어 하한이 0초.
+        // 0번 경계(준비자세 인식 지점 = 준비 시작)는 앞에 다른 경계가 없어 하한이 0초.
         const lo = i === 0 ? 0 : b[i - 1] + 0.1;
         let userTime = Math.max(Number(newTime), lo);
         const autoTime = b[i];
@@ -8190,7 +8302,7 @@
           shifted_count: b.length - i
         });
         for (let k = i; k <= lastIndex; k += 1) b[k] = Number((b[k] + safeDelta).toFixed(3));
-        const label = i === 0 ? "박수 지점(준비 시작)부터" : `${i}번 경계부터`;
+        const label = i === 0 ? "준비자세 지점(준비 시작)부터" : `${i}번 경계부터`;
         await rebuildSegmentsFromBoundaries(b, i, `${label} 뒤 구간 전체를 ${safeDelta >= 0 ? "+" : ""}${safeDelta.toFixed(2)}초 만큼 함께 옮겼습니다.`);
       }
       // 수집된 보정 기록을 화면에 요약/내보내기 위한 헬퍼.
@@ -9269,7 +9381,7 @@
         video.playbackRate = Number(speedSelect.value || 1);
       });
       loopVideoToggle.addEventListener("change", () => {
-        video.loop = false; // 반복재생은 timeupdate에서 trimStart 기준으로 직접 처리(박수 이전으로 안 감).
+        video.loop = false; // 반복재생은 timeupdate에서 trimStart 기준으로 직접 처리(준비자세 인식 이전으로 안 감).
       });
       loadSkeletonPref();
       if (skeletonToggle) {
