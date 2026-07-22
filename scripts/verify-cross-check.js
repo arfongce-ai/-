@@ -235,7 +235,7 @@ assertContains(readUtf8(capacitorConfigPath), "\"appName\": \"태권도 품새 �
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련품새 · 경기품새", "헤더 훈련 목적 배지 적용");
-assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.99", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
+assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v4.01", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
@@ -295,7 +295,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v50-admin-button-visible", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v52-seekprobe-unstick-fix", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -355,8 +355,15 @@ assertContains(webHtml, "hvc1|hev1|hvcC", "HEVC 박스 마커 검사 존재");
 assertContains(webHtml, "file.size - tailLen", "파일 끝(moov)까지 HEVC 검사 존재");
 assertContains(webHtml, "HEVC(H.265)", "HEVC 미지원 안내 문구 존재");
 assertContains(webHtml, "async function probeSeekReliability()", "영상 중~후반 탐색 신뢰성 사전 점검 함수 존재(첫 프레임만으로는 불충분한 HEVC 사례 대응)");
-assertContains(webHtml, "function tinyFrameChecksum(", "프레임 변화 감지용 체크섬 함수 존재");
+assertContains(webHtml, "function tinyFrameSample(", "프레임 비교용 픽셀 샘플 함수 존재");
+assertContains(webHtml, "function framesLookIdentical(", "픽셀 단위 프레임 동일성 비교 함수 존재");
 assertContains(webHtml, "const hasMain = !!selectedFile && videoDecodeReady(video) && seekProbeOk", "분석 버튼 활성화 조건에 탐색 신뢰성 결과 포함");
+// 회귀 방지(2026-07-22): 이전 배포분은 탐색 신뢰성 점검이 "문제 없음"으로 끝났을 때 버튼 상태를
+// 다시 계산하지 않아, 점검 도중 seek 때문에 낮아진 videoDecodeReady가 회복돼도 분석 버튼이 계속
+// 비활성으로 남는 버그가 있었다(정상 영상인데도 분석을 시작할 수 없었음). 성공/실패 어느 쪽이든
+// updateAnalyzeButtonState()를 호출해야 한다.
+assertContains(webHtml, "성공/실패 어느 쪽이든 탐색이 끝난 뒤 버튼 상태를 다시 계산한다", "탐색 신뢰성 점검 성공 시에도 분석 버튼 상태 재계산(2026-07-22 되막힘 버그 회귀 방지)");
+assertContains(webHtml, "samples[0] != null && samples[1] != null && framesLookIdentical(samples[0], samples[1])", "탐색 신뢰성 점검이 두 표본을 서로 비교(첫 프레임과만 비교하지 않음)");
 assertContains(webHtml, "probeSeekReliability(); // 첫 프레임이 확인된 뒤에만", "loadeddata 시점에 탐색 신뢰성 점검이 실제로 연결됨");
 assertContains(webHtml, "또렷하게 잘 된 동작", "수련품새 동작 확실성 요약 존재");
 assertContains(webHtml, ".scene-card.priority .scene-shot", "우선 확인 카드의 캡처를 상단 중앙에 배치");

@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v50-admin-button-visible";
+const CACHE_NAME = "poomsae-training-v52-seekprobe-unstick-fix";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",

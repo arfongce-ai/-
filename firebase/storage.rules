@@ -1,0 +1,25 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ── 파트너 배너 이미지 업로드 ──
+    // firebase/firestore.rules의 app_config/banner 규칙과 같은 방식(PIN)으로 보호함.
+    // - read: 누구나(앱을 여는 모든 사용자가 배너 이미지를 봐야 하므로).
+    // - write: 업로드 요청에 실린 pin 메타데이터가 일치할 때만. 이 값은
+    //   www/index.html의 ADMIN_PIN, firebase/firestore.rules의 값과 반드시 같아야 함
+    //   (하나를 바꾸면 셋 다 같이 바꿀 것). 5MB 이하 이미지 파일만 허용.
+    //   로그인 시스템이 없어 실제 사용자 인증은 아니며, 민감하지 않은 홍보 배너용으로
+    //   설계된 경량 보호임(firestore.rules의 배너 규칙과 동일한 설계 판단).
+    match /banner/{fileName} {
+      allow read: if true;
+      allow write: if request.resource.metadata.pin == "0713"
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // 그 외 모든 경로는 차단.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

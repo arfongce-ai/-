@@ -1652,7 +1652,8 @@
       .admin-panel input[type="text"],
       .admin-panel input[type="url"],
       .admin-panel input[type="datetime-local"],
-      .admin-panel input[type="password"] {
+      .admin-panel input[type="password"],
+      .admin-panel input[type="file"] {
         width: 100%;
         min-height: 44px;
         padding: 8px 12px;
@@ -2301,7 +2302,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.99</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v4.01</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -2640,7 +2641,11 @@
           <label for="adminBannerEnabled">
             <input type="checkbox" id="adminBannerEnabled" style="width:18px;height:18px;vertical-align:middle" /> 배너 노출 사용
           </label>
-          <label for="adminBannerImage">배너 이미지 주소(URL)</label>
+          <label for="adminBannerFile">배너 이미지</label>
+          <img id="adminBannerPreview" alt="배너 미리보기" style="display:none;max-width:100%;max-height:160px;object-fit:contain;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);margin-bottom:8px" />
+          <input type="file" id="adminBannerFile" accept="image/*" />
+          <p class="small" id="adminBannerUploadStatus" style="margin:6px 0 0;color:var(--muted);min-height:16px"></p>
+          <label for="adminBannerImage">이미지 주소(사진을 올리면 자동으로 채워져요 · 직접 입력도 가능)</label>
           <input type="url" id="adminBannerImage" placeholder="https://..." />
           <label for="adminBannerLink">클릭 시 이동할 주소(URL)</label>
           <input type="url" id="adminBannerLink" placeholder="https://..." />
@@ -2688,6 +2693,8 @@
       let _fbAddDoc = null, _fbCollection = null, _fbServerTs = null;
       let _fbDoc = null, _fbGetDoc = null, _fbSetDoc = null, _fbGetDocs = null, _fbDeleteField = null;
       let _fbReady = false;
+      // ── 배너 이미지 업로드용 Storage 참조(파일로 직접 올리기) ──
+      let _fbStorage = null, _fbStorageRef = null, _fbUploadBytesResumable = null, _fbGetDownloadURL = null;
       // ── 학습된 경계 타이밍 보정(원격, 공개 읽기) 상태 ──
       // null=아직 못 가져옴(폴백 이전), {}=값 없음(보정 없음), {...}=실제 학습된 보정값.
       let _remoteBoundaryBias = null;
@@ -2702,6 +2709,7 @@
           const appMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
           const fsMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
           const authMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+          const storageMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js");
           const firebaseConfig = {
             apiKey: "AIzaSyC9R63MgGXKE0lQ_hfCR8LHRmMRv1jiugk",
             authDomain: "momgagym-cms.firebaseapp.com",
@@ -2715,6 +2723,10 @@
           _fbAddDoc = fsMod.addDoc; _fbCollection = fsMod.collection; _fbServerTs = fsMod.serverTimestamp;
           _fbDoc = fsMod.doc; _fbGetDoc = fsMod.getDoc; _fbSetDoc = fsMod.setDoc; _fbGetDocs = fsMod.getDocs;
           _fbDeleteField = fsMod.deleteField;
+          _fbStorage = storageMod.getStorage(app);
+          _fbStorageRef = storageMod.ref;
+          _fbUploadBytesResumable = storageMod.uploadBytesResumable;
+          _fbGetDownloadURL = storageMod.getDownloadURL;
           _fbAuth = authMod.getAuth(app);
           _fbSignIn = authMod.signInWithEmailAndPassword;
           _fbSendPasswordReset = authMod.sendPasswordResetEmail;
@@ -2926,6 +2938,53 @@
           return { ok: false, reason: "저장에 실패했어요. PIN이 맞는지, 인터넷 연결을 확인해주세요." };
         }
       }
+      // 배너 미리보기 이미지를 관리자 패널에 표시(파일 업로드·URL 직접 입력 모두 여기로 모임).
+      function updateBannerPreview(url) {
+        const img = document.getElementById("adminBannerPreview");
+        if (!img) return;
+        if (url) {
+          img.onerror = () => { img.style.display = "none"; };
+          img.src = url;
+          img.style.display = "block";
+        } else {
+          img.removeAttribute("src");
+          img.style.display = "none";
+        }
+      }
+      // 선택한 이미지 파일을 Firebase Storage에 올리고 다운로드 주소를 돌려준다.
+      // app_config/banner 저장과는 별개 단계 — 업로드가 끝나도 "저장"을 눌러야 실제로 반영됨.
+      async function uploadBannerImageFile(file, onProgress) {
+        if (!file.type || !file.type.startsWith("image/")) {
+          return { ok: false, reason: "이미지 파일만 올릴 수 있어요." };
+        }
+        const MAX_BYTES = 5 * 1024 * 1024;
+        if (file.size > MAX_BYTES) {
+          return { ok: false, reason: "5MB 이하 이미지만 올릴 수 있어요." };
+        }
+        if (!_fbReady || !_fbStorage) {
+          return { ok: false, reason: "오프라인이라 업로드할 수 없어요. 인터넷 연결을 확인해주세요." };
+        }
+        try {
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const path = `banner/${Date.now()}_${safeName}`;
+          const sref = _fbStorageRef(_fbStorage, path);
+          const task = _fbUploadBytesResumable(sref, file, {
+            contentType: file.type,
+            customMetadata: { pin: ADMIN_PIN } // firebase/storage.rules가 이 값으로 업로드 허용 여부를 확인함.
+          });
+          await new Promise((resolve, reject) => {
+            task.on("state_changed",
+              (snap) => { if (onProgress) onProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)); },
+              (err) => reject(err),
+              () => resolve()
+            );
+          });
+          const url = await _fbGetDownloadURL(task.snapshot.ref);
+          return { ok: true, url };
+        } catch (e) {
+          return { ok: false, reason: "업로드에 실패했어요. 인터넷 연결을 확인하고 다시 시도해주세요." };
+        }
+      }
       // ── 관리자 모드 패널 배선 ──
       (function wireAdminPanel() {
         const trigger = document.getElementById("adminModeTrigger");
@@ -2937,6 +2996,9 @@
         const closeBtn = document.getElementById("adminPanelClose");
         const saveBtn = document.getElementById("adminBannerSave");
         const hideNowBtn = document.getElementById("adminBannerHideNow");
+        const fileInput = document.getElementById("adminBannerFile");
+        const urlInput = document.getElementById("adminBannerImage");
+        const uploadStatus = document.getElementById("adminBannerUploadStatus");
         if (!trigger || !overlay) return;
 
         function resetPanel() {
@@ -2953,6 +3015,11 @@
           document.getElementById("adminBannerLink").value = c.linkUrl || "";
           document.getElementById("adminBannerStart").value = formatKSTForInput(c.startAt);
           document.getElementById("adminBannerEnd").value = formatKSTForInput(c.endAt);
+          updateBannerPreview(c.imageUrl || "");
+          const fileInputEl = document.getElementById("adminBannerFile");
+          if (fileInputEl) fileInputEl.value = "";
+          const uploadStatusEl = document.getElementById("adminBannerUploadStatus");
+          if (uploadStatusEl) uploadStatusEl.textContent = "";
           pinInput.style.display = "none";
           pinSubmit.style.display = "none";
           fields.style.display = "block";
@@ -2966,6 +3033,32 @@
           else status.textContent = "PIN이 올바르지 않아요.";
         });
         pinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") pinSubmit.click(); });
+        urlInput.addEventListener("input", () => updateBannerPreview(urlInput.value.trim()));
+        if (fileInput) {
+          fileInput.addEventListener("change", async () => {
+            const file = fileInput.files && fileInput.files[0];
+            if (!file) return;
+            // 실제 업로드가 끝나기 전이라도 고른 사진을 바로 확인할 수 있게 임시 미리보기부터 표시.
+            const localPreviewUrl = URL.createObjectURL(file);
+            updateBannerPreview(localPreviewUrl);
+            uploadStatus.textContent = "업로드 중...";
+            saveBtn.disabled = true;
+            const result = await uploadBannerImageFile(file, (pct) => {
+              uploadStatus.textContent = `업로드 중... ${pct}%`;
+            });
+            URL.revokeObjectURL(localPreviewUrl);
+            saveBtn.disabled = false;
+            if (result.ok) {
+              urlInput.value = result.url;
+              updateBannerPreview(result.url);
+              uploadStatus.textContent = "업로드 완료! 아래 저장을 눌러야 실제로 반영돼요.";
+            } else {
+              uploadStatus.textContent = result.reason;
+              updateBannerPreview(urlInput.value.trim());
+              fileInput.value = "";
+            }
+          });
+        }
         saveBtn.addEventListener("click", async () => {
           status.textContent = "저장 중...";
           const config = {
@@ -5292,19 +5385,36 @@
       // seekProbeOk가 그 전에 초기화돼 있지 않으면 초기화 시점에 ReferenceError가 난다.
       let seekProbeChecked = false;
       let seekProbeOk = true;
-      function tinyFrameChecksum(target) {
+      // 프레임 샘플(픽셀별 RGBA)을 반환한다. 이전에는 이걸 합계 하나로 뭉개서(체크섬) 비교했는데,
+      // 그러면 "어디" 픽셀이 그 색인지는 버려지고 "전체 밝기 합"만 남는다 — 예를 들어 품새 영상처럼
+      // 배경(마루)이 일정한 색이고 사람만 움직이면, 자세가 완전히 달라져도 합계는 거의 그대로일 수
+      // 있다. 실제로 이 방식 때문에 정상 영상이 "멈춘 영상"으로 오탐되는 문제가 있었다
+      // (2026-07-22 최초 배포분). 그래서 합계 대신 픽셀 배열 자체를 남기고, 아래
+      // framesLookIdentical()에서 픽셀 단위로 비교하도록 바꿨다.
+      function tinyFrameSample(target) {
         try {
-          const c = tinyFrameChecksum._canvas || (tinyFrameChecksum._canvas = document.createElement("canvas"));
+          const c = tinyFrameSample._canvas || (tinyFrameSample._canvas = document.createElement("canvas"));
           c.width = 32; c.height = 32;
           const ctx = c.getContext("2d", { willReadFrequently: true });
           ctx.drawImage(target, 0, 0, 32, 32);
-          const data = ctx.getImageData(0, 0, 32, 32).data;
-          let sum = 0;
-          for (let i = 0; i < data.length; i += 4) sum += data[i] + data[i + 1] * 2 + data[i + 2] * 3;
-          return sum;
+          return ctx.getImageData(0, 0, 32, 32).data; // Uint8ClampedArray: 32×32×RGBA
         } catch (error) {
           return null;
         }
+      }
+      // 두 프레임 샘플이 픽셀 단위로 사실상 동일한지 비교한다(위치 정보를 보존한 비교).
+      // 채널당 평균 차이가 아주 작은 값(압축 노이즈 수준) 미만이면만 "동일 프레임"으로 본다 —
+      // 완전히 똑같아야만 인정하면(정확히 ===) 영상 압축의 미세한 흔들림만으로도 "다름"으로
+      // 잘못 판정될 수 있어 약간의 여유를 둔다.
+      function framesLookIdentical(a, b) {
+        if (!a || !b || a.length !== b.length) return false;
+        let diffSum = 0;
+        for (let i = 0; i < a.length; i += 4) {
+          diffSum += Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]);
+        }
+        const pixelCount = a.length / 4;
+        const avgDiffPerChannel = diffSum / (pixelCount * 3);
+        return avgDiffPerChannel < 2; // 채널당 평균 2/255 미만 차이면 사실상 같은 프레임.
       }
       function seekOnce(target, t, timeoutMs = 3000) {
         return new Promise((resolve) => {
@@ -5315,34 +5425,63 @@
           setTimeout(() => { if (!done) { done = true; resolve(false); } }, timeoutMs);
         });
       }
+      // "seeked" 이벤트는 탐색이 끝났다는 신호일 뿐, 그 프레임이 실제로 캔버스에 그릴 수 있을 만큼
+      // 완전히 준비됐다는 보장은 아니다(레이아웃/페인트가 늦게 따라오는 경우가 있고, 그 지연 폭은
+      // 기기 부하에 따라 들쭉날쭉하다 — 고정 횟수만큼 기다리는 방식은 느린 상황에서 여전히 오래된
+      // 프레임을 읽어 오탐을 만들 수 있음이 실측으로 확인됨). 그래서 고정 대기 대신, 연속된
+      // 애니메이션 프레임 사이에 캔버스 내용이 더 이상 바뀌지 않을 때까지(=페인트가 안정될 때까지)
+      // 짧게 재확인한 뒤에야 그 프레임을 신뢰한다.
+      async function captureStableFrame(target, maxAttempts = 8) {
+        let sample = tinyFrameSample(target);
+        for (let i = 0; i < maxAttempts; i++) {
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+          const next = tinyFrameSample(target);
+          if (sample && next && framesLookIdentical(sample, next)) return next; // 두 틱 연속 동일 → 안정.
+          sample = next;
+        }
+        return sample; // 끝까지 흔들려도 마지막 값은 사용한다(무한정 막지 않기 위함).
+      }
       async function probeSeekReliability() {
         const checkedFile = selectedFile;
         if (!checkedFile || !Number.isFinite(video.duration) || video.duration < 3 || !videoDecodeReady(video)) {
           seekProbeChecked = true;
           return;
         }
-        const baseline = tinyFrameChecksum(video);
+        // 재생 중이면(자동 미리보기 등) 정해진 시점을 정확히 비교할 수 없으므로 먼저 멈춘다.
+        try { video.pause(); } catch (error) { /* noop */ }
         const points = [video.duration * 0.35, video.duration * 0.75];
-        const checksums = [];
+        const samples = [];
         for (const t of points) {
           if (selectedFile !== checkedFile) return; // 그 사이 파일이 바뀌면 결과 오염 방지를 위해 중단.
           const ok = await seekOnce(video, t);
-          checksums.push(ok ? tinyFrameChecksum(video) : null);
+          samples.push(ok ? await captureStableFrame(video) : null);
+          if (selectedFile !== checkedFile) return;
         }
-        if (selectedFile !== checkedFile) return;
         try { video.currentTime = 0; } catch (error) { /* noop */ }
+        // 위 seek들(그리고 이 마지막 복귀)로 인해 video.readyState가 일시적으로 낮아져 있을 수 있다.
+        // 이 상태에서 곧바로 updateAnalyzeButtonState()를 부르면 정상 영상도 오탐으로 막힌다 —
+        // 실제로 이 문제 때문에 탐색이 이상 없이 끝난 영상도 분석 버튼이 계속 비활성으로 남는
+        // 버그가 있었다(2026-07-22 최초 배포분). 복귀 seek도 안정될 때까지 기다린 뒤 판정한다.
+        await seekOnce(video, 0);
+        await captureStableFrame(video);
         seekProbeChecked = true;
-        const failedSeeks = checksums.filter((c) => c == null).length;
-        const allFrozen = baseline != null && checksums.every((c) => c != null && c === baseline);
-        if (failedSeeks > 0 || allFrozen) {
+        const failedSeeks = samples.filter((s) => s == null).length;
+        // "멈춤"의 실제 증상은 서로 멀리 떨어진 두 지점(35%·75%)이 똑같아 보이는 것이다 — 첫 프레임과
+        // 비교하는 게 아니다. 디코딩이 특정 지점에서 멈추면, 멈춘 이후로는 그 어떤 지점을 찾아가도
+        // "멈춘 그 프레임"이 나온다(꼭 첫 프레임과 같을 필요는 없음). 초반 첫 프레임과만 비교하던
+        // 이전 방식은 이 실패 유형을 놓칠 수 있어, 35%·75% 두 지점을 서로 비교하도록 바꿨다.
+        const stuck = samples[0] != null && samples[1] != null && framesLookIdentical(samples[0], samples[1]);
+        if (failedSeeks > 0 || stuck) {
           seekProbeOk = false;
           setProgress(0, "이 영상은 앞부분은 재생되지만 뒤로 갈수록 프레임을 안정적으로 읽지 못했습니다. H.264(MP4)로 변환 후 다시 시도하세요.");
           renderReport([
             { type: "bad", text: "이 영상은 초반 프레임은 해석했지만 중~후반부 탐색에서 프레임이 멈추거나 실패했습니다. 이대로 분석하면 동작이 영상 앞부분에 몰리거나 실행할 때마다 결과가 달라질 수 있어 분석 버튼을 비활성화했습니다." },
             { type: "caution", text: "카카오톡 등으로 공유되며 HEVC로 재압축됐을 가능성이 높습니다. H.264(MP4)로 변환한 뒤 다시 올려 주세요." }
           ]);
-          updateAnalyzeButtonState();
         }
+        // 성공/실패 어느 쪽이든 탐색이 끝난 뒤 버튼 상태를 다시 계산한다(탐색 중 seek로 인해
+        // 낮아졌던 videoDecodeReady가 정상 영상에서는 여기서 회복되어 버튼이 다시 켜진다).
+        updateAnalyzeButtonState();
       }
       function updateTrainingModeUi() {
         document.querySelectorAll("[data-mode]").forEach((tab) => {
