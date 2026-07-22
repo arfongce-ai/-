@@ -2,14 +2,24 @@
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
+    <!-- 배포 루트에는 최신 실행본이 들어 있는 www를 단일 진입점으로 사용한다. -->
+    <script>
+      (() => {
+        const target = new URL("./www/index.html", window.location.href);
+        target.search = window.location.search;
+        target.hash = window.location.hash;
+        window.location.replace(target.href);
+      })();
+    </script>
+    <noscript><meta http-equiv="refresh" content="0; url=./www/index.html" /></noscript>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#15120d" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#ece4d3" media="(prefers-color-scheme: light)" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="품새 수련" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="icon" href="./assets/app-icon-1024.png" />
-    <link rel="apple-touch-icon" href="./assets/app-icon-1024.png" />
+    <link rel="icon" href="./www/assets/app-icon-1024.png" />
+    <link rel="apple-touch-icon" href="./www/assets/app-icon-1024.png" />
     <title>태권도 품새 수련</title>
     <style>
       /* 로컬 명조 서체 — 오프라인(APK) 대응. Google Fonts 의존성 없음. */

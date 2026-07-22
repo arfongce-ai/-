@@ -1,9 +1,9 @@
 {
-  "id": "./index.html",
+  "id": "./www/index.html",
   "name": "태권도 품새 수련",
   "short_name": "품새 수련",
   "description": "학다리서기 금강막기 아이콘의 개인품새 영상 수련 참고 프로그램",
-  "start_url": "./index.html",
+  "start_url": "./www/index.html",
   "scope": "./",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
@@ -11,19 +11,19 @@
   "theme_color": "#0e1116",
   "icons": [
     {
-      "src": "./assets/app-icon-192.png",
+      "src": "./www/assets/app-icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./assets/app-icon-512.png",
+      "src": "./www/assets/app-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "./assets/app-icon-1024.png",
+      "src": "./www/assets/app-icon-1024.png",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any"

@@ -5366,7 +5366,10 @@
           && target.readyState >= 2;
       }
       function updateAnalyzeButtonState() {
-        const hasMain = !!selectedFile && videoDecodeReady(video) && seekProbeOk;
+        // 중·후반 프레임 탐색 검사가 끝나기 전에는 분석을 시작하지 않는다.
+        // 검사 중 분석이 동시에 video.currentTime을 바꾸면 두 작업의 seek가 충돌해
+        // 버튼을 눌러도 진행이 멈춘 것처럼 보이거나 잘못된 구간이 만들어질 수 있다.
+        const hasMain = !!selectedFile && videoDecodeReady(video) && seekProbeChecked && seekProbeOk;
         let ready = hasMain;
         if (cameraView === "dual") ready = hasMain && !!selectedFileB;
         else if (cameraView === "triple") ready = hasMain && !!selectedFileB && !!selectedFileC;
@@ -5445,6 +5448,7 @@
         const checkedFile = selectedFile;
         if (!checkedFile || !Number.isFinite(video.duration) || video.duration < 3 || !videoDecodeReady(video)) {
           seekProbeChecked = true;
+          updateAnalyzeButtonState();
           return;
         }
         // 재생 중이면(자동 미리보기 등) 정해진 시점을 정확히 비교할 수 없으므로 먼저 멈춘다.
@@ -9963,9 +9967,26 @@
       video.addEventListener("loadeddata", () => {
         resolutionText.textContent = `${video.videoWidth}x${video.videoHeight}`;
         if (videoDecodeReady(video)) {
-          setProgress(0, poseLandmarker ? "영상 준비 완료. 분석 시작을 누르세요." : "영상 준비 완료. 분석 시작을 누르면 모델을 불러온 뒤 평가합니다.");
+          const isSelectedMainSource = !!objectUrl && (video.currentSrc === objectUrl || video.src === objectUrl);
+          setProgress(0, !seekProbeChecked && isSelectedMainSource
+            ? "영상의 중·후반 프레임까지 확인하는 중입니다. 잠시만 기다려 주세요."
+            : (poseLandmarker ? "영상 준비 완료. 분석 시작을 누르세요." : "영상 준비 완료. 분석 시작을 누르면 모델을 불러온 뒤 평가합니다."));
           reanalyzeBtn.disabled = false;
-          probeSeekReliability(); // 첫 프레임이 확인된 뒤에만 중~후반 탐색 신뢰성을 점검한다.
+          // 사용자가 고른 메인 영상의 최초 로드에서만 검사한다. 멀티뷰 분석 중
+          // loadVideoFile()이 측면/대각선 소스를 불러올 때 다시 검사하면 실제 분석 seek와 충돌한다.
+          if (!isAnalyzing && !seekProbeChecked && isSelectedMainSource) {
+            probeSeekReliability().catch((error) => {
+              console.warn("Video seek reliability probe failed.", error);
+              seekProbeChecked = true;
+              seekProbeOk = false;
+              setProgress(0, "영상 준비 확인 중 오류가 발생했습니다. 영상을 다시 선택해 주세요.");
+              renderReport([
+                { type: "bad", text: "영상의 중·후반 프레임을 안정적으로 확인하지 못해 분석을 시작하지 않았습니다." },
+                { type: "caution", text: "같은 영상을 다시 선택하거나 H.264(MP4)로 변환한 뒤 다시 시도해 주세요." }
+              ]);
+              updateAnalyzeButtonState();
+            });
+          }
         }
         updateAnalyzeButtonState();
       });
