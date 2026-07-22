@@ -235,7 +235,7 @@ assertContains(readUtf8(capacitorConfigPath), "\"appName\": \"태권도 품새 �
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련품새 · 경기품새", "헤더 훈련 목적 배지 적용");
-assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.97", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
+assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.99", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
@@ -295,7 +295,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v48-auto-confirm-simple-ux", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v50-admin-button-visible", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -557,6 +557,17 @@ assertContains(webHtml, "function expandConfirmRecords(records)", "확인 신호
 assertContains(webHtml, "accuracy_rate: e.total > 0", "위치별 정확도(정확도=확인/전체) 계산 존재");
 assertContains(readUtf8(path.join(root, "scripts", "analyze-corrections.js")), "function expandConfirmRecords(records)", "확인 신호를 위치별로 펼치는 함수 존재(Node)");
 assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "'merge', 'split', 'adjust', 'confirm_all'", "confirm_all 액션이 유효한 보정 기록으로 허용됨");
+
+// ── 고신뢰 경계 타이밍 제안 자동 반영(버튼 없이) ──
+assertContains(webHtml, "async function autoPublishHighConfidenceSuggestions(", "자동 반영 함수 존재");
+assertContains(webHtml, "autoPublishHighConfidenceSuggestions(); // 관리자로 인식되면", "관리자 인증 확인 시 자동 반영이 실제로 호출됨");
+assertContains(webHtml, "const AUTO_PUBLISH_MIN_INTERVAL_MS = 12 * 3600 * 1000", "자동 반영 확인 주기(12시간) 제한 존재(과도한 읽기 방지)");
+assertContains(webHtml, ".filter((s) => s.type === \"boundary_shift\")", "자동 반영은 안전한 타이밍 보정 제안으로만 한정됨(분류·명칭 변경 제안 제외)");
+assertContains(webHtml, "AUTO_PUBLISH_LOG_KEY", "자동 반영 이력이 로컬에 남아 리포트 화면에서 확인 가능함(투명성)");
+
+// ── 관리자 모드 버튼 발견성 개선 ──
+assertNotContains(webHtml, "font-size: 11px;\n        opacity: .5;", "관리자 모드 버튼이 더 이상 11px·반투명(찾기 어려운 상태)이 아님");
+assertContains(webHtml, "min-height: 44px;\n        margin: 16px auto 24px;\n        background: var(--panel-2);", "관리자 모드 버튼이 실제 탭 가능한 카드 형태로 개선됨");
 
 if (failures.length) {
   console.error(`\nCross-check failed: ${failures.length} issue(s)`);

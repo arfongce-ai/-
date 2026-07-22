@@ -112,5 +112,24 @@ function check(cond, msg) { console.log((cond ? "OK  " : "FAIL ") + msg); if (!c
   fs.rmSync(tmpOutDir, { recursive: true, force: true });
 }
 
+// 7) 자동 반영(autoPublishHighConfidenceSuggestions)이 쓰는 것과 동일한 필터
+//    (`s.type === "boundary_shift"`)가, 분류 로직 변경이 필요한 제안(over/under_segmentation)을
+//    실수로도 포함하지 않는지 확인한다 — 포함되면 recommend_shift_seconds가 없는 제안이
+//    자동 반영을 타면서 NaN→0초가 조용히 게시되는 위험한 회귀가 생긴다.
+{
+  const records = [];
+  for (let i = 0; i < 12; i += 1) records.push({ action: "merge", merged_segment_index: 4, poomsae: "taegeuk_6", ts: `m${i}` });
+  for (let i = 0; i < 3; i += 1) records.push({ action: "split", segment_index: 4, poomsae: "taegeuk_6", split_ratio: 0.4, ts: `s${i}` });
+  for (let i = 0; i < 15; i += 1) records.push({ action: "adjust", boundary_index: 9, poomsae: "taegeuk_6", delta_seconds: 0.3, ts: `a${i}` });
+  const { locations } = fns.analyzeCorrectionRecords(records);
+  const allSuggestions = fns.buildCorrectionRuleSuggestions(locations);
+  check(allSuggestions.some((s) => s.type === "over_segmentation"), "테스트 전제: over_segmentation 제안이 실제로 생성됨");
+  const autoPublishable = allSuggestions.filter((s) => s.type === "boundary_shift");
+  check(autoPublishable.every((s) => s.type === "boundary_shift"), "자동 반영 대상은 전부 boundary_shift 타입만");
+  check(autoPublishable.every((s) => Number.isFinite(s.recommend_shift_seconds)), "자동 반영 대상은 전부 유효한 숫자 보정값을 가짐(NaN 없음)");
+  check(!autoPublishable.some((s) => s.type === "over_segmentation" || s.type === "under_segmentation"),
+    "분류 로직 변경이 필요한 제안(과분할/과소분할)은 자동 반영 대상에서 제외됨");
+}
+
 console.log(fail ? `\n실패 ${fail}건` : "\n확인 신호·정확도 계산 회귀 테스트 통과");
 process.exit(fail ? 1 : 0);

@@ -1618,13 +1618,15 @@
       }
       .admin-mode-trigger {
         display: block;
-        margin: 10px auto 0;
-        background: none;
-        border: none;
-        color: var(--panel-line);
-        font-size: 11px;
-        opacity: .5;
-        padding: 6px;
+        min-height: 44px;
+        margin: 16px auto 24px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm, 8px);
+        color: var(--muted);
+        font-size: 14px;
+        opacity: .85;
+        padding: 10px 18px;
       }
       .admin-panel-overlay {
         position: fixed; inset: 0;
@@ -2299,7 +2301,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.97</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v3.99</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -2720,6 +2722,7 @@
           authMod.onAuthStateChanged(_fbAuth, (user) => {
             _fbCurrentAdminUser = user;
             safeInit("updateAdminReportUi", () => updateAdminReportUi());
+            autoPublishHighConfidenceSuggestions(); // 관리자로 인식되면(이 기기에 로그인 이력) 조용히 확인·반영.
           });
           _fbReady = true;
           initPartnerBanner(); // Firebase 준비된 뒤 배너 설정을 불러온다.
@@ -2814,6 +2817,46 @@
           localStorage.setItem(BOUNDARY_BIAS_CACHE_KEY, JSON.stringify(_remoteBoundaryBias || {}));
           return true;
         } catch (e) { return false; }
+      }
+      // ── 고신뢰 경계 타이밍 제안 자동 반영 ──
+      // 배경(2026-07-22 사용자 확인): "학습 리포트를 열고 적용 버튼을 눌러야" 반영되던 방식은
+      // 사장님이 그 화면을 일부러 열지 않으면 데이터가 쌓이기만 하고 앱은 안 똑똑해진다 —
+      // "쓸수록 정확해지나요?"라는 질문에 "아니요, 누가 확인해야 합니다"는 원하는 답이 아니다.
+      // 그래서 사장님(관리자) 계정으로 로그인된 채 이 앱을 평소처럼 쓰기만 해도(관리자 화면을
+      // 열 필요 없이) 백그라운드에서 조용히 확인해서, 안전 기준(표본 10건↑·방향 일치 70%↑·
+      // ±1.5초 상한 — publishBoundaryBiasEntry가 다시 한번 강제)을 넘는 "경계 타이밍" 제안만
+      // 자동으로 반영한다. 동작 분류·명칭·개수에 영향을 주는 제안(과분할/과소분할 등)은 여전히
+      // 코드 로직 변경이 필요해 자동 반영 대상이 아니다(사람 판단 필요 — 안전 범위 밖).
+      // 매 페이지 로드마다 전체 컬렉션을 읽으면 낭비이므로 12시간에 한 번으로 제한한다.
+      const AUTO_PUBLISH_LAST_CHECK_KEY = "poomsae_auto_publish_last_check";
+      const AUTO_PUBLISH_LOG_KEY = "poomsae_auto_publish_log";
+      const AUTO_PUBLISH_MIN_INTERVAL_MS = 12 * 3600 * 1000;
+      async function autoPublishHighConfidenceSuggestions() {
+        if (!_fbCurrentAdminUser || !_fbDB || !_fbGetDocs) return;
+        try {
+          const last = Number(localStorage.getItem(AUTO_PUBLISH_LAST_CHECK_KEY) || 0);
+          if (Date.now() - last < AUTO_PUBLISH_MIN_INTERVAL_MS) return;
+          localStorage.setItem(AUTO_PUBLISH_LAST_CHECK_KEY, String(Date.now()));
+          const snap = await _fbGetDocs(_fbCollection(_fbDB, "corrections"));
+          const records = [];
+          snap.forEach((d) => records.push(d.data()));
+          if (!records.length) return;
+          const { locations } = analyzeCorrectionRecords(records);
+          const suggestions = buildCorrectionRuleSuggestions(locations).filter((s) => s.type === "boundary_shift");
+          const activeBias = _remoteBoundaryBias || {};
+          const published = [];
+          for (const s of suggestions) {
+            const already = typeof activeBias[s.location] === "number"
+              && Math.abs(activeBias[s.location] - s.recommend_shift_seconds) < 0.01;
+            if (already) continue;
+            const ok = await publishBoundaryBiasEntry(s.location, s.recommend_shift_seconds);
+            if (ok) published.push({ location: s.location, shift: s.recommend_shift_seconds, ts: new Date().toISOString() });
+          }
+          if (published.length) {
+            const log = JSON.parse(localStorage.getItem(AUTO_PUBLISH_LOG_KEY) || "[]");
+            localStorage.setItem(AUTO_PUBLISH_LOG_KEY, JSON.stringify([...published, ...log].slice(0, 100)));
+          }
+        } catch (e) { /* 조용히 실패 — 다음 접속 때 다시 시도(12시간 제한이 자연스러운 재시도 역할) */ }
       }
 
       // ── 파트너 배너(하단 흐름 광고) ──
@@ -4386,7 +4429,17 @@
                   <button type="button" class="secondary remove-bias-btn" data-location="${escapeHtml(k)}" style="min-height:32px;font-size:12px">제거</button>
                 </div>`).join("")
               : "";
-            bodyEl.innerHTML = suggestionHtml + noisyHtml + activeHtml;
+            // 사장님이 특별히 뭘 누르지 않아도, 로그인된 채 앱을 쓴 사이 백그라운드에서 자동
+            // 반영된 항목들(autoPublishHighConfidenceSuggestions) — 언제 뭐가 왜 바뀌었는지
+            // 이 화면에서 확인·되돌리기 할 수 있게 투명하게 보여준다.
+            let autoLog = [];
+            try { autoLog = JSON.parse(localStorage.getItem(AUTO_PUBLISH_LOG_KEY) || "[]"); } catch (e) { autoLog = []; }
+            const autoLogHtml = autoLog.length
+              ? `<h4 style="margin:14px 0 6px;font-size:13px">최근 자동 반영 이력(이 기기에서 확인된 것)</h4>
+                <p class="small" style="color:var(--muted);margin:0 0 6px">버튼을 안 눌러도, 이 계정으로 로그인된 채 앱을 쓸 때마다 12시간에 한 번씩 조용히 확인해 안전 기준을 넘는 항목을 자동 반영합니다.</p>`
+                + autoLog.slice(0, 10).map((a) => `<p class="small" style="margin:2px 0">· ${escapeHtml(a.location)} → ${a.shift}초 (${new Date(a.ts).toLocaleString("ko-KR")})</p>`).join("")
+              : "";
+            bodyEl.innerHTML = suggestionHtml + noisyHtml + activeHtml + autoLogHtml;
           }
           // 적용/제거 버튼은 매번 새로 그려지므로 bodyEl에 위임(한 번만 바인딩).
           if (!bodyEl.dataset.biasDelegated) {
