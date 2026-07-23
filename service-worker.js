@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-root-offline-engine-v16-textbook-bibliography";
+const CACHE_NAME = "poomsae-training-root-offline-engine-v17-beta-movement-first";
 const APP_URL = "./www/index.html";
 const CORE_ASSETS = [
   "./",

@@ -1,8 +1,8 @@
 {
   "id": "./www/index.html",
-  "name": "태권도 품새 수련",
-  "short_name": "품새 수련",
-  "description": "학다리서기 금강막기 아이콘의 개인품새 영상 수련 참고 프로그램",
+  "name": "태권도 품새수련 Beta",
+  "short_name": "품새수련 Beta",
+  "description": "수련생과 지도자를 위한 동작별 태권도 품새 영상 분석 보조 도우미",
   "start_url": "./www/index.html",
   "scope": "./",
   "display": "standalone",

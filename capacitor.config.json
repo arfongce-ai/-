@@ -1,6 +1,6 @@
 {
   "appId": "com.poomsaecoach.app",
-  "appName": "태권도 품새 수련",
+  "appName": "태권도 품새수련 Beta",
   "webDir": "www",
   "server": {
     "androidScheme": "https"
