@@ -152,5 +152,23 @@ function makeLandmarks(overrides = {}) {
   check(result.time === 0, `시작 시각(${result.time})이 첫 프레임(0초)과 일치 — 처음부터 준비자세였음을 정확히 반영`);
 }
 
+// 10) 실제 태극 6장 정면+측면 영상에서 확인된 회귀: 영상 시작 직후 0~2초의 짧은 자세가
+//     준비서기처럼 보였지만, 지도자 정답은 6~10초 동안 유지된 준비자세였다. 가장 이른
+//     매칭이 아니라 가장 오래 유지된 매칭 구간을 선택해야 한다.
+{
+  const bad = { 15: { x: 0.25, y: 0.38 }, 16: { x: 0.75, y: 0.62 } };
+  const frames = [];
+  for (let i = 0; i <= 50; i += 1) {
+    const time = Number((i * 0.25).toFixed(2));
+    const shortFalseMatch = time >= 0.25 && time <= 1.5;
+    const trueJunbi = time >= 6 && time <= 10;
+    frames.push({ time, landmarks: makeLandmarks(shortFalseMatch || trueJunbi ? {} : bad) });
+  }
+  const result = fns.findJunbiPoseStart(frames, 12.5);
+  check(result.time >= 5.9 && result.time <= 6.25, `짧은 초기 오인을 버리고 실제 준비자세 시작(${result.time}초) 선택`);
+  check(result.endTime >= 9.75 && result.endTime <= 10.1, `실제 준비자세 종료(${result.endTime}초)까지 지속 구간 확인`);
+  check(result.passCount >= 16, `실제 준비자세 지속 표본 수(${result.passCount}) 확보`);
+}
+
 console.log(fail ? `\n실패 ${fail}건` : "\n준비자세 포즈 매칭 회귀 테스트 통과");
 process.exit(fail ? 1 : 0);

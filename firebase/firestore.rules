@@ -43,7 +43,7 @@ service cloud.firestore {
     // ※ 기존에 다른 컬렉션 규칙이 있으면 이 블록과 합쳐서 쓰세요.
 
     function isValidCorrection(d) {
-      return d.action in ['merge', 'split', 'adjust', 'confirm_all']
+      return d.action in ['merge', 'split', 'adjust', 'cascade_adjust', 'confirm_all']
         && d.poomsae is string
         && d.size() < 30;  // 필드 수 제한(스팸 방지)
     }

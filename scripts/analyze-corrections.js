@@ -156,7 +156,12 @@ function analyze(records) {
     e.counts[effAction] = (e.counts[effAction] || 0) + 1;
     e.total += 1;
     if (effAction === "adjust" && typeof r.delta_seconds === "number") {
-      e.adjust_deltas.push(r.delta_seconds);
+      const explicitTarget = Number(r.target_total_bias_seconds);
+      const applied = Number(r.applied_bias_seconds);
+      const target = Number.isFinite(explicitTarget)
+        ? explicitTarget
+        : (Number.isFinite(applied) ? applied + r.delta_seconds : r.delta_seconds);
+      if (Number.isFinite(target)) e.adjust_deltas.push(target);
     }
     if (r.action === "split" && typeof r.split_ratio === "number") {
       e.split_ratios.push(r.split_ratio);
@@ -186,8 +191,13 @@ function analyze(records) {
       // 정확도 = 확인(고칠 필요 없음) / 전체 리뷰(확인+합치기+나누기+이동). '고친 기록'만 보던
       // 이전과 달리, 이제 e.total에 confirm도 포함되므로 진짜 비율을 계산할 수 있다.
       accuracy_rate: e.total > 0 ? Number((e.counts.confirm / e.total).toFixed(3)) : null,
-      // '치우침'이 분명한가: 평균 이동이 임계 넘고 방향이 일관될 때
-      systematic_bias: Math.abs(mean) >= BIAS_THRESHOLD_SEC && directionAgreement >= 0.7,
+      correction_rate: e.total > 0 ? Number((e.counts.adjust / e.total).toFixed(3)) : 0,
+      // 전체 사용자 기본값은 최소 수정 5건, 전체 리뷰 중 수정률 30% 이상일 때만 바꾼다.
+      // 확인 9건+우연한 수정 1건만으로 전 사용자 보정이 게시되는 일을 막는다.
+      systematic_bias: e.counts.adjust >= 5
+        && e.counts.adjust / Math.max(e.total, 1) >= 0.3
+        && Math.abs(mean) >= BIAS_THRESHOLD_SEC
+        && directionAgreement >= 0.7,
       confidence: e.total >= MIN_SAMPLES_ML ? "ml_ready"
                 : e.total >= MIN_SAMPLES_RULE ? "rule_ready"
                 : "insufficient"

@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-root-offline-engine-v7-data-coverage";
+const CACHE_NAME = "poomsae-training-root-offline-engine-v11-action-accuracy-model";
 const APP_URL = "./www/index.html";
 const CORE_ASSETS = [
   "./",
@@ -16,6 +16,8 @@ const CORE_ASSETS = [
 ];
 const ENGINE_ASSETS = [
   "./www/models/pose_landmarker_lite.task",
+  "./www/models/action-quality-v1.json",
+  "./www/action-model.mjs",
   "./www/vendor/mediapipe/tasks-vision/vision_bundle.mjs",
   "./www/vendor/mediapipe/tasks-vision/wasm/vision_wasm_internal.js",
   "./www/vendor/mediapipe/tasks-vision/wasm/vision_wasm_internal.wasm"

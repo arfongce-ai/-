@@ -26,13 +26,19 @@ function extractConst(sig) {
 // 이름의 let으로 감싸 getBoundaryBias/applyLearnedBoundaryBias가 그대로 참조하게 한다.
 const body =
   "let _remoteBoundaryBias = null;\n" +
+  "let _localBoundaryBias = {};\n" +
   extractConst("const BOUNDARY_BIAS_MAX_SHIFT =") + "\n" +
+  extractConst("const LOCAL_BOUNDARY_BIAS_MIN_SAMPLES =") + "\n" +
+  extractConst("const LOCAL_BOUNDARY_BIAS_MAX_SHIFT =") + "\n" +
   extractFn("function clampBiasValue(v)") + "\n" +
+  extractFn("function medianNumber(values)") + "\n" +
+  extractFn("function buildLocalBoundaryBias(records") + "\n" +
   extractFn("function getBoundaryBias(poomsaeKey") + "\n" +
   extractFn("function applyLearnedBoundaryBias(boundaries") + "\n" +
   "return { " +
   "setBias: (v) => { _remoteBoundaryBias = v; }, " +
-  "getBoundaryBias, applyLearnedBoundaryBias, clampBiasValue, MAX: BOUNDARY_BIAS_MAX_SHIFT };";
+  "setLocalBias: (v) => { _localBoundaryBias = v || {}; }, " +
+  "getBoundaryBias, applyLearnedBoundaryBias, clampBiasValue, buildLocalBoundaryBias, MAX: BOUNDARY_BIAS_MAX_SHIFT };";
 const fns = new Function("clamp", body)(clamp);
 
 let fail = 0;
@@ -113,6 +119,62 @@ function check(cond, msg) { console.log((cond ? "OK  " : "FAIL ") + msg); if (!c
   check(fns.clampBiasValue(100) === fns.MAX, "큰 양수는 상한으로 잘림");
   check(fns.clampBiasValue(-100) === -fns.MAX, "큰 음수는 하한으로 잘림");
   check(fns.clampBiasValue(NaN) === 0, "NaN은 0으로 처리");
+}
+
+// 9) 같은 위치를 같은 방향으로 3회 이상 고치면 기기별 개인 보정이 생성된다.
+{
+  const learned = fns.buildLocalBoundaryBias([
+    { action: "adjust", poomsae: "taegeuk_1", boundary_index: 2, delta_seconds: 0.3 },
+    { action: "adjust", poomsae: "taegeuk_1", boundary_index: 2, delta_seconds: 0.4 },
+    { action: "cascade_adjust", poomsae: "taegeuk_1", boundary_index: 2, delta_seconds: 0.5 }
+  ]);
+  check(Math.abs(learned["taegeuk_1#2"] - 0.4) < 0.001, "반복 보정 3건의 중앙값으로 기기별 학습값 생성");
+}
+
+// 10) 표본이 부족하거나 방향이 흔들리면 자동 학습하지 않는다.
+{
+  const tooFew = fns.buildLocalBoundaryBias([
+    { action: "adjust", poomsae: "taegeuk_1", boundary_index: 1, delta_seconds: 0.4 },
+    { action: "adjust", poomsae: "taegeuk_1", boundary_index: 1, delta_seconds: 0.5 }
+  ]);
+  const unstable = fns.buildLocalBoundaryBias([
+    { action: "adjust", poomsae: "taegeuk_1", boundary_index: 1, delta_seconds: 0.5 },
+    { action: "adjust", poomsae: "taegeuk_1", boundary_index: 1, delta_seconds: -0.4 },
+    { action: "adjust", poomsae: "taegeuk_1", boundary_index: 1, delta_seconds: 0.3 },
+    { action: "adjust", poomsae: "taegeuk_1", boundary_index: 1, delta_seconds: -0.2 }
+  ]);
+  check(!("taegeuk_1#1" in tooFew), "3건 미만 표본은 개인 학습에서 제외");
+  check(!("taegeuk_1#1" in unstable), "보정 방향 일치율이 낮으면 개인 학습에서 제외");
+}
+
+// 11) 전역 보정과 기기별 잔차 보정은 합산하되 전체 안전 상한을 지킨다.
+{
+  fns.setBias({ "taegeuk_1#2": 0.3 });
+  fns.setLocalBias({ "taegeuk_1#2": 0.4 });
+  check(Math.abs(fns.getBoundaryBias("taegeuk_1", 2) - 0.7) < 0.001, "전역 학습값과 기기별 잔차 학습값 합산");
+  fns.setBias({ "taegeuk_1#2": 1.4 });
+  fns.setLocalBias({ "taegeuk_1#2": 0.6 });
+  check(fns.getBoundaryBias("taegeuk_1", 2) === fns.MAX, "합산 학습값도 전체 안전 상한 준수");
+  fns.setLocalBias({});
+}
+
+// 12) 과거 개인 수정의 최종 목표가 +0.5초이고 전역 보정 +0.4초가 새로 내려오면,
+//     개인값은 +0.5를 또 더하지 않고 남은 잔차 +0.1초만 학습한다.
+{
+  const records = [0.45, 0.5, 0.55].map((target, i) => ({
+    action: i === 2 ? "cascade_adjust" : "adjust",
+    poomsae: "taegeuk_1",
+    boundary_index: 2,
+    delta_seconds: target,
+    applied_bias_seconds: 0,
+    target_total_bias_seconds: target
+  }));
+  const learned = fns.buildLocalBoundaryBias(records, 3, { "taegeuk_1#2": 0.4 });
+  check(Math.abs(learned["taegeuk_1#2"] - 0.1) < 0.001, "전역 보정 게시 후 개인 보정은 남은 잔차만 유지");
+  fns.setBias({ "taegeuk_1#2": 0.4 });
+  fns.setLocalBias(learned);
+  check(Math.abs(fns.getBoundaryBias("taegeuk_1", 2) - 0.5) < 0.001, "전역+개인 합계가 사용자의 최종 목표 0.5초와 일치(중복 적용 없음)");
+  fns.setLocalBias({});
 }
 
 console.log(fail ? `\n실패 ${fail}건` : "\n경계 타이밍 학습 보정 회귀 테스트 통과");

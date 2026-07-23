@@ -1,0 +1,22 @@
+{
+  "schema": "poomsae-ground-truth-review-v1",
+  "source_file": "KakaoTalk_20260723_101323061.mp4",
+  "poomsae": { "id": "taebaek", "name": "태백", "official_movements": 26 },
+  "app_revalidation": {
+    "video_duration_seconds": 68.4,
+    "pose_detection_rate": 1.0,
+    "ready_range": [0.0, 5.0],
+    "active_range": [5.0, 48.1],
+    "first_action": { "movement_id": "taebaek_m1", "name": "왼범서기 아래손날헤쳐막기", "start_seconds": 5.0 },
+    "boundaries": [0.0, 5.0, 6.4, 7.1, 8.7, 9.9, 11.7, 12.6, 14.5, 15.6, 17.2, 18.7, 19.9, 22.2, 23.3, 25.3, 26.1, 28.0, 30.3, 32.3, 33.0, 35.0, 36.5, 38.2, 40.0, 41.9, 46.2, 48.1]
+  },
+  "review": {
+    "status": "pending_expert_action_review",
+    "reason": "관절좌표는 앱이 관측한 원천 데이터입니다. 태백 동작의 정답 여부는 경기규칙의 동작명·손 위치·손바닥 방향·발 이동·시선·연속성을 전문가가 승인해야 합니다.",
+    "promote_to_ground_truth_when": [
+      "26개 경계와 동작 순서 승인",
+      "각 동작의 action_correct 또는 오류코드 입력",
+      "촬영방향과 좌우 표기 승인"
+    ]
+  }
+}

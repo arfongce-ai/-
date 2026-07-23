@@ -9,7 +9,7 @@
     "test:engine": "node scripts/test-analysis-engine.js",
     "test:mapping": "node scripts/test-segment-mapping.js",
     "test:performance": "node scripts/test-analysis-performance.js",
-    "test:all": "npm run assets:check && npm run verify:cross && npm run test:engine && npm run test:mapping && npm run test:performance && npm run test:timestamp && npm run test:boundary && npm run test:hevc && npm run test:gangyu && npm run test:semantic && npm run test:junbi && npm run test:bias && npm run test:confirm",
+    "test:all": "npm run assets:check && npm run verify:cross && npm run test:engine && npm run test:mapping && npm run test:performance && npm run test:timestamp && npm run test:boundary && npm run test:multiview && npm run test:hevc && npm run test:gangyu && npm run test:semantic && npm run test:junbi && npm run test:bias && npm run test:confirm && npm run test:action-model",
     "serve:test": "node scripts/serve-static.js",
     "assets:download": "node scripts/download-offline-assets.js",
     "android:add": "npx cap add android",
@@ -17,12 +17,15 @@
     "android:open": "npx cap open android",
     "test:timestamp": "node scripts/test-detect-timestamp.js",
     "test:boundary": "node scripts/test-boundary-detection.js",
+    "test:multiview": "node scripts/test-multiview-fusion.js",
     "test:hevc": "node scripts/test-hevc-detection.js",
     "test:gangyu": "node scripts/test-gangyu.js",
     "test:semantic": "node scripts/test-semantic-scenes.js",
     "test:junbi": "node scripts/test-junbi-pose.js",
     "test:bias": "node scripts/test-boundary-bias.js",
-    "test:confirm": "node scripts/test-confirm-accuracy.js"
+    "test:confirm": "node scripts/test-confirm-accuracy.js",
+    "test:action-model": "node scripts/test-action-model.js",
+    "train:action-model": "node scripts/train-action-model.js"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",

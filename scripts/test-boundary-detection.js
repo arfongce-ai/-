@@ -15,9 +15,10 @@ function extract(sig) {
 }
 const fns = new Function("clamp",
   extract("function detectActiveMotionRange(duration") + "\n" +
+  extract("function detectActionOnset(motionSamples") + "\n" +
   extract("function detectNaturalBoundaries(duration") + "\n" +
   extract("function allocateMovementsToSegments(boundaries") + "\n" +
-  "return { detectActiveMotionRange, detectNaturalBoundaries, allocateMovementsToSegments };"
+  "return { detectActiveMotionRange, detectActionOnset, detectNaturalBoundaries, allocateMovementsToSegments };"
 )(clamp);
 
 function indicesOf(entry) {
@@ -121,6 +122,43 @@ function check(cond, msg) { console.log((cond ? "OK  " : "FAIL ") + msg); if (!c
   const alloc = fns.allocateMovementsToSegments(b, 6);
   // 동작은 6개 전부 배분되고(묶음 허용), 경계가 동작 수를 넘지 않음
   check(flattenAllocation(alloc).length === 6 && (b.length - 1) <= 6, "하이브리드: valley 없는 연속구간은 가짜 분할 없이 묶음 처리");
+}
+
+// 7) 작은 준비 흔들림 뒤 첫 동작이 크게 시작되면 급상승 직전 정지점을 onset으로 잡는다.
+{
+  const samples = [];
+  for (let t = 0; t <= 8; t += 0.25) {
+    let motion = 0.015;
+    if (t >= 2.75 && t < 3.25) motion = 0.28;
+    else if (t >= 3.25 && t < 4.25) motion = 0.75;
+    else if (t >= 4.25) motion = 0.35;
+    samples.push({ time: t, motion, valid: true });
+  }
+  const onset = fns.detectActionOnset(samples, { start: 2.5, end: 8 }, 8);
+  check(onset >= 2.3 && onset <= 3.05, `첫 동작 급상승 직전 시작점 검출(${onset.toFixed(2)}초)`);
+}
+
+// 8) 연속 상승·정점 근거가 없으면 1차 활성 시작점을 그대로 사용한다.
+{
+  const samples = Array.from({ length: 24 }, (_, i) => ({ time: i * 0.25, motion: 0.03, valid: true }));
+  const onset = fns.detectActionOnset(samples, { start: 1.5, end: 5.5 }, 6);
+  check(Math.abs(onset - 1.5) < 0.001, "급상승 근거 부족 시 1차 시작점으로 안전 폴백");
+}
+
+// 9) 준비자세 전에 큰 박수/입장 움직임이 있어도, 준비자세 이후로 탐색 범위를 제한하면
+//    그 앞의 더 큰 정점에 임계값이 끌려가지 않고 첫 동작(아래막기) 시작을 찾는다.
+{
+  const samples = [];
+  for (let t = 0; t <= 16; t += 0.25) {
+    let motion = 0.012;
+    if (t >= 1 && t < 1.75) motion = 1.8;          // 앞부분 박수/입장 움직임
+    else if (t >= 10 && t < 10.5) motion = 0.32;  // 아래막기 시작 상승
+    else if (t >= 10.5 && t < 11.5) motion = 0.85;
+    else if (t >= 11.5) motion = 0.28;
+    samples.push({ time: t, motion, valid: true });
+  }
+  const onset = fns.detectActionOnset(samples, { start: 9.5, end: 16 }, 16);
+  check(onset >= 9.4 && onset <= 10.15, `초반 박수를 무시하고 준비자세 직후 아래막기 시작 검출(${onset.toFixed(2)}초)`);
 }
 
 console.log(fail ? `\n실패 ${fail}건` : "\n경계 탐지·동작 배분 회귀 테스트 통과");

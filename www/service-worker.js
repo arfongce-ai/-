@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v53-analysis-start-race-fix";
+const CACHE_NAME = "poomsae-training-v59-action-accuracy-model";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",
@@ -15,6 +15,8 @@ const CORE_ASSETS = [
 ];
 const ENGINE_ASSETS = [
   "./models/pose_landmarker_lite.task",
+  "./models/action-quality-v1.json",
+  "./action-model.mjs",
   "./vendor/mediapipe/tasks-vision/vision_bundle.mjs",
   "./vendor/mediapipe/tasks-vision/wasm/vision_wasm_internal.js",
   "./vendor/mediapipe/tasks-vision/wasm/vision_wasm_internal.wasm"

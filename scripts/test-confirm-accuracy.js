@@ -112,6 +112,30 @@ function check(cond, msg) { console.log((cond ? "OK  " : "FAIL ") + msg); if (!c
   fs.rmSync(tmpOutDir, { recursive: true, force: true });
 }
 
+// 6-1) 확인 9건에 우연한 수정 1건만 섞인 경우 전체 사용자 기본값을 바꾸면 안 된다.
+{
+  const records = [{ action: "adjust", boundary_index: 2, poomsae: "taegeuk_2", delta_seconds: 0.8, ts: "a1" }];
+  for (let i = 0; i < 9; i += 1) records.push({ action: "confirm_all", poomsae: "taegeuk_2", boundary_count: 3, ts: `c${i}` });
+  const { locations } = fns.analyzeCorrectionRecords(records);
+  const loc = locations.find((l) => l.location === "taegeuk_2#2");
+  const suggestions = fns.buildCorrectionRuleSuggestions(locations);
+  check(loc.total === 10 && loc.counts.adjust === 1, "전역 안전성 테스트 표본 구성(확인 9·수정 1)");
+  check(!suggestions.some((s) => s.location === "taegeuk_2#2" && s.type === "boundary_shift"), "우연한 수정 1건으로 전 사용자 보정 게시 금지");
+}
+
+// 6-2) 이미 +0.4초가 적용된 상태에서 +0.1초를 더 고친 기록은 최종 목표 +0.5초로 집계한다.
+{
+  const records = [];
+  for (let i = 0; i < 6; i += 1) records.push({
+    action: "adjust", boundary_index: 3, poomsae: "taegeuk_7",
+    delta_seconds: 0.1, applied_bias_seconds: 0.4, target_total_bias_seconds: 0.5, ts: `a${i}`
+  });
+  for (let i = 0; i < 4; i += 1) records.push({ action: "confirm_all", poomsae: "taegeuk_7", boundary_count: 4, ts: `c${i}` });
+  const { locations } = fns.analyzeCorrectionRecords(records);
+  const loc = locations.find((l) => l.location === "taegeuk_7#3");
+  check(Math.abs(loc.adjust_mean_delta - 0.5) < 0.001, `잔차가 아닌 최종 목표 보정값으로 집계(실제 ${loc.adjust_mean_delta}초)`);
+}
+
 // 7) 자동 반영(autoPublishHighConfidenceSuggestions)이 쓰는 것과 동일한 필터
 //    (`s.type === "boundary_shift"`)가, 분류 로직 변경이 필요한 제안(over/under_segmentation)을
 //    실수로도 포함하지 않는지 확인한다 — 포함되면 recommend_shift_seconds가 없는 제안이

@@ -1652,8 +1652,7 @@
       .admin-panel input[type="text"],
       .admin-panel input[type="url"],
       .admin-panel input[type="datetime-local"],
-      .admin-panel input[type="password"],
-      .admin-panel input[type="file"] {
+      .admin-panel input[type="password"] {
         width: 100%;
         min-height: 44px;
         padding: 8px 12px;
@@ -2302,7 +2301,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v4.01</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v4.08</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -2641,11 +2640,7 @@
           <label for="adminBannerEnabled">
             <input type="checkbox" id="adminBannerEnabled" style="width:18px;height:18px;vertical-align:middle" /> 배너 노출 사용
           </label>
-          <label for="adminBannerFile">배너 이미지</label>
-          <img id="adminBannerPreview" alt="배너 미리보기" style="display:none;max-width:100%;max-height:160px;object-fit:contain;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);margin-bottom:8px" />
-          <input type="file" id="adminBannerFile" accept="image/*" />
-          <p class="small" id="adminBannerUploadStatus" style="margin:6px 0 0;color:var(--muted);min-height:16px"></p>
-          <label for="adminBannerImage">이미지 주소(사진을 올리면 자동으로 채워져요 · 직접 입력도 가능)</label>
+          <label for="adminBannerImage">배너 이미지 주소(URL)</label>
           <input type="url" id="adminBannerImage" placeholder="https://..." />
           <label for="adminBannerLink">클릭 시 이동할 주소(URL)</label>
           <input type="url" id="adminBannerLink" placeholder="https://..." />
@@ -2686,6 +2681,7 @@
     </div>
 
     <script type="module">
+      import { buildDatasetCandidate, scoreActionSequence } from "./action-model.mjs";
       // ── Firebase 연동(보정 기록 자동 수집) ──
       // 보정 기록을 사장님 Firestore(momgagym-cms)에 자동으로 모은다.
       // 실패해도(오프라인/차단) 앱 본체는 정상 동작하며, 기록은 로컬에도 항상 저장된다(이중 안전).
@@ -2693,8 +2689,6 @@
       let _fbAddDoc = null, _fbCollection = null, _fbServerTs = null;
       let _fbDoc = null, _fbGetDoc = null, _fbSetDoc = null, _fbGetDocs = null, _fbDeleteField = null;
       let _fbReady = false;
-      // ── 배너 이미지 업로드용 Storage 참조(파일로 직접 올리기) ──
-      let _fbStorage = null, _fbStorageRef = null, _fbUploadBytesResumable = null, _fbGetDownloadURL = null;
       // ── 학습된 경계 타이밍 보정(원격, 공개 읽기) 상태 ──
       // null=아직 못 가져옴(폴백 이전), {}=값 없음(보정 없음), {...}=실제 학습된 보정값.
       let _remoteBoundaryBias = null;
@@ -2709,7 +2703,6 @@
           const appMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
           const fsMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
           const authMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-          const storageMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js");
           const firebaseConfig = {
             apiKey: "AIzaSyC9R63MgGXKE0lQ_hfCR8LHRmMRv1jiugk",
             authDomain: "momgagym-cms.firebaseapp.com",
@@ -2723,10 +2716,6 @@
           _fbAddDoc = fsMod.addDoc; _fbCollection = fsMod.collection; _fbServerTs = fsMod.serverTimestamp;
           _fbDoc = fsMod.doc; _fbGetDoc = fsMod.getDoc; _fbSetDoc = fsMod.setDoc; _fbGetDocs = fsMod.getDocs;
           _fbDeleteField = fsMod.deleteField;
-          _fbStorage = storageMod.getStorage(app);
-          _fbStorageRef = storageMod.ref;
-          _fbUploadBytesResumable = storageMod.uploadBytesResumable;
-          _fbGetDownloadURL = storageMod.getDownloadURL;
           _fbAuth = authMod.getAuth(app);
           _fbSignIn = authMod.signInWithEmailAndPassword;
           _fbSendPasswordReset = authMod.sendPasswordResetEmail;
@@ -2737,6 +2726,7 @@
             autoPublishHighConfidenceSuggestions(); // 관리자로 인식되면(이 기기에 로그인 이력) 조용히 확인·반영.
           });
           _fbReady = true;
+          flushPendingCloudCorrections(); // 오프라인 때 쌓인 기록을 연결 즉시 재전송.
           initPartnerBanner(); // Firebase 준비된 뒤 배너 설정을 불러온다.
           loadBoundaryBias(); // 학습된 경계 타이밍 보정도 함께 불러온다(실패해도 무해).
         } catch (e) {
@@ -2745,14 +2735,52 @@
         }
       })();
       // 보정 기록 1건을 Firestore 'corrections' 컬렉션에 보낸다(익명, 영상 파일명 제외).
-      async function sendCorrectionToCloud(record) {
-        if (!_fbReady || !_fbDB) return false;
+      // 네트워크가 끊겼을 때 조용히 유실되던 기존 구조를 보완해, 먼저 로컬 전송 대기열에
+      // 저장한 뒤 성공한 항목만 제거한다. 무료 Firestore 범위 안에서 별도 유료 서버 없이 동작한다.
+      const CLOUD_CORRECTION_QUEUE_KEY = "poomsae_cloud_correction_queue_v1";
+      const CLOUD_CORRECTION_QUEUE_MAX = 300;
+      let _cloudCorrectionFlushPromise = null;
+      function loadPendingCloudCorrections() {
         try {
-          const { file, ...safe } = record; // 개인정보가 될 수 있는 파일명 제거
-          await _fbAddDoc(_fbCollection(_fbDB, "corrections"), { ...safe, created: _fbServerTs() });
-          return true;
-        } catch (e) { return false; }
+          const rows = JSON.parse(localStorage.getItem(CLOUD_CORRECTION_QUEUE_KEY) || "[]");
+          return Array.isArray(rows) ? rows : [];
+        } catch (e) { return []; }
       }
+      function savePendingCloudCorrections(rows) {
+        try { localStorage.setItem(CLOUD_CORRECTION_QUEUE_KEY, JSON.stringify(rows.slice(-CLOUD_CORRECTION_QUEUE_MAX))); }
+        catch (e) { /* 로컬 보정 로그는 별도로 남아 있으므로 앱은 계속 동작 */ }
+      }
+      function queueCorrectionForCloud(record) {
+        const { file, ...safe } = record;
+        const queue = loadPendingCloudCorrections();
+        queue.push(safe);
+        savePendingCloudCorrections(queue);
+      }
+      async function flushPendingCloudCorrections() {
+        if (_cloudCorrectionFlushPromise) return _cloudCorrectionFlushPromise;
+        _cloudCorrectionFlushPromise = (async () => {
+          if (!_fbReady || !_fbDB || !_fbAddDoc || !_fbCollection) return 0;
+          const queue = loadPendingCloudCorrections();
+          let sent = 0;
+          while (queue.length) {
+            try {
+              await _fbAddDoc(_fbCollection(_fbDB, "corrections"), { ...queue[0], created: _fbServerTs() });
+              queue.shift();
+              sent += 1;
+              savePendingCloudCorrections(queue);
+            } catch (e) { break; }
+          }
+          return sent;
+        })();
+        try { return await _cloudCorrectionFlushPromise; }
+        finally { _cloudCorrectionFlushPromise = null; }
+      }
+      async function sendCorrectionToCloud(record) {
+        queueCorrectionForCloud(record);
+        const sent = await flushPendingCloudCorrections();
+        return sent > 0;
+      }
+      window.addEventListener("online", () => { flushPendingCloudCorrections(); });
 
       // ── 학습된 경계 타이밍 보정(원격, 공개 읽기) ──
       // 배경(2026-07-22 사용자 확인): "학습 리포트"가 보여주는 제안은 그동안 관리자 확인 후
@@ -2765,8 +2793,62 @@
       // (3) 오프라인/실패 시 localStorage 캐시 → 그마저 없으면 빈 값(=기존과 동일 동작).
       const BOUNDARY_BIAS_CACHE_KEY = "poomsae_boundary_bias_v1";
       const BOUNDARY_BIAS_MAX_SHIFT = 1.5;
+      const LOCAL_BOUNDARY_BIAS_KEY = "poomsae_local_boundary_bias_v1";
+      const LOCAL_BOUNDARY_BIAS_MIN_SAMPLES = 3;
+      const LOCAL_BOUNDARY_BIAS_MAX_SHIFT = 0.6;
+      let _localBoundaryBias = {};
       function clampBiasValue(v) {
         return Number.isFinite(v) ? clamp(v, -BOUNDARY_BIAS_MAX_SHIFT, BOUNDARY_BIAS_MAX_SHIFT) : 0;
+      }
+      function medianNumber(values) {
+        const sorted = values.filter(Number.isFinite).slice().sort((a, b) => a - b);
+        if (!sorted.length) return 0;
+        const mid = Math.floor(sorted.length / 2);
+        return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+      }
+      // 이 기기에서 같은 품새·같은 경계를 반복해서 고친 경우에만 개인 보정값을 만든다.
+      // 평균 대신 중앙값을 써서 한 번의 잘못된 터치가 다음 분석을 망치지 않게 하고,
+      // 3회 미만 표본과 방향 일치율 67% 미만의 불안정한 기록은 적용하지 않는다.
+      function buildLocalBoundaryBias(records, minSamples = LOCAL_BOUNDARY_BIAS_MIN_SAMPLES, remoteBias = null) {
+        const activeRemoteBias = remoteBias || _remoteBoundaryBias || {};
+        const grouped = {};
+        for (const record of Array.isArray(records) ? records : []) {
+          if (record.action !== "adjust" && record.action !== "cascade_adjust") continue;
+          const delta = Number(record.delta_seconds);
+          const index = Number(record.boundary_index);
+          if (!record.poomsae || !Number.isFinite(index) || !Number.isFinite(delta) || Math.abs(delta) > BOUNDARY_BIAS_MAX_SHIFT) continue;
+          const key = `${record.poomsae}#${index}`;
+          // 사용자가 고친 값은 이미 적용 중이던 전역+개인 보정 위에서 발생한 '잔차'다.
+          // 잔차만 누적하면 전역 보정이 나중에 게시됐을 때 같은 오차가 두 번 더해질 수 있으므로,
+          // 기록 당시 총 보정 + 이번 수정량 = 사용자가 원하는 최종 총 보정으로 환산해 학습한다.
+          const applied = Number(record.applied_bias_seconds);
+          const explicitTarget = Number(record.target_total_bias_seconds);
+          const targetTotal = Number.isFinite(explicitTarget)
+            ? explicitTarget
+            : (Number.isFinite(applied) ? applied + delta : delta);
+          if (!Number.isFinite(targetTotal) || Math.abs(targetTotal) > BOUNDARY_BIAS_MAX_SHIFT) continue;
+          (grouped[key] ||= []).push(targetTotal);
+        }
+        const learned = {};
+        for (const [key, targets] of Object.entries(grouped)) {
+          if (targets.length < minSamples) continue;
+          const targetCenter = medianNumber(targets);
+          const remote = typeof activeRemoteBias[key] === "number" ? clampBiasValue(activeRemoteBias[key]) : 0;
+          const center = targetCenter - remote;
+          if (Math.abs(center) < 0.05) continue;
+          const direction = Math.sign(targetCenter);
+          const consistent = targets.filter((value) => Math.sign(value) === direction).length / targets.length;
+          if (consistent < 0.67) continue;
+          learned[key] = clamp(center, -LOCAL_BOUNDARY_BIAS_MAX_SHIFT, LOCAL_BOUNDARY_BIAS_MAX_SHIFT);
+        }
+        return learned;
+      }
+      function refreshLocalBoundaryBias(records) {
+        try {
+          _localBoundaryBias = buildLocalBoundaryBias(records);
+          localStorage.setItem(LOCAL_BOUNDARY_BIAS_KEY, JSON.stringify(_localBoundaryBias));
+        } catch (error) { _localBoundaryBias = {}; }
+        return _localBoundaryBias;
       }
       async function loadBoundaryBias() {
         try {
@@ -2786,14 +2868,20 @@
           }
           _remoteBoundaryBias = clean;
           localStorage.setItem(BOUNDARY_BIAS_CACHE_KEY, JSON.stringify(clean));
+          // 전역 보정이 새로 내려오면 과거 개인 보정을 '최종 목표값 - 새 전역값'으로 즉시
+          // 다시 계산해 같은 보정이 두 번 더해지지 않게 한다.
+          refreshLocalBoundaryBias(loadCorrectionLog());
         } catch (e) {
           if (_remoteBoundaryBias == null) _remoteBoundaryBias = {}; // 캐시도 없었으면 빈 값으로 안전 폴백.
         }
       }
       function getBoundaryBias(poomsaeKey, boundaryIndex) {
-        if (!_remoteBoundaryBias) return 0;
-        const v = _remoteBoundaryBias[`${poomsaeKey}#${boundaryIndex}`];
-        return typeof v === "number" ? clampBiasValue(v) : 0;
+        const key = `${poomsaeKey}#${boundaryIndex}`;
+        const remote = _remoteBoundaryBias && typeof _remoteBoundaryBias[key] === "number" ? _remoteBoundaryBias[key] : 0;
+        // 로컬 값은 이미 전역 보정이 적용된 결과를 사용자가 다시 고친 '잔차'이므로 더한다.
+        // 총 이동량은 기존 안전 상한(±1.5초)을 절대 넘지 않는다.
+        const local = typeof _localBoundaryBias[key] === "number" ? _localBoundaryBias[key] : 0;
+        return clampBiasValue(remote + local);
       }
       // 감지된 경계 배열에 학습된 보정을 순서대로 더한다. 이웃 경계와 최소 0.1초 간격을
       // 유지하도록 매번 클램프해, 아무리 큰 보정값이 들어와도 순서가 뒤집히지 않는다.
@@ -2938,53 +3026,6 @@
           return { ok: false, reason: "저장에 실패했어요. PIN이 맞는지, 인터넷 연결을 확인해주세요." };
         }
       }
-      // 배너 미리보기 이미지를 관리자 패널에 표시(파일 업로드·URL 직접 입력 모두 여기로 모임).
-      function updateBannerPreview(url) {
-        const img = document.getElementById("adminBannerPreview");
-        if (!img) return;
-        if (url) {
-          img.onerror = () => { img.style.display = "none"; };
-          img.src = url;
-          img.style.display = "block";
-        } else {
-          img.removeAttribute("src");
-          img.style.display = "none";
-        }
-      }
-      // 선택한 이미지 파일을 Firebase Storage에 올리고 다운로드 주소를 돌려준다.
-      // app_config/banner 저장과는 별개 단계 — 업로드가 끝나도 "저장"을 눌러야 실제로 반영됨.
-      async function uploadBannerImageFile(file, onProgress) {
-        if (!file.type || !file.type.startsWith("image/")) {
-          return { ok: false, reason: "이미지 파일만 올릴 수 있어요." };
-        }
-        const MAX_BYTES = 5 * 1024 * 1024;
-        if (file.size > MAX_BYTES) {
-          return { ok: false, reason: "5MB 이하 이미지만 올릴 수 있어요." };
-        }
-        if (!_fbReady || !_fbStorage) {
-          return { ok: false, reason: "오프라인이라 업로드할 수 없어요. 인터넷 연결을 확인해주세요." };
-        }
-        try {
-          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-          const path = `banner/${Date.now()}_${safeName}`;
-          const sref = _fbStorageRef(_fbStorage, path);
-          const task = _fbUploadBytesResumable(sref, file, {
-            contentType: file.type,
-            customMetadata: { pin: ADMIN_PIN } // firebase/storage.rules가 이 값으로 업로드 허용 여부를 확인함.
-          });
-          await new Promise((resolve, reject) => {
-            task.on("state_changed",
-              (snap) => { if (onProgress) onProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)); },
-              (err) => reject(err),
-              () => resolve()
-            );
-          });
-          const url = await _fbGetDownloadURL(task.snapshot.ref);
-          return { ok: true, url };
-        } catch (e) {
-          return { ok: false, reason: "업로드에 실패했어요. 인터넷 연결을 확인하고 다시 시도해주세요." };
-        }
-      }
       // ── 관리자 모드 패널 배선 ──
       (function wireAdminPanel() {
         const trigger = document.getElementById("adminModeTrigger");
@@ -2996,9 +3037,6 @@
         const closeBtn = document.getElementById("adminPanelClose");
         const saveBtn = document.getElementById("adminBannerSave");
         const hideNowBtn = document.getElementById("adminBannerHideNow");
-        const fileInput = document.getElementById("adminBannerFile");
-        const urlInput = document.getElementById("adminBannerImage");
-        const uploadStatus = document.getElementById("adminBannerUploadStatus");
         if (!trigger || !overlay) return;
 
         function resetPanel() {
@@ -3015,11 +3053,6 @@
           document.getElementById("adminBannerLink").value = c.linkUrl || "";
           document.getElementById("adminBannerStart").value = formatKSTForInput(c.startAt);
           document.getElementById("adminBannerEnd").value = formatKSTForInput(c.endAt);
-          updateBannerPreview(c.imageUrl || "");
-          const fileInputEl = document.getElementById("adminBannerFile");
-          if (fileInputEl) fileInputEl.value = "";
-          const uploadStatusEl = document.getElementById("adminBannerUploadStatus");
-          if (uploadStatusEl) uploadStatusEl.textContent = "";
           pinInput.style.display = "none";
           pinSubmit.style.display = "none";
           fields.style.display = "block";
@@ -3033,32 +3066,6 @@
           else status.textContent = "PIN이 올바르지 않아요.";
         });
         pinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") pinSubmit.click(); });
-        urlInput.addEventListener("input", () => updateBannerPreview(urlInput.value.trim()));
-        if (fileInput) {
-          fileInput.addEventListener("change", async () => {
-            const file = fileInput.files && fileInput.files[0];
-            if (!file) return;
-            // 실제 업로드가 끝나기 전이라도 고른 사진을 바로 확인할 수 있게 임시 미리보기부터 표시.
-            const localPreviewUrl = URL.createObjectURL(file);
-            updateBannerPreview(localPreviewUrl);
-            uploadStatus.textContent = "업로드 중...";
-            saveBtn.disabled = true;
-            const result = await uploadBannerImageFile(file, (pct) => {
-              uploadStatus.textContent = `업로드 중... ${pct}%`;
-            });
-            URL.revokeObjectURL(localPreviewUrl);
-            saveBtn.disabled = false;
-            if (result.ok) {
-              urlInput.value = result.url;
-              updateBannerPreview(result.url);
-              uploadStatus.textContent = "업로드 완료! 아래 저장을 눌러야 실제로 반영돼요.";
-            } else {
-              uploadStatus.textContent = result.reason;
-              updateBannerPreview(urlInput.value.trim());
-              fileInput.value = "";
-            }
-          });
-        }
         saveBtn.addEventListener("click", async () => {
           status.textContent = "저장 중...";
           const config = {
@@ -4172,6 +4179,7 @@
       let resultPageContent = null;
       let backToTrainingBtn = null;
       let resultJpgBtn = null;
+      let resultDatasetBtn = null;
       let replayModal = null;
       let replayVideo = null;
       let replayModalTitle = null;
@@ -4181,6 +4189,11 @@
       let replayObjectUrl = null;
       let selectedFile = null;
       let poseLandmarker = null;
+      let actionQualityModel = null;
+      fetch("./models/action-quality-v1.json", { cache: "no-store" })
+        .then((response) => response.ok ? response.json() : null)
+        .then((model) => { actionQualityModel = model; })
+        .catch(() => { actionQualityModel = null; });
       let latestReport = null;
       // 수동 구간 조정용: 마지막 분석의 경계/모션/프레임 캐시와 동작 목록을 보존한다.
       // 영상 재추출 없이 경계만 바꿔 구간을 다시 만들기 위함(효율).
@@ -4208,14 +4221,16 @@
           localStorage.setItem(CORRECTION_LOG_KEY, JSON.stringify(trimmed));
         } catch (e) { /* 저장 실패는 조용히 무시(기능 자체는 계속 동작) */ }
       }
+      // 앱을 다시 열어도 이 기기에서 누적된 신뢰 가능한 보정값을 즉시 복원한다.
+      refreshLocalBoundaryBias(loadCorrectionLog());
       // ── 영상별 보정 기억(같은 영상 재분석 시 복원) ──
       // 배경(2026-07-22 사용자 확인): Firestore의 corrections 컬렉션은 보안 규칙상
       // 쓰기 전용이다(firebase/firestore.rules: "allow read, update, delete: if false" —
       // 스팸/오남용 방지 목적으로 의도적으로 막아둠). 그래서 "같은 영상을 다시 분석하면
       // 저장된 보정이 나와야 한다"는 요구는 클라우드가 아니라 이 브라우저의 localStorage로만
       // 구현 가능하다 — 같은 기기·같은 브라우저에서 같은 영상을 다시 열 때만 적용된다.
-      // (여러 영상에 걸친 정확도 향상 자체는 별개 — analyze-corrections.js로 내보낸 로그를
-      //  분석해 규칙을 고치는 방식이며, 자동으로 일어나지 않는다.)
+      // 여러 영상에 걸친 정확도 향상은 같은 위치의 일관된 수정을 개인 보정으로 즉시 학습하고,
+      // 클라우드 표본이 안전 기준을 넘으면 전역 보정으로 게시하는 별도 경로가 담당한다.
       const VIDEO_CORRECTIONS_KEY = "poomsae_video_corrections_v1";
       const VIDEO_CORRECTIONS_MAX = 50; // localStorage 용량 보호용 상한(오래된 것부터 제거).
       function videoFingerprint(file) {
@@ -4269,6 +4284,7 @@
           const log = loadCorrectionLog();
           log.push(record);
           saveCorrectionLog(log);
+          refreshLocalBoundaryBias(log);
           // 클라우드(Firestore)에도 자동 전송(파일명 제외, 익명). 실패해도 로컬엔 이미 저장됨.
           sendCorrectionToCloud(record);
         } catch (e) { /* 무시 */ }
@@ -4388,7 +4404,14 @@
           const effAction = r.action === "cascade_adjust" ? "adjust" : r.action;
           e.counts[effAction] = (e.counts[effAction] || 0) + 1;
           e.total += 1;
-          if (effAction === "adjust" && typeof r.delta_seconds === "number") e.adjust_deltas.push(r.delta_seconds);
+          if (effAction === "adjust" && typeof r.delta_seconds === "number") {
+            const explicitTarget = Number(r.target_total_bias_seconds);
+            const applied = Number(r.applied_bias_seconds);
+            const target = Number.isFinite(explicitTarget)
+              ? explicitTarget
+              : (Number.isFinite(applied) ? applied + r.delta_seconds : r.delta_seconds);
+            if (Number.isFinite(target)) e.adjust_deltas.push(target);
+          }
           if (r.action === "split" && typeof r.split_ratio === "number") e.split_ratios.push(r.split_ratio);
           byPoomsae.set(p, (byPoomsae.get(p) || 0) + 1);
         }
@@ -4407,7 +4430,11 @@
             adjust_std: Number(std.toFixed(3)),
             direction_agreement: Number(directionAgreement.toFixed(2)),
             accuracy_rate: e.total > 0 ? Number((e.counts.confirm / e.total).toFixed(3)) : null,
-            systematic_bias: Math.abs(mean) >= REPORT_BIAS_THRESHOLD_SEC && directionAgreement >= 0.7,
+            correction_rate: e.total > 0 ? Number((e.counts.adjust / e.total).toFixed(3)) : 0,
+            systematic_bias: e.counts.adjust >= 5
+              && e.counts.adjust / Math.max(e.total, 1) >= 0.3
+              && Math.abs(mean) >= REPORT_BIAS_THRESHOLD_SEC
+              && directionAgreement >= 0.7,
             confidence: e.total >= REPORT_MIN_SAMPLES_ML ? "ml_ready" : e.total >= REPORT_MIN_SAMPLES_RULE ? "rule_ready" : "insufficient"
           });
         }
@@ -4882,7 +4909,9 @@
             <p>핵심 결과를 A4 한 장 크기의 JPG로 만들고 저장할 수 있습니다.</p>
             <div class="result-actions">
               <button id="resultJpgBtn" type="button" aria-label="A4 요약 JPG 만들기">A4 리포트 카드 JPG 만들기</button>
+              <button id="resultDatasetBtn" class="secondary" type="button" aria-label="전문가 검수용 관절좌표 저장">관절좌표 학습자료 JSON 저장</button>
             </div>
+            <p class="small">이 파일은 전문가가 동작·경계·오류 라벨을 확인하기 전까지 정답 데이터로 학습되지 않습니다.</p>
           </section>
           <section id="resultPageContent" class="result-card">
             <p class="result-empty">아직 생성된 리포트가 없습니다. 먼저 분석을 실행하세요.</p>
@@ -4894,10 +4923,21 @@
         resultPageContent = document.getElementById("resultPageContent");
         backToTrainingBtn = document.getElementById("backToTrainingBtn");
         resultJpgBtn = document.getElementById("resultJpgBtn");
+        resultDatasetBtn = document.getElementById("resultDatasetBtn");
         const jpgSection = resultJpgBtn ? resultJpgBtn.closest(".result-card") : null;
         if (jpgSection && jpgPreviewBox) jpgSection.appendChild(jpgPreviewBox);
         if (backToTrainingBtn) backToTrainingBtn.addEventListener("click", showTrainingPage);
         if (resultJpgBtn) resultJpgBtn.addEventListener("click", saveJpgReport);
+        if (resultDatasetBtn) resultDatasetBtn.addEventListener("click", () => {
+          const dataset = latestReport && latestReport.learning_dataset_candidate;
+          if (!dataset) {
+            alert("먼저 영상을 분석해 주세요.");
+            return;
+          }
+          const poomsaeId = latestReport.poomsae?.id || "poomsae";
+          const blob = new Blob([JSON.stringify(dataset, null, 2)], { type: "application/json" });
+          saveBlob(blob, `${poomsaeId}-action-dataset-candidate.json`);
+        });
         replayModal = document.createElement("div");
         replayModal.className = "replay-modal";
         replayModal.hidden = true;
@@ -5468,6 +5508,7 @@
         // 버그가 있었다(2026-07-22 최초 배포분). 복귀 seek도 안정될 때까지 기다린 뒤 판정한다.
         await seekOnce(video, 0);
         await captureStableFrame(video);
+        if (selectedFile !== checkedFile) return; // 복귀 seek 도중 파일이 바뀌었으면 그 결과로 판정하지 않는다.
         seekProbeChecked = true;
         const failedSeeks = samples.filter((s) => s == null).length;
         // "멈춤"의 실제 증상은 서로 멀리 떨어진 두 지점(35%·75%)이 똑같아 보이는 것이다 — 첫 프레임과
@@ -5482,6 +5523,11 @@
             { type: "bad", text: "이 영상은 초반 프레임은 해석했지만 중~후반부 탐색에서 프레임이 멈추거나 실패했습니다. 이대로 분석하면 동작이 영상 앞부분에 몰리거나 실행할 때마다 결과가 달라질 수 있어 분석 버튼을 비활성화했습니다." },
             { type: "caution", text: "카카오톡 등으로 공유되며 HEVC로 재압축됐을 가능성이 높습니다. H.264(MP4)로 변환한 뒤 다시 올려 주세요." }
           ]);
+        } else {
+          // 점검을 통과한 경우: loadeddata에서 띄운 "확인하는 중입니다" 문구를 그대로 두면,
+          // 버튼은 눌리는데 화면 문구만 "확인 중"에 영원히 머무는 모순 상태가 된다(실측으로 확인됨 —
+          // 버튼은 정상 활성화되지만 안내 문구가 갱신되지 않는 버그). 준비 완료 문구로 되돌린다.
+          setProgress(0, poseLandmarker ? "영상 준비 완료. 분석 시작을 누르세요." : "영상 준비 완료. 분석 시작을 누르면 모델을 불러온 뒤 평가합니다.");
         }
         // 성공/실패 어느 쪽이든 탐색이 끝난 뒤 버튼 상태를 다시 계산한다(탐색 중 seek로 인해
         // 낮아졌던 videoDecodeReady가 정상 영상에서는 여기서 회복되어 버튼이 다시 켜진다).
@@ -6741,18 +6787,52 @@
           .sort((a, b) => a.time - b.time);
         if (seq.length < JUNBI_SUSTAIN_WINDOW) return { time: null, bestScore: 0, bestTime: null };
         const scored = seq.map((f) => ({ time: f.time, score: scoreJunbiPose(f.landmarks).score }));
-        for (let i = 0; i <= scored.length - JUNBI_SUSTAIN_WINDOW; i += 1) {
-          let passCount = 0;
-          let firstPass = -1;
-          for (let j = i; j < i + JUNBI_SUSTAIN_WINDOW; j += 1) {
-            if (scored[j].score >= threshold) {
-              passCount += 1;
-              if (firstPass === -1) firstPass = j;
-            }
+        // 영상 초반에 차렷·박수·옷 정리 자세가 잠깐 준비서기와 닮아도 즉시 확정하지 않는다.
+        // 임계값을 통과한 프레임들을 지속 구간으로 묶고, 가장 오래 유지된 구간을 선택한다.
+        // 실제 태극 6장 검증본에서는 짧은 초기 오인 구간(0~2초)보다 실제 준비자세(6~10초)가
+        // 더 오래 유지되므로 이 기준이 사람의 판정과 일치한다. 1프레임 결측은 기존처럼 허용한다.
+        const deltas = [];
+        for (let i = 1; i < scored.length; i += 1) {
+          const delta = scored[i].time - scored[i - 1].time;
+          if (Number.isFinite(delta) && delta > 0) deltas.push(delta);
+        }
+        deltas.sort((a, b) => a - b);
+        const typicalStep = deltas.length ? deltas[Math.floor(deltas.length / 2)] : 0.4;
+        const allowedGap = Math.max(0.75, typicalStep * 2.6);
+        const runs = [];
+        let current = null;
+        for (let i = 0; i < scored.length; i += 1) {
+          const item = scored[i];
+          if (item.score < threshold) continue;
+          if (!current || item.time - current.last.time > allowedGap) {
+            current = { first: item, last: item, firstIndex: i, passCount: 1, scoreSum: item.score };
+            runs.push(current);
+          } else {
+            current.last = item;
+            current.passCount += 1;
+            current.scoreSum += item.score;
           }
-          if (passCount >= JUNBI_SUSTAIN_MIN_PASS) {
-            return { time: scored[firstPass].time, score: scored[firstPass].score, matchedAt: firstPass };
-          }
+        }
+        const candidates = runs.filter((run) =>
+          run.passCount >= JUNBI_SUSTAIN_MIN_PASS
+          && run.last.time - run.first.time >= typicalStep * (JUNBI_SUSTAIN_MIN_PASS - 1) - 0.01
+        );
+        candidates.sort((a, b) =>
+          b.passCount - a.passCount
+          || (b.last.time - b.first.time) - (a.last.time - a.first.time)
+          || (b.scoreSum / b.passCount) - (a.scoreSum / a.passCount)
+          || a.first.time - b.first.time
+        );
+        if (candidates.length) {
+          const bestRun = candidates[0];
+          return {
+            time: bestRun.first.time,
+            endTime: bestRun.last.time,
+            score: Number((bestRun.scoreSum / bestRun.passCount).toFixed(3)),
+            matchedAt: bestRun.firstIndex,
+            passCount: bestRun.passCount,
+            duration: Number((bestRun.last.time - bestRun.first.time).toFixed(3))
+          };
         }
         // 임계값을 충분히 넘는 구간을 못 찾았으면 참고용으로 최고점만 반환(시작점은 null → 호출부가 안전 폴백).
         let best = scored[0];
@@ -7332,6 +7412,19 @@
         const motionSamples = buildMotionSamples(frames);
 
         const activeRange = detectActiveMotionRange(duration, motionSamples);
+        // 1차: 전체 유효 움직임 범위, 2차: 연속 상승과 정점 도달을 확인한 첫 동작 onset.
+        // 기존에 정의만 되고 쓰이지 않던 detectActionOnset을 실제 경로에 연결한다.
+        const coarseOnset = activeRange.start;
+        const onsetCandidate = detectActionOnset(motionSamples, activeRange, duration);
+        const maxOnsetRefine = Math.max(1.5, duration * 0.08);
+        const onsetAccepted = Number.isFinite(onsetCandidate)
+          && onsetCandidate >= coarseOnset - 0.1
+          && onsetCandidate <= coarseOnset + maxOnsetRefine;
+        activeRange.coarseStart = coarseOnset;
+        activeRange.start = onsetAccepted ? clamp(onsetCandidate, 0, activeRange.end) : coarseOnset;
+        activeRange.onsetMethod = onsetAccepted && Math.abs(activeRange.start - coarseOnset) > 0.04
+          ? "motion_peak_cross_check" : "active_range";
+        activeRange.onsetDelta = Number((activeRange.start - coarseOnset).toFixed(3));
         // 박수는 다중 카메라(2대·3대) 동기화 참고용 신호일 뿐, 품새(태극1장~8장)의 실제
         // 시작점이 아니다(2026-07-22 사용자 확인). 계속 감지는 하되(오디오 1순위·손동작
         // 폴백 — 아래 로직은 기존과 동일) activeRange.start(정점 기반 동작1 온셋)는 더 이상
@@ -7356,9 +7449,24 @@
         // 박수 감지 여부·1대/2대/3대 촬영과 무관하게 항상 동일한 기준(국기원 준비서기 객관
         // 기준)으로 동작한다. onset(동작1 시작) 이전 구간에서 준비자세와 80%↑ 일치하는
         // 가장 이른 지점을 찾는다.
-        const junbiSearchEnd = clamp(activeRange.start + 0.5, 0, duration);
+        // 초반 이동·박수가 1차 활성 시작으로 잡혀도 실제 준비자세를 놓치지 않도록 영상 앞
+        // 38%(최소 12초)까지 독립 탐색한다. 이후 동작 중 우연한 유사 자세보다 '가장 오래
+        // 유지된 준비자세 구간'을 선택하는 것은 findJunbiPoseStart에서 보장한다.
+        const junbiSearchEnd = clamp(Math.max(12, duration * 0.38, activeRange.start + 6), 0, duration);
         const junbiMatch = findJunbiPoseStart(frames, junbiSearchEnd);
         activeRange.junbiMatch = junbiMatch;
+        if (junbiMatch && Number.isFinite(junbiMatch.time) && Number.isFinite(junbiMatch.endTime)) {
+          // 첫 동작은 준비자세 이후의 움직임이어야 한다. 준비자세 마지막 일치 프레임 직전부터
+          // 다시 온셋을 찾되, 경계가 마지막 준비자세보다 앞으로 가지 못하게 제한한다.
+          const anchoredStart = clamp(Math.max(junbiMatch.time + 0.6, junbiMatch.endTime - 0.55), 0, activeRange.end);
+          const anchoredCandidate = detectActionOnset(motionSamples, { start: anchoredStart, end: activeRange.end }, duration);
+          const anchoredOnset = Math.max(junbiMatch.endTime, anchoredCandidate);
+          if (Number.isFinite(anchoredOnset) && anchoredOnset <= junbiMatch.endTime + 3.2) {
+            activeRange.start = clamp(anchoredOnset, junbiMatch.time, activeRange.end);
+            activeRange.onsetMethod = "sustained_junbi_then_motion";
+            activeRange.onsetDelta = Number((activeRange.start - coarseOnset).toFixed(3));
+          }
+        }
         // ── 영상-분석 통일성 원칙 (v3.44) ──
         // 핵심 교정: 준비자세가 길면(영상 앞 정지가 수 초) N등분이 그 정지를 동작 여러 개로
         // 쪼개, 진짜 1번 동작이 4~5번째로 밀리는 문제가 있었다.
@@ -7413,18 +7521,27 @@
         const valid = motionSamples
           .filter((s) => s.valid !== false && Number.isFinite(s.time) && Number.isFinite(s.motion))
           .sort((a, b) => a.time - b.time);
-        if (valid.length < 5) return activeRange.start;
-        const motions = valid.map((s) => s.motion);
-        const peak = Math.max(...motions);
-        // 동작 시작 임계: 정점의 22%. 준비 흔들림(보통 정점의 10~15% 이하)과 첫 동작을 가른다.
-        const onsetLevel = peak * 0.22;
         const within = valid.filter((s) => s.time >= activeRange.start - 0.05 && s.time <= activeRange.end);
+        if (within.length < 5) return activeRange.start;
+        // 전체 영상의 박수·입장 움직임이 최고값을 차지해 실제 첫 동작 임계를 왜곡하지 않도록,
+        // 호출자가 지정한 탐색 범위 안에서만 바닥값과 정점을 계산한다.
+        const motions = within.map((s) => s.motion);
+        const peak = Math.max(...motions);
+        const orderedMotions = motions.slice().sort((a, b) => a - b);
+        const baseline = orderedMotions[Math.floor((orderedMotions.length - 1) * 0.2)];
+        const amplitude = peak - baseline;
+        // 영상 전체가 거의 같은 속도로 움직이면 '급상승'이 아니다. 최고값 비율만 쓰면
+        // 이런 평평한 신호도 전부 임계를 넘으므로 1차 시작점을 잘못 앞당길 수 있다.
+        if (!Number.isFinite(amplitude) || amplitude < Math.max(0.01, peak * 0.2)) return activeRange.start;
+        // 동작 시작 임계: 준비 흔들림 바닥값에서 실제 상승폭의 22% 지점.
+        const onsetLevel = baseline + amplitude * 0.22;
+        const peakRiseLevel = baseline + amplitude * 0.5;
         for (let i = 0; i < within.length - 1; i += 1) {
           // 연속 2표본이 임계를 넘고, 그 뒤 곧 정점의 50% 이상으로 치솟는 '진짜 동작'인지 확인.
           if (within[i].motion >= onsetLevel && within[i + 1].motion >= onsetLevel) {
             let rises = false;
             for (let j = i + 1; j < Math.min(within.length, i + 8); j += 1) {
-              if (within[j].motion >= peak * 0.5) { rises = true; break; }
+              if (within[j].motion >= peakRiseLevel) { rises = true; break; }
             }
             if (!rises) continue;
             // onset 직전의 가장 깊은 정지(준비 완성)를 경계로. 단 너무 멀리 가지 않게 6표본 이내.
@@ -7476,11 +7593,12 @@
       function competitionScoreFromMetrics(metrics) {
         // 공인품새 점수 구조 참고: 정확성 4.0 + 표현력 6.0 = 총 10.0.
         // 영상에서 확인 가능한 항목만 훈련용 참고점수로 환산한다.
-        const accuracyScore4 = clamp(
-          ((metrics.stanceScore * 0.55 + metrics.stillnessScore * 0.30 + metrics.visibilityScore * 0.15) / 100) * 4,
-          0,
-          4
-        );
+        const genericAccuracy100 = metrics.stanceScore * 0.55 + metrics.stillnessScore * 0.30 + metrics.visibilityScore * 0.15;
+        const actionModelApplied = Number.isFinite(metrics.actionAccuracyScore) && metrics.actionAccuracyConfidence >= 0.65;
+        const accuracy100 = actionModelApplied
+          ? metrics.actionAccuracyScore * 0.65 + metrics.stanceScore * 0.20 + metrics.stillnessScore * 0.10 + metrics.visibilityScore * 0.05
+          : genericAccuracy100;
+        const accuracyScore4 = clamp((accuracy100 / 100) * 4, 0, 4);
         const speedPower2 = clamp(((metrics.velocityScore * 0.65 + metrics.snapScore * 0.35) / 100) * 2, 0, 2);
         const rhythmTempo2 = clamp(((metrics.velocityScore * 0.45 + metrics.stillnessScore * 0.30 + metrics.snapScore * 0.25) / 100) * 2, 0, 2);
         const energyExpression2 = clamp(((metrics.snapScore * 0.45 + metrics.stillnessScore * 0.30 + metrics.stanceScore * 0.25) / 100) * 2, 0, 2);
@@ -7491,7 +7609,8 @@
           speedPower2: Number(speedPower2.toFixed(2)),
           rhythmTempo2: Number(rhythmTempo2.toFixed(2)),
           energyExpression2: Number(energyExpression2.toFixed(2)),
-          competitionScore10: Number((accuracyScore4 + presentationScore6).toFixed(2))
+          competitionScore10: Number((accuracyScore4 + presentationScore6).toFixed(2)),
+          actionModelApplied
         };
       }
       function movementCue(movement) {
@@ -8019,6 +8138,7 @@
         const stillnessScore = scoreStillness(finalSpeed, endJitter, movement.type);
         const stanceScore = scoreStance(frames);
         const visibilityScore = stableRound(visibility * 100);
+        const actionIdentity = scoreActionSequence(actionQualityModel, movement.id, frames, view);
 
         // ── 추가 축 측정(관절 각도 · 궤적) ──
         // 측면/3면 영상에서 깊이 방향 동작이 더 잘 보이므로 각도 신뢰도를 가산한다.
@@ -8042,7 +8162,9 @@
         );
         const verdict = labelFor(powerScore);
         const competitionScores = competitionScoreFromMetrics({
-          visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore
+          visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore,
+          actionAccuracyScore: actionIdentity.score,
+          actionAccuracyConfidence: actionIdentity.confidence
         });
         const evidence = evidenceScopeFor(movement, { visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore });
         const referenceDeduction = referenceDeductionFor({ visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore });
@@ -8060,6 +8182,7 @@
           ...competitionScores,
           evidence,
           referenceDeduction,
+          actionIdentity,
           stanceCheck,
           orientationCheck,
           poomsaeLinePosition: movement.position || null,
@@ -8425,6 +8548,15 @@
           } else {
             items.push({ type: "caution", text: "준비자세를 뚜렷하게 인식하지 못해 영상 맨 앞부터 분석했어요. 이미지1처럼 두 주먹을 모아 쥐고 서 있는 준비자세가 화면에 잘 보이는지 확인해보세요." });
           }
+          if (Number.isFinite(rangeInfo.start)) {
+            const checked = rangeInfo.onsetMethod === "motion_peak_cross_check";
+            items.push({
+              type: checked ? "good" : "caution",
+              text: checked
+                ? `첫 동작 시작점도 움직임 급상승과 정점을 교차 확인해 ${rangeInfo.start.toFixed(2)}초로 잡았어요.`
+                : `첫 동작 시작점은 ${rangeInfo.start.toFixed(2)}초로 잡았어요. 결과가 어긋나면 '구간 수동 조정'에서 첫 시작 초만 바꾸면 다음 분석부터 이 기기가 학습해요.`
+            });
+          }
           if (rangeInfo.clapDetected) {
             const sourceLabel = rangeInfo.clapSource === "audio" ? "박수 소리(오디오)" : "손 움직임";
             items.push({ type: "good", text: `${sourceLabel}로 박수 지점(${rangeInfo.clapTime.toFixed(2)}초)도 참고로 확인했어요. (다중 카메라 동기화 참고용 · 시작점 판정에는 사용하지 않아요)` });
@@ -8571,7 +8703,7 @@
           }
         } catch (e) { pendingVideoCorrection = null; }
         if (boundaryDetectionForRun && boundaryDetectionForRun.biasAppliedCount > 0) {
-          results._boundaryBiasNote = { type: "good", text: `그동안 쌓인 보정 데이터를 학습해 경계 ${boundaryDetectionForRun.biasAppliedCount}곳의 타이밍을 미세조정했습니다(관리자가 학습 리포트에서 승인한 값).` };
+          results._boundaryBiasNote = { type: "good", text: `그동안 쌓인 보정 데이터를 학습해 경계 ${boundaryDetectionForRun.biasAppliedCount}곳의 타이밍을 다음 측정에 실제 반영했습니다.` };
         }
         const fusedView = (analysisEfficiency && (analysisEfficiency.triple_view ? "triple" : analysisEfficiency.dual_view ? "dual" : null)) || cameraView;
         const summary = summarize(results, fusedView, boundaryDetectionForRun ? boundaryDetectionForRun.activeRange : null);
@@ -8653,6 +8785,16 @@
         }
         renderReport([...extraAxisItems, ...summary.items]);
         setProgress(100, cacheHit ? "동일 영상 안정화 결과를 불러왔습니다." : (trainingMode === "exam" ? "문제점 확인 완료" : "파워·맺음 평가 완료"));
+        const learningDatasetCandidate = boundaryDetectionForRun && Array.isArray(boundaryDetectionForRun.frames)
+          ? buildDatasetCandidate({
+              report: { file: selectedFile ? { name: selectedFile.name, size_bytes: selectedFile.size, type: selectedFile.type } : null },
+              frames: boundaryDetectionForRun.frames,
+              segments: results,
+              poomsaeKey: selectedPoomsaeKey,
+              poomsaeName: currentPoomsae().name,
+              view: viewForRun
+            })
+          : null;
         latestReport = {
           app: "태권도 품새 수련",
           created_at: new Date().toISOString(),
@@ -8714,6 +8856,7 @@
           },
           segments: results,
           frame_samples: frameSamples,
+          learning_dataset_candidate: learningDatasetCandidate,
           correction_log: correctionLogSummary(),
           analysis_efficiency: analysisEfficiency,
           next_step: "관절 속도 피크와 정지점으로 실제 동작 전환점을 자동 감지하고, 지르기/막기/차기별 궤적 정확도 규칙을 연결"
@@ -9029,12 +9172,15 @@
         const lo = b[i - 1] + 0.1, hi = b[i + 1] - 0.1;
         const autoTime = b[i];
         const userTime = clamp(Number(newTime), lo, hi);
+        const appliedBias = getBoundaryBias(selectedPoomsaeKey, i);
         // 1단계 기록: 자동 경계(autoTime)를 사용자가 userTime으로 옮겼다 = 오차 = userTime - autoTime.
         recordCorrection("adjust", {
           boundary_index: i,
           auto_time: Number(autoTime.toFixed(3)),
           user_time: Number(userTime.toFixed(3)),
-          delta_seconds: Number((userTime - autoTime).toFixed(3))
+          delta_seconds: Number((userTime - autoTime).toFixed(3)),
+          applied_bias_seconds: Number(appliedBias.toFixed(3)),
+          target_total_bias_seconds: Number((appliedBias + userTime - autoTime).toFixed(3))
         });
         b[i] = userTime;
         await rebuildSegmentsFromBoundaries(b, i, "시작 경계를 이동했습니다.");
@@ -9080,11 +9226,14 @@
         const maxDelta = Number.isFinite(duration) ? duration - b[lastIndex] : Infinity;
         const safeDelta = delta > 0 ? Math.min(delta, Math.max(maxDelta, 0)) : delta;
         userTime = autoTime + safeDelta;
+        const appliedBias = getBoundaryBias(selectedPoomsaeKey, i);
         recordCorrection("cascade_adjust", {
           boundary_index: i,
           auto_time: Number(autoTime.toFixed(3)),
           user_time: Number(userTime.toFixed(3)),
           delta_seconds: Number(safeDelta.toFixed(3)),
+          applied_bias_seconds: Number(appliedBias.toFixed(3)),
+          target_total_bias_seconds: Number((appliedBias + safeDelta).toFixed(3)),
           shifted_count: b.length - i
         });
         for (let k = i; k <= lastIndex; k += 1) b[k] = Number((b[k] + safeDelta).toFixed(3));
@@ -9369,6 +9518,20 @@
         return { fatal, warn, probes };
       }
       // 두 뷰(정면 + 측면)의 같은 순번 구간을 신뢰도 기준으로 합친다.
+      function alignFusedSegmentToFront(merged, front) {
+        if (!merged || !front) return merged;
+        const frontTimelineAndIdentity = [
+          "order", "orderLabel", "id", "name", "movementType", "movementNumbers",
+          "mergedMovementCount", "mergedMovementNumbers", "needsVerification",
+          "allocConfidence", "startTime", "endTime", "snapshot", "manualEdited",
+          "isPrep", "isKihap", "compoundStages"
+        ];
+        frontTimelineAndIdentity.forEach((key) => {
+          if (Object.prototype.hasOwnProperty.call(front, key)) merged[key] = front[key];
+          else delete merged[key];
+        });
+        return merged;
+      }
       function fuseSegments(frontResults, sideResults) {
         const n = Math.min(frontResults.length, sideResults.length);
         const fused = [];
@@ -9384,6 +9547,10 @@
           // - 속도/맺음/궤적(velocity/snap): 측면이 깊이·신전·발차기를 직접 봄 → 측면 값 우선
           // - 정지(stillness): 두 뷰 평균 / 가시성(visibility): 높은 검출 쪽
           const merged = { ...primaryRes };
+          // 결과 리플레이와 카드 시간은 항상 1번 정면 영상 기준이어야 한다.
+          // 각 뷰에서 검출한 경계가 조금씩 다른 상태에서 신뢰도가 높은 뷰의
+          // start/end를 그대로 쓰면 카드 시간이 역순·중복되는 문제가 생긴다.
+          alignFusedSegmentToFront(merged, f);
           merged.stanceScore = f.stanceScore;            // 정면 우선(좌우 대칭·수평)
           merged.velocityScore = s.velocityScore;        // 측면 우선(전후 깊이·신전 속도)
           merged.snapScore = s.snapScore;                // 측면 우선(맺음·궤적)
@@ -9453,6 +9620,7 @@
           const score = (r) => (r.viewConfidence ?? 0.9) * (r.detectionRate ?? 0);
           const primaryRes = [f, s, d].sort((a, b) => score(b) - score(a))[0];
           const merged = { ...primaryRes };
+          alignFusedSegmentToFront(merged, f);
           merged.stanceScore = weighted("stance", f, s, d);
           merged.velocityScore = weighted("velocity", f, s, d);
           merged.snapScore = weighted("snap", f, s, d);

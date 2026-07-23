@@ -155,7 +155,10 @@ if (!scriptMatch) {
   fail("inline module script 누락");
 } else {
   try {
-    new Function(scriptMatch[1]);
+    // new Function은 ESM import를 파싱하지 못하므로 정적 import 줄만 제거한 뒤
+    // 기존 인라인 본문 문법을 검사한다. action-model.mjs 자체 문법은 전용 테스트가 검증한다.
+    const inlineBody = scriptMatch[1].replace(/^\s*import\s+[^;]+;\s*$/gm, "");
+    new Function(inlineBody);
     pass("inline module script 문법 파싱 성공");
   } catch (error) {
     fail(`inline module script 문법 오류: ${error.message}`);
@@ -235,7 +238,7 @@ assertContains(readUtf8(capacitorConfigPath), "\"appName\": \"태권도 품새 �
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련품새 · 경기품새", "헤더 훈련 목적 배지 적용");
-assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v4.01", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
+assertContains(webHtml, "태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v4.08", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
@@ -295,11 +298,14 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v53-analysis-start-race-fix", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v59-action-accuracy-model", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
-assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v7-data-coverage", "최상단 배포용 오프라인 엔진 서비스워커 존재");
+assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v11-action-accuracy-model", "최상단 배포용 오프라인 엔진 서비스워커 존재");
+assertContains(webHtml, 'import { buildDatasetCandidate, scoreActionSequence } from "./action-model.mjs"', "별도 동작 시퀀스 모델 모듈 연결");
+assertContains(webHtml, "learning_dataset_candidate", "분석 JSON에 전문가 검수용 관절좌표 시퀀스 포함");
+assertContains(webHtml, "actionAccuracyConfidence >= 0.65", "충분한 신뢰도에서만 동작 모델을 정확도 점수에 적용");
 assertContains(readUtf8(rootManifestPath), "app-icon-192.png", "최상단 manifest에 192 아이콘 등록");
 assertContains(readUtf8(rootManifestPath), "app-icon-512.png", "최상단 manifest에 512 아이콘 등록");
 assertContains(readUtf8(path.join(root, "www", "manifest.webmanifest")), "app-icon-192.png", "www manifest에 192 아이콘 등록");
@@ -432,9 +438,12 @@ assertContains(webHtml, "saveVideoCorrection(videoFingerprint(selectedFile), sel
 assertContains(webHtml, 'id="loadSavedCorrectionBtn"', "저장된 보정 불러오기 버튼 존재");
 assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "allow update, delete: if false", "corrections 컬렉션은 그 누구도 고치거나 지울 수 없음(무결성 보호)");
 assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "request.auth != null && request.auth.token.email in ADMIN_EMAILS()", "corrections 컬렉션 읽기는 인증된 관리자로만 제한됨(익명 읽기 차단, 학습 리포트 기능용)");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "'cascade_adjust'", "연쇄 시작점·경계 보정 기록이 클라우드 학습 데이터로 허용됨");
 assertContains(webHtml, "function findJunbiPoseStart(", "준비자세(이미지1) 매칭으로 품새 시작점을 찾는 함수 존재");
 assertContains(webHtml, "const JUNBI_MATCH_THRESHOLD = 0.8", "준비자세 인식 임계값(80%) 존재");
 assertContains(webHtml, "준비자세를 뚜렷하게 인식하지 못해", "준비자세 미인식 시 안내 문구 존재");
+assertContains(webHtml, "const onsetCandidate = detectActionOnset(motionSamples, activeRange, duration)", "첫 동작 시작점 급상승·정점 교차검증이 실제 분석 경로에 연결됨");
+assertContains(webHtml, "onsetCandidate <= coarseOnset + maxOnsetRefine", "시작점 교차검증 이동량 안전 제한 존재");
 assertContains(webHtml, "function interpolateLandmarksAt(", "스켈레톤 좌표 보간 함수 존재");
 assertContains(webHtml, "function drawSkeletonFrame(", "스켈레톤 그리기 함수 존재");
 assertContains(webHtml, "function skeletonRenderLoop(", "스켈레톤 렌더 루프 함수 존재");
@@ -539,6 +548,14 @@ assertNotContainsInFiles("실격", [webIndexPath, androidIndexPath], "실격 판
 assertContains(webHtml, "function loadBoundaryBias(", "경계 보정값 로드 함수 존재");
 assertContains(webHtml, "function getBoundaryBias(", "경계 보정값 조회 함수 존재");
 assertContains(webHtml, "function applyLearnedBoundaryBias(", "경계 보정 적용 함수 존재");
+assertContains(webHtml, "function buildLocalBoundaryBias(", "반복 사용 시 기기별 경계 보정 학습 함수 존재");
+assertContains(webHtml, "refreshLocalBoundaryBias(log)", "사용자 보정 직후 기기별 학습값 자동 갱신");
+assertContains(webHtml, "LOCAL_BOUNDARY_BIAS_MIN_SAMPLES = 3", "기기별 학습 최소 표본 안전장치 존재");
+assertContains(webHtml, "LOCAL_BOUNDARY_BIAS_MAX_SHIFT = 0.6", "기기별 학습 이동량 제한 존재");
+assertContains(webHtml, "target_total_bias_seconds", "잔차가 아닌 사용자 최종 목표 보정값 기록");
+assertContains(webHtml, "targetCenter - remote", "전역 보정 게시 후 개인 보정 중복 적용 방지");
+assertContains(webHtml, "CLOUD_CORRECTION_QUEUE_KEY", "오프라인 클라우드 학습 기록 재전송 대기열 존재");
+assertContains(webHtml, "flushPendingCloudCorrections(); // 오프라인 때 쌓인 기록을 연결 즉시 재전송", "Firebase 연결 후 대기 학습 기록 자동 재전송");
 assertContains(webHtml, "async function publishBoundaryBiasEntry(", "관리자용 보정값 게시 함수 존재");
 assertContains(webHtml, "async function removeBoundaryBiasEntry(", "관리자용 보정값 제거 함수 존재");
 assertContains(webHtml, "const BOUNDARY_BIAS_MAX_SHIFT = 1.5", "경계 보정 안전 상한(±1.5초) 존재");
@@ -564,13 +581,15 @@ assertContains(webHtml, "recordCorrection(\"confirm_all\"", "확인 버튼이 co
 assertContains(webHtml, "function expandConfirmRecords(records)", "확인 신호를 위치별로 펼치는 함수 존재(브라우저)");
 assertContains(webHtml, "accuracy_rate: e.total > 0", "위치별 정확도(정확도=확인/전체) 계산 존재");
 assertContains(readUtf8(path.join(root, "scripts", "analyze-corrections.js")), "function expandConfirmRecords(records)", "확인 신호를 위치별로 펼치는 함수 존재(Node)");
-assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "'merge', 'split', 'adjust', 'confirm_all'", "confirm_all 액션이 유효한 보정 기록으로 허용됨");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "'merge', 'split', 'adjust', 'cascade_adjust', 'confirm_all'", "confirm_all 및 연쇄 보정 액션이 유효한 학습 기록으로 허용됨");
 
 // ── 고신뢰 경계 타이밍 제안 자동 반영(버튼 없이) ──
 assertContains(webHtml, "async function autoPublishHighConfidenceSuggestions(", "자동 반영 함수 존재");
 assertContains(webHtml, "autoPublishHighConfidenceSuggestions(); // 관리자로 인식되면", "관리자 인증 확인 시 자동 반영이 실제로 호출됨");
 assertContains(webHtml, "const AUTO_PUBLISH_MIN_INTERVAL_MS = 12 * 3600 * 1000", "자동 반영 확인 주기(12시간) 제한 존재(과도한 읽기 방지)");
 assertContains(webHtml, ".filter((s) => s.type === \"boundary_shift\")", "자동 반영은 안전한 타이밍 보정 제안으로만 한정됨(분류·명칭 변경 제안 제외)");
+assertContains(webHtml, "e.counts.adjust >= 5", "전 사용자 보정은 실제 수정 5건 이상일 때만 허용");
+assertContains(webHtml, "e.counts.adjust / Math.max(e.total, 1) >= 0.3", "전 사용자 보정은 전체 리뷰 대비 수정률 30% 이상일 때만 허용");
 assertContains(webHtml, "AUTO_PUBLISH_LOG_KEY", "자동 반영 이력이 로컬에 남아 리포트 화면에서 확인 가능함(투명성)");
 
 // ── 관리자 모드 버튼 발견성 개선 ──
