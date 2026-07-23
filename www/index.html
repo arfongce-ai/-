@@ -1610,43 +1610,6 @@
         color: var(--muted);
         text-align: left;
       }
-      /* ── 파트너 배너(하단 흐름 광고) ── */
-      .partner-banner {
-        overflow: hidden;
-        border-top: 1px solid var(--panel-line);
-        border-bottom: 1px solid var(--panel-line);
-        background: #05080b;
-      }
-      .partner-banner-track {
-        display: flex;
-        align-items: center;
-        width: max-content;
-        padding: 10px 0;
-        animation: partner-marquee 16s linear infinite;
-        will-change: transform;
-      }
-      .partner-banner:hover .partner-banner-track { animation-play-state: paused; }
-      .partner-banner-track img {
-        width: 100vw;
-        height: 64px;
-        object-fit: contain;
-        box-sizing: border-box;
-        display: block;
-        flex: 0 0 100vw;
-        padding: 0 24px;
-      }
-      @keyframes partner-marquee {
-        from { transform: translateX(0); }
-        to { transform: translateX(-50%); }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .partner-banner-track {
-          animation: none;
-          width: 100%;
-          justify-content: center;
-        }
-        .partner-banner-track img:nth-child(2) { display: none; }
-      }
       .admin-panel-overlay {
         position: fixed; inset: 0;
         background: rgba(0,0,0,.6);
@@ -2068,6 +2031,25 @@
         padding: 6px 10px;
         border-radius: 8px;
         background: #ffffff;
+      }
+      .app-footer-campaign {
+        display: none;
+        position: relative;
+        z-index: 2;
+        width: min(76vw, 620px);
+        flex: 0 0 min(76vw, 620px);
+        height: 64px;
+        box-sizing: border-box;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 10px;
+        background: #ffffff;
+      }
+      .app-footer-campaign img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
       }
       @keyframes footer-partner-marquee {
         from { transform: translateX(0); }
@@ -2826,17 +2808,17 @@
         <div id="segments" class="segments"></div>
       </section>
     </main>
-    <div id="partnerBanner" class="partner-banner" style="display:none">
-      <a id="partnerBannerLink" class="partner-banner-track" href="#" target="_blank" rel="noopener" aria-label="파트너 배너, 눌러서 이동">
-        <img id="partnerBannerImg1" src="" alt="파트너 배너" />
-        <img id="partnerBannerImg2" src="" alt="" aria-hidden="true" />
-      </a>
-    </div>
     <footer class="app-footer">
       <div class="app-footer-inner">
         <div class="app-footer-partner-block">
           <div class="app-footer-partner-track">
+            <a id="partnerBanner" class="app-footer-campaign" href="#" target="_blank" rel="noopener" aria-label="파트너 배너, 눌러서 이동">
+              <img id="partnerBannerImg1" src="" alt="파트너 배너" />
+            </a>
             <img class="app-footer-partners" src="./assets/partner-taekwondo-logos.png" alt="용인대 국가대표 태권도 및 Taigon 시범단 로고" loading="lazy" />
+            <a id="partnerBannerClone" class="app-footer-campaign" href="#" target="_blank" rel="noopener" aria-hidden="true" tabindex="-1">
+              <img id="partnerBannerImg2" src="" alt="" aria-hidden="true" />
+            </a>
             <img class="app-footer-partners" src="./assets/partner-taekwondo-logos.png" alt="" aria-hidden="true" loading="lazy" />
           </div>
           <a class="yongin-logo-link" href="https://www.instagram.com/yongin_kr" target="_blank" rel="noopener" aria-label="용인대 국가대표태권도 인스타그램 @yongin_kr 새 창으로 열기">@yongin_kr</a>
@@ -3222,15 +3204,17 @@
       let _bannerCheckTimer = null;
       function applyBannerToDom(config) {
         const el = document.getElementById("partnerBanner");
-        const link = document.getElementById("partnerBannerLink");
+        const clone = document.getElementById("partnerBannerClone");
         const img1 = document.getElementById("partnerBannerImg1");
         const img2 = document.getElementById("partnerBannerImg2");
-        if (!el || !link || !img1 || !img2) return;
+        if (!el || !clone || !img1 || !img2) return;
         const visible = bannerShouldBeVisible(config);
-        el.style.display = visible ? "block" : "none";
+        el.style.display = visible ? "flex" : "none";
+        clone.style.display = visible ? "flex" : "none";
         if (visible) {
           img1.src = config.imageUrl; img2.src = config.imageUrl;
-          link.href = config.linkUrl || "#";
+          el.href = config.linkUrl || "#";
+          clone.href = config.linkUrl || "#";
         }
       }
       async function initPartnerBanner() {

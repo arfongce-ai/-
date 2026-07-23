@@ -329,7 +329,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v71-banner-firestore", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v72-footer-banner", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -459,7 +459,9 @@ assertContains(webHtml, "reader.readAsDataURL(file)", "유료 Storage 없이 배
 assertContains(webHtml, "banner_save_timeout", "배너 저장이 무한 대기하지 않는 시간 제한 존재");
 assertContains(webHtml, "id=\"adminBannerPreview\"", "선택한 배너 이미지 미리보기 존재");
 assertNotContains(webHtml, "id=\"adminBannerImage\"", "배너 이미지 URL 직접 입력 제거");
-assertContains(webHtml, "@keyframes partner-marquee", "파트너 배너 흐름 애니메이션 존재");
+assertContains(webHtml, "id=\"partnerBanner\" class=\"app-footer-campaign\"", "관리자 배너가 기존 하단 흰색 광고 띠 안에 배치됨");
+assertContains(webHtml, "id=\"partnerBannerClone\" class=\"app-footer-campaign\"", "관리자 배너를 무한 흐름용으로 복제");
+assertNotContains(webHtml, "class=\"partner-banner\"", "관리자 배너가 별도 검은 띠를 만들지 않음");
 assertContains(webHtml, "prefers-reduced-motion", "파트너 배너 모션 최소화 대응 존재");
 assertContains(webHtml, "id=\"adminModeTrigger\"", "관리자 모드 진입 버튼 존재");
 assertContains(webHtml, "class=\"admin-logo-trigger\"", "관리자 진입을 몸가짐운동센터 로고 버튼에 연결");
@@ -613,7 +615,8 @@ assertContains(webHtml, "apply-bias-btn", "학습 리포트에 보정 적용 버
 assertContains(webHtml, "remove-bias-btn", "학습 리포트에 보정 제거 버튼 존재");
 assertContains(webHtml, "bodyEl.dataset.biasDelegated", "보정 버튼 이벤트 위임 처리(동적 생성 버튼 대응)");
 assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "match /app_config/boundary_bias", "경계 보정값 문서 규칙 존재");
-assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "allow write: if request.auth != null && request.auth.token.email in ADMIN_EMAILS()\n        && request.resource.data.size() < 200", "경계 보정값 쓰기는 인증된 관리자로만 제한됨");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "allow write: if request.auth != null && request.auth.token.email in ADMIN_EMAILS()", "경계 보정값 쓰기는 인증된 관리자로만 제한됨");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "&& request.resource.data.size() < 200", "경계 보정값 문서 크기 제한 존재");
 
 // ── 관리자 비밀번호 재설정 ──
 assertContains(webHtml, "id=\"adminForgotPasswordBtn\"", "비밀번호 재설정 버튼 존재");

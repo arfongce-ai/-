@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v71-banner-firestore";
+const CACHE_NAME = "poomsae-training-v72-footer-banner";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",
