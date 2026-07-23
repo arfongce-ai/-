@@ -3002,6 +3002,8 @@
       const LOCAL_BOUNDARY_BIAS_KEY = "poomsae_local_boundary_bias_v1";
       const LOCAL_BOUNDARY_BIAS_MIN_SAMPLES = 3;
       const LOCAL_BOUNDARY_BIAS_MAX_SHIFT = 0.6;
+      const COLLECTIVE_PROFILE_FIELD = "_profiles";
+      const COLLECTIVE_PROFILE_MIN_SESSIONS = 3;
       let _localBoundaryBias = {};
       function clampBiasValue(v) {
         return Number.isFinite(v) ? clamp(v, -BOUNDARY_BIAS_MAX_SHIFT, BOUNDARY_BIAS_MAX_SHIFT) : 0;
@@ -3011,6 +3013,95 @@
         if (!sorted.length) return 0;
         const mid = Math.floor(sorted.length / 2);
         return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+      }
+      function cleanCollectiveProfiles(value) {
+        const clean = {};
+        if (!value || typeof value !== "object" || Array.isArray(value)) return clean;
+        for (const [poomsaeKey, raw] of Object.entries(value)) {
+          if (!raw || typeof raw !== "object" || !Array.isArray(raw.ratios)) continue;
+          const ratios = raw.ratios.map(Number);
+          const boundaryCount = Math.round(Number(raw.boundaryCount));
+          const samples = Math.max(0, Math.round(Number(raw.samples) || 0));
+          const blend = clamp(Number(raw.blend) || 0, 0, 0.45);
+          const valid = boundaryCount === ratios.length
+            && boundaryCount >= 3 && boundaryCount <= 40
+            && ratios.every((n, i) => Number.isFinite(n) && n >= 0 && n <= 1
+              && (i === 0 || n > ratios[i - 1]));
+          if (!valid || samples < COLLECTIVE_PROFILE_MIN_SESSIONS) continue;
+          clean[poomsaeKey] = {
+            boundaryCount,
+            ratios: ratios.map((n) => Number(n.toFixed(5))),
+            samples,
+            blend,
+            updatedAtMs: Number(raw.updatedAtMs) || 0
+          };
+        }
+        return clean;
+      }
+      function collectiveProfiles() {
+        return cleanCollectiveProfiles(_remoteBoundaryBias && _remoteBoundaryBias[COLLECTIVE_PROFILE_FIELD]);
+      }
+      function normalizeBoundaryShape(boundaries) {
+        if (!Array.isArray(boundaries) || boundaries.length < 3) return null;
+        const nums = boundaries.map(Number);
+        if (!nums.every(Number.isFinite)) return null;
+        const first = nums[0], last = nums[nums.length - 1];
+        const span = last - first;
+        if (!(span > 0.5)) return null;
+        const ratios = nums.map((n) => Number(((n - first) / span).toFixed(5)));
+        if (!ratios.every((n, i) => n >= 0 && n <= 1 && (i === 0 || n > ratios[i - 1]))) return null;
+        ratios[0] = 0;
+        ratios[ratios.length - 1] = 1;
+        return ratios;
+      }
+      // 여러 휴대폰·PC에서 확정한 최종 경계를 품새별로 묶는다. 한 사람이 나누기를 여러 번
+      // 누른 과정은 마지막 상태 1개만 사용해, 클릭 횟수가 많은 한 사용자가 결과를 지배하지 않게 한다.
+      function buildCollectiveLearningProfiles(records, minSessions = COLLECTIVE_PROFILE_MIN_SESSIONS) {
+        const latestBySession = new Map();
+        for (const record of Array.isArray(records) ? records : []) {
+          const poomsaeKey = String(record && record.poomsae || "");
+          const sessionId = String(record && record.review_session_id || "");
+          const ratios = record && Array.isArray(record.result_boundary_ratios)
+            ? record.result_boundary_ratios.map(Number) : null;
+          if (!poomsaeKey || !sessionId || !ratios || ratios.length < 3 || ratios.length > 40) continue;
+          if (!ratios.every((n, i) => Number.isFinite(n) && n >= 0 && n <= 1
+              && (i === 0 || n > ratios[i - 1]))) continue;
+          const ts = Date.parse(record.ts || "") || Number(record.createdAtMs) || 0;
+          const revision = Math.max(0, Math.round(Number(record.correction_revision) || 0));
+          const key = `${poomsaeKey}|${sessionId}`;
+          const previous = latestBySession.get(key);
+          if (!previous || revision > previous.revision || (revision === previous.revision && ts >= previous.ts)) {
+            latestBySession.set(key, { poomsaeKey, ratios, ts, revision });
+          }
+        }
+        const grouped = {};
+        for (const item of latestBySession.values()) {
+          const lengthKey = String(item.ratios.length);
+          const poomsaeGroups = (grouped[item.poomsaeKey] ||= {});
+          (poomsaeGroups[lengthKey] ||= []).push(item.ratios);
+        }
+        const profiles = {};
+        for (const [poomsaeKey, lengthGroups] of Object.entries(grouped)) {
+          const groups = Object.values(lengthGroups).sort((a, b) => b.length - a.length);
+          const dominant = groups[0] || [];
+          const totalSessions = groups.reduce((sum, rows) => sum + rows.length, 0);
+          if (dominant.length < minSessions || dominant.length / Math.max(totalSessions, 1) < 0.67) continue;
+          const boundaryCount = dominant[0].length;
+          const ratios = Array.from({ length: boundaryCount }, (_, index) =>
+            Number(medianNumber(dominant.map((row) => row[index])).toFixed(5))
+          );
+          ratios[0] = 0;
+          ratios[ratios.length - 1] = 1;
+          if (!ratios.every((n, i) => n >= 0 && n <= 1 && (i === 0 || n > ratios[i - 1]))) continue;
+          profiles[poomsaeKey] = {
+            boundaryCount,
+            ratios,
+            samples: dominant.length,
+            blend: Number(Math.min(0.45, 0.12 + dominant.length * 0.015).toFixed(3)),
+            updatedAtMs: Date.now()
+          };
+        }
+        return profiles;
       }
       // 이 기기에서 같은 품새·같은 경계를 반복해서 고친 경우에만 개인 보정값을 만든다.
       // 평균 대신 중앙값을 써서 한 번의 잘못된 터치가 다음 분석을 망치지 않게 하고,
@@ -3072,6 +3163,8 @@
           for (const k of Object.keys(data || {})) {
             if (typeof data[k] === "number") clean[k] = clampBiasValue(data[k]);
           }
+          const profiles = cleanCollectiveProfiles(data && data[COLLECTIVE_PROFILE_FIELD]);
+          if (Object.keys(profiles).length) clean[COLLECTIVE_PROFILE_FIELD] = profiles;
           _remoteBoundaryBias = clean;
           localStorage.setItem(BOUNDARY_BIAS_CACHE_KEY, JSON.stringify(clean));
           // 전역 보정이 새로 내려오면 과거 개인 보정을 '최종 목표값 - 새 전역값'으로 즉시
@@ -3102,6 +3195,41 @@
           if (lo < hi) out[i] = clamp(out[i] + bias, lo, hi);
         }
         return out;
+      }
+      // 집단 프로필은 현재 영상에서 찾은 시작·끝은 그대로 두고, 내부 경계만 조금 보정한다.
+      // 서로 다른 길이·촬영 기기의 영상을 그대로 복사하지 않고 '품새 진행 비율'만 섞는 안전한 방식이다.
+      function applyCollectiveBoundaryProfile(boundaries, poomsaeKey) {
+        if (!Array.isArray(boundaries) || boundaries.length < 3) {
+          return { boundaries, applied: false, samples: 0 };
+        }
+        const profile = collectiveProfiles()[poomsaeKey];
+        if (!profile || profile.boundaryCount !== boundaries.length) {
+          return { boundaries, applied: false, samples: profile ? profile.samples : 0 };
+        }
+        const first = boundaries[0], last = boundaries[boundaries.length - 1];
+        const span = last - first;
+        if (!(span > 0.5)) return { boundaries, applied: false, samples: profile.samples };
+        const out = boundaries.slice();
+        for (let i = 1; i < out.length - 1; i += 1) {
+          const collectiveTarget = first + profile.ratios[i] * span;
+          const blended = out[i] * (1 - profile.blend) + collectiveTarget * profile.blend;
+          out[i] = clamp(blended, out[i - 1] + 0.1, boundaries[i + 1] - 0.1);
+        }
+        return { boundaries: out, applied: true, samples: profile.samples, blend: profile.blend };
+      }
+      async function publishCollectiveLearningProfiles(profiles) {
+        if (!_fbCurrentAdminUser || !_fbDB || !_fbSetDoc || !_fbDoc) return false;
+        try {
+          const clean = cleanCollectiveProfiles(profiles);
+          await _fbSetDoc(
+            _fbDoc(_fbDB, "app_config", "boundary_bias"),
+            { [COLLECTIVE_PROFILE_FIELD]: clean },
+            { merge: true }
+          );
+          _remoteBoundaryBias = { ...(_remoteBoundaryBias || {}), [COLLECTIVE_PROFILE_FIELD]: clean };
+          localStorage.setItem(BOUNDARY_BIAS_CACHE_KEY, JSON.stringify(_remoteBoundaryBias));
+          return true;
+        } catch (e) { return false; }
       }
       // 관리자가 "학습 리포트"에서 제안 1건을 승인해 게시(merge — 다른 위치값은 안 건드림).
       async function publishBoundaryBiasEntry(locationKey, seconds) {
@@ -3134,7 +3262,7 @@
       // 자동으로 반영한다. 동작 분류·명칭·개수에 영향을 주는 제안(과분할/과소분할 등)은 여전히
       // 코드 로직 변경이 필요해 자동 반영 대상이 아니다(사람 판단 필요 — 안전 범위 밖).
       // 매 페이지 로드마다 전체 컬렉션을 읽으면 낭비이므로 12시간에 한 번으로 제한한다.
-      const AUTO_PUBLISH_LAST_CHECK_KEY = "poomsae_auto_publish_last_check";
+      const AUTO_PUBLISH_LAST_CHECK_KEY = "poomsae_auto_publish_last_check_v2";
       const AUTO_PUBLISH_LOG_KEY = "poomsae_auto_publish_log";
       const AUTO_PUBLISH_MIN_INTERVAL_MS = 12 * 3600 * 1000;
       async function autoPublishHighConfidenceSuggestions() {
@@ -3149,6 +3277,7 @@
           if (!records.length) return;
           const { locations } = analyzeCorrectionRecords(records);
           const suggestions = buildCorrectionRuleSuggestions(locations).filter((s) => s.type === "boundary_shift");
+          const collective = buildCollectiveLearningProfiles(records);
           const activeBias = _remoteBoundaryBias || {};
           const published = [];
           for (const s of suggestions) {
@@ -3162,6 +3291,7 @@
             const log = JSON.parse(localStorage.getItem(AUTO_PUBLISH_LOG_KEY) || "[]");
             localStorage.setItem(AUTO_PUBLISH_LOG_KEY, JSON.stringify([...published, ...log].slice(0, 100)));
           }
+          if (Object.keys(collective).length) await publishCollectiveLearningProfiles(collective);
         } catch (e) { /* 조용히 실패 — 다음 접속 때 다시 시도(12시간 제한이 자연스러운 재시도 역할) */ }
       }
 
@@ -5003,6 +5133,13 @@
       let lastViewForRun = "front";
       let manualEditMode = false;
       let confirmedThisSession = false; // "정확해요" 확인은 세션(파일 선택)당 1번만.
+      function newCorrectionSessionId() {
+        try { if (crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID(); }
+        catch (e) { /* 구형 브라우저 폴백 */ }
+        return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+      }
+      let correctionSessionId = newCorrectionSessionId();
+      let correctionRevision = 0;
       // ── 1단계: 보정 기록 수집 ──
       // 사용자가 자동 분석을 수동으로 고칠 때마다 '자동값 vs 사용자값'을 기록한다.
       // 이 데이터가 2단계(규칙 보정)와 이후 AI 학습의 재료가 된다. 서버 없이 기기에 누적하고,
@@ -5076,6 +5213,11 @@
       // 보정 1건 기록. action: "merge" | "split" | "adjust"
       function recordCorrection(action, detail) {
         try {
+          const details = { ...(detail || {}) };
+          if (!Array.isArray(details.result_boundary_ratios) && lastBoundaryCache && Array.isArray(lastBoundaryCache.boundaries)) {
+            const ratios = normalizeBoundaryShape(lastBoundaryCache.boundaries);
+            if (ratios) details.result_boundary_ratios = ratios;
+          }
           const record = {
             ts: new Date().toISOString(),
             poomsae: selectedPoomsaeKey,
@@ -5083,8 +5225,10 @@
             file: selectedFile ? selectedFile.name : "",
             video_duration: video && Number.isFinite(video.duration) ? Number(video.duration.toFixed(2)) : null,
             auto_method: lastBoundaryCache ? lastBoundaryCache.method : "",
+            review_session_id: correctionSessionId,
+            correction_revision: ++correctionRevision,
             action,
-            ...detail
+            ...details
           };
           const log = loadCorrectionLog();
           log.push(record);
@@ -8319,6 +8463,10 @@
         } else {
           boundaries = refineSegmentBoundaries(duration, count, motionSamples, sensitivity, activeRange.start, activeRange.end);
         }
+        // 여러 기기에서 같은 품새를 확정한 경계 모양을 먼저 약하게 섞고, 위치별 초 단위
+        // 보정을 마지막에 적용한다. 프로필과 현재 경계 개수가 다르면 집단값은 쓰지 않는다.
+        const collectiveResult = applyCollectiveBoundaryProfile(boundaries, selectedPoomsaeKey);
+        boundaries = collectiveResult.boundaries;
         // ── 학습된 경계 타이밍 보정 적용 ──
         // 관리자가 "학습 리포트"에서 승인해 게시한 값이 있으면(위 loadBoundaryBias 주석 참고),
         // 이미 감지된 경계의 초 단위 위치만 미세조정한다. 값이 없으면(_remoteBoundaryBias가
@@ -8334,6 +8482,9 @@
           allocation,
           activeRange,
           biasAppliedCount,
+          collectiveProfileApplied: collectiveResult.applied,
+          collectiveProfileSamples: collectiveResult.samples,
+          collectiveProfileBlend: collectiveResult.blend || 0,
           completionTimes: chooseCompletionSnapshotTimes(boundaries, motionSamples),
           motionSamples,
           frames,
@@ -9533,12 +9684,19 @@
         if (boundaryDetectionForRun && boundaryDetectionForRun.biasAppliedCount > 0) {
           results._boundaryBiasNote = { type: "good", text: `그동안 쌓인 보정 데이터를 학습해 경계 ${boundaryDetectionForRun.biasAppliedCount}곳의 타이밍을 다음 측정에 실제 반영했습니다.` };
         }
+        if (boundaryDetectionForRun && boundaryDetectionForRun.collectiveProfileApplied) {
+          results._collectiveLearningNote = {
+            type: "good",
+            text: `여러 기기에서 확인한 ${boundaryDetectionForRun.collectiveProfileSamples}개의 ${currentPoomsae().name} 분석을 함께 배워 이번 구간 찾기에 반영했습니다.`
+          };
+        }
         const fusedView = (analysisEfficiency && (analysisEfficiency.triple_view ? "triple" : analysisEfficiency.dual_view ? "dual" : null)) || cameraView;
         const summary = summarize(results, fusedView, boundaryDetectionForRun ? boundaryDetectionForRun.activeRange : null);
         if (results._kihapNote) summary.items.unshift(results._kihapNote);
         if (results._videoCorrectionNote) summary.items.unshift(results._videoCorrectionNote);
         if (results._readyStanceNote) summary.items.unshift(results._readyStanceNote);
         if (results._boundaryBiasNote) summary.items.unshift(results._boundaryBiasNote);
+        if (results._collectiveLearningNote) summary.items.unshift(results._collectiveLearningNote);
         // 분석 품새의 본동작 수가 공식과 다르면(데이터 누락 가능성) 사용자에게 투명하게 안내.
         try {
           const pk = selectedPoomsaeKey;
@@ -9961,7 +10119,8 @@
           removed_boundary_time: Number(b[i].toFixed(3)),
           merged_segment_index: i,
           auto_segment_count: b.length - 1,
-          result_segment_count: b.length - 2
+          result_segment_count: b.length - 2,
+          result_boundary_ratios: normalizeBoundaryShape(b.filter((_, index) => index !== i))
         });
         // 경계와 함께 동작-인덱스 매핑도 '같은 위치'만 제거한다(전체 재계산 금지).
         // → 5·6번을 합쳤는데 14·15번이 합쳐지는 등, 편집한 위치와 무관한 동작이
@@ -9986,7 +10145,10 @@
           split_at: Number(mid.toFixed(3)),
           split_ratio: Number(((mid - s) / Math.max(e - s, 0.001)).toFixed(3)),
           auto_segment_count: b.length - 1,
-          result_segment_count: b.length
+          result_segment_count: b.length,
+          result_boundary_ratios: normalizeBoundaryShape([
+            ...b.slice(0, i + 1), Number(mid.toFixed(3)), ...b.slice(i + 1)
+          ])
         });
         // 나눌 위치(i, i+1 사이)의 동작 인덱스 범위를 반으로 갈라 끼워 넣는다.
         // 이 구간이 원래 동작 1개짜리였으면(범위폭 1) 두 조각 모두 같은 동작을 가리키게 되고,
@@ -10007,6 +10169,8 @@
         const autoTime = b[i];
         const userTime = clamp(Number(newTime), lo, hi);
         const appliedBias = getBoundaryBias(selectedPoomsaeKey, i);
+        const adjustedBoundaries = b.slice();
+        adjustedBoundaries[i] = userTime;
         // 1단계 기록: 자동 경계(autoTime)를 사용자가 userTime으로 옮겼다 = 오차 = userTime - autoTime.
         recordCorrection("adjust", {
           boundary_index: i,
@@ -10014,7 +10178,8 @@
           user_time: Number(userTime.toFixed(3)),
           delta_seconds: Number((userTime - autoTime).toFixed(3)),
           applied_bias_seconds: Number(appliedBias.toFixed(3)),
-          target_total_bias_seconds: Number((appliedBias + userTime - autoTime).toFixed(3))
+          target_total_bias_seconds: Number((appliedBias + userTime - autoTime).toFixed(3)),
+          result_boundary_ratios: normalizeBoundaryShape(adjustedBoundaries)
         });
         b[i] = userTime;
         await rebuildSegmentsFromBoundaries(b, i, "시작 경계를 이동했습니다.");
@@ -10062,6 +10227,9 @@
         const safeDelta = delta > 0 ? Math.min(delta, Math.max(maxDelta, 0)) : delta;
         userTime = autoTime + safeDelta;
         const appliedBias = getBoundaryBias(selectedPoomsaeKey, i);
+        const shiftedBoundaries = b.map((value, index) =>
+          index >= i ? Number((value + safeDelta).toFixed(3)) : value
+        );
         recordCorrection("cascade_adjust", {
           boundary_index: i,
           auto_time: Number(autoTime.toFixed(3)),
@@ -10069,7 +10237,8 @@
           delta_seconds: Number(safeDelta.toFixed(3)),
           applied_bias_seconds: Number(appliedBias.toFixed(3)),
           target_total_bias_seconds: Number((appliedBias + safeDelta).toFixed(3)),
-          shifted_count: b.length - i
+          shifted_count: b.length - i,
+          result_boundary_ratios: normalizeBoundaryShape(shiftedBoundaries)
         });
         for (let k = i; k <= lastIndex; k += 1) b[k] = Number((b[k] + safeDelta).toFixed(3));
         const label = i === 0 ? "준비자세 지점(준비 시작)부터" : `${i}번 경계부터`;
@@ -10927,6 +11096,8 @@
         seekProbeChecked = false;
         seekProbeOk = true;
         confirmedThisSession = false;
+        correctionSessionId = newCorrectionSessionId();
+        correctionRevision = 0;
         pendingVideoCorrection = null;
         latestReport = null;
         clearReplayRange();
@@ -11011,6 +11182,9 @@
       poomsaeSelect.addEventListener("change", () => {
         showTrainingPage();
         selectedPoomsaeKey = poomsaeSelect.value;
+        correctionSessionId = newCorrectionSessionId();
+        correctionRevision = 0;
+        confirmedThisSession = false;
         lastPoomsaeMismatchKey = "";
         updatePoomsaeView();
         latestReport = null;

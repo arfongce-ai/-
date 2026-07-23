@@ -329,7 +329,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v79-correction-reapply", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v80-collective-learning", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -614,6 +614,11 @@ assertNotContainsInFiles("실격", [webIndexPath, androidIndexPath], "실격 판
 assertContains(webHtml, "function loadBoundaryBias(", "경계 보정값 로드 함수 존재");
 assertContains(webHtml, "function getBoundaryBias(", "경계 보정값 조회 함수 존재");
 assertContains(webHtml, "function applyLearnedBoundaryBias(", "경계 보정 적용 함수 존재");
+assertContains(webHtml, "function buildCollectiveLearningProfiles(", "여러 기기의 최종 보정을 품새별 집단 학습값으로 모음");
+assertContains(webHtml, "review_session_id: correctionSessionId", "한 영상의 여러 클릭을 하나의 검토 세션으로 구분");
+assertContains(webHtml, "result_boundary_ratios", "기기와 영상 길이가 달라도 비교 가능한 최종 경계 비율을 수집");
+assertContains(webHtml, "function applyCollectiveBoundaryProfile(", "공개 집단 학습 프로필을 다음 분석 경계에 반영");
+assertContains(webHtml, "collectiveProfileApplied", "집단 학습 실제 적용 여부를 분석 결과에 기록");
 assertContains(webHtml, "function buildLocalBoundaryBias(", "반복 사용 시 기기별 경계 보정 학습 함수 존재");
 assertContains(webHtml, "refreshLocalBoundaryBias(log)", "사용자 보정 직후 기기별 학습값 자동 갱신");
 assertContains(webHtml, "LOCAL_BOUNDARY_BIAS_MIN_SAMPLES = 3", "기기별 학습 최소 표본 안전장치 존재");
