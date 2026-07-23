@@ -329,7 +329,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v66-banner-file-upload", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v67-logo-admin-marquee", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -455,6 +455,8 @@ assertNotContains(webHtml, "id=\"adminBannerImage\"", "배너 이미지 URL 직�
 assertContains(webHtml, "@keyframes partner-marquee", "파트너 배너 흐름 애니메이션 존재");
 assertContains(webHtml, "prefers-reduced-motion", "파트너 배너 모션 최소화 대응 존재");
 assertContains(webHtml, "id=\"adminModeTrigger\"", "관리자 모드 진입 버튼 존재");
+assertContains(webHtml, "class=\"admin-logo-trigger\"", "관리자 진입을 몸가짐운동센터 로고 버튼에 연결");
+assertNotContains(webHtml, "class=\"admin-mode-trigger\">관리자 모드</button>", "화면에 보이는 관리자 모드 글자 버튼 제거");
 assertContains(webHtml, "pinInput.value === ADMIN_PIN", "관리자 PIN 확인 로직 존재");
 assertContains(webHtml, "function detectClapMoment(", "박수 시점 감지 함수 존재");
 assertContains(webHtml, "activeRange.clapDetected = clapTime != null", "박수 감지 결과는 기록만 하고(참고용) 시작점 판정에는 관여하지 않음");
@@ -504,7 +506,9 @@ assertContains(webHtml, "blog.naver.com/posture_gym", "앱 하단 블로그 정�
 assertContains(webHtml, "0507-1366-0466", "앱 하단 문의 전화번호 존재");
 assertContains(webHtml, "./assets/partner-taekwondo-logos.png", "새 가로형 파트너 로고 존재");
 assertContains(webHtml, "제작: 울산 몸가짐운동센터</p>\n          <p>제작자: <a", "제작자 링크 정보를 한 줄 아래에 표시");
-assertContains(webHtml, "<div class=\"app-footer-partner-block\">\n          <img class=\"app-footer-partners\"", "파트너 로고를 운동센터 로고와 제작 정보 위에 표시");
+assertContains(webHtml, "<div class=\"app-footer-partner-block\">\n          <div class=\"app-footer-partner-track\">", "파트너 로고 흐름 띠를 운동센터 로고와 제작 정보 위에 표시");
+assertContains(webHtml, "@keyframes footer-partner-marquee", "하단 파트너 광고 무한 가로 흐름 애니메이션 존재");
+assertContains(webHtml, "animation: footer-partner-marquee 18s linear infinite", "하단 파트너 광고 가로 흐름 적용");
 assertContains(webHtml, "https://www.instagram.com/yongin_kr", "용인대 국가대표태권도 인스타그램 링크 존재");
 assertContains(webHtml, "aria-label=\"용인대 국가대표태권도 인스타그램 @yongin_kr 새 창으로 열기\"", "용인대 로고 클릭 접근성 설명 존재");
 assertContains(webHtml, ".yongin-logo-link", "용인대 국가대표태권도 로고 전용 클릭 영역 존재");
@@ -630,9 +634,9 @@ assertContains(webHtml, "e.counts.adjust >= 5", "전 사용자 보정은 실제 
 assertContains(webHtml, "e.counts.adjust / Math.max(e.total, 1) >= 0.3", "전 사용자 보정은 전체 리뷰 대비 수정률 30% 이상일 때만 허용");
 assertContains(webHtml, "AUTO_PUBLISH_LOG_KEY", "자동 반영 이력이 로컬에 남아 리포트 화면에서 확인 가능함(투명성)");
 
-// ── 관리자 모드 버튼 발견성 개선 ──
-assertNotContains(webHtml, "font-size: 11px;\n        opacity: .5;", "관리자 모드 버튼이 더 이상 11px·반투명(찾기 어려운 상태)이 아님");
-assertContains(webHtml, "min-height: 44px;\n        margin: 16px auto 24px;\n        background: var(--panel-2);", "관리자 모드 버튼이 실제 탭 가능한 카드 형태로 개선됨");
+// ── 관리자 모드 진입을 몸가짐운동센터 로고에 숨김 ──
+assertContains(webHtml, "aria-label=\"관리자 설정 열기\"", "몸가짐운동센터 로고에 관리자 진입 접근성 이름 존재");
+assertContains(webHtml, ".admin-logo-trigger:hover .app-footer-main-logo", "관리자 로고 버튼의 키보드·마우스 피드백 존재");
 
 if (failures.length) {
   console.error(`\nCross-check failed: ${failures.length} issue(s)`);

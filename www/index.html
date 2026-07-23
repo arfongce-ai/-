@@ -1622,13 +1622,18 @@
         align-items: center;
         width: max-content;
         padding: 10px 0;
-        animation: partner-marquee 10s linear infinite;
+        animation: partner-marquee 16s linear infinite;
+        will-change: transform;
       }
       .partner-banner:hover .partner-banner-track { animation-play-state: paused; }
       .partner-banner-track img {
-        height: 44px;
+        width: 100vw;
+        height: 64px;
+        object-fit: contain;
+        box-sizing: border-box;
         display: block;
-        margin: 0 28px;
+        flex: 0 0 100vw;
+        padding: 0 24px;
       }
       @keyframes partner-marquee {
         from { transform: translateX(0); }
@@ -1641,18 +1646,6 @@
           justify-content: center;
         }
         .partner-banner-track img:nth-child(2) { display: none; }
-      }
-      .admin-mode-trigger {
-        display: block;
-        min-height: 44px;
-        margin: 16px auto 24px;
-        background: var(--panel-2);
-        border: 1px solid var(--line);
-        border-radius: var(--radius-sm, 8px);
-        color: var(--muted);
-        font-size: 14px;
-        opacity: .85;
-        padding: 10px 18px;
       }
       .admin-panel-overlay {
         position: fixed; inset: 0;
@@ -2013,6 +2006,21 @@
         border-radius: 8px;
         background: #ffffff;
       }
+      .admin-logo-trigger {
+        display: block;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        cursor: pointer;
+      }
+      .admin-logo-trigger:hover .app-footer-main-logo,
+      .admin-logo-trigger:focus-visible .app-footer-main-logo {
+        box-shadow: 0 0 0 3px var(--brand-strong);
+      }
+      .admin-logo-trigger:focus-visible { outline: none; }
       .app-footer-copy {
         display: grid;
         align-content: center;
@@ -2032,20 +2040,38 @@
       }
       .app-footer-partner-block {
         position: relative;
-        display: grid;
+        display: block;
         grid-column: 1 / -1;
         width: 100%;
         margin: 0 0 4px;
+        overflow: hidden;
+        border-radius: 8px;
+        background: #ffffff;
+      }
+      .app-footer-partner-track {
+        display: flex;
+        align-items: center;
+        width: max-content;
+        animation: footer-partner-marquee 18s linear infinite;
+        will-change: transform;
+      }
+      .app-footer-partner-block:hover .app-footer-partner-track {
+        animation-play-state: paused;
       }
       .app-footer-partners {
         display: block;
-        width: 100%;
+        width: min(76vw, 620px);
+        flex: 0 0 min(76vw, 620px);
         max-height: 64px;
         object-fit: contain;
         margin: 0;
         padding: 6px 10px;
         border-radius: 8px;
         background: #ffffff;
+      }
+      @keyframes footer-partner-marquee {
+        from { transform: translateX(0); }
+        to { transform: translateX(-50%); }
       }
       .yongin-logo-link {
         position: absolute;
@@ -2065,6 +2091,14 @@
         .app-footer-inner { grid-template-columns: 96px minmax(0, 1fr); gap: 10px; }
         .app-footer p { font-size: 11px; line-height: 1.4; }
         .app-footer-partners { max-height: 56px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .app-footer-partner-track {
+          animation: none;
+          width: 100%;
+          justify-content: center;
+        }
+        .app-footer-partner-track .app-footer-partners:nth-child(2) { display: none; }
       }
 
       /* ── 초소형 폰(≤380px): 라벨이 배지와 겹치지 않게 보강 ── */
@@ -2634,13 +2668,24 @@
         <div id="segments" class="segments"></div>
       </section>
     </main>
+    <div id="partnerBanner" class="partner-banner" style="display:none">
+      <a id="partnerBannerLink" class="partner-banner-track" href="#" target="_blank" rel="noopener" aria-label="파트너 배너, 눌러서 이동">
+        <img id="partnerBannerImg1" src="" alt="파트너 배너" />
+        <img id="partnerBannerImg2" src="" alt="" aria-hidden="true" />
+      </a>
+    </div>
     <footer class="app-footer">
       <div class="app-footer-inner">
         <div class="app-footer-partner-block">
-          <img class="app-footer-partners" src="./assets/partner-taekwondo-logos.png" alt="용인대 국가대표 태권도 및 Taigon 시범단 로고" loading="lazy" />
+          <div class="app-footer-partner-track">
+            <img class="app-footer-partners" src="./assets/partner-taekwondo-logos.png" alt="용인대 국가대표 태권도 및 Taigon 시범단 로고" loading="lazy" />
+            <img class="app-footer-partners" src="./assets/partner-taekwondo-logos.png" alt="" aria-hidden="true" loading="lazy" />
+          </div>
           <a class="yongin-logo-link" href="https://www.instagram.com/yongin_kr" target="_blank" rel="noopener" aria-label="용인대 국가대표태권도 인스타그램 @yongin_kr 새 창으로 열기">@yongin_kr</a>
         </div>
-        <img class="app-footer-main-logo" src="./assets/momgagym-logo.jpg" alt="몸가짐운동센터 로고" loading="lazy" />
+        <button type="button" id="adminModeTrigger" class="admin-logo-trigger" aria-label="관리자 설정 열기">
+          <img class="app-footer-main-logo" src="./assets/momgagym-logo.jpg" alt="몸가짐운동센터 로고" loading="lazy" />
+        </button>
         <div class="app-footer-copy">
           <p>제작: 울산 몸가짐운동센터</p>
           <p>제작자: <a href="https://blog.naver.com/posture_gym/222560486461" target="_blank" rel="noopener">김동규 센터장</a></p>
@@ -2650,14 +2695,6 @@
         </div>
       </div>
     </footer>
-
-    <div id="partnerBanner" class="partner-banner" style="display:none">
-      <a id="partnerBannerLink" class="partner-banner-track" href="#" target="_blank" rel="noopener" aria-label="파트너 배너, 눌러서 이동">
-        <img id="partnerBannerImg1" src="" alt="파트너 배너" />
-        <img id="partnerBannerImg2" src="" alt="" aria-hidden="true" />
-      </a>
-    </div>
-    <button type="button" id="adminModeTrigger" class="admin-mode-trigger">관리자 모드</button>
 
     <div id="adminPanelOverlay" class="admin-panel-overlay" style="display:none">
       <div class="admin-panel">
