@@ -2038,7 +2038,7 @@
         align-items: center;
         justify-content: center;
         padding: 4px;
-        border: 1px solid #eee8dc;
+        border: 0;
         border-radius: 8px;
         background: #ffffff;
       }
@@ -2049,6 +2049,7 @@
         object-fit: contain;
       }
       .app-footer-campaign-group { display: none; }
+      #segmentsSection:has(#segments:empty) { display: none; }
       .yongin-logo-link {
         position: relative;
         inset: auto;
@@ -2777,7 +2778,7 @@
         </div>
       </section>
 
-      <section style="margin-top: 18px;">
+      <section id="segmentsSection" style="margin-top: 18px;">
         <h2 id="segmentTitle" style="display:none"></h2>
         <p id="segmentDescription" style="display:none"></p>
         <p id="dataCoverageNote" class="movement-estimate-note" style="display:none"></p>

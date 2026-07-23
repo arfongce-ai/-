@@ -329,7 +329,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v76-static-campaign-grid", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v77-clean-footer", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -528,6 +528,8 @@ assertContains(webHtml, "제작: 울산 몸가짐운동센터</p>\n          <p>
 assertContains(webHtml, "<div class=\"app-footer-partner-block\">\n          <div class=\"app-footer-partner-track\">", "파트너 광고판을 운동센터 로고와 제작 정보 위에 표시");
 assertContains(webHtml, "flex: 1 1 0", "모든 광고를 같은 너비와 같은 간격으로 배치");
 assertContains(webHtml, "gap: 6px", "광고 사이의 일정한 간격 적용");
+assertContains(webHtml, "#segmentsSection:has(#segments:empty) { display: none; }", "분석 전 비어 있는 빨간 표시 영역 제거");
+assertContains(webHtml, "border: 0;", "하단 광고 로고 테두리 제거");
 assertContains(webHtml, "https://www.instagram.com/yongin_kr", "용인대 국가대표태권도 인스타그램 링크 존재");
 assertContains(webHtml, "aria-label=\"용인대 국가대표태권도 인스타그램 @yongin_kr 새 창으로 열기\"", "용인대 로고 클릭 접근성 설명 존재");
 assertContains(webHtml, ".yongin-logo-link", "용인대 국가대표태권도 로고 전용 클릭 영역 존재");

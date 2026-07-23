@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v76-static-campaign-grid";
+const CACHE_NAME = "poomsae-training-v77-clean-footer";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",
