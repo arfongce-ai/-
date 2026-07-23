@@ -38,7 +38,7 @@ const failures = [];
 const warnings = [];
 
 function readUtf8(filePath) {
-  return fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : "";
+  return fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8").replace(/\r\n?/g, "\n") : "";
 }
 
 function pass(label) {
@@ -329,7 +329,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v72-footer-banner", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v73-multi-banner", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -453,14 +453,18 @@ assertContains(webHtml, "function bannerShouldBeVisible(", "파트너 배너 노
 assertContains(webHtml, "function parseKSTLocalInput(", "한국시간 입력 파싱 함수 존재");
 assertContains(webHtml, "id=\"adminBannerImageFile\"", "관리자 배너 이미지 파일 선택 입력 존재");
 assertContains(webHtml, "accept=\"image/*\"", "배너 파일 선택은 이미지 형식으로 제한");
+assertContains(webHtml, "accept=\"image/*\" multiple", "배너 이미지 여러 장 동시 선택 지원");
 assertContains(webHtml, "async function uploadBannerImageFile(", "배너 이미지 파일 준비 함수 존재");
-assertContains(webHtml, "file.size > 600 * 1024", "Firestore 문서 크기를 보호하는 배너 600KB 제한 존재");
+assertContains(webHtml, "fileList.length > 10", "배너 이미지 최대 10장 제한 존재");
+assertContains(webHtml, "totalSize > 600 * 1024", "Firestore 문서 크기를 보호하는 전체 600KB 제한 존재");
 assertContains(webHtml, "reader.readAsDataURL(file)", "유료 Storage 없이 배너 이미지를 Firestore용 data URL로 변환");
 assertContains(webHtml, "banner_save_timeout", "배너 저장이 무한 대기하지 않는 시간 제한 존재");
-assertContains(webHtml, "id=\"adminBannerPreview\"", "선택한 배너 이미지 미리보기 존재");
+assertContains(webHtml, "id=\"adminBannerPreviewList\"", "선택한 여러 배너 이미지 미리보기 존재");
 assertNotContains(webHtml, "id=\"adminBannerImage\"", "배너 이미지 URL 직접 입력 제거");
-assertContains(webHtml, "id=\"partnerBanner\" class=\"app-footer-campaign\"", "관리자 배너가 기존 하단 흰색 광고 띠 안에 배치됨");
-assertContains(webHtml, "id=\"partnerBannerClone\" class=\"app-footer-campaign\"", "관리자 배너를 무한 흐름용으로 복제");
+assertContains(webHtml, "id=\"partnerBanner\" class=\"app-footer-campaign-group\"", "관리자 배너 여러 장이 기존 하단 흰색 광고 띠 안에 배치됨");
+assertContains(webHtml, "id=\"partnerBannerClone\" class=\"app-footer-campaign-group\"", "관리자 배너 여러 장을 무한 흐름용으로 복제");
+assertContains(webHtml, "function bannerImageUrls(", "기존 한 장과 새 여러 장 저장 형식 모두 읽기");
+assertContains(webHtml, "JSON.stringify(imageUrls)", "여러 배너 이미지를 기존 Firestore 필드에 호환 저장");
 assertNotContains(webHtml, "class=\"partner-banner\"", "관리자 배너가 별도 검은 띠를 만들지 않음");
 assertContains(webHtml, "prefers-reduced-motion", "파트너 배너 모션 최소화 대응 존재");
 assertContains(webHtml, "id=\"adminModeTrigger\"", "관리자 모드 진입 버튼 존재");

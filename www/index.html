@@ -2033,9 +2033,9 @@
         background: #ffffff;
       }
       .app-footer-campaign {
-        display: none;
         position: relative;
         z-index: 2;
+        display: flex;
         width: min(76vw, 620px);
         flex: 0 0 min(76vw, 620px);
         height: 64px;
@@ -2051,6 +2051,7 @@
         height: 100%;
         object-fit: contain;
       }
+      .app-footer-campaign-group { display: none; }
       @keyframes footer-partner-marquee {
         from { transform: translateX(0); }
         to { transform: translateX(-50%); }
@@ -2812,13 +2813,9 @@
       <div class="app-footer-inner">
         <div class="app-footer-partner-block">
           <div class="app-footer-partner-track">
-            <a id="partnerBanner" class="app-footer-campaign" href="#" target="_blank" rel="noopener" aria-label="파트너 배너, 눌러서 이동">
-              <img id="partnerBannerImg1" src="" alt="파트너 배너" />
-            </a>
+            <span id="partnerBanner" class="app-footer-campaign-group"></span>
             <img class="app-footer-partners" src="./assets/partner-taekwondo-logos.png" alt="용인대 국가대표 태권도 및 Taigon 시범단 로고" loading="lazy" />
-            <a id="partnerBannerClone" class="app-footer-campaign" href="#" target="_blank" rel="noopener" aria-hidden="true" tabindex="-1">
-              <img id="partnerBannerImg2" src="" alt="" aria-hidden="true" />
-            </a>
+            <span id="partnerBannerClone" class="app-footer-campaign-group" aria-hidden="true"></span>
             <img class="app-footer-partners" src="./assets/partner-taekwondo-logos.png" alt="" aria-hidden="true" loading="lazy" />
           </div>
           <a class="yongin-logo-link" href="https://www.instagram.com/yongin_kr" target="_blank" rel="noopener" aria-label="용인대 국가대표태권도 인스타그램 @yongin_kr 새 창으로 열기">@yongin_kr</a>
@@ -2848,11 +2845,11 @@
           <label for="adminBannerEnabled">
             <input type="checkbox" id="adminBannerEnabled" style="width:18px;height:18px;vertical-align:middle" /> 배너 노출 사용
           </label>
-          <label for="adminBannerImageFile">배너 이미지 파일</label>
-          <input type="file" id="adminBannerImageFile" accept="image/*" />
-          <p class="small" style="color:var(--muted);margin:6px 0 8px">JPG·PNG·WEBP 이미지 파일을 선택하세요. 최대 600KB입니다.</p>
+          <label for="adminBannerImageFile">배너 이미지 파일(여러 장 선택 가능)</label>
+          <input type="file" id="adminBannerImageFile" accept="image/*" multiple />
+          <p class="small" style="color:var(--muted);margin:6px 0 8px">최대 10장까지 선택할 수 있어요. 모든 이미지의 합계는 600KB 이하입니다.</p>
           <div id="adminBannerPreviewWrap" style="display:none;margin:8px 0 12px">
-            <img id="adminBannerPreview" src="" alt="선택한 배너 미리보기" style="display:block;max-width:100%;max-height:180px;object-fit:contain;border:1px solid #d9ccb2;border-radius:10px;background:#fff" />
+            <div id="adminBannerPreviewList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px"></div>
             <p class="small" id="adminBannerFileName" style="color:var(--muted);margin:5px 0 0"></p>
           </div>
           <label for="adminBannerLink">클릭 시 이동할 주소(URL)</label>
@@ -3192,12 +3189,26 @@
         const pad = (n) => String(n).padStart(2, "0");
         return `${kst.getUTCFullYear()}-${pad(kst.getUTCMonth() + 1)}-${pad(kst.getUTCDate())}T${pad(kst.getUTCHours())}:${pad(kst.getUTCMinutes())}`;
       }
+      function bannerImageUrls(value) {
+        if (!value) return [];
+        if (Array.isArray(value)) return value.filter((url) => typeof url === "string" && url.startsWith("data:image/")).slice(0, 10);
+        if (typeof value !== "string") return [];
+        if (value.startsWith("data:image/")) return [value];
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed)
+            ? parsed.filter((url) => typeof url === "string" && url.startsWith("data:image/")).slice(0, 10)
+            : [];
+        } catch (e) {
+          return [];
+        }
+      }
       function bannerShouldBeVisible(config) {
         if (!config || !config.enabled) return false;
         const now = Date.now();
         if (Number.isFinite(config.startAt) && now < config.startAt) return false;
         if (Number.isFinite(config.endAt) && now > config.endAt) return false;
-        if (!config.imageUrl) return false;
+        if (!bannerImageUrls(config.imageUrl).length) return false;
         return true;
       }
       let _bannerConfigCache = null;
@@ -3205,17 +3216,32 @@
       function applyBannerToDom(config) {
         const el = document.getElementById("partnerBanner");
         const clone = document.getElementById("partnerBannerClone");
-        const img1 = document.getElementById("partnerBannerImg1");
-        const img2 = document.getElementById("partnerBannerImg2");
-        if (!el || !clone || !img1 || !img2) return;
+        if (!el || !clone) return;
         const visible = bannerShouldBeVisible(config);
-        el.style.display = visible ? "flex" : "none";
-        clone.style.display = visible ? "flex" : "none";
-        if (visible) {
-          img1.src = config.imageUrl; img2.src = config.imageUrl;
-          el.href = config.linkUrl || "#";
-          clone.href = config.linkUrl || "#";
-        }
+        const urls = visible ? bannerImageUrls(config.imageUrl) : [];
+        const makeItems = (isClone) => urls.map((url, index) => {
+          const link = document.createElement("a");
+          link.className = "app-footer-campaign";
+          link.href = config.linkUrl || "#";
+          link.target = "_blank";
+          link.rel = "noopener";
+          if (isClone) {
+            link.tabIndex = -1;
+            link.setAttribute("aria-hidden", "true");
+          } else {
+            link.setAttribute("aria-label", `파트너 배너 ${index + 1}, 눌러서 이동`);
+          }
+          const img = document.createElement("img");
+          img.src = url;
+          img.alt = isClone ? "" : `파트너 배너 ${index + 1}`;
+          if (isClone) img.setAttribute("aria-hidden", "true");
+          link.appendChild(img);
+          return link;
+        });
+        el.replaceChildren(...makeItems(false));
+        clone.replaceChildren(...makeItems(true));
+        el.style.display = visible ? "contents" : "none";
+        clone.style.display = visible ? "contents" : "none";
       }
       async function initPartnerBanner() {
         try {
@@ -3244,27 +3270,33 @@
           return { ok: false, reason: "저장에 실패했어요. PIN이 맞는지, 인터넷 연결을 확인해주세요." };
         }
       }
-      async function uploadBannerImageFile(file) {
-        if (!file || !String(file.type || "").startsWith("image/")) {
+      async function uploadBannerImageFile(files) {
+        const fileList = Array.from(files || []);
+        if (!fileList.length || fileList.some((file) => !String(file.type || "").startsWith("image/"))) {
           return { ok: false, reason: "이미지 파일을 선택해주세요." };
         }
         // Firebase Storage는 2026년부터 Blaze 요금제가 필요하므로 작은 공개 배너는
         // Firestore의 app_config/banner 문서에 data URL로 함께 저장한다.
-        // Firestore 문서 제한(1MiB)을 넘지 않도록 원본 파일을 600KB로 제한한다.
-        if (file.size > 600 * 1024) {
-          return { ok: false, reason: "배너 이미지는 600KB 이하로 줄여서 올려주세요." };
+        // Firestore 문서 제한(1MiB)을 넘지 않도록 최대 10장·전체 600KB로 제한한다.
+        if (fileList.length > 10) {
+          return { ok: false, reason: "배너 이미지는 최대 10장까지 선택할 수 있어요." };
+        }
+        const totalSize = fileList.reduce((sum, file) => sum + file.size, 0);
+        if (totalSize > 600 * 1024) {
+          return { ok: false, reason: "선택한 이미지 전체 용량을 600KB 이하로 줄여주세요." };
         }
         try {
-          const imageUrl = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result || ""));
-            reader.onerror = () => reject(reader.error || new Error("banner_file_read_failed"));
-            reader.readAsDataURL(file);
-          });
-          if (!imageUrl.startsWith("data:image/") || imageUrl.length > 900000) {
-            return { ok: false, reason: "이미지가 너무 큽니다. 600KB 이하 JPG·PNG 파일로 줄여주세요." };
+          const imageUrls = await Promise.all(fileList.map((file) => new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(String(reader.result || ""));
+              reader.onerror = () => reject(reader.error || new Error("banner_file_read_failed"));
+              reader.readAsDataURL(file);
+            })));
+          const packedImageUrl = imageUrls.length === 1 ? imageUrls[0] : JSON.stringify(imageUrls);
+          if (imageUrls.some((url) => !url.startsWith("data:image/")) || packedImageUrl.length > 900000) {
+            return { ok: false, reason: "이미지 전체 용량이 너무 큽니다. 합계 600KB 이하로 줄여주세요." };
           }
-          return { ok: true, imageUrl };
+          return { ok: true, imageUrl: packedImageUrl };
         } catch (e) {
           return { ok: false, reason: "이미지 파일을 읽지 못했어요. 다른 JPG·PNG 파일로 다시 선택해주세요." };
         }
@@ -3282,21 +3314,28 @@
         const hideNowBtn = document.getElementById("adminBannerHideNow");
         const bannerImageFile = document.getElementById("adminBannerImageFile");
         const bannerPreviewWrap = document.getElementById("adminBannerPreviewWrap");
-        const bannerPreview = document.getElementById("adminBannerPreview");
+        const bannerPreviewList = document.getElementById("adminBannerPreviewList");
         const bannerFileName = document.getElementById("adminBannerFileName");
-        let selectedBannerObjectUrl = "";
+        let selectedBannerObjectUrls = [];
         if (!trigger || !overlay) return;
 
         function clearSelectedBannerPreview() {
-          if (selectedBannerObjectUrl) URL.revokeObjectURL(selectedBannerObjectUrl);
-          selectedBannerObjectUrl = "";
+          selectedBannerObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+          selectedBannerObjectUrls = [];
           if (bannerImageFile) bannerImageFile.value = "";
         }
         function showBannerPreview(src, label) {
-          if (!bannerPreviewWrap || !bannerPreview || !bannerFileName) return;
-          bannerPreview.src = src || "";
+          if (!bannerPreviewWrap || !bannerPreviewList || !bannerFileName) return;
+          const urls = Array.isArray(src) ? src : bannerImageUrls(src);
+          bannerPreviewList.replaceChildren(...urls.map((url, index) => {
+            const img = document.createElement("img");
+            img.src = url;
+            img.alt = `배너 미리보기 ${index + 1}`;
+            img.style.cssText = "display:block;width:100%;height:100px;object-fit:contain;border:1px solid #d9ccb2;border-radius:10px;background:#fff";
+            return img;
+          }));
           bannerFileName.textContent = label || "";
-          bannerPreviewWrap.style.display = src ? "block" : "none";
+          bannerPreviewWrap.style.display = urls.length ? "block" : "none";
         }
         function resetPanel() {
           clearSelectedBannerPreview();
@@ -3314,7 +3353,8 @@
           document.getElementById("adminBannerStart").value = formatKSTForInput(c.startAt);
           document.getElementById("adminBannerEnd").value = formatKSTForInput(c.endAt);
           clearSelectedBannerPreview();
-          showBannerPreview(c.imageUrl || "", c.imageUrl ? "현재 저장된 배너 이미지" : "아직 저장된 배너 이미지가 없습니다.");
+          const savedUrls = bannerImageUrls(c.imageUrl);
+          showBannerPreview(savedUrls, savedUrls.length ? `현재 저장된 배너 이미지 ${savedUrls.length}장` : "아직 저장된 배너 이미지가 없습니다.");
           pinInput.style.display = "none";
           pinSubmit.style.display = "none";
           fields.style.display = "block";
@@ -3330,36 +3370,43 @@
         pinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") pinSubmit.click(); });
         if (bannerImageFile) {
           bannerImageFile.addEventListener("change", () => {
-            if (selectedBannerObjectUrl) URL.revokeObjectURL(selectedBannerObjectUrl);
-            selectedBannerObjectUrl = "";
-            const file = bannerImageFile.files && bannerImageFile.files[0];
-            if (!file) {
-              showBannerPreview((_bannerConfigCache && _bannerConfigCache.imageUrl) || "", "현재 저장된 배너 이미지");
+            selectedBannerObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+            selectedBannerObjectUrls = [];
+            const files = Array.from((bannerImageFile && bannerImageFile.files) || []);
+            if (!files.length) {
+              const savedUrls = bannerImageUrls((_bannerConfigCache && _bannerConfigCache.imageUrl) || "");
+              showBannerPreview(savedUrls, savedUrls.length ? `현재 저장된 배너 이미지 ${savedUrls.length}장` : "");
               return;
             }
-            if (!String(file.type || "").startsWith("image/")) {
+            if (files.some((file) => !String(file.type || "").startsWith("image/"))) {
               bannerImageFile.value = "";
               status.textContent = "이미지 파일만 선택할 수 있어요.";
               return;
             }
-            if (file.size > 600 * 1024) {
+            if (files.length > 10) {
               bannerImageFile.value = "";
-              status.textContent = "배너 이미지는 600KB 이하로 줄여서 올려주세요.";
+              status.textContent = "배너 이미지는 최대 10장까지 선택할 수 있어요.";
               return;
             }
-            selectedBannerObjectUrl = URL.createObjectURL(file);
-            showBannerPreview(selectedBannerObjectUrl, `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-            status.textContent = "선택한 이미지를 확인한 뒤 저장을 누르세요.";
+            const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+            if (totalSize > 600 * 1024) {
+              bannerImageFile.value = "";
+              status.textContent = "선택한 이미지 전체 용량을 600KB 이하로 줄여주세요.";
+              return;
+            }
+            selectedBannerObjectUrls = files.map((file) => URL.createObjectURL(file));
+            showBannerPreview(selectedBannerObjectUrls, `${files.length}장 선택 · 합계 ${(totalSize / 1024).toFixed(0)}KB`);
+            status.textContent = `${files.length}장을 확인한 뒤 저장을 누르세요.`;
           });
         }
         saveBtn.addEventListener("click", async () => {
           saveBtn.disabled = true;
           try {
             let imageUrl = (_bannerConfigCache && _bannerConfigCache.imageUrl) || "";
-            const file = bannerImageFile && bannerImageFile.files && bannerImageFile.files[0];
-            if (file) {
+            const files = Array.from((bannerImageFile && bannerImageFile.files) || []);
+            if (files.length) {
               status.textContent = "이미지 준비 중...";
-              const uploadResult = await uploadBannerImageFile(file);
+              const uploadResult = await uploadBannerImageFile(files);
               if (!uploadResult.ok) {
                 status.textContent = uploadResult.reason;
                 return;
@@ -3382,7 +3429,8 @@
             const result = await saveBannerConfig(config);
             if (result.ok) {
               clearSelectedBannerPreview();
-              showBannerPreview(imageUrl, "현재 저장된 배너 이미지");
+              const savedUrls = bannerImageUrls(imageUrl);
+              showBannerPreview(savedUrls, `현재 저장된 배너 이미지 ${savedUrls.length}장`);
             }
             status.textContent = result.ok ? "배너 이미지와 설정을 저장했어요." : result.reason;
           } finally {
