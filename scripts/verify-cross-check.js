@@ -329,7 +329,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v65-beta-movement-first", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v66-banner-file-upload", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -445,6 +445,13 @@ assertContains(webHtml, "stanceCheck = checkStanceMatch(", "구간 평가에 서
 assertContains(webHtml, "서기 불일치", "서기 불일치 경고 배지 존재");
 assertContains(webHtml, "function bannerShouldBeVisible(", "파트너 배너 노출 판정 함수 존재");
 assertContains(webHtml, "function parseKSTLocalInput(", "한국시간 입력 파싱 함수 존재");
+assertContains(webHtml, "id=\"adminBannerImageFile\"", "관리자 배너 이미지 파일 선택 입력 존재");
+assertContains(webHtml, "accept=\"image/*\"", "배너 파일 선택은 이미지 형식으로 제한");
+assertContains(webHtml, "async function uploadBannerImageFile(", "배너 이미지 Firebase Storage 업로드 함수 존재");
+assertContains(webHtml, "file.size > 5 * 1024 * 1024", "배너 이미지 5MB 제한 존재");
+assertContains(webHtml, "customMetadata: { pin: ADMIN_PIN }", "배너 업로드 PIN 메타데이터 적용");
+assertContains(webHtml, "id=\"adminBannerPreview\"", "선택한 배너 이미지 미리보기 존재");
+assertNotContains(webHtml, "id=\"adminBannerImage\"", "배너 이미지 URL 직접 입력 제거");
 assertContains(webHtml, "@keyframes partner-marquee", "파트너 배너 흐름 애니메이션 존재");
 assertContains(webHtml, "prefers-reduced-motion", "파트너 배너 모션 최소화 대응 존재");
 assertContains(webHtml, "id=\"adminModeTrigger\"", "관리자 모드 진입 버튼 존재");

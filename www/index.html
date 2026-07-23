@@ -2671,8 +2671,13 @@
           <label for="adminBannerEnabled">
             <input type="checkbox" id="adminBannerEnabled" style="width:18px;height:18px;vertical-align:middle" /> 배너 노출 사용
           </label>
-          <label for="adminBannerImage">배너 이미지 주소(URL)</label>
-          <input type="url" id="adminBannerImage" placeholder="https://..." />
+          <label for="adminBannerImageFile">배너 이미지 파일</label>
+          <input type="file" id="adminBannerImageFile" accept="image/*" />
+          <p class="small" style="color:var(--muted);margin:6px 0 8px">JPG·PNG·WEBP 등 이미지 파일을 선택하세요. 최대 5MB입니다.</p>
+          <div id="adminBannerPreviewWrap" style="display:none;margin:8px 0 12px">
+            <img id="adminBannerPreview" src="" alt="선택한 배너 미리보기" style="display:block;max-width:100%;max-height:180px;object-fit:contain;border:1px solid #d9ccb2;border-radius:10px;background:#fff" />
+            <p class="small" id="adminBannerFileName" style="color:var(--muted);margin:5px 0 0"></p>
+          </div>
           <label for="adminBannerLink">클릭 시 이동할 주소(URL)</label>
           <input type="url" id="adminBannerLink" placeholder="https://..." />
           <label for="adminBannerStart">노출 시작(한국 시간)</label>
@@ -2728,12 +2733,14 @@
       // 위해 익명 읽기는 막혀 있음 — 아래 firestore.rules 주석 참고). 배너 설정용 PIN과는
       // 완전히 별개의, 진짜 로그인이다.
       let _fbAuth = null, _fbSignIn = null, _fbSignOut = null, _fbSendPasswordReset = null;
+      let _fbStorage = null, _fbStorageRef = null, _fbUploadBytes = null, _fbGetDownloadURL = null;
       let _fbCurrentAdminUser = null;
       (async function initFirebase() {
         try {
           const appMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
           const fsMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
           const authMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+          const storageMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js");
           const firebaseConfig = {
             apiKey: "AIzaSyC9R63MgGXKE0lQ_hfCR8LHRmMRv1jiugk",
             authDomain: "momgagym-cms.firebaseapp.com",
@@ -2751,6 +2758,10 @@
           _fbSignIn = authMod.signInWithEmailAndPassword;
           _fbSendPasswordReset = authMod.sendPasswordResetEmail;
           _fbSignOut = authMod.signOut;
+          _fbStorage = storageMod.getStorage(app);
+          _fbStorageRef = storageMod.ref;
+          _fbUploadBytes = storageMod.uploadBytes;
+          _fbGetDownloadURL = storageMod.getDownloadURL;
           authMod.onAuthStateChanged(_fbAuth, (user) => {
             _fbCurrentAdminUser = user;
             safeInit("updateAdminReportUi", () => updateAdminReportUi());
@@ -3057,6 +3068,29 @@
           return { ok: false, reason: "저장에 실패했어요. PIN이 맞는지, 인터넷 연결을 확인해주세요." };
         }
       }
+      async function uploadBannerImageFile(file) {
+        if (!_fbReady || !_fbStorage || !_fbStorageRef || !_fbUploadBytes || !_fbGetDownloadURL) {
+          return { ok: false, reason: "아직 업로드 기능을 준비 중입니다. 잠시 후 다시 시도해주세요." };
+        }
+        if (!file || !String(file.type || "").startsWith("image/")) {
+          return { ok: false, reason: "이미지 파일을 선택해주세요." };
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          return { ok: false, reason: "배너 이미지는 5MB 이하만 올릴 수 있어요." };
+        }
+        try {
+          const imageRef = _fbStorageRef(_fbStorage, "banner/current");
+          await _fbUploadBytes(imageRef, file, {
+            contentType: file.type,
+            customMetadata: { pin: ADMIN_PIN }
+          });
+          const rawUrl = await _fbGetDownloadURL(imageRef);
+          const separator = rawUrl.includes("?") ? "&" : "?";
+          return { ok: true, imageUrl: `${rawUrl}${separator}v=${Date.now()}` };
+        } catch (e) {
+          return { ok: false, reason: "이미지 업로드에 실패했어요. 파일 크기와 인터넷 연결을 확인해주세요." };
+        }
+      }
       // ── 관리자 모드 패널 배선 ──
       (function wireAdminPanel() {
         const trigger = document.getElementById("adminModeTrigger");
@@ -3068,9 +3102,27 @@
         const closeBtn = document.getElementById("adminPanelClose");
         const saveBtn = document.getElementById("adminBannerSave");
         const hideNowBtn = document.getElementById("adminBannerHideNow");
+        const bannerImageFile = document.getElementById("adminBannerImageFile");
+        const bannerPreviewWrap = document.getElementById("adminBannerPreviewWrap");
+        const bannerPreview = document.getElementById("adminBannerPreview");
+        const bannerFileName = document.getElementById("adminBannerFileName");
+        let selectedBannerObjectUrl = "";
         if (!trigger || !overlay) return;
 
+        function clearSelectedBannerPreview() {
+          if (selectedBannerObjectUrl) URL.revokeObjectURL(selectedBannerObjectUrl);
+          selectedBannerObjectUrl = "";
+          if (bannerImageFile) bannerImageFile.value = "";
+        }
+        function showBannerPreview(src, label) {
+          if (!bannerPreviewWrap || !bannerPreview || !bannerFileName) return;
+          bannerPreview.src = src || "";
+          bannerFileName.textContent = label || "";
+          bannerPreviewWrap.style.display = src ? "block" : "none";
+        }
         function resetPanel() {
+          clearSelectedBannerPreview();
+          showBannerPreview("", "");
           pinInput.value = "";
           pinInput.style.display = "";
           pinSubmit.style.display = "";
@@ -3080,10 +3132,11 @@
         function unlockFields() {
           const c = _bannerConfigCache || {};
           document.getElementById("adminBannerEnabled").checked = !!c.enabled;
-          document.getElementById("adminBannerImage").value = c.imageUrl || "";
           document.getElementById("adminBannerLink").value = c.linkUrl || "";
           document.getElementById("adminBannerStart").value = formatKSTForInput(c.startAt);
           document.getElementById("adminBannerEnd").value = formatKSTForInput(c.endAt);
+          clearSelectedBannerPreview();
+          showBannerPreview(c.imageUrl || "", c.imageUrl ? "현재 저장된 배너 이미지" : "아직 저장된 배너 이미지가 없습니다.");
           pinInput.style.display = "none";
           pinSubmit.style.display = "none";
           fields.style.display = "block";
@@ -3097,17 +3150,66 @@
           else status.textContent = "PIN이 올바르지 않아요.";
         });
         pinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") pinSubmit.click(); });
+        if (bannerImageFile) {
+          bannerImageFile.addEventListener("change", () => {
+            if (selectedBannerObjectUrl) URL.revokeObjectURL(selectedBannerObjectUrl);
+            selectedBannerObjectUrl = "";
+            const file = bannerImageFile.files && bannerImageFile.files[0];
+            if (!file) {
+              showBannerPreview((_bannerConfigCache && _bannerConfigCache.imageUrl) || "", "현재 저장된 배너 이미지");
+              return;
+            }
+            if (!String(file.type || "").startsWith("image/")) {
+              bannerImageFile.value = "";
+              status.textContent = "이미지 파일만 선택할 수 있어요.";
+              return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+              bannerImageFile.value = "";
+              status.textContent = "배너 이미지는 5MB 이하만 올릴 수 있어요.";
+              return;
+            }
+            selectedBannerObjectUrl = URL.createObjectURL(file);
+            showBannerPreview(selectedBannerObjectUrl, `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+            status.textContent = "선택한 이미지를 확인한 뒤 저장을 누르세요.";
+          });
+        }
         saveBtn.addEventListener("click", async () => {
-          status.textContent = "저장 중...";
-          const config = {
-            enabled: document.getElementById("adminBannerEnabled").checked,
-            imageUrl: document.getElementById("adminBannerImage").value.trim(),
-            linkUrl: document.getElementById("adminBannerLink").value.trim(),
-            startAt: parseKSTLocalInput(document.getElementById("adminBannerStart").value),
-            endAt: parseKSTLocalInput(document.getElementById("adminBannerEnd").value)
-          };
-          const result = await saveBannerConfig(config);
-          status.textContent = result.ok ? "저장했어요." : result.reason;
+          saveBtn.disabled = true;
+          try {
+            let imageUrl = (_bannerConfigCache && _bannerConfigCache.imageUrl) || "";
+            const file = bannerImageFile && bannerImageFile.files && bannerImageFile.files[0];
+            if (file) {
+              status.textContent = "이미지 업로드 중...";
+              const uploadResult = await uploadBannerImageFile(file);
+              if (!uploadResult.ok) {
+                status.textContent = uploadResult.reason;
+                return;
+              }
+              imageUrl = uploadResult.imageUrl;
+            }
+            const enabled = document.getElementById("adminBannerEnabled").checked;
+            if (enabled && !imageUrl) {
+              status.textContent = "노출할 배너 이미지 파일을 먼저 선택해주세요.";
+              return;
+            }
+            status.textContent = "설정 저장 중...";
+            const config = {
+              enabled,
+              imageUrl,
+              linkUrl: document.getElementById("adminBannerLink").value.trim(),
+              startAt: parseKSTLocalInput(document.getElementById("adminBannerStart").value),
+              endAt: parseKSTLocalInput(document.getElementById("adminBannerEnd").value)
+            };
+            const result = await saveBannerConfig(config);
+            if (result.ok) {
+              clearSelectedBannerPreview();
+              showBannerPreview(imageUrl, "현재 저장된 배너 이미지");
+            }
+            status.textContent = result.ok ? "배너 이미지와 설정을 저장했어요." : result.reason;
+          } finally {
+            saveBtn.disabled = false;
+          }
         });
         hideNowBtn.addEventListener("click", async () => {
           status.textContent = "숨기는 중...";
