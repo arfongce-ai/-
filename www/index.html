@@ -5060,6 +5060,10 @@
             for (let i = 0; i < keys.length - VIDEO_CORRECTIONS_MAX; i += 1) delete all[keys[i]];
           }
           localStorage.setItem(VIDEO_CORRECTIONS_KEY, JSON.stringify(all));
+          // 수동으로 맞춘 뒤 같은 영상을 다시 돌릴 때, 보정 전의 빠른 재사용 결과가
+          // 먼저 나와 저장 보정을 건너뛰지 않도록 이전 자동 분석 캐시를 없앤다.
+          const cacheKey = currentAnalysisCacheKey();
+          if (cacheKey) stableAnalysisCache.delete(cacheKey);
         } catch (e) { /* 저장 실패는 조용히 무시 */ }
       }
       function getVideoCorrection(fingerprint, poomsaeKey) {
@@ -10677,7 +10681,11 @@
         video.removeAttribute("controls");
         video.classList.add("is-analyzing");
         const cacheKey = skipComplete ? "" : currentAnalysisCacheKey();
-        const cached = cacheKey ? stableAnalysisCache.get(cacheKey) : null;
+        // 같은 영상의 수동 보정이 저장되어 있으면 보정 전 캐시를 사용하지 않는다.
+        // 새로 경계를 찾은 뒤 completeAnalysis에서 저장 경계와 비교·자동 적용해야 한다.
+        const savedCorrectionForRun = getVideoCorrection(videoFingerprint(sourceFile), selectedPoomsaeKey);
+        const cached = cacheKey && !savedCorrectionForRun ? stableAnalysisCache.get(cacheKey) : null;
+        if (cacheKey && savedCorrectionForRun) stableAnalysisCache.delete(cacheKey);
         if (cached) {
           await completeAnalysis(cloneStableData(cached.results), cloneStableData(cached.frameSamples), true, cloneStableData(cached.analysisEfficiency || null), {
             movements,

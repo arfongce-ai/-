@@ -329,7 +329,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v78-close-right-marquee", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v79-correction-reapply", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -486,6 +486,8 @@ assertContains(webHtml, "function videoFingerprint(", "영상별 보정 저장�
 assertContains(webHtml, "function saveVideoCorrection(", "영상별 보정 로컬 저장 함수 존재");
 assertContains(webHtml, "function getVideoCorrection(", "영상별 보정 로컬 조회 함수 존재");
 assertContains(webHtml, "async function loadSavedVideoCorrection()", "저장된 영상별 보정을 불러와 적용하는 함수 존재");
+assertContains(webHtml, "const cached = cacheKey && !savedCorrectionForRun", "저장 보정이 있는 영상은 보정 전 빠른 캐시를 사용하지 않음");
+assertContains(webHtml, "if (cacheKey && savedCorrectionForRun) stableAnalysisCache.delete(cacheKey)", "같은 영상 재분석 시 오래된 자동 결과 캐시 제거");
 assertContains(webHtml, "function analyzeCorrectionRecords(", "보정 기록 분석 함수(analyze-corrections.js 이식) 존재");
 assertContains(webHtml, "function buildCorrectionRuleSuggestions(", "규칙 개선 제안 생성 함수 존재");
 assertContains(webHtml, "async function loadAndRenderCorrectionReport()", "학습 리포트 조회·렌더 함수 존재");
