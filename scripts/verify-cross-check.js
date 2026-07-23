@@ -329,7 +329,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v69-hevc-guide", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v70-manual-playback", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -426,6 +426,9 @@ assertContains(webHtml, "class=\"seg-time-input\"", "동작 카드 시작/종료
 assertContains(webHtml, "cascadeAdjustBoundary(Number(input.dataset.boundary)", "동작 카드 초 입력이 연쇄 재조정 함수와 연결됨");
 assertContains(webHtml, "async function findStanceMatch(", "서기 자동 탐색 함수 존재");
 assertContains(webHtml, "class=\"secondary seg-find-match\"", "맞는 위치 찾기 버튼 존재");
+assertContains(webHtml, "const cached = (lastBoundaryCache?.frames || [])", "맞는 위치 찾기가 화면 영상을 탐색하지 않고 캐시 프레임 사용");
+assertContains(webHtml, "const previousSegments = Array.isArray(latestReport.segments)", "수동 시간 수정 시 기존 대표 사진 재사용");
+assertContains(webHtml, "video.addEventListener(\"pointerdown\", releaseManualReplayRange)", "수동 직접 재생 시 남은 구간 반복 자동 해제");
 assertContains(webHtml, "const prepStart = (junbiMatch && Number.isFinite(junbiMatch.time))", "준비자세 포즈 매칭 성공 지점부터 준비 구간이 시작하도록 처리(박수 기반 아님)");
 assertContains(webHtml, "function getEffectiveTrimStart(", "박수 이전 재생 잠금용 실질 시작점 함수 존재");
 assertContains(webHtml, "준비자세 지점 · 잘못됐으면 여기서 고치세요", "준비 구간(준비자세 인식 지점) 시작 시각도 수정 가능하도록 안내 문구 존재");

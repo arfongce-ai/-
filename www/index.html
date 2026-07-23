@@ -6842,6 +6842,13 @@
       function clearReplayRange() {
         mainReplayRange = null;
       }
+      function releaseManualReplayRange() {
+        if (!manualEditMode || !mainReplayRange) return;
+        clearReplayRange();
+        if (loopSegmentToggle) loopSegmentToggle.checked = false;
+        const status = document.getElementById("correctionLogStatus");
+        if (status) status.textContent = "직접 재생 중에는 선택 구간 반복을 해제했습니다.";
+      }
       function playRange(start, end) {
         if (!Number.isFinite(video.duration)) return;
         mainReplayRange = {
@@ -9678,6 +9685,7 @@
         // 동작 배분: 구간 수에 맞춰 동작을 순서대로 1:1 매핑(구간이 동작보다 적으면 뒤 동작을 마지막에 묶음).
         const results = [];
         const rebuiltMoveIndexBoundaries = [];
+        const previousSegments = Array.isArray(latestReport.segments) ? latestReport.segments.slice() : [];
         isAnalyzing = true;
         setProgress(Number(progress.value || 100), "수동 조정 내용을 반영하는 중입니다.");
         try {
@@ -9732,15 +9740,18 @@
             const orderLabel = primary && primary.isPrep ? "준비"
               : (primary && (primary.isKihap || primary.type === "kihap")) ? "기합"
               : (primary && primary.moveNo ? String(primary.moveNo) : String(i + 1));
-            // 캐시된 스캔 프레임 재사용으로 평가, 스냅샷만 영상에서 다시 가져온다.
+            // 캐시된 스캔 프레임을 재사용해 평가한다.
             const sampleCount = chooseSampleCount(segLen);
             const reusable = selectReusableSegmentFrames(bc.frames || [], segStart, segEnd, sampleCount);
             const frames = reusable.length ? reusable : (bc.frames || []).filter((f) => f.time >= segStart && f.time < segEnd);
             const metrics = evaluateSegment(primary, frames, { view: lastViewForRun });
-            // 스냅샷: 구간 내 맺음 시점.
+            // 수동 시간 수정에서는 화면에 보이는 영상을 구간마다 다시 탐색하지 않는다.
+            // 기존 분석의 가장 가까운 대표 사진을 재사용해 최대 20여 번의 seek와 재생 끊김을 없앤다.
             const compTime = (segStart + segLen * 0.82);
-            let snapshot = "";
-            try { await waitForSeek(compTime, true); snapshot = captureVideoSnapshot(); } catch (e) { snapshot = ""; }
+            const previousSnapshotSegment = previousSegments.find((segment) =>
+              segment && compTime >= segment.startTime && compTime <= segment.endTime
+            ) || previousSegments[i];
+            const snapshot = previousSnapshotSegment?.snapshot || "";
             results.push({
               order: i + 1, orderLabel,
               id: primary ? primary.id : `${selectedPoomsaeKey}_segment_${i + 1}`,
@@ -9863,22 +9874,23 @@
       // 용도: 앞쪽 동작 하나가 밀려서 그 뒤 전부가 같이 밀린 흔한 경우, 한 번의 수정으로
       // 나머지 전부를 다시 맞출 수 있게 함(기존 adjustBoundary는 그 구간 하나만 움직임).
       // i=1..b.length-1(마지막 경계=영상 분석 종료 지점 포함) 범위에서 동작.
-      // 실제 관절 좌표로 이 구간이 기대하는 서기와 가장 잘 맞는 지점을 찾는다.
-      // 이미 저장된 프레임이 아니라 실시간으로 detectPoseAt을 호출(정확도 우선, 속도보다 신뢰).
+      // 분석 때 이미 저장한 관절 프레임에서 기대 서기와 가장 잘 맞는 지점을 찾는다.
+      // 화면에 보이는 video.currentTime을 반복 변경하지 않아 수동 재생이 끊기지 않는다.
       // 못 찾으면 null 반환 — 억지로 아무 지점이나 골라주지 않는다(거짓 확신 방지).
       async function findStanceMatch(expectedStance, searchStart, searchEnd, view, sampleCount = 7) {
         if (!(searchEnd > searchStart)) return null;
-        const times = Array.from({ length: sampleCount }, (_, i) => searchStart + ((searchEnd - searchStart) * i) / (sampleCount - 1));
+        const cached = (lastBoundaryCache?.frames || [])
+          .filter((frame) => frame && frame.landmarks && frame.time >= searchStart && frame.time <= searchEnd);
+        if (!cached.length) return null;
+        const stride = Math.max(1, Math.floor(cached.length / Math.max(sampleCount, 1)));
+        const samples = cached.filter((_, index) => index % stride === 0);
+        if (samples[samples.length - 1] !== cached[cached.length - 1]) samples.push(cached[cached.length - 1]);
         let best = null;
-        for (const t of times) {
+        for (const frame of samples) {
           try {
-            const actualTime = await waitForSeek(t, true);
-            const result = detectPoseAt(Math.round(actualTime * 1000));
-            const landmarks = result.landmarks && result.landmarks[0];
-            if (!landmarks) continue;
-            const classified = classifyStanceFromLandmarks(landmarks, view);
+            const classified = classifyStanceFromLandmarks(frame.landmarks, view);
             if (classified.category === expectedStance && (!best || classified.confidence > best.confidence)) {
-              best = { time: actualTime, confidence: classified.confidence };
+              best = { time: frame.time, confidence: classified.confidence };
             }
           } catch (e) { /* 한 지점 실패는 건너뛴다 */ }
         }
@@ -11083,6 +11095,14 @@
       });
       video.addEventListener("play", () => {
         video.playbackRate = Number(speedSelect.value || 1);
+      });
+      // 수동 조정 중 사용자가 영상 컨트롤을 직접 누르면, 직전의 자동 구간 미리보기 범위를 해제한다.
+      // 그렇지 않으면 timeupdate가 구간 끝마다 시작점으로 되돌려 일반 재생도 끊기는 것처럼 보인다.
+      video.addEventListener("pointerdown", releaseManualReplayRange);
+      video.addEventListener("keydown", (event) => {
+        if (event.key === " " || event.key === "Enter" || event.key.startsWith("Arrow")) {
+          releaseManualReplayRange();
+        }
       });
       replayAllBtn.addEventListener("click", replayWholeVideo);
       replayWeakBtn.addEventListener("click", replayWeakestSegment);
