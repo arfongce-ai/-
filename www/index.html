@@ -2845,21 +2845,18 @@
           <label for="adminBannerEnabled">
             <input type="checkbox" id="adminBannerEnabled" style="width:18px;height:18px;vertical-align:middle" /> 배너 노출 사용
           </label>
-          <label for="adminBannerImageFile">배너 이미지 파일(여러 장 선택 가능)</label>
+          <label for="adminBannerImageFile">광고 이미지 추가(최대 10개)</label>
           <input type="file" id="adminBannerImageFile" accept="image/*" multiple />
-          <p class="small" style="color:var(--muted);margin:6px 0 8px">최대 10장까지 선택할 수 있어요. 모든 이미지의 합계는 600KB 이하입니다.</p>
-          <div id="adminBannerPreviewWrap" style="display:none;margin:8px 0 12px">
-            <div id="adminBannerPreviewList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px"></div>
-            <p class="small" id="adminBannerFileName" style="color:var(--muted);margin:5px 0 0"></p>
+          <div style="margin:8px 0;padding:10px 12px;border:1px solid var(--brand);border-radius:10px;background:var(--brand-soft);color:var(--text);line-height:1.55">
+            <strong>광고를 넣는 방법</strong><br />
+            ① 사진을 선택하세요. 한 장씩 추가해도 됩니다.<br />
+            ② 아래에 생긴 광고마다 주소와 노출 기간을 따로 적으세요.<br />
+            ③ 마지막에 맨 아래의 ‘광고 전체 저장’을 누르세요.
           </div>
-          <label for="adminBannerLink">클릭 시 이동할 주소(URL)</label>
-          <input type="url" id="adminBannerLink" placeholder="https://..." />
-          <label for="adminBannerStart">노출 시작(한국 시간)</label>
-          <input type="datetime-local" id="adminBannerStart" />
-          <label for="adminBannerEnd">노출 종료(한국 시간)</label>
-          <input type="datetime-local" id="adminBannerEnd" />
+          <p class="small" style="color:var(--muted);margin:6px 0 8px">사진은 합계 600KB 이하이며, 광고는 최대 10개까지 저장할 수 있어요.</p>
+          <div id="adminCampaignEditorList" style="display:grid;gap:12px;margin:12px 0"></div>
           <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
-            <button type="button" class="primary" id="adminBannerSave" style="flex:1;min-height:44px">저장</button>
+            <button type="button" class="primary" id="adminBannerSave" style="flex:1;min-height:44px">광고 전체 저장</button>
             <button type="button" class="secondary" id="adminBannerHideNow" style="min-height:44px">즉시 숨기기</button>
             <button type="button" class="secondary" id="adminPanelClose" style="min-height:44px">닫기</button>
           </div>
@@ -3189,27 +3186,78 @@
         const pad = (n) => String(n).padStart(2, "0");
         return `${kst.getUTCFullYear()}-${pad(kst.getUTCMonth() + 1)}-${pad(kst.getUTCDate())}T${pad(kst.getUTCHours())}:${pad(kst.getUTCMinutes())}`;
       }
-      function bannerImageUrls(value) {
-        if (!value) return [];
-        if (Array.isArray(value)) return value.filter((url) => typeof url === "string" && url.startsWith("data:image/")).slice(0, 10);
-        if (typeof value !== "string") return [];
-        if (value.startsWith("data:image/")) return [value];
-        try {
-          const parsed = JSON.parse(value);
-          return Array.isArray(parsed)
-            ? parsed.filter((url) => typeof url === "string" && url.startsWith("data:image/")).slice(0, 10)
-            : [];
-        } catch (e) {
-          return [];
+      function addKSTMonths(startMs, months) {
+        if (!Number.isFinite(startMs)) return null;
+        const safeMonths = Math.max(1, Math.min(12, Math.round(Number(months) || 1)));
+        const offset = 9 * 3600 * 1000;
+        const kst = new Date(startMs + offset);
+        const year = kst.getUTCFullYear();
+        const month = kst.getUTCMonth();
+        const day = kst.getUTCDate();
+        const targetLastDay = new Date(Date.UTC(year, month + safeMonths + 1, 0)).getUTCDate();
+        const target = new Date(Date.UTC(
+          year,
+          month + safeMonths,
+          Math.min(day, targetLastDay),
+          kst.getUTCHours(),
+          kst.getUTCMinutes(),
+          kst.getUTCSeconds()
+        ));
+        return target.getTime() - offset;
+      }
+      function closestBannerDurationMonths(startAt, endAt) {
+        if (!Number.isFinite(startAt) || !Number.isFinite(endAt) || endAt <= startAt) return 1;
+        let bestMonth = 1;
+        let bestDifference = Infinity;
+        for (let month = 1; month <= 12; month += 1) {
+          const difference = Math.abs(addKSTMonths(startAt, month) - endAt);
+          if (difference < bestDifference) {
+            bestMonth = month;
+            bestDifference = difference;
+          }
         }
+        return bestMonth;
+      }
+      function bannerCampaigns(config) {
+        if (!config || !config.imageUrl) return [];
+        const makeLegacy = (urls) => urls.map((imageUrl) => ({
+          imageUrl,
+          linkUrl: config.linkUrl || "",
+          startAt: Number.isFinite(config.startAt) ? config.startAt : Date.now(),
+          endAt: Number.isFinite(config.endAt) ? config.endAt : addKSTMonths(Date.now(), 1)
+        }));
+        if (typeof config.imageUrl === "string" && config.imageUrl.startsWith("data:image/")) {
+          return makeLegacy([config.imageUrl]);
+        }
+        try {
+          const parsed = typeof config.imageUrl === "string" ? JSON.parse(config.imageUrl) : config.imageUrl;
+          if (Array.isArray(parsed)) {
+            return makeLegacy(parsed.filter((url) => typeof url === "string" && url.startsWith("data:image/")).slice(0, 10));
+          }
+          if (parsed && parsed.version === 2 && Array.isArray(parsed.campaigns)) {
+            return parsed.campaigns.filter((item) =>
+              item && typeof item.imageUrl === "string" && item.imageUrl.startsWith("data:image/")
+            ).slice(0, 10).map((item) => ({
+              imageUrl: item.imageUrl,
+              linkUrl: typeof item.linkUrl === "string" ? item.linkUrl : "",
+              startAt: Number(item.startAt),
+              endAt: Number(item.endAt)
+            }));
+          }
+        } catch (e) { /* 예전 한 장 저장 형식이 아니면 빈 목록으로 처리 */ }
+        return [];
+      }
+      function activeBannerCampaigns(config, now = Date.now()) {
+        if (!config || !config.enabled) return [];
+        return bannerCampaigns(config).filter((item) =>
+          Number.isFinite(item.startAt)
+          && Number.isFinite(item.endAt)
+          && item.startAt <= now
+          && now <= item.endAt
+        );
       }
       function bannerShouldBeVisible(config) {
-        if (!config || !config.enabled) return false;
-        const now = Date.now();
-        if (Number.isFinite(config.startAt) && now < config.startAt) return false;
-        if (Number.isFinite(config.endAt) && now > config.endAt) return false;
-        if (!bannerImageUrls(config.imageUrl).length) return false;
-        return true;
+        return activeBannerCampaigns(config).length > 0;
       }
       let _bannerConfigCache = null;
       let _bannerCheckTimer = null;
@@ -3217,12 +3265,12 @@
         const el = document.getElementById("partnerBanner");
         const clone = document.getElementById("partnerBannerClone");
         if (!el || !clone) return;
-        const visible = bannerShouldBeVisible(config);
-        const urls = visible ? bannerImageUrls(config.imageUrl) : [];
-        const makeItems = (isClone) => urls.map((url, index) => {
+        const campaigns = activeBannerCampaigns(config);
+        const visible = campaigns.length > 0;
+        const makeItems = (isClone) => campaigns.map((campaign, index) => {
           const link = document.createElement("a");
           link.className = "app-footer-campaign";
-          link.href = config.linkUrl || "#";
+          link.href = campaign.linkUrl || "#";
           link.target = "_blank";
           link.rel = "noopener";
           if (isClone) {
@@ -3232,7 +3280,7 @@
             link.setAttribute("aria-label", `파트너 배너 ${index + 1}, 눌러서 이동`);
           }
           const img = document.createElement("img");
-          img.src = url;
+          img.src = campaign.imageUrl;
           img.alt = isClone ? "" : `파트너 배너 ${index + 1}`;
           if (isClone) img.setAttribute("aria-hidden", "true");
           link.appendChild(img);
@@ -3270,7 +3318,7 @@
           return { ok: false, reason: "저장에 실패했어요. PIN이 맞는지, 인터넷 연결을 확인해주세요." };
         }
       }
-      async function uploadBannerImageFile(files) {
+      async function readBannerImageFiles(files) {
         const fileList = Array.from(files || []);
         if (!fileList.length || fileList.some((file) => !String(file.type || "").startsWith("image/"))) {
           return { ok: false, reason: "이미지 파일을 선택해주세요." };
@@ -3292,11 +3340,10 @@
               reader.onerror = () => reject(reader.error || new Error("banner_file_read_failed"));
               reader.readAsDataURL(file);
             })));
-          const packedImageUrl = imageUrls.length === 1 ? imageUrls[0] : JSON.stringify(imageUrls);
-          if (imageUrls.some((url) => !url.startsWith("data:image/")) || packedImageUrl.length > 900000) {
+          if (imageUrls.some((url) => !url.startsWith("data:image/"))) {
             return { ok: false, reason: "이미지 전체 용량이 너무 큽니다. 합계 600KB 이하로 줄여주세요." };
           }
-          return { ok: true, imageUrl: packedImageUrl };
+          return { ok: true, imageUrls };
         } catch (e) {
           return { ok: false, reason: "이미지 파일을 읽지 못했어요. 다른 JPG·PNG 파일로 다시 선택해주세요." };
         }
@@ -3313,33 +3360,94 @@
         const saveBtn = document.getElementById("adminBannerSave");
         const hideNowBtn = document.getElementById("adminBannerHideNow");
         const bannerImageFile = document.getElementById("adminBannerImageFile");
-        const bannerPreviewWrap = document.getElementById("adminBannerPreviewWrap");
-        const bannerPreviewList = document.getElementById("adminBannerPreviewList");
-        const bannerFileName = document.getElementById("adminBannerFileName");
-        let selectedBannerObjectUrls = [];
+        const campaignEditorList = document.getElementById("adminCampaignEditorList");
+        let draftCampaigns = [];
         if (!trigger || !overlay) return;
 
-        function clearSelectedBannerPreview() {
-          selectedBannerObjectUrls.forEach((url) => URL.revokeObjectURL(url));
-          selectedBannerObjectUrls = [];
-          if (bannerImageFile) bannerImageFile.value = "";
+        function monthOptions(selected) {
+          return Array.from({ length: 12 }, (_, index) => {
+            const month = index + 1;
+            const option = document.createElement("option");
+            option.value = String(month);
+            option.textContent = month === 12 ? "12개월(1년)" : `${month}개월`;
+            option.selected = month === selected;
+            return option;
+          });
         }
-        function showBannerPreview(src, label) {
-          if (!bannerPreviewWrap || !bannerPreviewList || !bannerFileName) return;
-          const urls = Array.isArray(src) ? src : bannerImageUrls(src);
-          bannerPreviewList.replaceChildren(...urls.map((url, index) => {
+        function renderCampaignEditors() {
+          if (!campaignEditorList) return;
+          if (!draftCampaigns.length) {
+            const empty = document.createElement("div");
+            empty.style.cssText = "padding:18px;border:1px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted)";
+            empty.textContent = "아직 광고가 없습니다. 위의 ‘파일 선택’을 눌러 사진을 추가하세요.";
+            campaignEditorList.replaceChildren(empty);
+            return;
+          }
+          campaignEditorList.replaceChildren(...draftCampaigns.map((campaign, index) => {
+            const card = document.createElement("section");
+            card.style.cssText = "padding:12px;border:2px solid var(--line);border-radius:12px;background:var(--panel-2)";
+            const heading = document.createElement("div");
+            heading.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px";
+            const title = document.createElement("strong");
+            title.textContent = `광고 ${index + 1}`;
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.className = "secondary";
+            remove.textContent = "이 광고 지우기";
+            remove.addEventListener("click", () => {
+              draftCampaigns.splice(index, 1);
+              renderCampaignEditors();
+            });
+            heading.append(title, remove);
+
             const img = document.createElement("img");
-            img.src = url;
-            img.alt = `배너 미리보기 ${index + 1}`;
-            img.style.cssText = "display:block;width:100%;height:100px;object-fit:contain;border:1px solid #d9ccb2;border-radius:10px;background:#fff";
-            return img;
+            img.src = campaign.imageUrl;
+            img.alt = `광고 ${index + 1} 미리보기`;
+            img.style.cssText = "display:block;width:100%;height:120px;object-fit:contain;border:1px solid var(--line);border-radius:10px;background:#fff";
+
+            const linkLabel = document.createElement("label");
+            linkLabel.textContent = "이 사진을 누르면 이동할 사이트";
+            const linkInput = document.createElement("input");
+            linkInput.type = "url";
+            linkInput.placeholder = "https://...";
+            linkInput.value = campaign.linkUrl || "";
+            linkInput.addEventListener("input", () => { campaign.linkUrl = linkInput.value.trim(); });
+
+            const startLabel = document.createElement("label");
+            startLabel.textContent = "보이기 시작할 날짜";
+            const startInput = document.createElement("input");
+            startInput.type = "datetime-local";
+            startInput.value = formatKSTForInput(campaign.startAt);
+
+            const durationLabel = document.createElement("label");
+            durationLabel.textContent = "몇 개월 동안 보여줄까요?";
+            const durationSelect = document.createElement("select");
+            durationSelect.style.cssText = "width:100%;min-height:44px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);color:var(--text);font:inherit";
+            const initialMonths = closestBannerDurationMonths(campaign.startAt, campaign.endAt);
+            durationSelect.append(...monthOptions(initialMonths));
+
+            const endPreview = document.createElement("p");
+            endPreview.className = "small";
+            endPreview.style.cssText = "color:var(--brand-strong);margin:7px 0 0;font-weight:700";
+            const updateEnd = () => {
+              campaign.startAt = parseKSTLocalInput(startInput.value);
+              campaign.endAt = addKSTMonths(campaign.startAt, Number(durationSelect.value) || 1);
+              endPreview.textContent = Number.isFinite(campaign.endAt)
+                ? `자동 종료: ${formatKSTForInput(campaign.endAt).replace("T", " ")}`
+                : "시작 날짜를 선택해주세요.";
+            };
+            startInput.addEventListener("change", updateEnd);
+            durationSelect.addEventListener("change", updateEnd);
+            updateEnd();
+
+            card.append(heading, img, linkLabel, linkInput, startLabel, startInput, durationLabel, durationSelect, endPreview);
+            return card;
           }));
-          bannerFileName.textContent = label || "";
-          bannerPreviewWrap.style.display = urls.length ? "block" : "none";
         }
         function resetPanel() {
-          clearSelectedBannerPreview();
-          showBannerPreview("", "");
+          if (bannerImageFile) bannerImageFile.value = "";
+          draftCampaigns = [];
+          renderCampaignEditors();
           pinInput.value = "";
           pinInput.style.display = "";
           pinSubmit.style.display = "";
@@ -3349,12 +3457,9 @@
         function unlockFields() {
           const c = _bannerConfigCache || {};
           document.getElementById("adminBannerEnabled").checked = !!c.enabled;
-          document.getElementById("adminBannerLink").value = c.linkUrl || "";
-          document.getElementById("adminBannerStart").value = formatKSTForInput(c.startAt);
-          document.getElementById("adminBannerEnd").value = formatKSTForInput(c.endAt);
-          clearSelectedBannerPreview();
-          const savedUrls = bannerImageUrls(c.imageUrl);
-          showBannerPreview(savedUrls, savedUrls.length ? `현재 저장된 배너 이미지 ${savedUrls.length}장` : "아직 저장된 배너 이미지가 없습니다.");
+          draftCampaigns = bannerCampaigns(c);
+          if (bannerImageFile) bannerImageFile.value = "";
+          renderCampaignEditors();
           pinInput.style.display = "none";
           pinSubmit.style.display = "none";
           fields.style.display = "block";
@@ -3369,70 +3474,80 @@
         });
         pinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") pinSubmit.click(); });
         if (bannerImageFile) {
-          bannerImageFile.addEventListener("change", () => {
-            selectedBannerObjectUrls.forEach((url) => URL.revokeObjectURL(url));
-            selectedBannerObjectUrls = [];
+          bannerImageFile.addEventListener("change", async () => {
             const files = Array.from((bannerImageFile && bannerImageFile.files) || []);
-            if (!files.length) {
-              const savedUrls = bannerImageUrls((_bannerConfigCache && _bannerConfigCache.imageUrl) || "");
-              showBannerPreview(savedUrls, savedUrls.length ? `현재 저장된 배너 이미지 ${savedUrls.length}장` : "");
-              return;
-            }
+            if (!files.length) return;
             if (files.some((file) => !String(file.type || "").startsWith("image/"))) {
               bannerImageFile.value = "";
               status.textContent = "이미지 파일만 선택할 수 있어요.";
               return;
             }
-            if (files.length > 10) {
+            if (draftCampaigns.length + files.length > 10) {
               bannerImageFile.value = "";
-              status.textContent = "배너 이미지는 최대 10장까지 선택할 수 있어요.";
+              status.textContent = `광고는 최대 10개입니다. 지금은 ${10 - draftCampaigns.length}개를 더 넣을 수 있어요.`;
               return;
             }
-            const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-            if (totalSize > 600 * 1024) {
+            const newFileSize = files.reduce((sum, file) => sum + file.size, 0);
+            const savedApproximateSize = draftCampaigns.reduce((sum, item) => sum + Math.ceil(item.imageUrl.length * 0.75), 0);
+            if (savedApproximateSize + newFileSize > 600 * 1024) {
               bannerImageFile.value = "";
-              status.textContent = "선택한 이미지 전체 용량을 600KB 이하로 줄여주세요.";
+              status.textContent = "기존 사진과 새 사진의 합계가 600KB를 넘습니다. 사진 용량을 줄여주세요.";
               return;
             }
-            selectedBannerObjectUrls = files.map((file) => URL.createObjectURL(file));
-            showBannerPreview(selectedBannerObjectUrls, `${files.length}장 선택 · 합계 ${(totalSize / 1024).toFixed(0)}KB`);
-            status.textContent = `${files.length}장을 확인한 뒤 저장을 누르세요.`;
+            status.textContent = "사진을 준비하고 있어요...";
+            const readResult = await readBannerImageFiles(files);
+            bannerImageFile.value = "";
+            if (!readResult.ok) {
+              status.textContent = readResult.reason;
+              return;
+            }
+            const startAt = Date.now();
+            readResult.imageUrls.forEach((imageUrl) => {
+              draftCampaigns.push({ imageUrl, linkUrl: "", startAt, endAt: addKSTMonths(startAt, 1) });
+            });
+            renderCampaignEditors();
+            status.textContent = `${readResult.imageUrls.length}개를 추가했어요. 각 광고의 사이트와 기간을 적어주세요.`;
           });
         }
         saveBtn.addEventListener("click", async () => {
           saveBtn.disabled = true;
           try {
-            let imageUrl = (_bannerConfigCache && _bannerConfigCache.imageUrl) || "";
-            const files = Array.from((bannerImageFile && bannerImageFile.files) || []);
-            if (files.length) {
-              status.textContent = "이미지 준비 중...";
-              const uploadResult = await uploadBannerImageFile(files);
-              if (!uploadResult.ok) {
-                status.textContent = uploadResult.reason;
-                return;
-              }
-              imageUrl = uploadResult.imageUrl;
-            }
             const enabled = document.getElementById("adminBannerEnabled").checked;
-            if (enabled && !imageUrl) {
-              status.textContent = "노출할 배너 이미지 파일을 먼저 선택해주세요.";
+            if (enabled && !draftCampaigns.length) {
+              status.textContent = "광고 사진을 먼저 추가해주세요.";
+              return;
+            }
+            const badLinkIndex = draftCampaigns.findIndex((item) => !/^https?:\/\/\S+$/i.test(item.linkUrl || ""));
+            if (badLinkIndex >= 0) {
+              status.textContent = `광고 ${badLinkIndex + 1}의 사이트 주소를 https://부터 정확히 적어주세요.`;
+              return;
+            }
+            const badDateIndex = draftCampaigns.findIndex((item) =>
+              !Number.isFinite(item.startAt) || !Number.isFinite(item.endAt) || item.startAt >= item.endAt
+            );
+            if (badDateIndex >= 0) {
+              status.textContent = `광고 ${badDateIndex + 1}의 시작 날짜와 노출 개월 수를 확인해주세요.`;
+              return;
+            }
+            const packed = JSON.stringify({ version: 2, campaigns: draftCampaigns });
+            if (packed.length > 900000) {
+              status.textContent = "사진 전체 용량이 너무 큽니다. 광고를 지우거나 사진 용량을 줄여주세요.";
               return;
             }
             status.textContent = "설정 저장 중...";
             const config = {
               enabled,
-              imageUrl,
-              linkUrl: document.getElementById("adminBannerLink").value.trim(),
-              startAt: parseKSTLocalInput(document.getElementById("adminBannerStart").value),
-              endAt: parseKSTLocalInput(document.getElementById("adminBannerEnd").value)
+              imageUrl: packed,
+              linkUrl: draftCampaigns[0] ? draftCampaigns[0].linkUrl : "https://blog.naver.com/posture_gym",
+              startAt: draftCampaigns.length ? Math.min(...draftCampaigns.map((item) => item.startAt)) : Date.now(),
+              endAt: draftCampaigns.length ? Math.max(...draftCampaigns.map((item) => item.endAt)) : addKSTMonths(Date.now(), 1)
             };
             const result = await saveBannerConfig(config);
             if (result.ok) {
-              clearSelectedBannerPreview();
-              const savedUrls = bannerImageUrls(imageUrl);
-              showBannerPreview(savedUrls, `현재 저장된 배너 이미지 ${savedUrls.length}장`);
+              draftCampaigns = bannerCampaigns(config);
+              renderCampaignEditors();
             }
-            status.textContent = result.ok ? "배너 이미지와 설정을 저장했어요." : result.reason;
+            status.textContent = result.ok ? `광고 ${draftCampaigns.length}개를 각각의 사이트와 기간으로 저장했어요.` : result.reason;
           } finally {
             saveBtn.disabled = false;
           }
