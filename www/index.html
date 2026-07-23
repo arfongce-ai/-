@@ -2014,10 +2014,15 @@
       .app-footer-partner-track {
         display: flex;
         align-items: center;
-        gap: 6px;
-        width: 100%;
-        padding: 6px;
+        gap: 2px;
+        width: max-content;
+        padding: 4px;
         box-sizing: border-box;
+        animation: footer-partner-marquee-right 22s linear infinite;
+        will-change: transform;
+      }
+      .app-footer-partner-block:hover .app-footer-partner-track {
+        animation-play-state: paused;
       }
       .app-footer-partners {
         display: block;
@@ -2031,8 +2036,8 @@
         position: relative;
         z-index: 2;
         display: flex;
-        min-width: 0;
-        flex: 1 1 0;
+        width: clamp(96px, 14vw, 150px);
+        flex: 0 0 clamp(96px, 14vw, 150px);
         height: 64px;
         box-sizing: border-box;
         align-items: center;
@@ -2049,6 +2054,10 @@
         object-fit: contain;
       }
       .app-footer-campaign-group { display: none; }
+      @keyframes footer-partner-marquee-right {
+        from { transform: translateX(-50%); }
+        to { transform: translateX(0); }
+      }
       #segmentsSection:has(#segments:empty) { display: none; }
       .yongin-logo-link {
         position: relative;
@@ -2067,6 +2076,9 @@
         .app-footer-inner { grid-template-columns: 96px minmax(0, 1fr); gap: 10px; }
         .app-footer p { font-size: 11px; line-height: 1.4; }
         .app-footer-partners { max-height: 56px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .app-footer-partner-track { animation: none; transform: none; }
       }
       /* ── 초소형 폰(≤380px): 라벨이 배지와 겹치지 않게 보강 ── */
       @media (max-width: 380px) {
@@ -2801,6 +2813,10 @@
             <a class="app-footer-campaign yongin-logo-link" href="https://www.instagram.com/yongin_kr" target="_blank" rel="noopener" aria-label="용인대 국가대표태권도 인스타그램 @yongin_kr 새 창으로 열기">
               <img class="app-footer-partners" src="./assets/partner-taekwondo-logos.png" alt="용인대 국가대표 태권도 및 Taigon 시범단 로고" loading="lazy" />
             </a>
+            <span id="partnerBannerClone" class="app-footer-campaign-group" aria-hidden="true"></span>
+            <a class="app-footer-campaign yongin-logo-link" href="https://www.instagram.com/yongin_kr" target="_blank" rel="noopener" aria-hidden="true" tabindex="-1">
+              <img class="app-footer-partners" src="./assets/partner-taekwondo-logos.png" alt="" aria-hidden="true" loading="lazy" />
+            </a>
           </div>
         </div>
         <button type="button" id="adminModeTrigger" class="admin-logo-trigger" aria-label="관리자 설정 열기">
@@ -3246,24 +3262,33 @@
       let _bannerCheckTimer = null;
       function applyBannerToDom(config) {
         const el = document.getElementById("partnerBanner");
-        if (!el) return;
+        const clone = document.getElementById("partnerBannerClone");
+        if (!el || !clone) return;
         const campaigns = activeBannerCampaigns(config);
         const visible = campaigns.length > 0;
-        const makeItems = () => campaigns.map((campaign, index) => {
+        const makeItems = (isClone) => campaigns.map((campaign, index) => {
           const link = document.createElement("a");
           link.className = "app-footer-campaign";
           link.href = campaign.linkUrl || "#";
           link.target = "_blank";
           link.rel = "noopener";
-          link.setAttribute("aria-label", `파트너 배너 ${index + 1}, 눌러서 이동`);
+          if (isClone) {
+            link.tabIndex = -1;
+            link.setAttribute("aria-hidden", "true");
+          } else {
+            link.setAttribute("aria-label", `파트너 배너 ${index + 1}, 눌러서 이동`);
+          }
           const img = document.createElement("img");
           img.src = campaign.imageUrl;
-          img.alt = `파트너 배너 ${index + 1}`;
+          img.alt = isClone ? "" : `파트너 배너 ${index + 1}`;
+          if (isClone) img.setAttribute("aria-hidden", "true");
           link.appendChild(img);
           return link;
         });
-        el.replaceChildren(...makeItems());
+        el.replaceChildren(...makeItems(false));
+        clone.replaceChildren(...makeItems(true));
         el.style.display = visible ? "contents" : "none";
+        clone.style.display = visible ? "contents" : "none";
       }
       async function initPartnerBanner() {
         try {

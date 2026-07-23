@@ -329,7 +329,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v77-clean-footer", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v78-close-right-marquee", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -468,11 +468,11 @@ assertContains(webHtml, "banner_save_timeout", "배너 저장이 무한 대기�
 assertContains(webHtml, "이 사진을 누르면 이동할 사이트", "광고 이미지마다 개별 사이트 주소 입력 존재");
 assertNotContains(webHtml, "id=\"adminBannerImage\"", "배너 이미지 URL 직접 입력 제거");
 assertContains(webHtml, "id=\"partnerBanner\" class=\"app-footer-campaign-group\"", "관리자 배너 여러 장이 기존 하단 흰색 광고 띠 안에 배치됨");
-assertNotContains(webHtml, "id=\"partnerBannerClone\"", "움직임용 중복 광고 제거");
+assertContains(webHtml, "id=\"partnerBannerClone\"", "끊김 없는 자동 이동용 광고 묶음 존재");
 assertContains(webHtml, "function bannerCampaigns(", "기존 한 장과 새 광고별 저장 형식 모두 읽기");
 assertContains(webHtml, "JSON.stringify({ version: 2, campaigns: draftCampaigns })", "각 광고의 이미지·사이트·기간을 기존 Firestore 필드에 함께 저장");
 assertNotContains(webHtml, "class=\"partner-banner\"", "관리자 배너가 별도 검은 띠를 만들지 않음");
-assertNotContains(webHtml, "footer-partner-marquee", "광고판 자동 이동 제거");
+assertContains(webHtml, "@keyframes footer-partner-marquee-right", "광고판 왼쪽에서 오른쪽 자동 이동 정의");
 assertContains(webHtml, "id=\"adminModeTrigger\"", "관리자 모드 진입 버튼 존재");
 assertContains(webHtml, "class=\"admin-logo-trigger\"", "관리자 진입을 몸가짐운동센터 로고 버튼에 연결");
 assertNotContains(webHtml, "class=\"admin-mode-trigger\">관리자 모드</button>", "화면에 보이는 관리자 모드 글자 버튼 제거");
@@ -526,8 +526,9 @@ assertContains(webHtml, "0507-1366-0466", "앱 하단 문의 전화번호 존재
 assertContains(webHtml, "./assets/partner-taekwondo-logos.png", "새 가로형 파트너 로고 존재");
 assertContains(webHtml, "제작: 울산 몸가짐운동센터</p>\n          <p>제작자: <a", "제작자 링크 정보를 한 줄 아래에 표시");
 assertContains(webHtml, "<div class=\"app-footer-partner-block\">\n          <div class=\"app-footer-partner-track\">", "파트너 광고판을 운동센터 로고와 제작 정보 위에 표시");
-assertContains(webHtml, "flex: 1 1 0", "모든 광고를 같은 너비와 같은 간격으로 배치");
-assertContains(webHtml, "gap: 6px", "광고 사이의 일정한 간격 적용");
+assertContains(webHtml, "flex: 0 0 clamp(96px, 14vw, 150px)", "광고 로고를 가까운 고정 너비로 배치");
+assertContains(webHtml, "gap: 2px", "광고 사이 간격을 가깝게 적용");
+assertContains(webHtml, "from { transform: translateX(-50%); }", "광고가 왼쪽에서 오른쪽으로 이동");
 assertContains(webHtml, "#segmentsSection:has(#segments:empty) { display: none; }", "분석 전 비어 있는 빨간 표시 영역 제거");
 assertContains(webHtml, "border: 0;", "하단 광고 로고 테두리 제거");
 assertContains(webHtml, "https://www.instagram.com/yongin_kr", "용인대 국가대표태권도 인스타그램 링크 존재");
