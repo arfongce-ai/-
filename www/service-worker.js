@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v75-independent-campaigns";
+const CACHE_NAME = "poomsae-training-v76-static-campaign-grid";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",

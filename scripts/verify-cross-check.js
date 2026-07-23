@@ -329,7 +329,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v75-independent-campaigns", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v76-static-campaign-grid", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -468,11 +468,11 @@ assertContains(webHtml, "banner_save_timeout", "배너 저장이 무한 대기�
 assertContains(webHtml, "이 사진을 누르면 이동할 사이트", "광고 이미지마다 개별 사이트 주소 입력 존재");
 assertNotContains(webHtml, "id=\"adminBannerImage\"", "배너 이미지 URL 직접 입력 제거");
 assertContains(webHtml, "id=\"partnerBanner\" class=\"app-footer-campaign-group\"", "관리자 배너 여러 장이 기존 하단 흰색 광고 띠 안에 배치됨");
-assertContains(webHtml, "id=\"partnerBannerClone\" class=\"app-footer-campaign-group\"", "관리자 배너 여러 장을 무한 흐름용으로 복제");
+assertNotContains(webHtml, "id=\"partnerBannerClone\"", "움직임용 중복 광고 제거");
 assertContains(webHtml, "function bannerCampaigns(", "기존 한 장과 새 광고별 저장 형식 모두 읽기");
 assertContains(webHtml, "JSON.stringify({ version: 2, campaigns: draftCampaigns })", "각 광고의 이미지·사이트·기간을 기존 Firestore 필드에 함께 저장");
 assertNotContains(webHtml, "class=\"partner-banner\"", "관리자 배너가 별도 검은 띠를 만들지 않음");
-assertContains(webHtml, "prefers-reduced-motion", "파트너 배너 모션 최소화 대응 존재");
+assertNotContains(webHtml, "footer-partner-marquee", "광고판 자동 이동 제거");
 assertContains(webHtml, "id=\"adminModeTrigger\"", "관리자 모드 진입 버튼 존재");
 assertContains(webHtml, "class=\"admin-logo-trigger\"", "관리자 진입을 몸가짐운동센터 로고 버튼에 연결");
 assertNotContains(webHtml, "class=\"admin-mode-trigger\">관리자 모드</button>", "화면에 보이는 관리자 모드 글자 버튼 제거");
@@ -525,9 +525,9 @@ assertContains(webHtml, "blog.naver.com/posture_gym", "앱 하단 블로그 정�
 assertContains(webHtml, "0507-1366-0466", "앱 하단 문의 전화번호 존재");
 assertContains(webHtml, "./assets/partner-taekwondo-logos.png", "새 가로형 파트너 로고 존재");
 assertContains(webHtml, "제작: 울산 몸가짐운동센터</p>\n          <p>제작자: <a", "제작자 링크 정보를 한 줄 아래에 표시");
-assertContains(webHtml, "<div class=\"app-footer-partner-block\">\n          <div class=\"app-footer-partner-track\">", "파트너 로고 흐름 띠를 운동센터 로고와 제작 정보 위에 표시");
-assertContains(webHtml, "@keyframes footer-partner-marquee", "하단 파트너 광고 무한 가로 흐름 애니메이션 존재");
-assertContains(webHtml, "animation: footer-partner-marquee 18s linear infinite", "하단 파트너 광고 가로 흐름 적용");
+assertContains(webHtml, "<div class=\"app-footer-partner-block\">\n          <div class=\"app-footer-partner-track\">", "파트너 광고판을 운동센터 로고와 제작 정보 위에 표시");
+assertContains(webHtml, "flex: 1 1 0", "모든 광고를 같은 너비와 같은 간격으로 배치");
+assertContains(webHtml, "gap: 6px", "광고 사이의 일정한 간격 적용");
 assertContains(webHtml, "https://www.instagram.com/yongin_kr", "용인대 국가대표태권도 인스타그램 링크 존재");
 assertContains(webHtml, "aria-label=\"용인대 국가대표태권도 인스타그램 @yongin_kr 새 창으로 열기\"", "용인대 로고 클릭 접근성 설명 존재");
 assertContains(webHtml, ".yongin-logo-link", "용인대 국가대표태권도 로고 전용 클릭 영역 존재");
