@@ -329,7 +329,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v68-mobile-first", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v69-hevc-guide", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -391,6 +391,9 @@ assertContains(webHtml, "function browserCanPlayHevc", "브라우저 HEVC 재생
 assertContains(webHtml, "hvc1|hev1|hvcC", "HEVC 박스 마커 검사 존재");
 assertContains(webHtml, "file.size - tailLen", "파일 끝(moov)까지 HEVC 검사 존재");
 assertContains(webHtml, "HEVC(H.265)", "HEVC 미지원 안내 문구 존재");
+assertContains(webHtml, "이 영상은 HEVC 형식이라 분석할 수 없어요. H.264 영상으로 바꾼 후 다시 선택해 주세요.", "HEVC 분석 불가 쉬운 안내 문구 존재");
+assertContains(webHtml, "PC는 Clipchamp 또는 HandBrake에서 H.264 MP4로 내보내세요.", "HEVC PC 변환 방법 안내 존재");
+assertContains(webHtml, "안드로이드는 카메라 설정에서 고효율 동영상(HEVC)을 끄면", "HEVC 휴대폰 촬영 설정 안내 존재");
 assertContains(webHtml, "async function probeSeekReliability()", "영상 중~후반 탐색 신뢰성 사전 점검 함수 존재(첫 프레임만으로는 불충분한 HEVC 사례 대응)");
 assertContains(webHtml, "function tinyFrameSample(", "프레임 비교용 픽셀 샘플 함수 존재");
 assertContains(webHtml, "function framesLookIdentical(", "픽셀 단위 프레임 동일성 비교 함수 존재");

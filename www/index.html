@@ -6176,10 +6176,10 @@
         const stuck = samples[0] != null && samples[1] != null && framesLookIdentical(samples[0], samples[1]);
         if (failedSeeks > 0 || stuck) {
           seekProbeOk = false;
-          setProgress(0, "이 영상은 앞부분은 재생되지만 뒤로 갈수록 프레임을 안정적으로 읽지 못했습니다. H.264(MP4)로 변환 후 다시 시도하세요.");
+          setProgress(0, "이 영상은 HEVC 형식이라 분석할 수 없어요. H.264 영상으로 바꾼 후 다시 선택해 주세요.");
           renderReport([
             { type: "bad", text: "이 영상은 초반 프레임은 해석했지만 중~후반부 탐색에서 프레임이 멈추거나 실패했습니다. 이대로 분석하면 동작이 영상 앞부분에 몰리거나 실행할 때마다 결과가 달라질 수 있어 분석 버튼을 비활성화했습니다." },
-            { type: "caution", text: "카카오톡 등으로 공유되며 HEVC로 재압축됐을 가능성이 높습니다. H.264(MP4)로 변환한 뒤 다시 올려 주세요." }
+            { type: "caution", text: "변환 방법: PC는 Clipchamp 또는 HandBrake에서 H.264 MP4로 내보내세요. 아이폰은 설정 → 카메라 → 포맷 → 높은 호환성을 선택하고, 안드로이드는 카메라 설정에서 고효율 동영상(HEVC)을 끄면 다음 촬영부터 H.264로 저장됩니다." }
           ]);
         } else {
           // 점검을 통과한 경우: loadeddata에서 띄운 "확인하는 중입니다" 문구를 그대로 두면,
@@ -9575,10 +9575,10 @@
           return;
         }
         if (!videoDecodeReady(video)) {
-          setProgress(0, "영상의 첫 프레임을 해석할 수 없어 분석을 시작하지 않았습니다. HEVC(H.265) 영상이면 H.264(MP4)로 변환해 주세요.");
+          setProgress(0, "이 영상은 HEVC 형식이라 분석할 수 없어요. H.264 영상으로 바꾼 후 다시 선택해 주세요.");
           renderReport([
             { type: "bad", text: "영상 길이는 읽었지만 실제 화면 프레임과 해상도를 해석하지 못했습니다. 이 상태에서 분석하면 잘못된 0% 감지 결과가 만들어질 수 있어 분석을 중단했습니다." },
-            { type: "caution", text: "해결: 휴대폰 카메라 설정에서 '높은 호환성/H.264'로 촬영하거나, 현재 영상을 H.264 MP4로 변환한 뒤 다시 선택해 주세요." }
+            { type: "caution", text: "변환 방법: PC는 Clipchamp 또는 HandBrake에서 H.264 MP4로 내보내세요. 아이폰은 설정 → 카메라 → 포맷 → 높은 호환성을 선택하고, 안드로이드는 카메라 설정에서 고효율 동영상(HEVC)을 끄면 다음 촬영부터 H.264로 저장됩니다." }
           ]);
           updateAnalyzeButtonState();
           return;
@@ -10732,10 +10732,10 @@
         await new Promise((resolve) => setTimeout(resolve, 1500));
         if (selectedFile !== checkedFile || videoDecodeReady(video)) return;
         lastHevcWarnKey = key;
-        setProgress(0, "이 영상은 HEVC(H.265) 형식이며 현재 기기에서 첫 프레임을 해석하지 못했습니다. H.264(MP4)로 변환 후 다시 시도하세요.");
+        setProgress(0, "이 영상은 HEVC 형식이라 분석할 수 없어요. H.264 영상으로 바꾼 후 다시 선택해 주세요.");
         renderReport([
           { type: "bad", text: "이 영상은 HEVC(H.265) 코덱이며 현재 앱에서 실제 화면 프레임을 해석하지 못했습니다. 잘못된 0% 감지 결과를 막기 위해 분석 버튼을 비활성화했습니다." },
-          { type: "caution", text: "해결: 휴대폰 갤러리 공유 시 '더 호환성 높은 형식'으로 내보내거나, 무료 변환 앱/PC에서 H.264 MP4로 변환해 다시 올리면 정상 분석됩니다." }
+          { type: "caution", text: "변환 방법: PC는 Clipchamp 또는 HandBrake에서 H.264 MP4로 내보내세요. 아이폰은 설정 → 카메라 → 포맷 → 높은 호환성을 선택하고, 안드로이드는 카메라 설정에서 고효율 동영상(HEVC)을 끄면 다음 촬영부터 H.264로 저장됩니다." }
         ]);
         updateAnalyzeButtonState();
       }
@@ -10744,10 +10744,10 @@
         const key = checkedFile ? `${checkedFile.name}|${checkedFile.size}` : "";
         setTimeout(() => {
           if (!checkedFile || selectedFile !== checkedFile || videoDecodeReady(video) || lastHevcWarnKey === key) return;
-          setProgress(0, "영상의 첫 프레임을 해석하지 못했습니다. H.264(MP4) 형식으로 변환한 뒤 다시 시도하세요.");
+          setProgress(0, "이 영상은 HEVC 형식이라 분석할 수 없어요. H.264 영상으로 바꾼 후 다시 선택해 주세요.");
           renderReport([
             { type: "bad", text: "영상 길이는 읽었지만 실제 화면 프레임과 해상도를 확인하지 못해 분석을 시작할 수 없습니다." },
-            { type: "caution", text: "카메라의 높은 호환성/H.264 설정으로 촬영하거나 H.264 MP4로 변환한 뒤 다시 선택해 주세요." }
+            { type: "caution", text: "변환 방법: PC는 Clipchamp 또는 HandBrake에서 H.264 MP4로 내보내세요. 아이폰은 설정 → 카메라 → 포맷 → 높은 호환성을 선택하고, 안드로이드는 카메라 설정에서 고효율 동영상(HEVC)을 끄면 다음 촬영부터 H.264로 저장됩니다." }
           ]);
           updateAnalyzeButtonState();
         }, 8000);
@@ -10835,10 +10835,10 @@
       // 영상 디코딩 실패(HEVC 미지원 등)를 직접 잡아 사용자에게 명확히 안내한다.
       video.addEventListener("error", () => {
         if (!selectedFile) return;
-        setProgress(0, "영상을 재생·디코딩할 수 없습니다. HEVC(H.265) 등 미지원 형식일 수 있으니 H.264(MP4)로 변환 후 다시 시도하세요.");
+        setProgress(0, "이 영상은 HEVC 형식이라 분석할 수 없어요. H.264 영상으로 바꾼 후 다시 선택해 주세요.");
         renderReport([
           { type: "bad", text: "영상을 디코딩할 수 없어 분석을 시작할 수 없습니다. 이 브라우저가 지원하지 않는 코덱(예: HEVC/H.265)일 가능성이 높습니다." },
-          { type: "caution", text: "H.264(MP4)로 변환해 다시 올리면 분석됩니다. 같은 영상을 H.264로 변환한 뒤 시도해 보세요." }
+          { type: "caution", text: "변환 방법: PC는 Clipchamp 또는 HandBrake에서 H.264 MP4로 내보내세요. 아이폰은 설정 → 카메라 → 포맷 → 높은 호환성을 선택하고, 안드로이드는 카메라 설정에서 고효율 동영상(HEVC)을 끄면 다음 촬영부터 H.264로 저장됩니다." }
         ]);
         analyzeBtn.disabled = true;
         reanalyzeBtn.disabled = true;

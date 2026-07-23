@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v68-mobile-first";
+const CACHE_NAME = "poomsae-training-v69-hevc-guide";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",
