@@ -329,7 +329,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v80-collective-learning", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v81-mobile-wizard-unclipped", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -670,7 +670,8 @@ assertContains(webHtml, ".admin-logo-trigger:hover .app-footer-main-logo", "관�
 assertContains(webHtml, "document.body.dataset.wizardStep = String(wizardStep)", "모바일에서 현재 설정 단계만 집중 표시");
 assertContains(webHtml, "body[data-wizard-step=\"1\"] #videoSection", "모바일 초기 단계에서 영상 영역 숨김");
 assertContains(webHtml, ".camera-view-guide,\n        .camera-view-checklist,\n        .multi-device-panel", "모바일에서 긴 촬영 설명 기본 숨김");
-assertContains(webHtml, ".wizard-nav {\n          position: sticky;", "모바일 이전·다음 버튼을 손가락 위치에 고정");
+assertContains(webHtml, ".wizard-nav {\n          /* 휴대폰의 하단 고정 메뉴와 겹치면", "모바일 단계 버튼이 품새 선택·분석 시작을 가리지 않음");
+assertContains(webHtml, "position: static;\n          bottom: auto;", "모바일 단계 버튼을 문서 흐름에 배치");
 assertContains(webHtml, "4단계만 따라 하면 돼요.", "초등학생용 짧은 시작 안내 적용");
 
 if (failures.length) {

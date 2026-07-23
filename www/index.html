@@ -2349,6 +2349,9 @@
         section:has(.wizard-step) {
           padding: 14px 12px;
           border-radius: 16px;
+          height: auto !important;
+          min-height: 0 !important;
+          overflow: visible !important;
         }
         section:has(.wizard-step) > h2,
         section:has(.wizard-step) > .dojo-hero { display: none; }
@@ -2449,15 +2452,17 @@
           font-weight: 900;
         }
         .wizard-nav {
-          position: sticky;
-          bottom: 76px;
+          /* 휴대폰의 하단 고정 메뉴와 겹치면 바로 앞의 품새 선택·분석 시작 버튼을
+             덮어버린다. 단계 버튼은 문서 흐름 안에 두어 모든 입력이 차례대로 보이게 한다. */
+          position: static;
+          bottom: auto;
           z-index: 20;
           grid-template-columns: minmax(92px, .34fr) minmax(0, .66fr);
           gap: 8px;
-          margin: 16px -4px -5px;
-          padding: 8px 4px 5px;
-          background: color-mix(in srgb, var(--panel) 94%, transparent);
-          backdrop-filter: blur(8px);
+          margin: 16px 0 0;
+          padding: 8px 0 0;
+          background: transparent;
+          backdrop-filter: none;
         }
         .wizard-nav:has(.wn-prev:disabled) { grid-template-columns: 1fr; }
         .wizard-nav .wn-prev:disabled { display: none; }
@@ -2468,6 +2473,15 @@
           font-weight: 900;
         }
         .wizard-hint { font-size: 13px; text-align: center; }
+        .wizard-step.active,
+        .wizard-step.active > * {
+          max-height: none;
+        }
+        #poomsaeSelect,
+        .wizard-step[data-step="4"] .primary-actions {
+          position: relative;
+          z-index: 1;
+        }
         body[data-wizard-step="1"] #videoSection,
         body[data-wizard-step="2"] #videoSection,
         body[data-wizard-step="3"] #videoSection,
