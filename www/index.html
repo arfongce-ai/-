@@ -2868,7 +2868,7 @@
           </label>
           <label for="adminBannerImageFile">배너 이미지 파일</label>
           <input type="file" id="adminBannerImageFile" accept="image/*" />
-          <p class="small" style="color:var(--muted);margin:6px 0 8px">JPG·PNG·WEBP 등 이미지 파일을 선택하세요. 최대 5MB입니다.</p>
+          <p class="small" style="color:var(--muted);margin:6px 0 8px">JPG·PNG·WEBP 이미지 파일을 선택하세요. 최대 600KB입니다.</p>
           <div id="adminBannerPreviewWrap" style="display:none;margin:8px 0 12px">
             <img id="adminBannerPreview" src="" alt="선택한 배너 미리보기" style="display:block;max-width:100%;max-height:180px;object-fit:contain;border:1px solid #d9ccb2;border-radius:10px;background:#fff" />
             <p class="small" id="adminBannerFileName" style="color:var(--muted);margin:5px 0 0"></p>
@@ -2928,14 +2928,12 @@
       // 위해 익명 읽기는 막혀 있음 — 아래 firestore.rules 주석 참고). 배너 설정용 PIN과는
       // 완전히 별개의, 진짜 로그인이다.
       let _fbAuth = null, _fbSignIn = null, _fbSignOut = null, _fbSendPasswordReset = null;
-      let _fbStorage = null, _fbStorageRef = null, _fbUploadBytes = null, _fbGetDownloadURL = null;
       let _fbCurrentAdminUser = null;
       (async function initFirebase() {
         try {
           const appMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
           const fsMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
           const authMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-          const storageMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js");
           const firebaseConfig = {
             apiKey: "AIzaSyC9R63MgGXKE0lQ_hfCR8LHRmMRv1jiugk",
             authDomain: "momgagym-cms.firebaseapp.com",
@@ -2953,10 +2951,6 @@
           _fbSignIn = authMod.signInWithEmailAndPassword;
           _fbSendPasswordReset = authMod.sendPasswordResetEmail;
           _fbSignOut = authMod.signOut;
-          _fbStorage = storageMod.getStorage(app);
-          _fbStorageRef = storageMod.ref;
-          _fbUploadBytes = storageMod.uploadBytes;
-          _fbGetDownloadURL = storageMod.getDownloadURL;
           authMod.onAuthStateChanged(_fbAuth, (user) => {
             _fbCurrentAdminUser = user;
             safeInit("updateAdminReportUi", () => updateAdminReportUi());
@@ -3255,7 +3249,10 @@
         if (!_fbReady || !_fbDB) return { ok: false, reason: "오프라인 상태라 저장할 수 없어요. 인터넷 연결을 확인해주세요." };
         try {
           const payload = { ...partial, pin: ADMIN_PIN };
-          await _fbSetDoc(_fbDoc(_fbDB, "app_config", "banner"), payload);
+          await Promise.race([
+            _fbSetDoc(_fbDoc(_fbDB, "app_config", "banner"), payload),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("banner_save_timeout")), 15000))
+          ]);
           _bannerConfigCache = partial;
           applyBannerToDom(_bannerConfigCache);
           return { ok: true };
@@ -3264,26 +3261,28 @@
         }
       }
       async function uploadBannerImageFile(file) {
-        if (!_fbReady || !_fbStorage || !_fbStorageRef || !_fbUploadBytes || !_fbGetDownloadURL) {
-          return { ok: false, reason: "아직 업로드 기능을 준비 중입니다. 잠시 후 다시 시도해주세요." };
-        }
         if (!file || !String(file.type || "").startsWith("image/")) {
           return { ok: false, reason: "이미지 파일을 선택해주세요." };
         }
-        if (file.size > 5 * 1024 * 1024) {
-          return { ok: false, reason: "배너 이미지는 5MB 이하만 올릴 수 있어요." };
+        // Firebase Storage는 2026년부터 Blaze 요금제가 필요하므로 작은 공개 배너는
+        // Firestore의 app_config/banner 문서에 data URL로 함께 저장한다.
+        // Firestore 문서 제한(1MiB)을 넘지 않도록 원본 파일을 600KB로 제한한다.
+        if (file.size > 600 * 1024) {
+          return { ok: false, reason: "배너 이미지는 600KB 이하로 줄여서 올려주세요." };
         }
         try {
-          const imageRef = _fbStorageRef(_fbStorage, "banner/current");
-          await _fbUploadBytes(imageRef, file, {
-            contentType: file.type,
-            customMetadata: { pin: ADMIN_PIN }
+          const imageUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || ""));
+            reader.onerror = () => reject(reader.error || new Error("banner_file_read_failed"));
+            reader.readAsDataURL(file);
           });
-          const rawUrl = await _fbGetDownloadURL(imageRef);
-          const separator = rawUrl.includes("?") ? "&" : "?";
-          return { ok: true, imageUrl: `${rawUrl}${separator}v=${Date.now()}` };
+          if (!imageUrl.startsWith("data:image/") || imageUrl.length > 900000) {
+            return { ok: false, reason: "이미지가 너무 큽니다. 600KB 이하 JPG·PNG 파일로 줄여주세요." };
+          }
+          return { ok: true, imageUrl };
         } catch (e) {
-          return { ok: false, reason: "이미지 업로드에 실패했어요. 파일 크기와 인터넷 연결을 확인해주세요." };
+          return { ok: false, reason: "이미지 파일을 읽지 못했어요. 다른 JPG·PNG 파일로 다시 선택해주세요." };
         }
       }
       // ── 관리자 모드 패널 배선 ──
@@ -3359,9 +3358,9 @@
               status.textContent = "이미지 파일만 선택할 수 있어요.";
               return;
             }
-            if (file.size > 5 * 1024 * 1024) {
+            if (file.size > 600 * 1024) {
               bannerImageFile.value = "";
-              status.textContent = "배너 이미지는 5MB 이하만 올릴 수 있어요.";
+              status.textContent = "배너 이미지는 600KB 이하로 줄여서 올려주세요.";
               return;
             }
             selectedBannerObjectUrl = URL.createObjectURL(file);
@@ -3375,7 +3374,7 @@
             let imageUrl = (_bannerConfigCache && _bannerConfigCache.imageUrl) || "";
             const file = bannerImageFile && bannerImageFile.files && bannerImageFile.files[0];
             if (file) {
-              status.textContent = "이미지 업로드 중...";
+              status.textContent = "이미지 준비 중...";
               const uploadResult = await uploadBannerImageFile(file);
               if (!uploadResult.ok) {
                 status.textContent = uploadResult.reason;
