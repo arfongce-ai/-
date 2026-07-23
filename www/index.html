@@ -2301,7 +2301,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새 수련</h1>
-          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v4.08</p>
+          <p class="small">태권도 품새 수련인을 위한 영상 기반 AI 분석 코치 · v4.09</p>
         </div>
         <span class="badge">수련품새 · 경기품새</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -3188,6 +3188,57 @@
         preparation_note: "기본준비서기 등 준비자세는 동작 수에 포함하지 않으며, 품새별로 고유한 준비자세(통밀기/보주먹/겹손 준비 등)가 있습니다. 17개 품새의 동작 수는 국기원 공식 도해로 검증되었습니다.",
         disclaimer: "영상 좌표로 확인 가능한 훈련 보조 항목이며 실제 심판 판정, 품새선, 목표 높이, 시선, 손 모양을 확정하지 않습니다. 공식 인정은 국기원/WT 기준과 지도자 확인을 따릅니다."
       };
+
+      // 사용자가 제공한 공식 규정 원문을 페이지 단위로 대조한 분석 근거.
+      // 심사와 경기는 평가 목적과 점수 구조가 다르므로 하나의 자동 점수로 합치지 않는다.
+      const OFFICIAL_RULE_REFERENCES = {
+        kukkiwon_exam_2024: {
+          id: "kukkiwon_exam_2024",
+          title: "태권도심사규칙",
+          revision: "최종개정 2024-08-06",
+          primary_use: "수련품새의 심사 대비 피드백",
+          source_pages: ["제17조 PDF 5~6쪽", "제18조 PDF 6~7쪽", "제19조 PDF 7쪽", "별표 4 PDF 24~26쪽"],
+          poomsae_axes: [
+            "완성도: 품새 완결·정확성·공방목표·자세의 굴신",
+            "숙련도: 속도의 완급·몸의 중심이동·힘의 강유·기의 집중·호흡·기합",
+            "품위: 태도·예절·차림새"
+          ],
+          decision_rule: "공식 심사는 과목별 심사위원이 100점 만점으로 평가하며 최종 결과는 심사위원 평가로 결정한다.",
+          app_policy: "앱은 지도자·심사위원이 아니므로 공식 심사 결과를 자동 결정하지 않고 세 평가축의 보완점만 제시한다."
+        },
+        wt_competition_2024: {
+          id: "wt_competition_2024",
+          title: "WT Poomsae Competition Rules and Interpretation",
+          revision: "In force as of June 14, 2024",
+          primary_use: "경기품새 참고점수의 국제규정 교차검증",
+          source_pages: ["Article 15, 인쇄 24쪽(PDF 27쪽)", "Article 16, 인쇄 26~28쪽(PDF 29~31쪽)"],
+          recognized_poomsae_axes: [
+            "정확성 4.0: 기본동작·품새별 개별동작·균형",
+            "연출성 6.0: 속도와 힘 2.0·강유/완급/리듬 2.0·기의 표현 2.0"
+          ],
+          deduction_reference: "개별동작의 경미한 실수 -0.1, 큰 실수 -0.3, 품새 재시작 -0.6",
+          app_policy: "앱의 점수와 감점 표시는 영상 기반 훈련 참고치이며 공식 심판 점수가 아니다."
+        }
+      };
+
+      function activeRuleReferenceProfile() {
+        if (trainingMode === "exam") {
+          return {
+            purpose: "수련·승품/단 심사 대비",
+            primary: OFFICIAL_RULE_REFERENCES.kukkiwon_exam_2024,
+            cross_check: null,
+            axes: OFFICIAL_RULE_REFERENCES.kukkiwon_exam_2024.poomsae_axes,
+            automated_decision: false
+          };
+        }
+        return {
+          purpose: "경기품새 훈련",
+          primary: COMPETITION_RULES_2026,
+          cross_check: OFFICIAL_RULE_REFERENCES.wt_competition_2024,
+          axes: OFFICIAL_RULE_REFERENCES.wt_competition_2024.recognized_poomsae_axes,
+          automated_decision: false
+        };
+      }
 
       const poomsaeData = {
         taegeuk_1: {
@@ -5540,8 +5591,8 @@
         });
         if (modeHelp) {
           modeHelp.textContent = trainingMode === "exam"
-            ? "수련품새: 점수 없이, 초등학생도 알 수 있는 쉬운 말로 무엇이 아쉬운지와 어떻게 고치는지를 알려 드립니다."
-            : "경기품새: WT 공인품새 구조를 참고한 10점 참고점수와 함께, 어느 항목을 어떻게 고쳐야 점수가 오르는지를 수정 우선순위로 짚어 드립니다.";
+            ? "수련품새: 국기원 심사규칙의 완성도·숙련도·품위 기준을 참고해, 점수 없이 초등학생도 알 수 있는 쉬운 말로 무엇을 어떻게 고칠지 알려 드립니다."
+            : "경기품새: 2026 국내 경기규칙을 기준으로 하고 WT 2024 공인품새 구조와 교차검증한 10점 참고점수 및 수정 우선순위를 보여 드립니다.";
         }
         powerScoreText.closest(".metric").querySelector("strong").textContent = trainingMode === "exam" ? "결과 방식" : "경기품새 참고점수";
         if (!latestReport) powerScoreText.textContent = trainingMode === "exam" ? "문제점 확인" : "-";
@@ -5557,6 +5608,9 @@
           .sort((a, b) => a.powerScore - b.powerScore)
           .slice(0, 4);
         const summaryItems = latestReport.summary.items || [];
+        const ruleProfile = latestReport.rule_reference_profile || activeRuleReferenceProfile();
+        const rulePrimaryTitle = ruleProfile.primary?.title || ruleProfile.primary?.source || "-";
+        const ruleCrossTitle = ruleProfile.cross_check?.title || "";
         const scoreMetric = trainingMode === "exam"
           ? ""
           : `<div class="metric"><strong>경기품새 참고점수</strong><span>${escapeHtml(latestReport.summary.competition_score_10)} / 10.0</span></div>`;
@@ -5571,6 +5625,17 @@
             <h3>${trainingMode === "exam" ? "이 결과에서 알 수 있는 것" : "판정 범위 및 교차검증 안내"}</h3>
             <ul class="list">
               ${summaryItems.map((item) => `<li class="${borderClass(item.type)}">${escapeHtml(item.text)}</li>`).join("")}
+            </ul>
+          </div>
+          <div class="result-card" style="margin-top:14px;">
+            <h3>이번 분석에 적용한 공식 규정</h3>
+            <ul class="list">
+              <li class="good"><b>주 기준:</b> ${escapeHtml(rulePrimaryTitle)}</li>
+              ${ruleCrossTitle ? `<li class="good"><b>교차검증:</b> ${escapeHtml(ruleCrossTitle)} (${escapeHtml(ruleProfile.cross_check.revision || "")})</li>` : ""}
+              ${ruleProfile.axes.map((axis) => `<li class="caution">${escapeHtml(axis)}</li>`).join("")}
+              <li class="caution">${trainingMode === "exam"
+                ? "공식 심사 결과는 심사위원 평가로만 결정됩니다. 앱은 심사 대비 보완점만 제공합니다."
+                : "공식 점수와 감점은 심판이 결정합니다. 앱의 수치는 영상에서 확인 가능한 훈련 참고값입니다."}</li>
             </ul>
           </div>
           ${gangyuMode ? (() => {
@@ -8802,8 +8867,8 @@
           training_mode_label: modeLabel(),
           mode: "power_snap_stillness_estimation",
           note: trainingMode === "exam"
-            ? "수련품새 리포트는 점수 없이 문제점 확인 및 수정 포인트 중심으로 표시한다."
-          : "경기품새 리포트는 공인품새의 정확성 4.0점과 표현력 6.0점 구조를 참고한 10점 만점 훈련용 참고점수를 표시한다. -0.1/-0.3은 가능성만 제시하며 공식 심판 판정이 아니다.",
+            ? "수련품새 리포트는 태권도심사규칙의 완성도·숙련도·품위를 참고하되 점수 및 공식 심사 결과를 자동 결정하지 않고 보완점만 표시한다."
+          : "경기품새 리포트는 2026 국내 경기규칙을 주 기준으로, WT 2024 공인품새의 정확성 4.0점과 연출성 6.0점 구조를 교차검증한 10점 만점 훈련용 참고점수를 표시한다. -0.1/-0.3은 가능성만 제시하며 공식 심판 판정이 아니다.",
           scoring_stability: {
             segment_sample_range: { min: 4, max: 8 },
             sampling_strategy: "adaptive_device_safe",
@@ -8813,6 +8878,8 @@
             cache_hit: cacheHit,
             note: "같은 영상과 같은 품새를 반복 측정하면 세션 내 캐시된 구간 분석값을 재사용해 점수 흔들림을 줄인다."
           },
+          rule_reference_profile: activeRuleReferenceProfile(),
+          official_rule_references: OFFICIAL_RULE_REFERENCES,
           competition_rules_2026: trainingMode === "competition" ? COMPETITION_RULES_2026 : null,
           poomsae: {
             id: selectedPoomsaeKey,
