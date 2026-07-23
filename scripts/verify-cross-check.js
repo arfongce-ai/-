@@ -206,8 +206,8 @@ assertContains(webHtml, "data-jump=\"video\"", "빠른 이동 영상 버튼 존�
 assertContains(webHtml, "data-jump=\"segments\"", "빠른 이동 전체 구간 버튼 존재");
 assertContains(webHtml, "data-jump=\"result\"", "빠른 이동 결과지 버튼 존재");
 assertContains(webHtml, "data-jump=\"setup\"", "앱형 하단 설정 메뉴 존재");
-assertContains(webHtml, "품새 영상 분석 시작", "앱형 분석 시작 제목 존재");
-assertContains(webHtml, "<summary>이 앱은 어떻게 쓰나요?</summary>", "홈 훈련 시작 아래 프로그램 사용 설명서 버튼 존재");
+assertContains(webHtml, "품새 분석 시작", "모바일 친화형 분석 시작 제목 존재");
+assertContains(webHtml, "<summary>도움말 보기</summary>", "접을 수 있는 간단한 도움말 버튼 존재");
 assertContains(webHtml, "program-guide-steps", "프로그램 사용 순서 목록 존재");
 assertContains(webHtml, "이 앱은 수련생과 지도자를 위한 보조 도우미입니다.", "프로그램 사용 설명서 하단 보조 도우미 안내 존재");
 assertContains(webHtml, "안드로이드는 브라우저 메뉴에서 '앱 설치/홈 화면에 추가'", "폰 및 태블릿 홈 화면 추가 안내 존재");
@@ -232,26 +232,26 @@ assertContains(webHtml, "event.target.closest(\".scene-card\")", "결과지 장�
 assertContains(webHtml, "resultPage", "결과지 별도 페이지 구조 존재");
 assertContains(webHtml, "video-dock", "리플레이 고정 패널 CSS/DOM 구조 존재");
 assertContains(webHtml, "side-panel", "우측 작업 패널 CSS/DOM 구조 존재");
-assertContains(webHtml, "<h1>태권도 품새수련 Beta</h1>", "앱 이름 '태권도 품새수련 Beta' 적용");
+assertContains(webHtml, "<h1>태권도 품새수련 <span class=\"header-beta\">Beta</span></h1>", "앱 이름과 모바일에서 숨길 수 있는 Beta 표기 적용");
 assertNotContains(webHtml, "태권도 품새 수련 훈련", "이전 앱 이름 제거");
 assertContains(readUtf8(capacitorConfigPath), "\"appName\": \"태권도 품새수련 Beta\"", "Android 앱 이름도 태권도 품새수련 Beta로 통일");
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련 보조 · Beta", "헤더 베타 목적 배지 적용");
-assertContains(webHtml, "수련생과 지도자를 위한 동작별 영상 분석 보조 도우미 · v4.14", "헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
+assertContains(webHtml, "내 품새 영상을 동작별로 쉽게 확인해요 · v4.14", "짧은 헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
 assertContains(webHtml, "mode-tab", "훈련 목적 카드형 버튼 스타일 존재");
-assertContains(webHtml, "시작점·동작 구간·고칠 점", "수련 동작 분석 설명 문구 존재");
-assertContains(webHtml, "동작별 분석에 훈련용 참고점수를 추가", "경기 참고 설명 문구 존재");
+assertContains(webHtml, "동작과 고칠 점을 쉽게 봐요", "기본 분석의 어린이용 설명 문구 존재");
+assertContains(webHtml, "연습용 점수도 함께 봐요", "경기 점수 참고의 어린이용 설명 문구 존재");
 assertContains(webHtml, "수련생과 지도자가 함께 확인할 고칠 점", "수련 동작 분석은 점수 없이 공동 확인 중심");
 assertContains(webHtml, "let trainingMode = \"exam\"", "기본 모드는 수련 동작 분석");
 assertContains(webHtml, "동작 구간 바로잡기", "잘못 나뉜 시작·끝 구간 수정 기능 노출");
 assertContains(webHtml, "필요 훈련", "경기품새 필요 훈련 문구 존재");
 assertContains(webHtml, "stableAnalysisCache", "동일 영상 반복 측정 안정화 캐시 존재");
 assertContains(webHtml, "same_file_same_poomsae_reuses_segment_metrics", "반복 측정 안정화 전략 기록 존재");
-assertContains(webHtml, "품새와 영상을 고르면 준비자세부터 마지막 동작까지 하나씩 나누어 보여드려요.", "품새/영상 선택 순서 안내 존재");
+assertContains(webHtml, "4단계만 따라 하면 돼요.", "간단한 4단계 시작 안내 존재");
 assertContains(webHtml, "경기품새 참고점수", "WT 구조 기반 10점 만점 참고점수 표기 존재");
 assertContains(webHtml, "latestReport.summary.competition_score_10", "결과지 경기품새 10점 참고점수 표시 구조 존재");
 assertContains(webHtml, "score_100", "100점 기준 점수 데이터 존재");
@@ -329,7 +329,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v67-logo-admin-marquee", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v68-mobile-first", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -382,7 +382,7 @@ assertContains(webHtml, "<b>핵심 수정:</b>", "경기품새 구간별 핵심 
 assertContains(webHtml, "참고 감점 합계(추정)", "경기품새 가감점 합계 요약 존재");
 assertContains(webHtml, "function computeGangyu", "강유(剛柔) 판별 함수 존재");
 assertContains(webHtml, "function gangyuSummary", "강유 종합·리듬 체크리스트 함수 존재");
-assertContains(webHtml, "강유(剛柔) 분석 추가", "강유 분석 토글 존재");
+assertContains(webHtml, "힘 있게·부드럽게 움직이는 것도 볼래요.", "접힌 고급 분석 안의 강유 토글 존재");
 assertContains(webHtml, "정점 간격이 일정한가", "리듬 체크리스트 1번 존재");
 assertContains(webHtml, "준비는 느리고 끝은 빠른가", "리듬 체크리스트 2번(가속 대비) 존재");
 assertContains(webHtml, "전체에 강약 물결이 보이는가", "리듬 체크리스트 5번 존재");
@@ -637,6 +637,11 @@ assertContains(webHtml, "AUTO_PUBLISH_LOG_KEY", "자동 반영 이력이 로컬�
 // ── 관리자 모드 진입을 몸가짐운동센터 로고에 숨김 ──
 assertContains(webHtml, "aria-label=\"관리자 설정 열기\"", "몸가짐운동센터 로고에 관리자 진입 접근성 이름 존재");
 assertContains(webHtml, ".admin-logo-trigger:hover .app-footer-main-logo", "관리자 로고 버튼의 키보드·마우스 피드백 존재");
+assertContains(webHtml, "document.body.dataset.wizardStep = String(wizardStep)", "모바일에서 현재 설정 단계만 집중 표시");
+assertContains(webHtml, "body[data-wizard-step=\"1\"] #videoSection", "모바일 초기 단계에서 영상 영역 숨김");
+assertContains(webHtml, ".camera-view-guide,\n        .camera-view-checklist,\n        .multi-device-panel", "모바일에서 긴 촬영 설명 기본 숨김");
+assertContains(webHtml, ".wizard-nav {\n          position: sticky;", "모바일 이전·다음 버튼을 손가락 위치에 고정");
+assertContains(webHtml, "4단계만 따라 하면 돼요.", "초등학생용 짧은 시작 안내 적용");
 
 if (failures.length) {
   console.error(`\nCross-check failed: ${failures.length} issue(s)`);

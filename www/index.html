@@ -2353,6 +2353,159 @@
         .device-node small {
           grid-column: 2;
         }
+        /* ── 초등학생·휴대폰 우선 화면 ── */
+        body {
+          font-size: 16px;
+          padding-bottom: 78px;
+        }
+        .wrap { width: calc(100% - 16px); }
+        header .wrap { min-height: 54px; padding: 7px 0; }
+        header h1 { gap: 7px; font-size: 17px; white-space: nowrap; }
+        header h1::before { width: 28px; height: 28px; font-size: 16px; border-radius: 7px; }
+        header p.small,
+        header .badge,
+        .header-beta { display: none; }
+        .theme-toggle { width: 42px; min-height: 42px; padding: 0; }
+        main { padding-top: 8px; }
+        section:has(.wizard-step) {
+          padding: 14px 12px;
+          border-radius: 16px;
+        }
+        section:has(.wizard-step) > h2,
+        section:has(.wizard-step) > .dojo-hero { display: none; }
+        .setup-copy {
+          margin: 0 0 9px;
+          color: var(--text);
+          font-size: 16px;
+          font-weight: 900;
+          text-align: center;
+        }
+        .beta-purpose {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          margin: 0 0 9px;
+          padding: 9px 10px;
+          font-size: 13px;
+          line-height: 1.35;
+        }
+        .beta-purpose strong { flex: 0 0 auto; margin: 0; }
+        .beta-purpose small { display: none; }
+        .program-guide { margin: 0 0 10px; }
+        .program-guide > summary {
+          min-height: 44px;
+          padding: 10px 12px;
+          font-size: 14px;
+        }
+        .wizard-progress { margin: 10px 0 13px; gap: 5px; }
+        .wizard-progress .wp-dot { height: 6px; }
+        .wizard-steplabel { font-size: 13px; }
+        .wizard-steptitle {
+          margin: 3px 0 14px;
+          font-size: 22px;
+          line-height: 1.25;
+        }
+        .mobile-secondary-label { display: none; }
+        .wizard-step[data-step="1"] .mode-tabs {
+          grid-template-columns: 1fr;
+          gap: 9px;
+        }
+        .mode-tab {
+          min-height: 66px;
+          padding: 12px 14px;
+        }
+        .mode-tab strong { font-size: 18px; }
+        .mode-tab span { font-size: 13px; line-height: 1.35; }
+        #modeHelp { display: none; }
+        .mobile-advanced-fold { margin-top: 9px; }
+        .mobile-advanced-fold > summary {
+          min-height: 42px;
+          padding: 9px 11px;
+          font-size: 13px;
+        }
+        .gangyu-toggle { min-height: 48px; font-size: 14px; }
+        .poomsae-tabs:not(.mode-tabs) {
+          gap: 6px;
+        }
+        .poomsae-tabs:not(.mode-tabs) .poomsae-tab {
+          min-height: 58px;
+          padding: 8px 4px;
+          font-size: 16px;
+        }
+        #poomsaeSelect {
+          min-height: 60px;
+          padding: 10px 13px;
+          font-size: 17px;
+          font-weight: 900;
+        }
+        .camera-view-row { gap: 8px; }
+        .camera-view-tab {
+          min-height: 86px;
+          padding: 14px 10px 10px;
+        }
+        .camera-view-tab strong { font-size: 17px; }
+        .camera-view-tab span:not(.cv-cams) { font-size: 12px; }
+        .camera-view-guide,
+        .camera-view-checklist,
+        .multi-device-panel,
+        #sensitivityFold,
+        .wizard-step[data-step="4"] > .code { display: none !important; }
+        .upload-slot {
+          padding: 13px;
+          border-radius: 13px;
+        }
+        .upload-slot .field-label { font-size: 17px; }
+        input[type="file"] {
+          min-height: 64px;
+          font-size: 15px;
+        }
+        .analyze-label {
+          margin-top: 14px;
+          text-align: center;
+          font-size: 18px;
+        }
+        .primary-actions button {
+          min-height: 70px;
+          font-size: 20px;
+          font-weight: 900;
+        }
+        .wizard-nav {
+          position: sticky;
+          bottom: 76px;
+          z-index: 20;
+          grid-template-columns: minmax(92px, .34fr) minmax(0, .66fr);
+          gap: 8px;
+          margin: 16px -4px -5px;
+          padding: 8px 4px 5px;
+          background: color-mix(in srgb, var(--panel) 94%, transparent);
+          backdrop-filter: blur(8px);
+        }
+        .wizard-nav:has(.wn-prev:disabled) { grid-template-columns: 1fr; }
+        .wizard-nav .wn-prev:disabled { display: none; }
+        .wizard-nav button {
+          min-height: 60px;
+          border-radius: 14px;
+          font-size: 18px;
+          font-weight: 900;
+        }
+        .wizard-hint { font-size: 13px; text-align: center; }
+        body[data-wizard-step="1"] #videoSection,
+        body[data-wizard-step="2"] #videoSection,
+        body[data-wizard-step="3"] #videoSection,
+        body[data-wizard-step="1"] #analysisStatusSection,
+        body[data-wizard-step="2"] #analysisStatusSection,
+        body[data-wizard-step="3"] #analysisStatusSection {
+          display: none;
+        }
+        .quick-nav {
+          padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
+        }
+        .quick-nav button {
+          min-height: 52px;
+          padding: 6px 3px;
+          font-size: 13px;
+          font-weight: 900;
+        }
       }
     </style>
   </head>
@@ -2360,33 +2513,33 @@
     <header>
       <div class="wrap">
         <div>
-          <h1>태권도 품새수련 Beta</h1>
-          <p class="small">수련생과 지도자를 위한 동작별 영상 분석 보조 도우미 · v4.14</p>
+          <h1>태권도 품새수련 <span class="header-beta">Beta</span></h1>
+          <p class="small">내 품새 영상을 동작별로 쉽게 확인해요 · v4.14</p>
         </div>
         <span class="badge">수련 보조 · Beta</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
       </div>
     </header>
     <nav class="quick-nav wrap" aria-label="빠른 이동">
-      <button type="button" data-jump="setup" class="active">설정</button>
+      <button type="button" data-jump="setup" class="active">시작</button>
       <button type="button" data-jump="video">영상</button>
-      <button type="button" data-jump="segments">동작별</button>
-      <button type="button" data-jump="result">리포트</button>
+      <button type="button" data-jump="segments">동작</button>
+      <button type="button" data-jump="result">결과</button>
     </nav>
 
     <main class="wrap">
       <div class="grid">
         <section>
-          <h2>품새 영상 분석 시작</h2>
+          <h2>품새 분석 시작</h2>
           <p class="dojo-hero">今日의 修練 · 오늘의 수련</p>
-          <p class="setup-copy">품새와 영상을 고르면 준비자세부터 마지막 동작까지 하나씩 나누어 보여드려요.</p>
+          <p class="setup-copy">4단계만 따라 하면 돼요.</p>
           <div class="beta-purpose" role="note" aria-label="베타 앱 이용 안내">
-            <strong>가장 먼저 확인해요</strong>
-            <span>첫 동작 시작점과 동작별 시작·끝이 영상에 맞는지 확인하세요. 어긋난 곳은 ‘동작 구간 바로잡기’로 직접 고칠 수 있어요.</span>
+            <strong>먼저 봐요</strong>
+            <span>동작의 시작과 끝이 영상에 맞는지 확인해요.</span>
             <small>이 앱은 수련생과 지도자를 위한 보조 도우미입니다. 동작별 영상을 빠르게 확인하고 지도할 수 있도록 돕지만, 지도자의 지도와 공식 심사·경기 판정을 대신하지 않습니다.</small>
           </div>
           <details class="program-guide">
-            <summary>이 앱은 어떻게 쓰나요?</summary>
+            <summary>도움말 보기</summary>
             <div class="program-guide-body">
               <p>품새 영상을 넣으면 준비자세와 첫 동작 시작점을 찾고, 영상을 공식 동작 순서대로 나누어 수련생과 지도자가 함께 확인할 수 있게 해주는 보조 도우미예요.</p>
               <ol class="program-guide-steps">
@@ -2414,32 +2567,37 @@
           <!-- 1단계: 무엇을 볼지 -->
           <div class="wizard-step active" data-step="1">
             <div class="wizard-steplabel">1단계 / 4</div>
-            <h3 class="wizard-steptitle">무엇을 볼까요?</h3>
-            <div class="field-label">훈련 목적 <span>고른 것에 따라 결과 보여주는 방식이 달라져요</span></div>
+            <h3 class="wizard-steptitle">분석 방법을 골라요</h3>
+            <div class="field-label mobile-secondary-label">훈련 목적 <span>원하는 방법 하나를 골라요</span></div>
             <div class="poomsae-tabs mode-tabs" role="tablist" aria-label="훈련 목적">
               <button type="button" class="poomsae-tab mode-tab active" data-mode="exam">
-                <strong>수련 동작 분석 <em class="beginner-tag">기본·추천</em></strong>
-                <span>시작점·동작 구간·고칠 점을 쉬운 말로 확인</span>
+                <strong>기본 분석 <em class="beginner-tag">추천</em></strong>
+                <span>동작과 고칠 점을 쉽게 봐요</span>
               </button>
               <button type="button" class="poomsae-tab mode-tab" data-mode="competition">
-                <strong>경기 참고 <em class="beginner-tag">선택</em></strong>
-                <span>동작별 분석에 훈련용 참고점수를 추가</span>
+                <strong>경기 점수 참고 <em class="beginner-tag">선택</em></strong>
+                <span>연습용 점수도 함께 봐요</span>
               </button>
             </div>
             <div class="code" id="modeHelp" style="margin-top: 10px;">
-              수련 동작 분석: 첫 동작 시작점과 동작별 구간을 먼저 보여주고, 점수 없이 수련생과 지도자가 함께 확인할 고칠 점을 알려드립니다.
+              기본 분석은 동작의 시작·끝과 고칠 점을 쉽게 보여줘요.
             </div>
-            <label class="gangyu-toggle" style="margin-top:10px;">
-              <input id="gangyuToggle" type="checkbox" />
-              <span><b>고급(선택)</b> · 강유(剛柔) 분석 추가 — 동작이 언제 힘 있게, 언제 부드럽게 나오는지도 함께 보고 싶으면 켜세요. 몰라도 괜찮아요.</span>
-            </label>
+            <details class="advanced-fold mobile-advanced-fold">
+              <summary>고급 분석</summary>
+              <div class="advanced-fold-body">
+                <label class="gangyu-toggle">
+                  <input id="gangyuToggle" type="checkbox" />
+                  <span>힘 있게·부드럽게 움직이는 것도 볼래요.</span>
+                </label>
+              </div>
+            </details>
           </div>
 
           <!-- 2단계: 품새 고르기 -->
           <div class="wizard-step" data-step="2">
             <div class="wizard-steplabel">2단계 / 4</div>
-            <h3 class="wizard-steptitle">어떤 품새인가요?</h3>
-            <div class="field-label">품새 선택 <span>내 급수를 먼저 누르고, 품새를 골라요</span></div>
+            <h3 class="wizard-steptitle">품새를 골라요</h3>
+            <div class="field-label mobile-secondary-label">품새 선택 <span>내 급수를 먼저 눌러요</span></div>
             <div class="poomsae-tabs" role="tablist" aria-label="품새 구분">
               <button type="button" class="poomsae-tab active" data-group="yugeup">유급자</button>
               <button type="button" class="poomsae-tab" data-group="yupum">유품자</button>
@@ -2454,24 +2612,24 @@
           <!-- 3단계: 어떻게 찍었나요 -->
           <div class="wizard-step" data-step="3">
             <div class="wizard-steplabel">3단계 / 4</div>
-            <h3 class="wizard-steptitle">어떻게 찍었나요?</h3>
-            <div class="field-label">촬영 방식 <span>폰 1대로 정면에서 찍으면 가장 쉬워요</span></div>
+            <h3 class="wizard-steptitle">찍은 방향을 골라요</h3>
+            <div class="field-label mobile-secondary-label">촬영 방식 <span>정면 촬영이 가장 쉬워요</span></div>
             <div class="poomsae-tabs mode-tabs camera-view-tabs" role="tablist" aria-label="촬영 방식">
               <div class="camera-view-row">
                 <button type="button" class="poomsae-tab mode-tab camera-view-tab active" data-view="front" data-label="정면">
                   <span class="cv-cams">폰 1대</span>
                   <strong>정면 <em class="beginner-tag">추천</em></strong>
-                  <span>가장 쉬워요</span>
+                  <span>앞에서 찍었어요</span>
                 </button>
                 <button type="button" class="poomsae-tab mode-tab camera-view-tab" data-view="diagonal">
                   <span class="cv-cams">폰 1대</span>
                   <strong>대각선</strong>
-                  <span>앞뒤도 조금 보여요</span>
+                  <span>비스듬히 찍었어요</span>
                 </button>
               </div>
             </div>
             <details class="advanced-fold" id="multiCameraFold">
-              <summary>더 정확하게 찍고 싶다면 (폰 2~3대, 선택)</summary>
+              <summary>폰을 여러 대 썼어요</summary>
               <div class="advanced-fold-body">
                 <div class="poomsae-tabs mode-tabs camera-view-tabs">
                   <div class="camera-view-row">
@@ -2523,9 +2681,9 @@
           <!-- 4단계: 영상 넣고 분석 -->
           <div class="wizard-step" data-step="4">
             <div class="wizard-steplabel">4단계 / 4</div>
-            <h3 class="wizard-steptitle">영상을 넣고 시작해요</h3>
+            <h3 class="wizard-steptitle">영상을 골라요</h3>
             <div class="control-grid upload-slot is-needed" id="fileInputAWrap">
-              <div class="field-label" id="fileInputALabel" style="margin:0 0 6px;">정면 영상 <span id="fileInputAHint">1번 카메라(앞에서)</span></div>
+              <div class="field-label" id="fileInputALabel" style="margin:0 0 6px;">영상 파일 <span id="fileInputAHint">앞에서 찍은 영상</span></div>
               <input id="fileInput" type="file" accept="video/mp4,video/*" />
               <p class="upload-status" id="uploadStatusA">1번 정면 영상 대기 중</p>
             </div>
@@ -2550,9 +2708,9 @@
                 </select>
               </div>
             </details>
-            <div class="field-label">동작별 영상 분석 <span>준비자세와 첫 동작부터 차례로 확인해요</span></div>
+            <div class="field-label analyze-label">준비됐어요!</div>
             <div class="primary-actions">
-              <button id="analyzeBtn" disabled>동작별 분석 시작</button>
+              <button id="analyzeBtn" disabled>분석 시작 ▶</button>
               <button id="reanalyzeBtn" class="secondary" disabled hidden>재분석(초기화)</button>
               <button id="loadModelBtn" type="button" hidden>모델 준비</button>
             </div>
@@ -2614,7 +2772,7 @@
           </div>
         </section>
 
-        <section>
+        <section id="analysisStatusSection">
           <h2>분석 상태</h2>
           <div class="metrics">
             <div class="metric"><strong>길이</strong><span id="durationText">-</span></div>
@@ -5529,11 +5687,13 @@
             const target = button.dataset.jump;
             document.querySelectorAll("[data-jump]").forEach((item) => item.classList.toggle("active", item === button));
             if (target === "setup") {
+              if (window.matchMedia("(max-width: 768px)").matches) wizardGoTo(1);
               showTrainingPage();
               window.scrollTo({ top: 0, behavior: "smooth" });
               return;
             }
             if (target === "video") {
+              if (window.matchMedia("(max-width: 768px)").matches) wizardGoTo(4);
               scrollToTrainingElement(video);
               return;
             }
@@ -10812,6 +10972,7 @@
       }
 
       function renderWizard() {
+        document.body.dataset.wizardStep = String(wizardStep);
         wizardSteps.forEach((el) => {
           el.classList.toggle("active", Number(el.dataset.step) === wizardStep);
         });
