@@ -2094,7 +2094,13 @@
         .app-footer-partners { max-height: 56px; }
       }
       @media (prefers-reduced-motion: reduce) {
-        .app-footer-partner-track { animation: none; transform: none; }
+        .app-footer-partner-track {
+          animation-name: footer-partner-marquee-right;
+          animation-duration: 32s;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
+          animation-play-state: running;
+        }
       }
       /* ── 초소형 폰(≤380px): 라벨이 배지와 겹치지 않게 보강 ── */
       @media (max-width: 380px) {

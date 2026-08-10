@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v92-mobile-footer-marquee";
+const CACHE_NAME = "poomsae-training-v93-mobile-footer-marquee-reduced-motion";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",
