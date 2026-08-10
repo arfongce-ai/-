@@ -2001,29 +2001,45 @@
         padding: 9px 2px;
         margin: -9px -2px;
       }
-      .app-footer-partner-block {
-        position: relative;
-        display: block;
-        grid-column: 1 / -1;
-        width: 100%;
+.app-footer-partner-block {
+  position: relative;
+  display: block;
+  grid-column: 1 / -1;
+  width: 100%;
         margin: 0 0 4px;
-        overflow: hidden;
-        border-radius: 8px;
-        background: #ffffff;
-      }
-      .app-footer-partner-track {
-        display: flex;
-        align-items: center;
-        gap: 2px;
-        width: max-content;
-        padding: 4px;
-        box-sizing: border-box;
-        animation: footer-partner-marquee-right 22s linear infinite;
-        will-change: transform;
-      }
-      .app-footer-partner-block:hover .app-footer-partner-track {
-        animation-play-state: paused;
-      }
+  overflow: hidden;
+  border-radius: 8px;
+  background: #ffffff;
+  touch-action: pan-y;
+}
+.app-footer-partner-track {
+  --footer-marquee-copy-width: 100vw;
+  --footer-marquee-shift: -100vw;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: max-content;
+  padding: 0;
+  box-sizing: border-box;
+  animation: footer-partner-marquee-right 22s linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+.app-footer-marquee-copy {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: var(--footer-marquee-copy-width);
+  justify-content: space-evenly;
+  gap: 2px;
+  padding: 4px 1px;
+  box-sizing: border-box;
+}
+@media (hover: hover) and (pointer: fine) {
+  .app-footer-partner-block:hover .app-footer-partner-track {
+    animation-play-state: paused;
+  }
+}
       .app-footer-partners {
         display: block;
         width: 100%;
@@ -2054,10 +2070,10 @@
         object-fit: contain;
       }
       .app-footer-campaign-group { display: none; }
-      @keyframes footer-partner-marquee-right {
-        from { transform: translateX(-50%); }
-        to { transform: translateX(0); }
-      }
+@keyframes footer-partner-marquee-right {
+  from { transform: translate3d(var(--footer-marquee-shift), 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
       #segmentsSection:has(#segments:empty) { display: none; }
       .yongin-logo-link {
         position: relative;
@@ -2823,14 +2839,18 @@
       <div class="app-footer-inner">
         <div class="app-footer-partner-block">
           <div class="app-footer-partner-track">
-            <span id="partnerBanner" class="app-footer-campaign-group"></span>
+            <span class="app-footer-marquee-copy">
+              <span id="partnerBanner" class="app-footer-campaign-group"></span>
             <a class="app-footer-campaign yongin-logo-link" href="https://www.instagram.com/yongin_kr" target="_blank" rel="noopener" aria-label="용인대 국가대표태권도 인스타그램 @yongin_kr 새 창으로 열기">
               <img class="app-footer-partners" src="./assets/partner-taekwondo-logos.png" alt="용인대 국가대표 태권도 및 Taigon 시범단 로고" loading="lazy" />
             </a>
-            <span id="partnerBannerClone" class="app-footer-campaign-group" aria-hidden="true"></span>
+            </span>
+            <span class="app-footer-marquee-copy" aria-hidden="true">
+              <span id="partnerBannerClone" class="app-footer-campaign-group" aria-hidden="true"></span>
             <a class="app-footer-campaign yongin-logo-link" href="https://www.instagram.com/yongin_kr" target="_blank" rel="noopener" aria-hidden="true" tabindex="-1">
               <img class="app-footer-partners" src="./assets/partner-taekwondo-logos.png" alt="" aria-hidden="true" loading="lazy" />
             </a>
+            </span>
           </div>
         </div>
         <button type="button" id="adminModeTrigger" class="admin-logo-trigger" aria-label="관리자 설정 열기">
@@ -2902,6 +2922,8 @@
 
     <script type="module">
       import { buildDatasetCandidate, scoreActionSequence } from "./action-model.mjs";
+      import { compareTextbookPose } from "./textbook-pose-match.mjs";
+      import { compareVideoReference } from "./video-reference-match.mjs";
       // ── Firebase 연동(보정 기록 자동 수집) ──
       // 보정 기록을 사장님 Firestore(momgagym-cms)에 자동으로 모은다.
       // 실패해도(오프라인/차단) 앱 본체는 정상 동작하며, 기록은 로컬에도 항상 저장된다(이중 안전).
@@ -3402,14 +3424,50 @@
       function bannerShouldBeVisible(config) {
         return activeBannerCampaigns(config).length > 0;
       }
-      let _bannerConfigCache = null;
-      let _bannerCheckTimer = null;
-      function applyBannerToDom(config) {
+let _bannerConfigCache = null;
+let _bannerCheckTimer = null;
+let _bannerRenderSignature = null;
+let _footerMarqueeResizeFrame = 0;
+
+function syncFooterPartnerMarquee(restart = false) {
+  const block = document.querySelector(".app-footer-partner-block");
+  const track = block?.querySelector(".app-footer-partner-track");
+  const firstCopy = track?.querySelector(".app-footer-marquee-copy");
+  if (!block || !track || !firstCopy) return;
+
+  const containerWidth = Math.max(1, Math.ceil(block.getBoundingClientRect().width));
+  track.style.setProperty("--footer-marquee-copy-width", `${containerWidth}px`);
+  const copyWidth = Math.max(containerWidth, Math.ceil(firstCopy.scrollWidth));
+  track.style.setProperty("--footer-marquee-copy-width", `${copyWidth}px`);
+  track.style.setProperty("--footer-marquee-shift", `${-copyWidth}px`);
+
+  if (restart) {
+    track.style.animation = "none";
+    void track.offsetWidth;
+    track.style.animation = "";
+  }
+}
+
+window.addEventListener("resize", () => {
+  cancelAnimationFrame(_footerMarqueeResizeFrame);
+  _footerMarqueeResizeFrame = requestAnimationFrame(() => syncFooterPartnerMarquee(false));
+}, { passive: true });
+
+function applyBannerToDom(config) {
         const el = document.getElementById("partnerBanner");
         const clone = document.getElementById("partnerBannerClone");
         if (!el || !clone) return;
-        const campaigns = activeBannerCampaigns(config);
-        const visible = campaigns.length > 0;
+  const campaigns = activeBannerCampaigns(config);
+  const visible = campaigns.length > 0;
+  const signature = JSON.stringify(campaigns.map((campaign) => [
+    campaign.imageUrl || "",
+    campaign.linkUrl || "",
+    campaign.alt || ""
+  ]));
+  if (_bannerRenderSignature === signature) {
+    requestAnimationFrame(() => syncFooterPartnerMarquee(false));
+    return;
+  }
         const makeItems = (isClone) => campaigns.map((campaign, index) => {
           const link = document.createElement("a");
           link.className = "app-footer-campaign";
@@ -3431,9 +3489,11 @@
         });
         el.replaceChildren(...makeItems(false));
         clone.replaceChildren(...makeItems(true));
-        el.style.display = visible ? "contents" : "none";
-        clone.style.display = visible ? "contents" : "none";
-      }
+  el.style.display = visible ? "contents" : "none";
+  clone.style.display = visible ? "contents" : "none";
+  _bannerRenderSignature = signature;
+  requestAnimationFrame(() => syncFooterPartnerMarquee(true));
+}
       async function initPartnerBanner() {
         try {
           const snap = await _fbGetDoc(_fbDoc(_fbDB, "app_config", "banner"));
@@ -3857,7 +3917,24 @@
         };
       }
 
-      const poomsaeData = {
+    const KORYO_KICK_STAGES = Object.freeze({
+      2: Object.freeze([
+        "2-1 오른발 한 발로 아래 옆차기(무릎)를 차고",
+        "2-2 이어서 옆차기(몸통 또는 얼굴)를 차고 내디뎌"
+      ]),
+      6: Object.freeze([
+        "6-1 왼발 한 발로 아래 옆차기(무릎)를 차고",
+        "6-2 이어서 옆차기(몸통 또는 얼굴)를 차고 내디뎌"
+      ]),
+      10: Object.freeze(["10-1 오른발 앞차기 차고 내디뎌"]),
+      11: Object.freeze(["11-1 왼발 앞차기 차고 내디뎌"]),
+      12: Object.freeze(["12-1 오른발 앞차기 차고 내디뎌"]),
+      14: Object.freeze(["14-1 왼발 앞차기 차고 내디뎌"]),
+      18: Object.freeze(["18-2 왼발 옆차기 차고(다② 방향) 돌아 디뎌"]),
+      23: Object.freeze(["23-2 오른발 옆차기 차고(라② 방향) 돌아 디뎌"])
+    });
+
+    const poomsaeData = {
         taegeuk_1: {
           name: "태극 1장",
           count: 18,
@@ -4378,32 +4455,32 @@
         koryo: {
           name: "고려",
           count: 30,
-          note: "국기원 최종 수정본 반영(2026-07-20, 교본 대조) + 품새선 데이터 반영/9개 동작 정정(2026-07-21)",
+          note: "국기원 최종 수정본 반영(2026-07-20, 교본 대조) + 품새선 데이터 반영/9개 동작 정정(2026-07-21) + 발차기명 보완(2026-07-24)",
           movements: [
             ["준비서기", "나", null, null],
             ["오른뒷굽이 왼손날거들어바깥막기", "다①", "내디뎌", null],
-            ["오른앞굽이 오른목손날바깥치기", "다①", "오른발 거듭옆차기 차고 내디뎌", null],
+            ["오른발 거듭옆차고 오른앞굽이 오른목손날바깥치기", "다①", "오른발 거듭옆차기 차고 내디뎌", null],
             ["오른앞굽이 왼지르기", "다①", "서기 그대로", null],
             ["왼뒷굽이 오른안막기", "다①", "왼발 제자리 오른발 당겨", null],
             ["왼뒷굽이 오른손날거들어바깥막기", "라①", "왼발 축 시계방향 오른발 돌아 디뎌", null],
-            ["왼앞굽이 왼목손날바깥치기", "라①", "왼발 거듭옆차기 차고 내디뎌", null],
+            ["왼발 거듭옆차고 왼앞굽이 왼목손날바깥치기", "라①", "왼발 거듭옆차기 차고 내디뎌", null],
             ["왼앞굽이 오른바로지르기", "라①", "서기 그대로", null],
             ["오른뒷굽이 왼안막기", "라①", "오른발 제자리 왼발 당겨", null],
             ["왼앞굽이 왼손날아래막고 오른목아금손앞치기", "가", "오른발 축 시계 반대 방향 왼발 돌아 디뎌", null],
-            ["오른앞굽이 왼목아금손앞치기", "가", "오른발 앞차고 내디뎌 오른손날아래막기", null],
-            ["왼앞굽이 왼손날아래막고 오른목아금손앞치기(기합)", "가", "왼발 앞차고 내디뎌", null],
-            ["오른앞굽이 왼무릎눌러꺾기", "가", "오른발 앞차고 내디뎌", null],
+            ["오른발 앞차고 오른앞굽이 오른손날아래막고 왼목아금손앞치기", "가", "오른발 앞차고 내디뎌 오른손날아래막기", null],
+            ["왼발 앞차고 왼앞굽이 왼손날아래막고 오른목아금손앞치기(기합)", "가", "왼발 앞차고 내디뎌", null],
+            ["오른발 앞차고 오른앞굽이 왼무릎눌러꺾기", "가", "오른발 앞차고 내디뎌", null],
             ["오른앞굽이 안팔목헤쳐막기", "나", "왼발 내딛고 오른쪽으로 돌아", null],
-            ["왼앞굽이 오른무릎눌러꺾기", "나", "왼발 앞차기 차고 내디뎌", null],
+            ["왼발 앞차고 왼앞굽이 오른무릎눌러꺾기", "나", "왼발 앞차기 차고 내디뎌", null],
             ["왼앞서기 안팔목헤쳐막기", "나", "왼발 당겨", null],
             ["주춤서기 왼손날옆막기", "라②", "축 시계방향 오른발 돌아 디뎌", "다②"],
             ["주춤서기 오른표적옆지르기", "라②", "서기 그대로", "다②"],
-            ["오른앞굽이 왼아래젖혀찌르기", "다②", "오른발 앞꼬아서기로 옮겨 딛고 왼발 옆차기 차고 다② 방향에 내려 딛고 라② 방향 돌아 서며", "라②"],
+            ["왼발 옆차고 오른앞굽이 왼아래젖혀찌르기", "다②", "오른발 앞꼬아서기로 옮겨 딛고 왼발 옆차기 차고 다② 방향에 내려 딛고 라② 방향 돌아 서며", "라②"],
             ["오른앞서기 오른아래막기", "다②", "왼발 제자리 오른발 당겨", "라②"],
             ["주춤서기 왼바탕손눌러막고 오른팔꿈치거들어옆치기", "라②", "왼발 한 걸음 내딛고 바탕손 눌러막기 이어 오른발 내디뎌", null],
             ["주춤서기 오른손날옆막기", "라②", "서기 그대로", null],
             ["주춤서기 왼표적옆지르기", "라②", "서기 그대로", null],
-            ["왼앞굽이 오른아래젖혀찌르기", "라②", "왼발 앞꼬아서기로 옮겨 딛고 오른발 옆차기 차고 라② 방향에 내려 딛고 다② 방향 돌아 디뎌", "다②"],
+            ["오른발 옆차고 왼앞굽이 오른아래젖혀찌르기", "라②", "왼발 앞꼬아서기로 옮겨 딛고 오른발 옆차기 차고 라② 방향에 내려 딛고 다② 방향 돌아 디뎌", "다②"],
             ["왼앞서기 왼아래막기", "라②", "오른발 제자리 왼발 당겨", "다②"],
             ["주춤서기 오른바탕손눌러막고 왼팔꿈치거들어옆치기", "라②", "오른발 한 걸음 내딛고 오른 바탕손 눌러막기 이어 왼발 내디뎌", "다②"],
             ["모아서기 왼아래메주먹표적안치기", "가", "왼발 제자리 오른발 당겨 모아서기", null],
@@ -4417,7 +4494,8 @@
             type: inferMovementType(name),
             position,
             stepType,
-            gaze
+            gaze,
+            kickStages: KORYO_KICK_STAGES[i] || []
           }))
         },
         // 2026-07-20: 태권도 교본 3 품새 원본 대조 후 전면 재작성. 표와 본문 상세 설명이 전 구간에서 일치 확인됨.
@@ -5135,10 +5213,44 @@
       let selectedFile = null;
       let poseLandmarker = null;
       let actionQualityModel = null;
+      const textbookPoseReferences = {};
+      const videoMotionReferences = {};
       fetch("./models/action-quality-v1.json", { cache: "no-store" })
         .then((response) => response.ok ? response.json() : null)
         .then((model) => { actionQualityModel = model; })
         .catch(() => { actionQualityModel = null; });
+      [
+        ["taegeuk_1", "./models/taegeuk-1-textbook-reference.json"],
+        ["taegeuk_2", "./models/taegeuk-2-textbook-reference.json"],
+        ["taegeuk_3", "./models/taegeuk-3-textbook-reference.json"],
+        ["taegeuk_4", "./models/taegeuk-4-textbook-reference.json"],
+        ["taegeuk_5", "./models/taegeuk-5-textbook-reference.json"],
+        ["taegeuk_6", "./models/taegeuk-6-textbook-reference.json"],
+        ["koryo", "./models/koryo-textbook-reference.json"]
+      ].forEach(([poomsaeKey, referenceUrl]) => {
+        fetch(referenceUrl, { cache: "no-store" })
+          .then((response) => response.ok ? response.json() : null)
+          .then((reference) => {
+            if (reference) textbookPoseReferences[poomsaeKey] = reference;
+          })
+          .catch(() => {
+            delete textbookPoseReferences[poomsaeKey];
+          });
+      });
+      [
+        ["taegeuk_5", "./models/taegeuk-5-video-reference.json"],
+        ["taegeuk_6", "./models/taegeuk-6-video-reference.json"],
+        ["koryo", "./models/koryo-video-reference.json"]
+      ].forEach(([poomsaeKey, referenceUrl]) => {
+        fetch(referenceUrl, { cache: "no-store" })
+          .then((response) => response.ok ? response.json() : null)
+          .then((reference) => {
+            if (reference) videoMotionReferences[poomsaeKey] = reference;
+          })
+          .catch(() => {
+            delete videoMotionReferences[poomsaeKey];
+          });
+        });
       let latestReport = null;
       // 수동 구간 조정용: 마지막 분석의 경계/모션/프레임 캐시와 동작 목록을 보존한다.
       // 영상 재추출 없이 경계만 바꿔 구간을 다시 만들기 위함(효율).
@@ -6142,6 +6254,26 @@
                   : `<span>${escapeHtml(segment.mergedMovementNumbers || "")} · 동작명 자동 추정</span>`}
                 ${deductionMarkup}
               </div>
+                    ${Array.isArray(segment.kickStages) && segment.kickStages.length ? `
+                      <p class="movement-estimate-note"><b>발차기:</b> ${segment.kickStages.map((stage) => escapeHtml(stage)).join(" · ")}</p>
+                    ` : ""}
+                    ${segment.textbookMatch?.available ? `
+                <p class="movement-estimate-note">
+                  <b>교본 자세 일치:</b> ${segment.textbookMatch.score}% ·
+                  <b>동작 신뢰도:</b> ${Math.round((segment.movementConfidence || 0) * 100)}%
+                  ${segment.textbookMatch.confidenceRaised
+                    ? `<span class="status good">교본 일치 반영</span>`
+                    : `<span class="status caution">참고용</span>`}
+                </p>` : ""}
+              ${segment.videoMotionMatch?.available ? `
+                <p class="movement-estimate-note">
+                  <b>영상 동작 흐름 일치:</b> ${segment.videoMotionMatch.score}% ·
+                  <b>중간 자세:</b> ${segment.videoMotionMatch.matchedPhases}/${segment.videoMotionMatch.totalPhases} ·
+                  <b>동작 신뢰도:</b> ${Math.round((segment.movementConfidence || 0) * 100)}%
+                  ${segment.videoMotionMatch.confidenceRaised
+                    ? `<span class="status good">영상 흐름 반영</span>`
+                    : `<span class="status caution">참고용</span>`}
+                </p>` : ""}
               ${connectionExtra}${compoundExtra}${examExtra}${competitionExtra}${gangyuExtra}
               <div class="scene-issues">${issueMarkup}</div>
               <p class="movement-estimate-note"><b>확인 가능:</b> ${escapeHtml((segment.evidence?.observable || []).join(", "))} · <b>추정:</b> ${escapeHtml((segment.evidence?.estimated || []).join(", "))} · <b>지도자 확인 필요:</b> ${escapeHtml((segment.evidence?.coachRequired || []).join(", "))}</p>
@@ -6661,7 +6793,10 @@
         for (const segment of latestReport.segments) {
           const scoreText = trainingMode === "exam" ? "" : ` (${segment.competitionScore10.toFixed(1)}점)`;
           const mergeTag = segment.mergedMovementCount > 1 ? ` [${segment.mergedMovementNumbers || ""} 동작 묶음]` : "";
-          lines.push(`- **${segment.orderLabel || segment.order}. ${segment.name}**${mergeTag} - ${segment.label}${scoreText}`);
+        lines.push(`- **${segment.orderLabel || segment.order}. ${segment.name}**${mergeTag} - ${segment.label}${scoreText}`);
+        if (Array.isArray(segment.kickStages) && segment.kickStages.length) {
+          lines.push(`  - 발차기: ${segment.kickStages.join(" · ")}`);
+        }
           if (trainingMode === "exam") {
             const c = movementCertainty(segment);
             lines.push(`  - 동작이 잘 보이나요: ${c.tag} (${c.kid})`);
@@ -9132,6 +9267,19 @@
         const stanceScore = scoreStance(frames);
         const visibilityScore = stableRound(visibility * 100);
         const actionIdentity = scoreActionSequence(actionQualityModel, movement.id, frames, view);
+        const textbookMatch = compareTextbookPose(
+          textbookPoseReferences[selectedPoomsaeKey] || null,
+          selectedPoomsaeKey,
+          movement.id,
+          frames
+        );
+        const videoMotionMatch = compareVideoReference(
+          videoMotionReferences[selectedPoomsaeKey] || null,
+          selectedPoomsaeKey,
+          movement.id,
+          frames,
+          view
+        );
 
         // ── 추가 축 측정(관절 각도 · 궤적) ──
         // 측면/3면 영상에서 깊이 방향 동작이 더 잘 보이므로 각도 신뢰도를 가산한다.
@@ -9145,6 +9293,25 @@
           angleScore = clamp(Math.round(((angle.straightArm - 120) / (170 - 120)) * 100), 0, 100);
         }
         const angleConfidence = Number((angle.confidence * viewBoost).toFixed(2));
+        const baseMovementConfidence = clamp(
+          (detectedFrames.length / Math.max(frames.length, 1)) * profile.confidence,
+          0,
+          1
+        );
+        const textbookAdjustedConfidence = clamp(
+          baseMovementConfidence +
+            (textbookMatch.available ? textbookMatch.confidenceBoost * (1 - baseMovementConfidence) : 0),
+          0,
+          0.99
+        );
+        const movementConfidence = clamp(
+          textbookAdjustedConfidence +
+            (videoMotionMatch.available
+              ? videoMotionMatch.confidenceBoost * (1 - textbookAdjustedConfidence)
+              : 0),
+          0,
+          0.99
+        );
 
         const powerScore = stableRound(
           visibilityScore * .12 +
@@ -9176,6 +9343,10 @@
           evidence,
           referenceDeduction,
           actionIdentity,
+          textbookMatch,
+          videoMotionMatch,
+          movementConfidence: Number(movementConfidence.toFixed(2)),
+          movementConfidenceBase: Number(baseMovementConfidence.toFixed(2)),
           stanceCheck,
           orientationCheck,
           poomsaeLinePosition: movement.position || null,
@@ -9604,7 +9775,7 @@
           video.duration.toFixed(3),
           video.videoWidth,
           video.videoHeight,
-          `skeleton-angle-kta-semantic-scenes-revision-9-${boundarySensitivitySelect.value || "0.95"}`
+          `skeleton-angle-kta-semantic-scenes-revision-18-video-pose-koryo-${boundarySensitivitySelect.value || "0.95"}`
         ].join("|");
       }
       function cloneStableData(value) {
@@ -10079,6 +10250,7 @@
               name: mergedName,
               movementType: primary ? primary.type : "",
               movementNumbers: segMovements.map((m) => m && m.moveNo).filter((n) => Number.isFinite(n) && n > 0),
+              kickStages: segMovements.flatMap((m) => Array.isArray(m?.kickStages) ? m.kickStages : []),
               mergedMovementCount: segMovements.length,
               mergedMovementNumbers: movementLabel,
               needsVerification: !!(primary && primary.needsVerification),
@@ -10540,6 +10712,7 @@
         if (!merged || !front) return merged;
         const frontTimelineAndIdentity = [
           "order", "orderLabel", "id", "name", "movementType", "movementNumbers",
+          "kickStages",
           "mergedMovementCount", "mergedMovementNumbers", "needsVerification",
           "allocConfidence", "startTime", "endTime", "snapshot", "manualEdited",
           "isPrep", "isKihap", "compoundStages"
@@ -10951,6 +11124,7 @@
             name: mergedName,
             movementType: primary ? primary.type : "",
             movementNumbers: segmentMovements.map((m) => m && m.moveNo).filter((n) => Number.isFinite(n) && n > 0),
+            kickStages: segmentMovements.flatMap((m) => Array.isArray(m?.kickStages) ? m.kickStages : []),
             mergedMovementCount: segmentMovements.length,
             mergedMovementNumbers: movementLabel,
             needsVerification: !!(primary && primary.needsVerification),

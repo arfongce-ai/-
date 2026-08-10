@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v81-mobile-wizard-unclipped";
+const CACHE_NAME = "poomsae-training-v92-mobile-footer-marquee";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",
@@ -16,7 +16,19 @@ const CORE_ASSETS = [
 const ENGINE_ASSETS = [
   "./models/pose_landmarker_lite.task",
   "./models/action-quality-v1.json",
+  "./models/taegeuk-1-textbook-reference.json",
+  "./models/taegeuk-2-textbook-reference.json",
+  "./models/taegeuk-3-textbook-reference.json",
+  "./models/taegeuk-4-textbook-reference.json",
+  "./models/taegeuk-5-textbook-reference.json",
+  "./models/taegeuk-5-video-reference.json",
+  "./models/taegeuk-6-textbook-reference.json",
+  "./models/taegeuk-6-video-reference.json",
+  "./models/koryo-textbook-reference.json",
+  "./models/koryo-video-reference.json",
   "./action-model.mjs",
+  "./textbook-pose-match.mjs",
+  "./video-reference-match.mjs",
   "./vendor/mediapipe/tasks-vision/vision_bundle.mjs",
   "./vendor/mediapipe/tasks-vision/wasm/vision_wasm_internal.js",
   "./vendor/mediapipe/tasks-vision/wasm/vision_wasm_internal.wasm"
