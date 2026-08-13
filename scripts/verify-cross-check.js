@@ -329,7 +329,7 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v81-mobile-wizard-unclipped", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "const CACHE_NAME = \"poomsae-training-", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
@@ -350,10 +350,13 @@ assertContains(webHtml, "referenceDeductionFor", "KTA -0.1/-0.3 참고 감점 �
 assertContains(webHtml, "판정 보류 · 촬영/지도자 확인", "낮은 감지율의 감점 판정 보류 존재");
 assertContains(webHtml, "현재 Pose 모델에는 눈동자·얼굴 방향 판정 정보가 없어", "시선 처리 과잉 판정 방지 안내 존재");
 assertContains(webHtml, "boundarySensitivitySelect", "구간 감지 민감도 선택 UI 존재");
+assertContains(webHtml, "`camera-${cameraView || \"front\"}`", "촬영 방식이 분석 캐시 키에 반영됨");
+assertContains(webHtml, "fileFingerprint(selectedFileB)", "두 번째 카메라 영상이 분석 캐시 키에 반영됨");
+assertContains(webHtml, "fileFingerprint(selectedFileC)", "세 번째 카메라 영상이 분석 캐시 키에 반영됨");
 assertContains(webHtml, "detectMotionBoundaries", "영상 움직임 기반 구간 경계 탐색 존재");
 assertContains(webHtml, "refineSegmentBoundaries", "예상 경계를 가까운 정지점으로 보정하는 로직 존재");
 assertContains(webHtml, "sample.valid !== false", "관절 미검출 장면을 거짓 정지점 후보에서 제외");
-assertContains(webHtml, "skeleton-angle-kta-semantic-scenes-revision-9-", "연결 장면 방식과 민감도를 캐시 키에 반영");
+assertContains(webHtml, "skeleton-angle-kta-semantic-scenes-revision-18-video-pose-koryo-", "연결 장면 방식과 민감도를 캐시 키에 반영");
 assertContains(webHtml, "selectReusableSegmentFrames", "경계 탐색 포즈 프레임의 안전한 구간 평가 재사용");
 assertContains(webHtml, "nearest.gap > maxGap", "재사용 프레임 최대 시각 오차 안전장치");
 assertContains(webHtml, "sample_source: reusableFrames.length === sampleCount ? \"boundary_scan_reused\" : \"precise_fallback\"", "구간별 재사용 또는 정밀 폴백 기록");
@@ -530,7 +533,7 @@ assertContains(webHtml, "제작: 울산 몸가짐운동센터</p>\n          <p>
 assertContains(webHtml, "<div class=\"app-footer-partner-block\">\n          <div class=\"app-footer-partner-track\">", "파트너 광고판을 운동센터 로고와 제작 정보 위에 표시");
 assertContains(webHtml, "flex: 0 0 clamp(96px, 14vw, 150px)", "광고 로고를 가까운 고정 너비로 배치");
 assertContains(webHtml, "gap: 2px", "광고 사이 간격을 가깝게 적용");
-assertContains(webHtml, "from { transform: translateX(-50%); }", "광고가 왼쪽에서 오른쪽으로 이동");
+assertContains(webHtml, "from { transform: translate3d(var(--footer-marquee-shift), 0, 0); }", "광고가 왼쪽에서 오른쪽으로 이동");
 assertContains(webHtml, "#segmentsSection:has(#segments:empty) { display: none; }", "분석 전 비어 있는 빨간 표시 영역 제거");
 assertContains(webHtml, "border: 0;", "하단 광고 로고 테두리 제거");
 assertContains(webHtml, "https://www.instagram.com/yongin_kr", "용인대 국가대표태권도 인스타그램 링크 존재");

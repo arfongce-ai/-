@@ -9773,11 +9773,15 @@ function applyBannerToDom(config) {
       }
       function currentAnalysisCacheKey() {
         if (!selectedFile || !Number.isFinite(video.duration)) return "";
+        const fileFingerprint = (file) => file
+          ? [file.name, file.size, file.lastModified || 0].join(":")
+          : "none";
         return [
           selectedPoomsaeKey,
-          selectedFile.name,
-          selectedFile.size,
-          selectedFile.lastModified || 0,
+          `camera-${cameraView || "front"}`,
+          `primary-${fileFingerprint(selectedFile)}`,
+          `secondary-${cameraView === "dual" || cameraView === "triple" ? fileFingerprint(selectedFileB) : "unused"}`,
+          `tertiary-${cameraView === "triple" ? fileFingerprint(selectedFileC) : "unused"}`,
           video.duration.toFixed(3),
           video.videoWidth,
           video.videoHeight,
@@ -11425,7 +11429,11 @@ function applyBannerToDom(config) {
       document.querySelectorAll("[data-view]").forEach((tab) => {
         tab.addEventListener("click", () => {
           showTrainingPage();
-          cameraView = tab.dataset.view || "front";
+          const nextCameraView = tab.dataset.view || "front";
+          if (nextCameraView !== cameraView) {
+            cameraView = nextCameraView;
+            clearAnalysisOnly();
+          }
           updateCameraViewUi();
           const info = CAMERA_VIEW_INFO[cameraView];
           renderReport([{ type: "caution", text: `촬영 방식을 '${tab.dataset.label || tab.querySelector("strong")?.textContent || cameraView}'으로 설정했습니다. ${info ? info.guide : ""}` }]);
