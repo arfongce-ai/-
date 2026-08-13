@@ -20,6 +20,7 @@ const required = [
   "www/models/pose_landmarker_lite.task",
   "www/models/action-quality-v1.json",
   "www/action-model.mjs",
+  "www/evidence-calibration.mjs",
   "www/vendor/mediapipe/tasks-vision/vision_bundle.mjs",
   "www/vendor/mediapipe/tasks-vision/wasm/vision_wasm_internal.wasm",
   "www/vendor/mediapipe/tasks-vision/wasm/vision_wasm_internal.js"

@@ -333,7 +333,7 @@ assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "const CAC
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
-assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v17-beta-movement-first", "최상단 배포용 오프라인 엔진 서비스워커 존재");
+assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v18-evidence-calibration", "최상단 배포용 오프라인 엔진 서비스워커 존재");
 assertContains(webHtml, 'import { buildDatasetCandidate, scoreActionSequence } from "./action-model.mjs"', "별도 동작 시퀀스 모델 모듈 연결");
 assertContains(webHtml, "learning_dataset_candidate", "분석 JSON에 전문가 검수용 관절좌표 시퀀스 포함");
 assertContains(webHtml, "actionAccuracyConfidence >= 0.65", "충분한 신뢰도에서만 동작 모델을 정확도 점수에 적용");
@@ -647,12 +647,16 @@ assertContains(webHtml, "_fbSendPasswordReset = authMod.sendPasswordResetEmail",
 assertContains(webHtml, "await _fbSendPasswordReset(_fbAuth, email)", "재설정 버튼이 실제로 Firebase 재설정 메일 발송을 호출함");
 assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "return ['momgagym@naver.com']", "관리자 이메일이 실제 값으로 설정됨(플레이스홀더 아님)");
 
-// ── "이 결과 정확해요" 확인(confirm_all) — 안 고친 정상 케이스도 데이터로 수집 ──
-assertNotContains(webHtml, "id=\"confirmAccurateBtn\"", "번거로운 '확인' 버튼이 제거되고 자동 확인으로 대체됨(UX 단순화)");
-assertContains(webHtml, "function autoConfirmIfUnedited(", "자동 확인 함수 존재(버튼 없이 다음 영상으로 넘어갈 때 기록)");
-assertContains(webHtml, "autoConfirmIfUnedited(); // 직전 영상이 안 고쳐진 채였다면", "새 영상 선택 시 자동 확인이 실제로 호출됨");
-assertContains(webHtml, "document.addEventListener(\"visibilitychange\"", "탭 닫기 등에도 자동 확인이 누락되지 않도록 안전망 존재");
-assertContains(webHtml, "recordCorrection(\"confirm_all\"", "확인 버튼이 confirm_all 액션으로 기록함");
+// ── 명시적 검수 확인(confirm_all) — 화면 이탈을 정답으로 오인하지 않음 ──
+assertContains(webHtml, "id=\"confirmBoundariesBtn\"", "동작 구간 명시적 확인 버튼 존재");
+assertContains(webHtml, "function confirmBoundariesExplicitly(", "사용자가 실제 확인한 경우만 기록하는 함수 존재");
+assertNotContains(webHtml, "function autoConfirmIfUnedited(", "무수정·화면 이탈을 정확함으로 자동 기록하는 오염 경로 제거");
+assertContains(webHtml, "recordCorrection(\"confirm_all\"", "명시적 확인이 confirm_all 액션으로 기록됨");
+assertContains(webHtml, "explicit_review: true", "앱 검수 기록에 명시적 확인 여부가 저장됨");
+assertContains(webHtml, "./evidence-calibration.mjs", "교본·영상·GPT·앱 검수 가중 보정 모듈 연결");
+assertContains(webHtml, "calibration_reviews", "GPT·지도자 검수 전용 컬렉션 연결");
+assertContains(webHtml, "trusted_provenance: false", "일반 앱 기록은 신뢰 출처를 위조할 수 없도록 강제");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "match /calibration_reviews/{docId}", "GPT·지도자 검수 컬렉션 보안 규칙 존재");
 assertContains(webHtml, "function expandConfirmRecords(records)", "확인 신호를 위치별로 펼치는 함수 존재(브라우저)");
 assertContains(webHtml, "accuracy_rate: e.total > 0", "위치별 정확도(정확도=확인/전체) 계산 존재");
 assertContains(readUtf8(path.join(root, "scripts", "analyze-corrections.js")), "function expandConfirmRecords(records)", "확인 신호를 위치별로 펼치는 함수 존재(Node)");

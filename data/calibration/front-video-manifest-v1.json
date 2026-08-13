@@ -1,0 +1,26 @@
+{
+  "schema": "poomsae-video-calibration-manifest-v1",
+  "created_at": "2026-08-13",
+  "camera_view": "front",
+  "privacy": "파일명과 기술 메타데이터만 기록하며 원본 영상과 개인 식별 정보는 저장소에 올리지 않음",
+  "review_policy": "자동 분석 결과는 정답이 아니다. 교본 대조와 GPT 또는 지도자의 명시적 경계 검수를 통과한 기록만 보정에 사용한다.",
+  "videos": [
+    { "poomsae": "taegeuk_1", "name": "태극 1장", "file": "품새_태극1장.mp4", "official_movements": 18, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "taegeuk_2", "name": "태극 2장", "file": "품새_태극2장.mp4", "official_movements": 18, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "taegeuk_3", "name": "태극 3장", "file": "품새_태극3장.mp4", "official_movements": 20, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "taegeuk_4", "name": "태극 4장", "file": "품새_태극4장.mp4", "official_movements": 20, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "taegeuk_5", "name": "태극 5장", "file": "품새_태극5장.mp4", "official_movements": 20, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "taegeuk_6", "name": "태극 6장", "file": "품새_태극6장.mp4", "official_movements": 19, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "taegeuk_7", "name": "태극 7장", "file": "품새_태극7장.mp4", "official_movements": 25, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "taegeuk_8", "name": "태극 8장", "file": "품새_태극8장.mp4", "official_movements": 27, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "koryo", "name": "고려", "file": "품새_고려.mp4", "official_movements": 30, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "keumgang", "name": "금강", "file": "품새_금강.mp4", "official_movements": 27, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "taebaek", "name": "태백", "file": "품새_태백.mp4", "official_movements": 26, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "pyongwon", "name": "평원", "file": "품새_평원.mp4", "official_movements": 21, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "sipjin", "name": "십진", "file": "품새_십진.mp4", "official_movements": 28, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "jitae", "name": "지태", "file": "품새_지태.mp4", "official_movements": 28, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "cheonkwon", "name": "천권", "file": "품새_천권.mp4", "official_movements": 26, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "hansu", "name": "한수", "file": "품새_한수.mp4", "official_movements": 27, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "ilyeo", "name": "일여", "file": "품새_일여.mp4", "official_movements": 23, "review_status": "pending_gpt_boundary_review" }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "schema": "poomsae-official-rule-evidence-v1",
+  "verified_at": "2026-08-13",
+  "sources": [
+    {
+      "id": "kukkiwon_exam_2024",
+      "file": "태권도심사규칙.pdf",
+      "revision": "최종개정 2024-08-06",
+      "pages": [6, 24],
+      "applied_axes": ["완성도", "숙련도", "품위"],
+      "use": "승품·단 심사 대비 보완점"
+    },
+    {
+      "id": "kta_competition_2026",
+      "file": "2026년 태권도 품새 경기규칙.pdf",
+      "pages": [27, 28, 29, 30, 31, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66],
+      "applied_axes": ["정확도 4.0", "표현력 6.0", "작은 실수 0.1", "큰 실수 0.3"],
+      "use": "국내 경기품새 기준 및 교본 세부동작 교차검증"
+    },
+    {
+      "id": "wt_competition_2024",
+      "file": "Poomsae Competition Rules and Interpretation In force as of June 14 2024.pdf",
+      "revision": "In force as of June 14, 2024",
+      "pages": [27, 29, 30, 31],
+      "printed_pages": [24, 26, 27, 28],
+      "applied_axes": ["Accuracy 4.0", "Presentation 6.0", "minor mistake 0.1", "major mistake 0.3", "restart 0.6"],
+      "use": "국제 공인품새 평가 구조 교차검증"
+    }
+  ],
+  "automation_limit": "영상만으로 확인할 수 없는 시선, 손 모양, 품위와 공식 감점은 자동 확정하지 않는다."
+}

@@ -15,6 +15,15 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // GPT·지도자 검수 원본: 일반 사용자 보정과 분리해 출처 위조를 막는다.
+    // 관리자 화면에서 가져온 명시적 검수 JSON만 이 컬렉션에 저장한다.
+    match /calibration_reviews/{docId} {
+      allow read: if request.auth != null && request.auth.token.email in ADMIN_EMAILS();
+      allow create: if request.auth != null && request.auth.token.email in ADMIN_EMAILS()
+        && isValidCalibrationReview(request.resource.data);
+      allow update, delete: if false;
+    }
+
     // ── 파트너 배너 설정 (신규, corrections/CMS와 완전히 분리된 경로) ──
     // - read: 누구나(앱을 여는 모든 사용자가 배너를 봐야 하므로).
     // - write: PIN이 일치할 때만. PIN은 www/index.html의 ADMIN_PIN 상수와 반드시 같은 값이어야 함
@@ -46,6 +55,15 @@ service cloud.firestore {
       return d.action in ['merge', 'split', 'adjust', 'cascade_adjust', 'confirm_all']
         && d.poomsae is string
         && d.size() < 30;  // 필드 수 제한(스팸 방지)
+    }
+    function isValidCalibrationReview(d) {
+      return d.action in ['merge', 'split', 'adjust', 'cascade_adjust', 'confirm_all']
+        && d.poomsae is string
+        && d.explicit_review == true
+        && d.trusted_provenance == true
+        && d.review_status in ['gpt_reviewed', 'expert_approved']
+        && d.result_boundary_ratios is list
+        && d.size() < 30;
     }
     // 학습 리포트를 읽을 수 있는 관리자 이메일 목록. 배포 전 실제 이메일로 교체할 것.
     function ADMIN_EMAILS() {

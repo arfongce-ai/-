@@ -1,3 +1,4 @@
 # Local analysis and deployment-tool artifacts
 tmp/
 .wrangler/
+node_modules/

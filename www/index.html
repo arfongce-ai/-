@@ -2834,6 +2834,7 @@
           <button type="button" id="manualEditToggle" class="primary" style="font-size:14px;font-weight:700">✏️ 동작 구간 바로잡기</button>
           <span id="manualEditHint" class="small" style="color:var(--muted)">원본 영상은 바뀌지 않아요. 시작점이나 동작의 시작·끝이 다르면 각 카드의 "🎞 프레임으로 찾기"에서 정확한 장면을 눌러 주세요.</span>
           <span id="correctionLogStatus" class="small" style="color:var(--muted)"></span>
+          <button type="button" id="confirmBoundariesBtn" class="secondary" style="font-size:12px;display:none">✓ 구간이 정확합니다</button>
           <button type="button" id="restoreAutoBtn" class="secondary" style="font-size:12px;display:none">자동 결과로 되돌리기</button>
           <button type="button" id="loadSavedCorrectionBtn" class="secondary" style="font-size:12px;display:none">🔖 저장된 보정 불러오기</button>
           <button type="button" id="exportCorrectionBtn" class="secondary" style="font-size:12px;display:none">보정 기록 내보내기</button>
@@ -2916,6 +2917,10 @@
           </div>
           <div id="adminReportPanel" style="display:none">
             <p class="small" id="reportStatus"></p>
+            <label for="calibrationImportFile">GPT·지도자 검수 JSON 합치기</label>
+            <input type="file" id="calibrationImportFile" accept="application/json,.json" />
+            <button type="button" class="secondary" id="calibrationImportBtn" style="width:100%;min-height:40px;margin:6px 0">검수 데이터 가져오기</button>
+            <p class="small" id="calibrationImportStatus" style="color:var(--muted)"></p>
             <div style="display:flex;gap:8px;margin-bottom:8px">
               <button type="button" class="secondary" id="reportRefreshBtn" style="flex:1;min-height:40px">새로고침</button>
               <button type="button" class="secondary" id="adminSignOutBtn" style="min-height:40px">로그아웃</button>
@@ -2930,6 +2935,7 @@
       import { buildDatasetCandidate, scoreActionSequence } from "./action-model.mjs";
       import { compareTextbookPose } from "./textbook-pose-match.mjs";
       import { compareVideoReference } from "./video-reference-match.mjs";
+      import { buildTrustedCollectiveProfiles, eligibleCalibrationRecords, normalizeCalibrationImport } from "./evidence-calibration.mjs";
       // ── Firebase 연동(보정 기록 자동 수집) ──
       // 보정 기록을 사장님 Firestore(momgagym-cms)에 자동으로 모은다.
       // 실패해도(오프라인/차단) 앱 본체는 정상 동작하며, 기록은 로컬에도 항상 저장된다(이중 안전).
@@ -3028,6 +3034,18 @@
         const sent = await flushPendingCloudCorrections();
         return sent > 0;
       }
+      async function loadTrustedCalibrationReviewRecords() {
+        if (!_fbReady || !_fbDB || !_fbGetDocs || !_fbCollection || !_fbCurrentAdminUser) return [];
+        try {
+          const snap = await _fbGetDocs(_fbCollection(_fbDB, "calibration_reviews"));
+          const records = [];
+          snap.forEach((doc) => records.push({ ...doc.data(), trusted_provenance: true }));
+          return records;
+        } catch (error) {
+          // 새 보안 규칙 배포 전이나 오프라인일 때 기존 분석 기능은 그대로 유지한다.
+          return [];
+        }
+      }
       window.addEventListener("online", () => { flushPendingCloudCorrections(); });
 
       // ── 학습된 경계 타이밍 보정(원격, 공개 읽기) ──
@@ -3071,9 +3089,15 @@
               && (i === 0 || n > ratios[i - 1]));
           if (!valid || samples < COLLECTIVE_PROFILE_MIN_SESSIONS) continue;
           clean[poomsaeKey] = {
+            schema: raw.schema === "poomsae-boundary-profile-v2" ? raw.schema : "poomsae-boundary-profile-v1",
             boundaryCount,
             ratios: ratios.map((n) => Number(n.toFixed(5))),
             samples,
+            effectiveSamples: Math.max(0, Number(raw.effectiveSamples) || samples),
+            confidence: clamp(Number(raw.confidence) || 0, 0, 1),
+            dispersion: Math.max(0, Number(raw.dispersion) || 0),
+            sourceCounts: raw.sourceCounts && typeof raw.sourceCounts === "object" && !Array.isArray(raw.sourceCounts)
+              ? raw.sourceCounts : {},
             blend,
             updatedAtMs: Number(raw.updatedAtMs) || 0
           };
@@ -3099,51 +3123,10 @@
       // 여러 휴대폰·PC에서 확정한 최종 경계를 품새별로 묶는다. 한 사람이 나누기를 여러 번
       // 누른 과정은 마지막 상태 1개만 사용해, 클릭 횟수가 많은 한 사용자가 결과를 지배하지 않게 한다.
       function buildCollectiveLearningProfiles(records, minSessions = COLLECTIVE_PROFILE_MIN_SESSIONS) {
-        const latestBySession = new Map();
-        for (const record of Array.isArray(records) ? records : []) {
-          const poomsaeKey = String(record && record.poomsae || "");
-          const sessionId = String(record && record.review_session_id || "");
-          const ratios = record && Array.isArray(record.result_boundary_ratios)
-            ? record.result_boundary_ratios.map(Number) : null;
-          if (!poomsaeKey || !sessionId || !ratios || ratios.length < 3 || ratios.length > 40) continue;
-          if (!ratios.every((n, i) => Number.isFinite(n) && n >= 0 && n <= 1
-              && (i === 0 || n > ratios[i - 1]))) continue;
-          const ts = Date.parse(record.ts || "") || Number(record.createdAtMs) || 0;
-          const revision = Math.max(0, Math.round(Number(record.correction_revision) || 0));
-          const key = `${poomsaeKey}|${sessionId}`;
-          const previous = latestBySession.get(key);
-          if (!previous || revision > previous.revision || (revision === previous.revision && ts >= previous.ts)) {
-            latestBySession.set(key, { poomsaeKey, ratios, ts, revision });
-          }
-        }
-        const grouped = {};
-        for (const item of latestBySession.values()) {
-          const lengthKey = String(item.ratios.length);
-          const poomsaeGroups = (grouped[item.poomsaeKey] ||= {});
-          (poomsaeGroups[lengthKey] ||= []).push(item.ratios);
-        }
-        const profiles = {};
-        for (const [poomsaeKey, lengthGroups] of Object.entries(grouped)) {
-          const groups = Object.values(lengthGroups).sort((a, b) => b.length - a.length);
-          const dominant = groups[0] || [];
-          const totalSessions = groups.reduce((sum, rows) => sum + rows.length, 0);
-          if (dominant.length < minSessions || dominant.length / Math.max(totalSessions, 1) < 0.67) continue;
-          const boundaryCount = dominant[0].length;
-          const ratios = Array.from({ length: boundaryCount }, (_, index) =>
-            Number(medianNumber(dominant.map((row) => row[index])).toFixed(5))
-          );
-          ratios[0] = 0;
-          ratios[ratios.length - 1] = 1;
-          if (!ratios.every((n, i) => n >= 0 && n <= 1 && (i === 0 || n > ratios[i - 1]))) continue;
-          profiles[poomsaeKey] = {
-            boundaryCount,
-            ratios,
-            samples: dominant.length,
-            blend: Number(Math.min(0.45, 0.12 + dominant.length * 0.015).toFixed(3)),
-            updatedAtMs: Date.now()
-          };
-        }
-        return profiles;
+        return buildTrustedCollectiveProfiles(records, {
+          minimumRawSessions: minSessions,
+          minimumEffectiveSamples: 2.5
+        });
       }
       // 이 기기에서 같은 품새·같은 경계를 반복해서 고친 경우에만 개인 보정값을 만든다.
       // 평균 대신 중앙값을 써서 한 번의 잘못된 터치가 다음 분석을 망치지 않게 하고,
@@ -3257,7 +3240,15 @@
           const blended = out[i] * (1 - profile.blend) + collectiveTarget * profile.blend;
           out[i] = clamp(blended, out[i - 1] + 0.1, boundaries[i + 1] - 0.1);
         }
-        return { boundaries: out, applied: true, samples: profile.samples, blend: profile.blend };
+        return {
+          boundaries: out,
+          applied: true,
+          samples: profile.samples,
+          effectiveSamples: profile.effectiveSamples || profile.samples,
+          confidence: profile.confidence || 0,
+          sourceCounts: profile.sourceCounts || {},
+          blend: profile.blend
+        };
       }
       async function publishCollectiveLearningProfiles(profiles) {
         if (!_fbCurrentAdminUser || !_fbDB || !_fbSetDoc || !_fbDoc) return false;
@@ -3313,13 +3304,22 @@
           const last = Number(localStorage.getItem(AUTO_PUBLISH_LAST_CHECK_KEY) || 0);
           if (Date.now() - last < AUTO_PUBLISH_MIN_INTERVAL_MS) return;
           localStorage.setItem(AUTO_PUBLISH_LAST_CHECK_KEY, String(Date.now()));
-          const snap = await _fbGetDocs(_fbCollection(_fbDB, "corrections"));
+          const [snap, verifiedRecords] = await Promise.all([
+            _fbGetDocs(_fbCollection(_fbDB, "corrections")),
+            loadTrustedCalibrationReviewRecords()
+          ]);
           const records = [];
-          snap.forEach((d) => records.push(d.data()));
+          snap.forEach((d) => records.push({ ...d.data(), trusted_provenance: false }));
+          records.push(...verifiedRecords);
           if (!records.length) return;
-          const { locations } = analyzeCorrectionRecords(records);
+          // 전역 보정은 교본·영상 근거와 명시적 검수 상태가 있는 기록만 사용한다.
+          // 화면을 닫았다는 이유만으로 생성된 과거 자동 확인이나 출처 불명 기록은 제외한다.
+          const trustedRecords = eligibleCalibrationRecords(records);
+          if (!trustedRecords.length) return;
+          const verifiedOnly = trustedRecords.filter((record) => record.trusted_provenance === true);
+          const { locations } = analyzeCorrectionRecords(verifiedOnly);
           const suggestions = buildCorrectionRuleSuggestions(locations).filter((s) => s.type === "boundary_shift");
-          const collective = buildCollectiveLearningProfiles(records);
+          const collective = buildCollectiveLearningProfiles(trustedRecords);
           const activeBias = _remoteBoundaryBias || {};
           const published = [];
           for (const s of suggestions) {
@@ -3811,6 +3811,43 @@ function applyBannerToDom(config) {
           });
         }
         if (reportRefreshBtn) reportRefreshBtn.addEventListener("click", loadAndRenderCorrectionReport);
+        const calibrationImportBtn = document.getElementById("calibrationImportBtn");
+        if (calibrationImportBtn) calibrationImportBtn.addEventListener("click", async () => {
+          const status = document.getElementById("calibrationImportStatus");
+          const input = document.getElementById("calibrationImportFile");
+          const file = input?.files?.[0];
+          if (!_fbCurrentAdminUser) { if (status) status.textContent = "관리자 로그인 후 가져올 수 있습니다."; return; }
+          if (!file) { if (status) status.textContent = "GPT 또는 지도자가 검수한 JSON 파일을 선택하세요."; return; }
+          try {
+            const parsed = JSON.parse(await file.text());
+            const rawRows = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.records) ? parsed.records : []);
+            const normalized = normalizeCalibrationImport({
+              records: rawRows.map((row) => ({ ...row, trusted_provenance: true }))
+            });
+            if (!normalized.accepted_count) {
+              if (status) status.textContent = `가져올 수 있는 명시적 검수 기록이 없습니다. 제외 ${normalized.rejected_count}건`;
+              return;
+            }
+            calibrationImportBtn.disabled = true;
+            if (status) status.textContent = `검증된 ${normalized.accepted_count}건을 합치는 중...`;
+            let saved = 0;
+            for (const source of normalized.accepted) {
+              const { file: ignoredFile, ...safeSource } = source;
+              await _fbAddDoc(_fbCollection(_fbDB, "calibration_reviews"), {
+                ...safeSource,
+                evidence_schema: "poomsae-calibration-evidence-v2",
+                created: _fbServerTs()
+              });
+              saved += 1;
+            }
+            if (status) status.textContent = `검수 기록 ${saved}건을 합쳤습니다. 제외 ${normalized.rejected_count}건`;
+            await loadAndRenderCorrectionReport();
+          } catch (error) {
+            if (status) status.textContent = `가져오기 실패: ${error.message || "JSON 형식을 확인하세요."}`;
+          } finally {
+            calibrationImportBtn.disabled = false;
+          }
+        });
       })();
       const LOCAL_MODEL_URL = "./models/pose_landmarker_lite.task";
       const REMOTE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task";
@@ -3844,6 +3881,7 @@ function applyBannerToDom(config) {
 
       const COMPETITION_RULES_2026 = {
         source: "2026년 태권도 품새 경기규칙",
+        source_pages: ["PDF 27~31쪽: 공인품새 채점 구조·감점", "PDF 37~66쪽: 기본동작 및 품새별 채점 기술지침"],
         scope: "경기품새 훈련 피드백 참고 기준",
         // 공식 권위 기관 및 검증 출처(데이터·평가 방식의 근거)
         authorities: {
@@ -5361,6 +5399,15 @@ function applyBannerToDom(config) {
             auto_method: lastBoundaryCache ? lastBoundaryCache.method : "",
             review_session_id: correctionSessionId,
             correction_revision: ++correctionRevision,
+            evidence_schema: "poomsae-calibration-evidence-v2",
+            review_source: "app_user",
+            review_status: action === "confirm_all" ? "user_confirmed" : "user_corrected",
+            explicit_review: true,
+            camera_view: cameraView,
+            pose_detection_rate: latestReport?.summary?.detection_rate ?? null,
+            textbook_schema_available: !!poomsaeData[selectedPoomsaeKey],
+            textbook_pose_reference_available: !!textbookPoseReferences[selectedPoomsaeKey],
+            video_evidence: true,
             action,
             ...details
           };
@@ -5372,26 +5419,17 @@ function applyBannerToDom(config) {
           sendCorrectionToCloud(record);
         } catch (e) { /* 무시 */ }
       }
-      // 자동 감지 결과를 고치지 않은 채 다음 영상으로 넘어가면, 그 자체를 "정확했다"는 신호로
-      // 자동 기록한다(버튼 없음). 배경(2026-07-22 사용자 확인): 처음엔 "정확해요" 버튼을 눌러야
-      // 기록되게 했는데, 초등학생도 쓸 만큼 단순해야 한다는 원칙에 맞지 않았다 — 확인차 버튼을
-      // 누르게 하는 것 자체가 번거로움이다. 그래서 "아무것도 안 고치고 다음 영상으로 넘어감"이라는
-      // 행동 자체를 신호로 쓴다. 위치별 진짜 정확도(정확했던 비율)를 계산하려면 '고침'뿐 아니라
-      // '안 고쳐도 됐음'도 데이터가 필요하다 — 경계 개수만큼 펼쳐질 요약 1건만 보낸다(레코드 하나로
-      // N개 위치를 다 확인했다는 의미 — 분석 시점에 confirm_all → confirm N건으로 펼침).
-      function autoConfirmIfUnedited() {
+      // 화면 이탈이나 무수정 상태를 정답으로 간주하지 않는다. 사용자가 구간을 실제로 확인하고
+      // 버튼을 누른 경우에만 명시적 검수 신호로 저장한다.
+      function confirmBoundariesExplicitly() {
         if (confirmedThisSession || !lastBoundaryCache || !Array.isArray(lastBoundaryCache.boundaries) || !lastBoundaryCache.autoBoundaries) return;
-        const unchanged = JSON.stringify(lastBoundaryCache.boundaries) === JSON.stringify(lastBoundaryCache.autoBoundaries);
-        if (!unchanged) return; // 뭔가 고쳤으면 그 자체가 이미 (반대) 신호이므로 확인 기록은 안 남긴다.
-        recordCorrection("confirm_all", { boundary_count: lastBoundaryCache.boundaries.length });
+        recordCorrection("confirm_all", {
+          boundary_count: lastBoundaryCache.boundaries.length,
+          result_boundary_ratios: normalizeBoundaryShape(lastBoundaryCache.boundaries)
+        });
         confirmedThisSession = true;
+        renderManualEditPanel();
       }
-      // 새 영상을 고르지 않고 그냥 탭을 닫거나 다른 앱으로 전환해도(모바일에서 흔한 패턴)
-      // 자동 확인이 누락되지 않도록 안전망을 둔다. beforeunload는 모바일에서 신뢰도가 낮아
-      // visibilitychange(hidden)를 쓴다 — idempotent라 여러 번 걸려도 무해하다.
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "hidden") autoConfirmIfUnedited();
-      });
       // 분석 완료 후 수동 조정 바를 보이게 하고, 토글 버튼을 연결한다.
       function renderManualEditPanel() {
         const bar = document.getElementById("manualEditBar");
@@ -5412,6 +5450,12 @@ function applyBannerToDom(config) {
             : "";
         }
         if (exportBtn) exportBtn.style.display = sum.total > 0 ? "inline-block" : "none";
+        const confirmBtn = document.getElementById("confirmBoundariesBtn");
+        if (confirmBtn) {
+          confirmBtn.style.display = canManualEdit() ? "inline-block" : "none";
+          confirmBtn.disabled = confirmedThisSession;
+          confirmBtn.textContent = confirmedThisSession ? "✓ 확인 기록됨" : "✓ 구간이 정확합니다";
+        }
         // 수동 조정이 자동과 달라졌으면 '되돌리기' 버튼 노출.
         const restoreBtn = document.getElementById("restoreAutoBtn");
         const unchanged = lastBoundaryCache && lastBoundaryCache.autoBoundaries
@@ -5568,24 +5612,27 @@ function applyBannerToDom(config) {
         if (statusEl) statusEl.textContent = "불러오는 중...";
         if (bodyEl) bodyEl.innerHTML = "";
         try {
-          const [snap] = await Promise.all([
+          const [snap, verifiedRecords] = await Promise.all([
             _fbGetDocs(_fbCollection(_fbDB, "corrections")),
+            loadTrustedCalibrationReviewRecords(),
             loadBoundaryBias() // 관리자 화면이니 최신 게시 상태를 다시 확인.
           ]);
           const records = [];
-          snap.forEach((d) => records.push(d.data()));
+          snap.forEach((d) => records.push({ ...d.data(), trusted_provenance: false }));
+          records.push(...verifiedRecords);
           if (!records.length) {
             if (statusEl) statusEl.textContent = "아직 쌓인 보정 기록이 없습니다.";
             return;
           }
-          const { locations, byPoomsae } = analyzeCorrectionRecords(records);
+          const trustedRecords = eligibleCalibrationRecords(records);
+          const { locations, byPoomsae } = analyzeCorrectionRecords(trustedRecords);
           const suggestions = buildCorrectionRuleSuggestions(locations);
           const activeBias = _remoteBoundaryBias || {};
           const confirmTotal = locations.reduce((n, l) => n + l.counts.confirm, 0);
           const reviewedTotal = locations.reduce((n, l) => n + l.total, 0);
           const overallAccuracy = reviewedTotal > 0 ? Math.round((confirmTotal / reviewedTotal) * 100) : null;
           if (statusEl) {
-            statusEl.textContent = `총 ${records.length}건(확인 ${confirmTotal}·수정 ${reviewedTotal - confirmTotal}) · 전체 정확도 ${overallAccuracy != null ? overallAccuracy + "%" : "-"} · 품새 ${Object.keys(byPoomsae).length}개 · 제안 ${suggestions.length}건 · 적용 중 ${Object.keys(activeBias).length}건`;
+            statusEl.textContent = `수집 ${records.length}건 중 검수 근거 통과 ${trustedRecords.length}건(확인 ${confirmTotal}·수정 ${reviewedTotal - confirmTotal}) · 검수 정확도 ${overallAccuracy != null ? overallAccuracy + "%" : "-"} · 품새 ${Object.keys(byPoomsae).length}개 · 제안 ${suggestions.length}건 · 적용 중 ${Object.keys(activeBias).length}건`;
           }
           if (bodyEl) {
             const accBadge = (l) => l.accuracy_rate != null
@@ -8647,6 +8694,9 @@ function applyBannerToDom(config) {
           biasAppliedCount,
           collectiveProfileApplied: collectiveResult.applied,
           collectiveProfileSamples: collectiveResult.samples,
+          collectiveProfileEffectiveSamples: collectiveResult.effectiveSamples || 0,
+          collectiveProfileConfidence: collectiveResult.confidence || 0,
+          collectiveProfileSourceCounts: collectiveResult.sourceCounts || {},
           collectiveProfileBlend: collectiveResult.blend || 0,
           completionTimes: chooseCompletionSnapshotTimes(boundaries, motionSamples),
           motionSamples,
@@ -9890,7 +9940,7 @@ function applyBannerToDom(config) {
         if (boundaryDetectionForRun && boundaryDetectionForRun.collectiveProfileApplied) {
           results._collectiveLearningNote = {
             type: "good",
-            text: `여러 기기에서 확인한 ${boundaryDetectionForRun.collectiveProfileSamples}개의 ${currentPoomsae().name} 분석을 함께 배워 이번 구간 찾기에 반영했습니다.`
+            text: `교본·영상·명시적 검수를 통과한 ${boundaryDetectionForRun.collectiveProfileSamples}개 ${currentPoomsae().name} 분석(유효 표본 ${Number(boundaryDetectionForRun.collectiveProfileEffectiveSamples || 0).toFixed(1)}, 신뢰도 ${Math.round((boundaryDetectionForRun.collectiveProfileConfidence || 0) * 100)}%)을 이번 구간 찾기에 보수적으로 반영했습니다.`
           };
         }
         const fusedView = (analysisEfficiency && (analysisEfficiency.triple_view ? "triple" : analysisEfficiency.dual_view ? "dual" : null)) || cameraView;
@@ -11293,7 +11343,6 @@ function applyBannerToDom(config) {
         }, 8000);
       }
       fileInput.addEventListener("change", () => {
-        autoConfirmIfUnedited(); // 직전 영상이 안 고쳐진 채였다면, 다음 영상으로 넘어가기 전에 자동 기록.
         showTrainingPage();
         closeReplayModal();
         selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
@@ -11489,6 +11538,8 @@ function applyBannerToDom(config) {
         });
         const exportBtn = document.getElementById("exportCorrectionBtn");
         if (exportBtn) exportBtn.addEventListener("click", exportCorrectionLog);
+        const confirmBtn = document.getElementById("confirmBoundariesBtn");
+        if (confirmBtn) confirmBtn.addEventListener("click", confirmBoundariesExplicitly);
         const restoreBtn = document.getElementById("restoreAutoBtn");
         if (restoreBtn) restoreBtn.addEventListener("click", restoreAutoBoundaries);
         const loadSavedBtn = document.getElementById("loadSavedCorrectionBtn");
