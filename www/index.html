@@ -4918,7 +4918,9 @@ function applyBannerToDom(config) {
       // 단, 시작의 '준비서기'와 종료 직전 '기본준비서기로 돌아오기'를 모두 잡는다.
       function isReadyStance(name) {
         const n = String(name || "").trim();
-        return /준비서기|준비 자세|준비자세|준비$/.test(n);
+        // '모아서기 두 주먹 허리준비'처럼 공식 번호가 있는 동작명도 '준비'로 끝날 수 있다.
+        // 준비서기라는 것이 명시된 이름만 제외하고 기술명의 일반적인 '준비'는 보존한다.
+        return /준비서기|준비 자세|준비자세/.test(n);
       }
       // 품새의 '본동작'(번호 매겨지는 기술 동작) 목록을 만든다. 준비서기·메모는 제외.
       function coreMovementNames(dataKey) {
@@ -8199,7 +8201,13 @@ function applyBannerToDom(config) {
         const recovery = recoveryCandidates.length
           ? recoveryCandidates.reduce((best, s) => s.motion < best.motion ? s : best, recoveryCandidates[0])
           : { time: start + span * 0.70, motion: 0 };
-        const rawTimes = [start + span * 0.14, peak.time, recovery.time, end - span * 0.08];
+        const stageCount = Math.max(1, Array.isArray(rule.stages) ? rule.stages.length : 0);
+        // 기존 2~4단계 규칙은 움직임 정점·회복 시각을 그대로 활용한다.
+        // 천권 25번처럼 5단계 이상이면 단계 수만큼 시각을 생성해
+        // stageTimes[index]가 undefined가 되는 분석 중단을 방지한다.
+        const rawTimes = stageCount <= 4
+          ? [start + span * 0.14, peak.time, recovery.time, end - span * 0.08].slice(0, stageCount)
+          : Array.from({ length: stageCount }, (_, index) => start + span * ((index + 1) / (stageCount + 1)));
         const stageTimes = [];
         for (let i = 0; i < rawTimes.length; i += 1) {
           const min = i === 0 ? start : stageTimes[i - 1] + span * 0.03;

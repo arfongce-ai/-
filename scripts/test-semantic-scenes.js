@@ -40,6 +40,7 @@ vm.runInContext(extractFunction("countMotionPeaks"), context);
 vm.runInContext(extractFunction("adaptiveConnectionThreshold"), context);
 vm.runInContext(extractFunction("connectionEvidenceFromMotion"), context);
 vm.runInContext(extractFunction("compoundStageAnalysis"), context);
+vm.runInContext(extractFunction("isReadyStance"), context);
 vm.runInContext(extractFunction("competitionScoreFromMetrics"), context);
 vm.runInContext(extractFunction("labelFor"), context);
 vm.runInContext(extractFunction("mergeSemanticConnectionPair"), context);
@@ -122,6 +123,21 @@ assert(compound.stages.length === 4, "compound movement exposes four analysis st
 assert(compound.stages.every((stage, index) => index === 0 || stage.time > compound.stages[index - 1].time), "compound stage times increase");
 assert(compound.stages.every((stage) => stage.time >= 10 && stage.time <= 12), "compound stage times remain inside scene");
 assert(compound.stages.every((stage) => stage.estimated === true), "compound stage times are explicitly marked as estimates");
+
+const sixStageCompound = context.compoundStageAnalysis(
+  { startTime: 20, endTime: 26, detectionRate: 0.95 },
+  fastMotion.map((sample) => ({ ...sample, time: sample.time + 20 })),
+  {
+    title: "천권 25번 태산밀기",
+    stages: ["25-1", "25-2", "25-3", "25-4", "25-5", "25-6"],
+    practice: "여섯 단계를 이어서 수행",
+  }
+);
+assert(sixStageCompound.stages.length === 6, "six-stage Cheonkwon compound exposes every stage");
+assert(sixStageCompound.stages.every((stage) => Number.isFinite(stage.time)), "six-stage Cheonkwon compound creates finite times");
+assert(sixStageCompound.stages.every((stage, index) => index === 0 || stage.time > sixStageCompound.stages[index - 1].time), "six-stage Cheonkwon compound times increase");
+assert(context.isReadyStance("준비서기") === true, "initial ready stance remains excluded from official movements");
+assert(context.isReadyStance("모아서기 두 주먹 허리준비") === false, "Ilyeo numbered waist-ready movement is not discarded");
 
 function resultFor(moveNo, startTime) {
   return {
