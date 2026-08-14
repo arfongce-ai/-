@@ -155,7 +155,11 @@ export function buildTrustedCollectiveProfiles(records, options = {}) {
 }
 
 export function normalizeCalibrationImport(payload) {
-  const rows = Array.isArray(payload) ? payload : (Array.isArray(payload?.records) ? payload.records : []);
+  const rows = Array.isArray(payload)
+    ? payload
+    : (Array.isArray(payload?.records)
+      ? payload.records
+      : (payload?.calibration_record ? [payload.calibration_record] : []));
   const valid = eligibleCalibrationRecords(rows);
   return {
     schema: "poomsae-calibration-import-result-v1",

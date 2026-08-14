@@ -9,7 +9,7 @@
     "test:engine": "node scripts/test-analysis-engine.js",
     "test:mapping": "node scripts/test-segment-mapping.js",
     "test:performance": "node scripts/test-analysis-performance.js",
-    "test:all": "npm run assets:check && npm run verify:cross && npm run test:engine && npm run test:mapping && npm run test:performance && npm run test:timestamp && npm run test:boundary && npm run test:multiview && npm run test:hevc && npm run test:gangyu && npm run test:semantic && npm run test:junbi && npm run test:bias && npm run test:confirm && npm run test:action-model && npm run test:evidence-calibration",
+    "test:all": "npm run assets:check && npm run verify:cross && npm run test:engine && npm run test:mapping && npm run test:performance && npm run test:timestamp && npm run test:boundary && npm run test:multiview && npm run test:hevc && npm run test:gangyu && npm run test:semantic && npm run test:junbi && npm run test:bias && npm run test:confirm && npm run test:action-model && npm run test:evidence-calibration && npm run test:ground-truth",
     "serve:test": "node scripts/serve-static.js",
     "assets:download": "node scripts/download-offline-assets.js",
     "android:add": "npx cap add android",
@@ -26,6 +26,7 @@
     "test:confirm": "node scripts/test-confirm-accuracy.js",
     "test:action-model": "node scripts/test-action-model.js",
     "test:evidence-calibration": "node scripts/test-evidence-calibration.js",
+    "test:ground-truth": "node scripts/test-ground-truth-review.js",
     "prepare:calibration": "node scripts/prepare-calibration-review.js",
     "train:action-model": "node scripts/train-action-model.js"
   },

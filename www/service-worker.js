@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v94-evidence-calibration";
+const CACHE_NAME = "poomsae-training-v95-ground-truth-import";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",

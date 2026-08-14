@@ -333,7 +333,7 @@ assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "const CAC
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
-assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v18-evidence-calibration", "최상단 배포용 오프라인 엔진 서비스워커 존재");
+assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v19-ground-truth-import", "최상단 배포용 오프라인 엔진 서비스워커 존재");
 assertContains(webHtml, 'import { buildDatasetCandidate, scoreActionSequence } from "./action-model.mjs"', "별도 동작 시퀀스 모델 모듈 연결");
 assertContains(webHtml, "learning_dataset_candidate", "분석 JSON에 전문가 검수용 관절좌표 시퀀스 포함");
 assertContains(webHtml, "actionAccuracyConfidence >= 0.65", "충분한 신뢰도에서만 동작 모델을 정확도 점수에 적용");
@@ -655,6 +655,7 @@ assertContains(webHtml, "recordCorrection(\"confirm_all\"", "명시적 확인이
 assertContains(webHtml, "explicit_review: true", "앱 검수 기록에 명시적 확인 여부가 저장됨");
 assertContains(webHtml, "./evidence-calibration.mjs", "교본·영상·GPT·앱 검수 가중 보정 모듈 연결");
 assertContains(webHtml, "calibration_reviews", "GPT·지도자 검수 전용 컬렉션 연결");
+assertContains(webHtml, "parsed?.calibration_record", "정답 검수 JSON을 관리자 화면에서 직접 가져오기 지원");
 assertContains(webHtml, "trusted_provenance: false", "일반 앱 기록은 신뢰 출처를 위조할 수 없도록 강제");
 assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "match /calibration_reviews/{docId}", "GPT·지도자 검수 컬렉션 보안 규칙 존재");
 assertContains(webHtml, "function expandConfirmRecords(records)", "확인 신호를 위치별로 펼치는 함수 존재(브라우저)");

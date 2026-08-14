@@ -1,0 +1,91 @@
+{
+  "schema": "poomsae-ground-truth-review-v1",
+  "created_at": "2026-08-14T12:30:00+09:00",
+  "source_file": {
+    "name": "품새_태극1장.mp4",
+    "size_bytes": 2575519,
+    "sha256": "57620590af96eb0e626e758034c179687b6b2c0d2fab807bd58095154f68c798",
+    "duration_seconds": 41.05288,
+    "resolution": "1280x720",
+    "camera_view": "front"
+  },
+  "poomsae": {
+    "id": "taegeuk_1",
+    "name": "태극 1장",
+    "official_movements": 18,
+    "scene_count_with_ready": 19
+  },
+  "evidence": {
+    "video_review": "전체 수행 구간을 10fps 타임코드 프레임으로 검수하고 마지막 두 동작은 20fps로 재검수",
+    "textbook_reference": "www/models/taegeuk-1-textbook-reference.json",
+    "official_rules": [
+      {
+        "source": "태권도심사규칙.pdf",
+        "pages": [6, 24],
+        "use": "품새 완성도·숙련도·품위 평가 근거"
+      },
+      {
+        "source": "2026년 태권도 품새 경기규칙.pdf",
+        "pages": [16, 17, 39, 41, 42, 44],
+        "use": "정확성 감점과 태극 1장 기본 서기·막기·지르기 기준"
+      },
+      {
+        "source": "Poomsae Competition Rules and Interpretation In force as of June 14 2024.pdf",
+        "pages": [24, 26, 27, 28],
+        "use": "국제 공인품새 정확도·표현력 구조 교차검증"
+      }
+    ]
+  },
+  "app_analysis": {
+    "version": "v4.14",
+    "pose_detection_rate": 1.0,
+    "boundaries_seconds": [
+      9.286, 12.395, 13.609, 14.896, 15.67, 17.218, 18.765, 19.926,
+      21.087, 22.248, 23.795, 24.539, 25.343, 27.277, 28.438,
+      29.397, 30.373, 31.92, 33.468, 34.255
+    ]
+  },
+  "review": {
+    "status": "gpt_reviewed",
+    "expert_approval": "pending",
+    "boundary_definition": "직전 완성 자세에서 다음 공식 동작을 위한 신체 이동이 처음 보이는 시점",
+    "temporal_resolution_seconds": 0.1,
+    "reviewed_boundaries_seconds": [
+      9.286, 12.5, 13.6, 14.9, 16.0, 17.3, 18.1, 19.0, 20.3, 21.5,
+      22.2, 23.2, 25.6, 26.2, 26.9, 28.8, 30.0, 31.9, 33.65, 34.255
+    ],
+    "boundary_confidence": [
+      "high", "high", "high", "high", "high", "high", "high", "high",
+      "high", "high", "high", "high", "medium", "high", "high", "high",
+      "high", "high", "medium", "high"
+    ],
+    "notes": [
+      "준비자세와 마지막 완료 지점은 앱 값이 영상과 일치하여 유지했다.",
+      "빠른 연결동작은 동작 완료 자세가 아니라 다음 공식 동작의 가시적 시작점을 경계로 삼았다.",
+      "이 기록은 GPT 검수 표본이며 지도자 승인 표본으로 간주하지 않는다."
+    ]
+  },
+  "calibration_record": {
+    "action": "adjust",
+    "poomsae": "taegeuk_1",
+    "poomsae_name": "태극 1장",
+    "review_session_id": "gpt-taegeuk-1-front-20260814-v1",
+    "correction_revision": 1,
+    "boundary_count": 20,
+    "result_boundary_ratios": [
+      0, 0.12872, 0.17277, 0.22484, 0.26889, 0.32096, 0.353,
+      0.38904, 0.44111, 0.48917, 0.5172, 0.55725, 0.65337,
+      0.6774, 0.70543, 0.78153, 0.82959, 0.90568, 0.97577, 1
+    ],
+    "review_source": "gpt",
+    "review_status": "gpt_reviewed",
+    "explicit_review": true,
+    "textbook_aligned": true,
+    "video_evidence": true,
+    "trusted_provenance": true,
+    "camera_view": "front",
+    "pose_detection_rate": 1.0,
+    "reviewed_at": "2026-08-14T12:30:00+09:00",
+    "review_note": "공식 동작 순서·PDF 기본동작 기준·10fps 전체 프레임 및 20fps 최종구간을 교차검수"
+  }
+}
