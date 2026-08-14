@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-root-offline-engine-v19-ground-truth-import";
+const CACHE_NAME = "poomsae-training-root-offline-engine-v20-subject-tracking-quality";
 const APP_URL = "./www/index.html";
 const CORE_ASSETS = [
   "./",

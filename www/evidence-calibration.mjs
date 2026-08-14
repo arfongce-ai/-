@@ -52,6 +52,8 @@ export function calibrationRecordWeight(record) {
   }
   const detectionRate = Number(record.pose_detection_rate);
   if (Number.isFinite(detectionRate)) weight *= clamp((detectionRate - 0.5) / 0.45, 0.25, 1);
+  const subjectTrackingConfidence = Number(record.subject_tracking_confidence);
+  if (Number.isFinite(subjectTrackingConfidence)) weight *= clamp(subjectTrackingConfidence, 0.25, 1);
   if (record.camera_view && !["front", "diagonal", "side", "dual", "triple"].includes(record.camera_view)) return 0;
   return Number(weight.toFixed(4));
 }

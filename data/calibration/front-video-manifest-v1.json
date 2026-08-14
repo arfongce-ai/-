@@ -6,7 +6,7 @@
   "review_policy": "자동 분석 결과는 정답이 아니다. 교본 대조와 GPT 또는 지도자의 명시적 경계 검수를 통과한 기록만 보정에 사용한다.",
   "videos": [
     { "poomsae": "taegeuk_1", "name": "태극 1장", "file": "품새_태극1장.mp4", "official_movements": 18, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/taegeuk-1-gpt-review-v1.json" },
-    { "poomsae": "taegeuk_2", "name": "태극 2장", "file": "품새_태극2장.mp4", "official_movements": 18, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "taegeuk_2", "name": "태극 2장", "file": "품새_태극2장.mp4", "official_movements": 18, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/taegeuk-2-gpt-review-v1.json", "quality_note": "30.4초 이후 동기화된 정면·후면 시범자 2명이 동시에 표시됨" },
     { "poomsae": "taegeuk_3", "name": "태극 3장", "file": "품새_태극3장.mp4", "official_movements": 20, "review_status": "pending_gpt_boundary_review" },
     { "poomsae": "taegeuk_4", "name": "태극 4장", "file": "품새_태극4장.mp4", "official_movements": 20, "review_status": "pending_gpt_boundary_review" },
     { "poomsae": "taegeuk_5", "name": "태극 5장", "file": "품새_태극5장.mp4", "official_movements": 20, "review_status": "pending_gpt_boundary_review" },
