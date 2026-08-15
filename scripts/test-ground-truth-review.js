@@ -17,7 +17,8 @@ function strictlyIncreasing(values) {
   const cases = [
     { file: "taegeuk-1-gpt-review-v1.json", label: "Taegeuk 1", boundaries: 20, mae: 0.591, max: 1.595, within03: 7, weight: 0.6 },
     { file: "taegeuk-2-gpt-review-v1.json", label: "Taegeuk 2", boundaries: 20, mae: 0.449, max: 1.727, within03: 10, weight: 0.39 },
-    { file: "taegeuk-3-gpt-review-v1.json", label: "Taegeuk 3", boundaries: 22, mae: 0.711, max: 1.69, within03: 7, weight: 0.39 }
+    { file: "taegeuk-3-gpt-review-v1.json", label: "Taegeuk 3", boundaries: 22, mae: 0.711, max: 1.69, within03: 7, weight: 0.39 },
+    { file: "taegeuk-4-gpt-review-v1.json", label: "Taegeuk 4", boundaries: 22, mae: 1.136, max: 2.533, within03: 4, weight: 0.39 }
   ];
 
   for (const expected of cases) {
