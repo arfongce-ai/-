@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-root-offline-engine-v24-taegeuk-6-ground-truth";
+const CACHE_NAME = "poomsae-training-root-offline-engine-v25-taegeuk-7-ground-truth";
 const APP_URL = "./www/index.html";
 const CORE_ASSETS = [
   "./",

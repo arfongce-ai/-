@@ -1,0 +1,107 @@
+{
+  "schema": "poomsae-ground-truth-review-v1",
+  "created_at": "2026-08-20T18:56:39+09:00",
+  "source_file": {
+    "name": "품새_태극7장.mp4",
+    "size_bytes": 4823788,
+    "sha256": "7ac71ed7b9a6a5e0ac8e94a0c4c9e5698225276d33f0b24ddaa01c3bf9d945fa",
+    "duration_seconds": 63.11,
+    "resolution": "1280x720",
+    "frame_rate": 29.97,
+    "camera_view": "front"
+  },
+  "poomsae": {
+    "id": "taegeuk_7",
+    "name": "태극 7장",
+    "official_movements": 25,
+    "scene_count_with_ready": 26
+  },
+  "evidence": {
+    "video_review": "전체 수행 구간을 5fps와 10fps 타임코드 프레임으로 검수하고 범서기 연속동작·보주먹·가위막기·무릎올려치기·표적안차기와 다중 인물 합성 구간을 교차검수함",
+    "textbook_reference": "www/models/taegeuk-7-textbook-reference.json",
+    "official_rules": [
+      {
+        "source": "태권도심사규칙.pdf",
+        "pages": [6, 24],
+        "use": "품새 완성성·숙련도·품위 평가 근거"
+      },
+      {
+        "source": "2026년 태권도 품새 경기규칙.pdf",
+        "pages": [16, 17, 39, 41, 42, 44],
+        "use": "정확성 감점과 기본 서기·막기·지르기 기준"
+      },
+      {
+        "source": "Poomsae Competition Rules and Interpretation In force as of June 14 2024.pdf",
+        "pages": [24, 26, 27, 28],
+        "use": "국제 공인품새 정확성·표현력 구조 교차검증"
+      }
+    ]
+  },
+  "video_quality": {
+    "single_subject_until_seconds": 45.5,
+    "multi_person_overlap_after_seconds": 45.5,
+    "multi_person_overlap_intervals_seconds": [[45.5, 55.7]],
+    "multi_person_note": "45.5~55.7초의 후반 연속동작에는 동기화된 정면·후면 시범자 두 명이 동시에 합성되어 단일 인물 관절 추적 신뢰도를 낮춤",
+    "boundary_review_usable": true,
+    "pose_score_training_usable": false,
+    "subject_tracking_confidence": 0.65
+  },
+  "app_analysis": {
+    "version": "v4.14",
+    "pose_detection_rate": 1.0,
+    "boundaries_seconds": [
+      5.8, 9.3, 10.6, 12.6, 13.7, 15.7, 16.4, 18.4, 20.3,
+      22.6, 23.4, 25.3, 30.0, 32.7, 34.2, 35.8, 38.1, 39.3,
+      41.2, 43.5, 44.7, 46.2, 47.8, 48.9, 50.9, 52.0, 54.4
+    ]
+  },
+  "review": {
+    "status": "gpt_reviewed",
+    "expert_approval": "pending",
+    "boundary_definition": "직전 완성 자세에서 다음 공식 동작을 위한 신체 이동이 처음 보이는 시점",
+    "temporal_resolution_seconds": 0.1,
+    "reviewed_boundaries_seconds": [
+      5.8, 9.3, 10.6, 12.6, 13.9, 16.5, 17.7, 18.7, 19.9,
+      21.2, 22.6, 23.9, 30.9, 32.8, 34.8, 36.7, 38.4, 39.9,
+      41.6, 43.4, 45.1, 46.2, 48.1, 49.4, 51.5, 52.4, 54.4
+    ],
+    "boundary_confidence": [
+      "high", "high", "high", "high", "high", "high", "high",
+      "high", "high", "high", "high", "high", "high", "high",
+      "high", "high", "high", "high", "high", "high", "high",
+      "medium", "medium", "medium", "medium", "medium", "high"
+    ],
+    "notes": [
+      "5~10번 범서기·뒷굽이 연속 방향 전환에서 자동 경계가 실제 다음 동작 시작보다 최대 약 1.4초 빠르거나 늦게 배치됨.",
+      "11번 모아서기 보주먹의 느린 수행 구간을 자동 분석이 늦게 시작하고 다음 가위막기를 약 0.9초 일찍 분리함.",
+      "15~20번 무릎올려치기·엇걸어막기 전환에서 자동 경계가 대체로 약 0.3~0.9초 일찍 배치됨.",
+      "45.5~55.7초의 다중 인물 합성 구간은 관절 점수 학습에서 제외하고 동작 경계 타이밍만 사용함.",
+      "이 기록은 GPT 검수 표본이며 지도자 승인 표본으로 간주하지 않음."
+    ]
+  },
+  "calibration_record": {
+    "action": "adjust",
+    "poomsae": "taegeuk_7",
+    "poomsae_name": "태극 7장",
+    "review_session_id": "gpt-taegeuk-7-front-20260820-v1",
+    "correction_revision": 1,
+    "boundary_count": 27,
+    "result_boundary_ratios": [
+      0, 0.07202, 0.09877, 0.13992, 0.16667, 0.22016, 0.24486,
+      0.26543, 0.29012, 0.31687, 0.34568, 0.37243, 0.51646, 0.55556,
+      0.59671, 0.6358, 0.67078, 0.70165, 0.73663, 0.77366, 0.80864,
+      0.83128, 0.87037, 0.89712, 0.94033, 0.95885, 1
+    ],
+    "review_source": "gpt",
+    "review_status": "gpt_reviewed",
+    "explicit_review": true,
+    "textbook_aligned": true,
+    "video_evidence": true,
+    "trusted_provenance": true,
+    "camera_view": "front",
+    "pose_detection_rate": 1.0,
+    "subject_tracking_confidence": 0.65,
+    "reviewed_at": "2026-08-20T18:56:39+09:00",
+    "review_note": "교본 동작 순서와 타임코드 프레임 검수 완료. 45.5~55.7초 다중 인물 합성으로 가중치 하향."
+  }
+}

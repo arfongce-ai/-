@@ -333,7 +333,7 @@ assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "const CAC
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
-assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v24-taegeuk-6-ground-truth", "최상단 배포용 오프라인 엔진 서비스워커 존재");
+assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v25-taegeuk-7-ground-truth", "최상단 배포용 오프라인 엔진 서비스워커 존재");
 assertContains(webHtml, 'import { buildDatasetCandidate, scoreActionSequence } from "./action-model.mjs"', "별도 동작 시퀀스 모델 모듈 연결");
 assertContains(webHtml, "learning_dataset_candidate", "분석 JSON에 전문가 검수용 관절좌표 시퀀스 포함");
 assertContains(webHtml, "actionAccuracyConfidence >= 0.65", "충분한 신뢰도에서만 동작 모델을 정확도 점수에 적용");
