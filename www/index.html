@@ -2937,7 +2937,7 @@
       import { compareVideoReference } from "./video-reference-match.mjs";
       import { buildTrustedCollectiveProfiles, eligibleCalibrationRecords, normalizeCalibrationImport } from "./evidence-calibration.mjs";
       // ── Firebase 연동(보정 기록 자동 수집) ──
-      // 보정 기록을 사장님 Firestore(momgagym-cms)에 자동으로 모은다.
+      // 보정 기록을 품새 전용 Firestore에 자동으로 모은다.
       // 실패해도(오프라인/차단) 앱 본체는 정상 동작하며, 기록은 로컬에도 항상 저장된다(이중 안전).
       let _fbDB = null;          // Firestore 인스턴스
       let _fbAddDoc = null, _fbCollection = null, _fbServerTs = null;
@@ -2958,12 +2958,12 @@
           const fsMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
           const authMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
           const firebaseConfig = {
-            apiKey: "AIzaSyC9R63MgGXKE0lQ_hfCR8LHRmMRv1jiugk",
-            authDomain: "momgagym-cms.firebaseapp.com",
-            projectId: "momgagym-cms",
-            storageBucket: "momgagym-cms.firebasestorage.app",
-            messagingSenderId: "28887391734",
-            appId: "1:28887391734:web:42eb4981c8dcacaccd7bd7"
+            apiKey: "AIzaSyCugSH5bu9M2qCceRjMwaM7n3W7XAv7geE",
+            authDomain: "momgagym-poomsae-coach.firebaseapp.com",
+            projectId: "momgagym-poomsae-coach",
+            storageBucket: "momgagym-poomsae-coach.firebasestorage.app",
+            messagingSenderId: "1160262117171",
+            appId: "1:160262117171:web:9889f3534ab201af3f5046"
           };
           const app = appMod.initializeApp(firebaseConfig);
           _fbDB = fsMod.getFirestore(app);
@@ -3338,7 +3338,7 @@
       }
 
       // ── 파트너 배너(하단 흐름 광고) ──
-      // 저장 위치: Firestore 'app_config/banner' 문서. corrections/momgagym-cms 데이터와 완전히 분리된 새 경로.
+      // 저장 위치: 품새 전용 Firestore의 'app_config/banner' 문서.
       // 보안: 로그인 시스템이 없어 PIN 방식(관리자 모드 진입 시 확인 + 저장 시 규칙에서도 재확인)을
       // 씀. 은행 수준 보안은 아님(문서에 pin 필드가 함께 저장되어 기술적으로는 조회 가능) — 회원/매출
       // 같은 민감 정보가 아닌 홍보 배너용이라 이 정도로 설계함. PIN을 바꾸려면 아래 상수와

@@ -2460,7 +2460,7 @@
 
     <script type="module">
       // ── Firebase 연동(보정 기록 자동 수집) ──
-      // 보정 기록을 사장님 Firestore(momgagym-cms)에 자동으로 모은다.
+      // 보정 기록을 품새 전용 Firestore에 자동으로 모은다.
       // 실패해도(오프라인/차단) 앱 본체는 정상 동작하며, 기록은 로컬에도 항상 저장된다(이중 안전).
       let _fbDB = null;          // Firestore 인스턴스
       let _fbAddDoc = null, _fbCollection = null, _fbServerTs = null;
@@ -2470,12 +2470,12 @@
           const appMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
           const fsMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
           const firebaseConfig = {
-            apiKey: "AIzaSyC9R63MgGXKE0lQ_hfCR8LHRmMRv1jiugk",
-            authDomain: "momgagym-cms.firebaseapp.com",
-            projectId: "momgagym-cms",
-            storageBucket: "momgagym-cms.firebasestorage.app",
-            messagingSenderId: "28887391734",
-            appId: "1:28887391734:web:42eb4981c8dcacaccd7bd7"
+            apiKey: "AIzaSyCugSH5bu9M2qCceRjMwaM7n3W7XAv7geE",
+            authDomain: "momgagym-poomsae-coach.firebaseapp.com",
+            projectId: "momgagym-poomsae-coach",
+            storageBucket: "momgagym-poomsae-coach.firebasestorage.app",
+            messagingSenderId: "1160262117171",
+            appId: "1:160262117171:web:9889f3534ab201af3f5046"
           };
           const app = appMod.initializeApp(firebaseConfig);
           _fbDB = fsMod.getFirestore(app);
