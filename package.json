@@ -28,6 +28,7 @@
     "test:evidence-calibration": "node scripts/test-evidence-calibration.js",
     "test:ground-truth": "node scripts/test-ground-truth-review.js",
     "prepare:calibration": "node scripts/prepare-calibration-review.js",
+    "import:calibration": "node scripts/import-calibration-review.js",
     "train:action-model": "node scripts/train-action-model.js"
   },
   "dependencies": {
