@@ -10,7 +10,7 @@
     { "poomsae": "taegeuk_3", "name": "태극 3장", "file": "품새_태극3장.mp4", "official_movements": 20, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/taegeuk-3-gpt-review-v1.json", "quality_note": "29.75초 이후 동기화된 정면·후면 시범자 2명이 동시에 표시됨" },
     { "poomsae": "taegeuk_4", "name": "태극 4장", "file": "품새_태극4장.mp4", "official_movements": 20, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/taegeuk-4-gpt-review-v1.json", "quality_note": "27.4초 이후 동기화된 정면·후면 시범자 2명이 동시에 표시됨" },
     { "poomsae": "taegeuk_5", "name": "태극 5장", "file": "품새_태극5장.mp4", "official_movements": 20, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/taegeuk-5-gpt-review-v1.json", "quality_note": "25.8~30.3초와 38.2초 이후 동기화된 정면·후면 시범자 2명이 동시에 표시됨" },
-    { "poomsae": "taegeuk_6", "name": "태극 6장", "file": "품새_태극6장.mp4", "official_movements": 19, "review_status": "pending_gpt_boundary_review" },
+    { "poomsae": "taegeuk_6", "name": "태극 6장", "file": "품새_태극6장.mp4", "official_movements": 19, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/taegeuk-6-gpt-review-v1.json", "quality_note": "단일 시범자가 전체 분석 구간에 표시되며 26.9~32.4초의 긴 정지 구간이 자동 경계 배치에 큰 오차를 유발함" },
     { "poomsae": "taegeuk_7", "name": "태극 7장", "file": "품새_태극7장.mp4", "official_movements": 25, "review_status": "pending_gpt_boundary_review" },
     { "poomsae": "taegeuk_8", "name": "태극 8장", "file": "품새_태극8장.mp4", "official_movements": 27, "review_status": "pending_gpt_boundary_review" },
     { "poomsae": "koryo", "name": "고려", "file": "품새_고려.mp4", "official_movements": 30, "review_status": "pending_gpt_boundary_review" },
