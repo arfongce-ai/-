@@ -11,29 +11,25 @@ service cloud.firestore {
     // - update/delete: 금지(그 누구도 기존 기록을 고치거나 지울 수 없음 — 데이터 무결성 보호).
     match /corrections/{docId} {
       allow create: if isValidCorrection(request.resource.data);
-      allow read: if request.auth != null && request.auth.token.email in ADMIN_EMAILS();
+      allow read: if isAdmin();
       allow update, delete: if false;
     }
 
     // GPT·지도자 검수 원본: 일반 사용자 보정과 분리해 출처 위조를 막는다.
     // 관리자 화면에서 가져온 명시적 검수 JSON만 이 컬렉션에 저장한다.
     match /calibration_reviews/{docId} {
-      allow read: if request.auth != null && request.auth.token.email in ADMIN_EMAILS();
-      allow create: if request.auth != null && request.auth.token.email in ADMIN_EMAILS()
+      allow read: if isAdmin();
+      allow create: if isAdmin()
         && isValidCalibrationReview(request.resource.data);
       allow update, delete: if false;
     }
 
     // ── 파트너 배너 설정 (신규, corrections/CMS와 완전히 분리된 경로) ──
     // - read: 누구나(앱을 여는 모든 사용자가 배너를 봐야 하므로).
-    // - write: PIN이 일치할 때만. PIN은 www/index.html의 ADMIN_PIN 상수와 반드시 같은 값이어야 함
-    //   (하나를 바꾸면 다른 하나도 같이 바꿀 것). 로그인 시스템이 없어 실제 사용자 인증은 아니며,
-    //   민감하지 않은 홍보 배너용으로 설계된 경량 보호임.
+    // - write: Firebase Authentication으로 확인된 관리자만 가능.
     match /app_config/banner {
       allow read: if true;
-      allow write: if request.resource.data.pin == "0713"
-        && request.resource.data.keys().hasOnly(['pin', 'enabled', 'imageUrl', 'linkUrl', 'startAt', 'endAt'])
-        && request.resource.data.enabled is bool;
+      allow write: if isAdmin() && isValidBanner(request.resource.data);
     }
 
     // ── 학습된 경계 타이밍 보정 (신규) ──
@@ -44,7 +40,7 @@ service cloud.firestore {
     // - write: 인증된 관리자만(위 corrections read와 같은 ADMIN_EMAILS 기준).
     match /app_config/boundary_bias {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.email in ADMIN_EMAILS()
+      allow write: if isAdmin()
         && request.resource.data.size() < 200; // 문서 비대화 방지(스팸/실수 보호).
     }
 
@@ -64,6 +60,22 @@ service cloud.firestore {
         && d.review_status in ['gpt_reviewed', 'expert_approved']
         && d.result_boundary_ratios is list
         && d.size() < 30;
+    }
+    function isValidBanner(d) {
+      return d.keys().hasOnly(['enabled', 'imageUrl', 'linkUrl', 'startAt', 'endAt'])
+        && d.enabled is bool
+        && d.imageUrl is string
+        && d.imageUrl.size() <= 900000
+        && d.linkUrl is string
+        && d.linkUrl.size() <= 2048
+        && d.startAt is number
+        && d.endAt is number
+        && d.startAt < d.endAt;
+    }
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && request.auth.token.email in ADMIN_EMAILS();
     }
     // 학습 리포트를 읽을 수 있는 관리자 이메일 목록. 배포 전 실제 이메일로 교체할 것.
     function ADMIN_EMAILS() {

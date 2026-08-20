@@ -18,7 +18,7 @@
   },
   "evidence": {
     "video_review": "전체 수행 구간을 5fps와 10fps 타임코드 프레임으로 검수하고 범서기 연속동작·보주먹·가위막기·무릎올려치기·표적안차기와 다중 인물 합성 구간을 교차검수함",
-    "textbook_reference": "www/models/taegeuk-7-textbook-reference.json",
+    "textbook_reference": "www/index.html의 taeguek_7 동작표(국기원 교본 대조 기록)",
     "official_rules": [
       {
         "source": "태권도심사규칙.pdf",

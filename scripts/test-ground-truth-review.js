@@ -21,7 +21,8 @@ function strictlyIncreasing(values) {
     { file: "taegeuk-4-gpt-review-v1.json", label: "Taegeuk 4", boundaries: 22, mae: 1.136, max: 2.533, within03: 4, weight: 0.39 },
     { file: "taegeuk-5-gpt-review-v1.json", label: "Taegeuk 5", boundaries: 22, mae: 0.914, max: 2.427, within03: 8, weight: 0.39 },
     { file: "taegeuk-6-gpt-review-v1.json", label: "Taegeuk 6", boundaries: 21, mae: 1.428, max: 7.166, within03: 7, weight: 0.6 },
-    { file: "taegeuk-7-gpt-review-v1.json", label: "Taegeuk 7", boundaries: 27, mae: 0.508, max: 1.4, within03: 8, weight: 0.39 }
+    { file: "taegeuk-7-gpt-review-v1.json", label: "Taegeuk 7", boundaries: 27, mae: 0.508, max: 1.4, within03: 8, weight: 0.39 },
+    { file: "taegeuk-8-gpt-review-v1.json", label: "Taegeuk 8", boundaries: 29, mae: 3.111, max: 6.6, within03: 0, weight: 0.45 }
   ];
 
   for (const expected of cases) {

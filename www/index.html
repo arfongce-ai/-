@@ -2529,7 +2529,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새수련 <span class="header-beta">Beta</span></h1>
-          <p class="small">내 품새 영상을 동작별로 쉽게 확인해요 · v4.14</p>
+          <p class="small">내 품새 영상을 동작별로 쉽게 확인해요 · v4.15</p>
         </div>
         <span class="badge">수련 보조 · Beta</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -2878,10 +2878,9 @@
         <h2 style="margin-top:0">관리자 모드 · 배너 설정</h2>
         <p class="small" id="adminPanelStatus"></p>
 
-        <label for="adminPinInput">관리자 PIN</label>
-        <input type="password" id="adminPinInput" inputmode="numeric" placeholder="PIN 입력" />
+        <p class="small">아래 관리자 이메일·비밀번호로 로그인해야 배너 설정을 저장할 수 있습니다.</p>
 
-        <div id="adminPanelFields" style="display:none">
+        <div id="adminPanelFields">
           <label for="adminBannerEnabled">
             <input type="checkbox" id="adminBannerEnabled" style="width:18px;height:18px;vertical-align:middle" /> 배너 노출 사용
           </label>
@@ -2901,11 +2900,9 @@
             <button type="button" class="secondary" id="adminPanelClose" style="min-height:44px">닫기</button>
           </div>
         </div>
-        <button type="button" class="secondary" id="adminPinSubmit" style="width:100%;min-height:44px;margin-top:10px">확인</button>
-
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e5e7eb">
           <h3 style="margin:0 0 4px">학습 리포트 · 보정 데이터 분석</h3>
-          <p class="small" style="color:var(--muted);margin:0 0 10px">위 PIN과는 별개의 로그인입니다. 여러 영상에 걸쳐 쌓인 보정 기록을 분석해 규칙 개선을 제안합니다 — 실제 반영은 개발자 확인 후 진행됩니다.</p>
+          <p class="small" style="color:var(--muted);margin:0 0 10px">이 로그인은 배너 저장과 학습 리포트 접근에 함께 사용됩니다. 여러 영상에 걸쳐 쌓인 보정 기록을 분석해 규칙 개선을 제안합니다 — 실제 반영은 개발자 확인 후 진행됩니다.</p>
           <div id="adminAuthFields">
             <label for="adminEmailInput">관리자 이메일</label>
             <input type="email" id="adminEmailInput" placeholder="admin@example.com" autocomplete="username" />
@@ -2946,10 +2943,9 @@
       // ── 학습된 경계 타이밍 보정(원격, 공개 읽기) 상태 ──
       // null=아직 못 가져옴(폴백 이전), {}=값 없음(보정 없음), {...}=실제 학습된 보정값.
       let _remoteBoundaryBias = null;
-      // ── 관리자 인증(학습 리포트 전용) ──
+      // ── 관리자 인증(배너 설정·학습 리포트 공용) ──
       // corrections 컬렉션은 firestore.rules상 인증된 관리자 계정만 읽을 수 있다(스팸 방지를
-      // 위해 익명 읽기는 막혀 있음 — 아래 firestore.rules 주석 참고). 배너 설정용 PIN과는
-      // 완전히 별개의, 진짜 로그인이다.
+      // 위해 익명 읽기는 막혀 있음 — 아래 firestore.rules 주석 참고).
       let _fbAuth = null, _fbSignIn = null, _fbSignOut = null, _fbSendPasswordReset = null;
       let _fbCurrentAdminUser = null;
       (async function initFirebase() {
@@ -3339,11 +3335,7 @@
 
       // ── 파트너 배너(하단 흐름 광고) ──
       // 저장 위치: 품새 전용 Firestore의 'app_config/banner' 문서.
-      // 보안: 로그인 시스템이 없어 PIN 방식(관리자 모드 진입 시 확인 + 저장 시 규칙에서도 재확인)을
-      // 씀. 은행 수준 보안은 아님(문서에 pin 필드가 함께 저장되어 기술적으로는 조회 가능) — 회원/매출
-      // 같은 민감 정보가 아닌 홍보 배너용이라 이 정도로 설계함. PIN을 바꾸려면 아래 상수와
-      // firebase/firestore.rules의 값을 함께 바꿔야 함.
-      const ADMIN_PIN = "0713";
+      // 보안: 배너 읽기는 공개하되 저장은 Firebase Authentication 관리자에게만 허용한다.
       // datetime-local 입력값("2026-07-20T09:00")을 "한국 시간"으로 해석해 UTC 타임스탬프(ms)로 변환.
       function parseKSTLocalInput(value) {
         if (!value) return null;
@@ -3393,30 +3385,38 @@
         if (!config || !config.imageUrl) return [];
         const makeLegacy = (urls) => urls.map((imageUrl) => ({
           imageUrl,
-          linkUrl: config.linkUrl || "",
+          linkUrl: safeBannerLinkUrl(config.linkUrl),
           startAt: Number.isFinite(config.startAt) ? config.startAt : Date.now(),
           endAt: Number.isFinite(config.endAt) ? config.endAt : addKSTMonths(Date.now(), 1)
         }));
-        if (typeof config.imageUrl === "string" && config.imageUrl.startsWith("data:image/")) {
+        if (typeof config.imageUrl === "string" && /^data:image\/(?:jpeg|png|webp|gif);base64,/i.test(config.imageUrl)) {
           return makeLegacy([config.imageUrl]);
         }
         try {
           const parsed = typeof config.imageUrl === "string" ? JSON.parse(config.imageUrl) : config.imageUrl;
           if (Array.isArray(parsed)) {
-            return makeLegacy(parsed.filter((url) => typeof url === "string" && url.startsWith("data:image/")).slice(0, 10));
+            return makeLegacy(parsed.filter((url) => typeof url === "string" && /^data:image\/(?:jpeg|png|webp|gif);base64,/i.test(url)).slice(0, 10));
           }
           if (parsed && parsed.version === 2 && Array.isArray(parsed.campaigns)) {
             return parsed.campaigns.filter((item) =>
-              item && typeof item.imageUrl === "string" && item.imageUrl.startsWith("data:image/")
+              item && typeof item.imageUrl === "string" && /^data:image\/(?:jpeg|png|webp|gif);base64,/i.test(item.imageUrl)
             ).slice(0, 10).map((item) => ({
               imageUrl: item.imageUrl,
-              linkUrl: typeof item.linkUrl === "string" ? item.linkUrl : "",
+              linkUrl: safeBannerLinkUrl(item.linkUrl),
               startAt: Number(item.startAt),
               endAt: Number(item.endAt)
             }));
           }
         } catch (e) { /* 예전 한 장 저장 형식이 아니면 빈 목록으로 처리 */ }
         return [];
+      }
+      function safeBannerLinkUrl(value) {
+        try {
+          const url = new URL(String(value || ""));
+          return (url.protocol === "https:" || url.protocol === "http:") ? url.href : "";
+        } catch (e) {
+          return "";
+        }
       }
       function activeBannerCampaigns(config, now = Date.now()) {
         if (!config || !config.enabled) return [];
@@ -3477,7 +3477,7 @@ function applyBannerToDom(config) {
         const makeItems = (isClone) => campaigns.map((campaign, index) => {
           const link = document.createElement("a");
           link.className = "app-footer-campaign";
-          link.href = campaign.linkUrl || "#";
+          link.href = safeBannerLinkUrl(campaign.linkUrl) || "#";
           link.target = "_blank";
           link.rel = "noopener";
           if (isClone) {
@@ -3514,8 +3514,9 @@ function applyBannerToDom(config) {
       }
       async function saveBannerConfig(partial) {
         if (!_fbReady || !_fbDB) return { ok: false, reason: "오프라인 상태라 저장할 수 없어요. 인터넷 연결을 확인해주세요." };
+        if (!_fbCurrentAdminUser) return { ok: false, reason: "관리자 이메일·비밀번호로 먼저 로그인해주세요." };
         try {
-          const payload = { ...partial, pin: ADMIN_PIN };
+          const payload = { ...partial };
           await Promise.race([
             _fbSetDoc(_fbDoc(_fbDB, "app_config", "banner"), payload),
             new Promise((_, reject) => setTimeout(() => reject(new Error("banner_save_timeout")), 15000))
@@ -3524,13 +3525,14 @@ function applyBannerToDom(config) {
           applyBannerToDom(_bannerConfigCache);
           return { ok: true };
         } catch (e) {
-          return { ok: false, reason: "저장에 실패했어요. PIN이 맞는지, 인터넷 연결을 확인해주세요." };
+          return { ok: false, reason: "저장에 실패했어요. 관리자 로그인 상태와 인터넷 연결을 확인해주세요." };
         }
       }
       async function readBannerImageFiles(files) {
         const fileList = Array.from(files || []);
-        if (!fileList.length || fileList.some((file) => !String(file.type || "").startsWith("image/"))) {
-          return { ok: false, reason: "이미지 파일을 선택해주세요." };
+        const safeImageType = /^image\/(?:jpeg|png|webp|gif)$/i;
+        if (!fileList.length || fileList.some((file) => !safeImageType.test(String(file.type || "")))) {
+          return { ok: false, reason: "JPG·PNG·WebP·GIF 이미지 파일을 선택해주세요." };
         }
         // Firebase Storage는 2026년부터 Blaze 요금제가 필요하므로 작은 공개 배너는
         // Firestore의 app_config/banner 문서에 data URL로 함께 저장한다.
@@ -3549,7 +3551,7 @@ function applyBannerToDom(config) {
               reader.onerror = () => reject(reader.error || new Error("banner_file_read_failed"));
               reader.readAsDataURL(file);
             })));
-          if (imageUrls.some((url) => !url.startsWith("data:image/"))) {
+          if (imageUrls.some((url) => !/^data:image\/(?:jpeg|png|webp|gif);base64,/i.test(url))) {
             return { ok: false, reason: "이미지 전체 용량이 너무 큽니다. 합계 600KB 이하로 줄여주세요." };
           }
           return { ok: true, imageUrls };
@@ -3561,8 +3563,6 @@ function applyBannerToDom(config) {
       (function wireAdminPanel() {
         const trigger = document.getElementById("adminModeTrigger");
         const overlay = document.getElementById("adminPanelOverlay");
-        const pinInput = document.getElementById("adminPinInput");
-        const pinSubmit = document.getElementById("adminPinSubmit");
         const fields = document.getElementById("adminPanelFields");
         const status = document.getElementById("adminPanelStatus");
         const closeBtn = document.getElementById("adminPanelClose");
@@ -3657,10 +3657,7 @@ function applyBannerToDom(config) {
           if (bannerImageFile) bannerImageFile.value = "";
           draftCampaigns = [];
           renderCampaignEditors();
-          pinInput.value = "";
-          pinInput.style.display = "";
-          pinSubmit.style.display = "";
-          fields.style.display = "none";
+          fields.style.display = "block";
           status.textContent = "";
         }
         function unlockFields() {
@@ -3669,26 +3666,19 @@ function applyBannerToDom(config) {
           draftCampaigns = bannerCampaigns(c);
           if (bannerImageFile) bannerImageFile.value = "";
           renderCampaignEditors();
-          pinInput.style.display = "none";
-          pinSubmit.style.display = "none";
           fields.style.display = "block";
           status.textContent = "";
         }
-        trigger.addEventListener("click", () => { overlay.style.display = "flex"; resetPanel(); });
+        trigger.addEventListener("click", () => { overlay.style.display = "flex"; resetPanel(); unlockFields(); });
         closeBtn.addEventListener("click", () => { overlay.style.display = "none"; });
         overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.style.display = "none"; });
-        pinSubmit.addEventListener("click", () => {
-          if (pinInput.value === ADMIN_PIN) unlockFields();
-          else status.textContent = "PIN이 올바르지 않아요.";
-        });
-        pinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") pinSubmit.click(); });
         if (bannerImageFile) {
           bannerImageFile.addEventListener("change", async () => {
             const files = Array.from((bannerImageFile && bannerImageFile.files) || []);
             if (!files.length) return;
-            if (files.some((file) => !String(file.type || "").startsWith("image/"))) {
+            if (files.some((file) => !/^image\/(?:jpeg|png|webp|gif)$/i.test(String(file.type || "")))) {
               bannerImageFile.value = "";
-              status.textContent = "이미지 파일만 선택할 수 있어요.";
+              status.textContent = "JPG·PNG·WebP·GIF 이미지만 선택할 수 있어요.";
               return;
             }
             if (draftCampaigns.length + files.length > 10) {
@@ -3768,7 +3758,7 @@ function applyBannerToDom(config) {
           if (result.ok) { document.getElementById("adminBannerEnabled").checked = false; }
           status.textContent = result.ok ? "즉시 숨김 처리했어요." : result.reason;
         });
-        // ── 학습 리포트 로그인/로그아웃(배너 PIN과 별개의 진짜 인증) ──
+        // ── 배너 설정·학습 리포트 공용 로그인/로그아웃 ──
         const adminSignInBtn = document.getElementById("adminSignInBtn");
         const adminSignOutBtn = document.getElementById("adminSignOutBtn");
         const reportRefreshBtn = document.getElementById("reportRefreshBtn");
@@ -8602,7 +8592,9 @@ function applyBannerToDom(config) {
         // 기존에 정의만 되고 쓰이지 않던 detectActionOnset을 실제 경로에 연결한다.
         const coarseOnset = activeRange.start;
         const onsetCandidate = detectActionOnset(motionSamples, activeRange, duration);
-        const maxOnsetRefine = Math.max(1.5, duration * 0.08);
+        // 큰 발차기·회전이 뒤에 나오는 품새에서 전역 최고 모션만 따라가면 앞의 공식동작을
+        // 여러 개 건너뛸 수 있다. 1차 활성 시작점에서 최대 약 한 동작 길이까지만 늦춘다.
+        const maxOnsetRefine = Math.min(3, Math.max(1.5, duration * 0.04));
         const onsetAccepted = Number.isFinite(onsetCandidate)
           && onsetCandidate >= coarseOnset - 0.1
           && onsetCandidate <= coarseOnset + maxOnsetRefine;
@@ -8641,14 +8633,24 @@ function applyBannerToDom(config) {
         const junbiSearchEnd = clamp(Math.max(12, duration * 0.38, activeRange.start + 6), 0, duration);
         const junbiMatch = findJunbiPoseStart(frames, junbiSearchEnd);
         activeRange.junbiMatch = junbiMatch;
-        if (junbiMatch && Number.isFinite(junbiMatch.time) && Number.isFinite(junbiMatch.endTime)) {
+        // 첫 활성 움직임보다 지나치게 늦은 '준비자세 유사 정지'는 중간 동작의 맺음일 수
+        // 있으므로 시작 앵커로 쓰지 않는다(태극 8장 초반 3개 동작 누락 회귀 방지).
+        const trustedJunbiMatch = junbiMatch
+          && Number.isFinite(junbiMatch.time)
+          && Number.isFinite(junbiMatch.endTime)
+          && junbiMatch.time <= coarseOnset + maxOnsetRefine
+          ? junbiMatch
+          : null;
+        if (trustedJunbiMatch) {
           // 첫 동작은 준비자세 이후의 움직임이어야 한다. 준비자세 마지막 일치 프레임 직전부터
           // 다시 온셋을 찾되, 경계가 마지막 준비자세보다 앞으로 가지 못하게 제한한다.
-          const anchoredStart = clamp(Math.max(junbiMatch.time + 0.6, junbiMatch.endTime - 0.55), 0, activeRange.end);
+          const anchoredStart = clamp(Math.max(trustedJunbiMatch.time + 0.6, trustedJunbiMatch.endTime - 0.55), 0, activeRange.end);
           const anchoredCandidate = detectActionOnset(motionSamples, { start: anchoredStart, end: activeRange.end }, duration);
-          const anchoredOnset = Math.max(junbiMatch.endTime, anchoredCandidate);
-          if (Number.isFinite(anchoredOnset) && anchoredOnset <= junbiMatch.endTime + 3.2) {
-            activeRange.start = clamp(anchoredOnset, junbiMatch.time, activeRange.end);
+          const anchoredOnset = Math.max(trustedJunbiMatch.endTime, anchoredCandidate);
+          if (Number.isFinite(anchoredOnset)
+            && anchoredOnset <= trustedJunbiMatch.endTime + 3.2
+            && anchoredOnset <= coarseOnset + maxOnsetRefine) {
+            activeRange.start = clamp(anchoredOnset, trustedJunbiMatch.time, activeRange.end);
             activeRange.onsetMethod = "sustained_junbi_then_motion";
             activeRange.onsetDelta = Number((activeRange.start - coarseOnset).toFixed(3));
           }
@@ -8667,8 +8669,8 @@ function applyBannerToDom(config) {
           const onset = activeRange.start;
           // '준비' 구간 시작 = 준비자세 포즈 매칭 성공 지점(이미지1과 80%↑ 일치하는 가장
           // 이른 지점). 매칭 실패 시(포즈 신뢰도 낮음 등) 영상 맨 앞(0초)으로 안전 폴백한다.
-          const prepStart = (junbiMatch && Number.isFinite(junbiMatch.time))
-            ? clamp(junbiMatch.time, 0, onset)
+          const prepStart = trustedJunbiMatch
+            ? clamp(trustedJunbiMatch.time, 0, onset)
             : 0;
           const moveCount = count - 1;
           const moveBoundaries = refineSegmentBoundaries(duration, moveCount, motionSamples, sensitivity, onset, activeRange.end);
