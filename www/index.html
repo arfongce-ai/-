@@ -6048,11 +6048,17 @@ function applyBannerToDom(config) {
       let capturePoseLoopStarted = false;
       let captureLastDetectMs = -1;
       let captureLatestLandmarks = [];
+      let captureSmoothedLandmarks = [];
       let capturePoseState = {
         detectionCount: 0,
         lastSuccessMs: 0,
         samples: 0,
-        rom: { elbow: { min: null, max: null }, knee: { min: null, max: null } }
+        rom: {
+          leftElbow: { min: null, max: null }, rightElbow: { min: null, max: null },
+          leftKnee: { min: null, max: null }, rightKnee: { min: null, max: null },
+          leftShoulder: { min: null, max: null }, rightShoulder: { min: null, max: null },
+          leftHip: { min: null, max: null }, rightHip: { min: null, max: null }
+        }
       };
       let captureComposeCanvas = null;
       let captureComposeRaf = 0;
@@ -6067,8 +6073,16 @@ function applyBannerToDom(config) {
           detectionCount: 0,
           lastSuccessMs: 0,
           samples: 0,
-          rom: { elbow: { min: null, max: null }, knee: { min: null, max: null } }
+          rom: {
+            leftElbow: { min: null, max: null }, rightElbow: { min: null, max: null },
+            leftKnee: { min: null, max: null }, rightKnee: { min: null, max: null },
+            leftShoulder: { min: null, max: null }, rightShoulder: { min: null, max: null },
+            leftHip: { min: null, max: null }, rightHip: { min: null, max: null }
+          }
         };
+        captureSmoothedLandmarks = [];
+        captureLatestLandmarks = [];
+        captureLastDetectMs = -1;
         if (capturePoseStatus) capturePoseStatus.textContent = "검출 대기 · ROM 대기";
       }
       function captureRangeText(range) {
@@ -6076,24 +6090,22 @@ function applyBannerToDom(config) {
         return `${Math.round(range.max - range.min)}°`;
       }
       function updateCaptureRom(landmarks) {
-        const pose = Array.isArray(landmarks?.[0]) ? landmarks[0] : landmarks;
-        if (!pose) return;
-        const elbowAngles = [
-          jointAngleDeg(getPoint(pose, 11), getPoint(pose, 13), getPoint(pose, 15)),
-          jointAngleDeg(getPoint(pose, 12), getPoint(pose, 14), getPoint(pose, 16))
-        ].filter(Number.isFinite);
-        const kneeAngles = [
-          jointAngleDeg(getPoint(pose, 23), getPoint(pose, 25), getPoint(pose, 27)),
-          jointAngleDeg(getPoint(pose, 24), getPoint(pose, 26), getPoint(pose, 28))
-        ].filter(Number.isFinite);
-        const update = (range, values) => {
-          if (!values.length) return;
-          const value = values.reduce((sum, item) => sum + item, 0) / values.length;
+        const poses = Array.isArray(landmarks?.[0]) ? landmarks : [landmarks];
+        const update = (range, value) => {
+          if (!range || !Number.isFinite(value)) return;
           range.min = range.min == null ? value : Math.min(range.min, value);
           range.max = range.max == null ? value : Math.max(range.max, value);
         };
-        update(capturePoseState.rom.elbow, elbowAngles);
-        update(capturePoseState.rom.knee, kneeAngles);
+        const pose = poses[0];
+        if (!pose) return;
+        update(capturePoseState.rom.leftElbow, jointAngleDeg(getPoint(pose, 11), getPoint(pose, 13), getPoint(pose, 15)));
+        update(capturePoseState.rom.rightElbow, jointAngleDeg(getPoint(pose, 12), getPoint(pose, 14), getPoint(pose, 16)));
+        update(capturePoseState.rom.leftKnee, jointAngleDeg(getPoint(pose, 23), getPoint(pose, 25), getPoint(pose, 27)));
+        update(capturePoseState.rom.rightKnee, jointAngleDeg(getPoint(pose, 24), getPoint(pose, 26), getPoint(pose, 28)));
+        update(capturePoseState.rom.leftShoulder, jointAngleDeg(getPoint(pose, 23), getPoint(pose, 11), getPoint(pose, 13)));
+        update(capturePoseState.rom.rightShoulder, jointAngleDeg(getPoint(pose, 24), getPoint(pose, 12), getPoint(pose, 14)));
+        update(capturePoseState.rom.leftHip, jointAngleDeg(getPoint(pose, 11), getPoint(pose, 23), getPoint(pose, 25)));
+        update(capturePoseState.rom.rightHip, jointAngleDeg(getPoint(pose, 12), getPoint(pose, 24), getPoint(pose, 26)));
         capturePoseState.samples += 1;
       }
       function updateCapturePoseStatus() {
@@ -6103,7 +6115,8 @@ function applyBannerToDom(config) {
           capturePoseStatus.textContent = "검출 0명 · 피사체를 화면 중앙에 맞추세요";
           return;
         }
-        capturePoseStatus.textContent = `검출 ${capturePoseState.detectionCount}명 · ROM 팔 ${captureRangeText(capturePoseState.rom.elbow)} / 무릎 ${captureRangeText(capturePoseState.rom.knee)}`;
+        const rom = capturePoseState.rom;
+        capturePoseStatus.textContent = `검출 ${capturePoseState.detectionCount}명 · ROM 팔 L/R ${captureRangeText(rom.leftElbow)}/${captureRangeText(rom.rightElbow)} · 무릎 L/R ${captureRangeText(rom.leftKnee)}/${captureRangeText(rom.rightKnee)}`;
       }
       function updateRecordingTimer() {
         const elapsed = Date.now() - recordingStartedAt;
@@ -6507,11 +6520,20 @@ function applyBannerToDom(config) {
           result = landmarker.detectForVideo(capturePreview, ts);
         } catch (error) {
           console.warn("Capture pose detection skipped.", error);
+          captureLatestLandmarks = [];
+          capturePoseState.detectionCount = 0;
+          updateCapturePoseStatus();
+          drawSkeletonFrame(captureCanvas, capturePreview, null);
           return;
         }
-        const allLandmarks = Array.isArray(result?.landmarks)
+        const rawLandmarks = Array.isArray(result?.landmarks)
           ? result.landmarks.slice(0, 3).sort((a, b) => visibleLandmarkScore(b) - visibleLandmarkScore(a))
           : [];
+        const allLandmarks = smoothCapturePoses(rawLandmarks);
+        captureSmoothedLandmarks = allLandmarks;
+        if (!rawLandmarks.length) {
+          captureTrails.forEach((trail) => Object.keys(trail).forEach((key) => { trail[key] = []; }));
+        }
         const displayedLandmarks = capturePoseMode === "single" ? allLandmarks.slice(0, 1) : allLandmarks;
         captureLatestLandmarks = displayedLandmarks;
         capturePoseState.detectionCount = displayedLandmarks.length;
@@ -6555,6 +6577,19 @@ function applyBannerToDom(config) {
           if (inFrame && visibility >= 0.25) score += visibility;
         });
         return score;
+      }
+      function smoothCapturePoses(poses) {
+        return poses.map((pose, poseIndex) => {
+          const previous = captureSmoothedLandmarks[poseIndex];
+          return (pose || []).map((point, pointIndex) => {
+            if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return previous?.[pointIndex] || point;
+            const old = previous?.[pointIndex];
+            if (!old || !Number.isFinite(old.x) || !Number.isFinite(old.y)) return { ...point };
+            const visibility = point.visibility == null ? 1 : point.visibility;
+            const alpha = visibility >= .65 ? .48 : .28;
+            return { ...point, x: old.x + (point.x - old.x) * alpha, y: old.y + (point.y - old.y) * alpha, z: (old.z || 0) + ((point.z || 0) - (old.z || 0)) * alpha };
+          });
+        });
       }
       function setCapturePoseMode(mode) {
         capturePoseMode = mode === "single" ? "single" : "multi";
