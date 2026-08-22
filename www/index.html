@@ -6401,6 +6401,14 @@ function applyBannerToDom(config) {
             ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
           }
           ctx.setLineDash([]);
+          if (poseIndex === 0) {
+            drawCaptureAngleLabels(
+              ctx,
+              pose,
+              (landmark) => recordingPoint(landmark, video, width, height),
+              Math.max(.75, Math.min(1.4, width / 480))
+            );
+          }
         });
         ctx.globalAlpha = 1;
       }
