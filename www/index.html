@@ -3316,7 +3316,7 @@
           </div>
           <div class="capture-controls">
             <button type="button" id="startRecordBtn" class="capture-record-btn" aria-label="녹화">녹화</button>
-            <p class="capture-helper">표준 화질 · 카메라 4:3 비율로 저장됩니다. 녹화는 최대 2분까지 가능하며, 저장 후 분석탭으로 바로 보낼 수 있습니다.</p>
+            <p class="capture-helper">표준 화질 · 카메라 4:3 비율로 저장됩니다. 녹화는 최대 2분까지 가능하며, 종료하면 바로 폰에 저장을 시도합니다.</p>
             <div id="recordingsList" class="recordings-list"></div>
           </div>
         </div>
@@ -3645,11 +3645,8 @@
             </div>
             <div class="tool-row">
               <label class="speed-control"><span>후 영상 투명도</span><input id="compareOpacity" type="range" min="0.15" max="1" step="0.05" value="0.52" /></label>
-              <button type="button" id="comparePlayBtn" class="secondary">동시 재생</button>
-              <button type="button" id="comparePauseBtn" class="secondary">정지</button>
               <button type="button" id="compareSaveBtn" class="secondary">비교 영상 저장</button>
               <button type="button" id="compareAnalyzeBtn" class="secondary">비교 분석</button>
-              <button type="button" id="compareUseAfterBtn" class="secondary">후 영상 분석으로 보내기</button>
             </div>
             <div id="compareResult" class="compare-result" hidden></div>
           </div>
@@ -6108,11 +6105,8 @@ function applyBannerToDom(config) {
       const compareStage = document.getElementById("compareStage");
       const compareEmptyState = document.getElementById("compareEmptyState");
       const compareOpacity = document.getElementById("compareOpacity");
-      const comparePlayBtn = document.getElementById("comparePlayBtn");
-      const comparePauseBtn = document.getElementById("comparePauseBtn");
       const compareSaveBtn = document.getElementById("compareSaveBtn");
       const compareAnalyzeBtn = document.getElementById("compareAnalyzeBtn");
-      const compareUseAfterBtn = document.getElementById("compareUseAfterBtn");
       const compareResult = document.getElementById("compareResult");
       const MAX_RECORDING_MS = 120000;
       let captureStream = null;
@@ -6170,6 +6164,7 @@ function applyBannerToDom(config) {
         return `${Math.round(range.max - range.min)}°`;
       }
       function updateCaptureRom(landmarks) {
+        if (capturePoseMode !== "single") return;
         const poses = Array.isArray(landmarks?.[0]) ? landmarks : [landmarks];
         const update = (range, value) => {
           if (!range || !Number.isFinite(value)) return;
@@ -6294,8 +6289,8 @@ function applyBannerToDom(config) {
           if (!item.previewUrl) item.previewUrl = URL.createObjectURL(item.file);
           const row = document.createElement("div");
           row.className = "recording-item";
-          row.innerHTML = `<video class="recording-preview" controls muted playsinline preload="metadata" src="${item.previewUrl}"></video><div><strong>${item.file.name}</strong><small>${formatClock(item.durationMs)} · ${Math.round(item.file.size / 1024)}KB · ${item.file.type || "video"}</small></div><div class="recording-actions"><button type="button" class="secondary" data-recording-action="save">영상 저장</button></div>`;
-          row.querySelector('[data-recording-action="save"]').addEventListener("click", () => saveRecordingFile(index));
+          const savedLabel = item.autoSaveAttempted ? "폰 저장 시도됨" : "저장 준비됨";
+          row.innerHTML = `<video class="recording-preview" controls muted playsinline preload="metadata" src="${item.previewUrl}"></video><div><strong>${item.file.name}</strong><small>${formatClock(item.durationMs)} · ${Math.round(item.file.size / 1024)}KB · ${item.file.type || "video"} · ${savedLabel}</small></div>`;
           recordingsList.appendChild(row);
         });
       }
@@ -6391,7 +6386,9 @@ function applyBannerToDom(config) {
             return;
           }
           const file = new File([blob], `poomsae-recording-${new Date().toISOString().replace(/[:.]/g, "-")}.${ext}`, { type });
-          savedRecordings.unshift({ file, durationMs });
+          savedRecordings.unshift({ file, durationMs, autoSaveAttempted: false });
+          saveRecordingFile(0);
+          savedRecordings[0].autoSaveAttempted = true;
           renderRecordings();
           startRecordBtn.disabled = false;
           startRecordBtn.textContent = "녹화";
@@ -6590,7 +6587,7 @@ function applyBannerToDom(config) {
             ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
           }
           ctx.setLineDash([]);
-          if (poseIndex === 0) {
+          if (capturePoseMode === "single" && poseIndex === 0) {
             drawCaptureAngleLabels(
               ctx,
               pose,
@@ -6603,7 +6600,7 @@ function applyBannerToDom(config) {
       }
       function drawRecordingTrails(ctx, video, width, height) {
         const now = performance.now();
-        const colors = { leftHand: "#cd2e3a", rightHand: "#cd2e3a", leftFoot: "#0047a0", rightFoot: "#0047a0" };
+        const colors = { leftHand: "#38c7bb", rightHand: "#38c7bb", leftFoot: "#38c7bb", rightFoot: "#38c7bb" };
         captureTrails.forEach((poseTrail) => Object.entries(poseTrail).forEach(([key, points]) => {
           const active = points.filter((point) => now - point.t <= 1500);
           poseTrail[key] = active;
@@ -6690,7 +6687,7 @@ function applyBannerToDom(config) {
             poseTrail[key] = poseTrail[key].filter((item) => now - item.t <= 1500).slice(-60);
             const points = poseTrail[key];
             if (points.length < 2) return;
-            ctx.strokeStyle = key.includes("Foot") ? "#0047a0" : "#cd2e3a";
+            ctx.strokeStyle = "#38c7bb";
             ctx.lineWidth = 3; ctx.globalAlpha = .75; ctx.beginPath();
             points.forEach((item, index2) => {
               const point = rotateCanvasPoint({ x: offX + item.x * drawW, y: offY + item.y * drawH }, rect.width, rect.height, captureRotationDeg());
@@ -6807,7 +6804,7 @@ function applyBannerToDom(config) {
           return list.sort((a, b) => visibleLandmarkScore(b) - visibleLandmarkScore(a));
         }
         return list
-          .filter((pose) => visibleLandmarkScore(pose) >= 0.9)
+          .filter((pose) => visibleLandmarkScore(pose) >= 0.55)
           .sort((a, b) => capturePoseCenterX(a) - capturePoseCenterX(b));
       }
       function capturePoseCenterY(landmarks) {
@@ -6832,7 +6829,7 @@ function applyBannerToDom(config) {
           const duplicate = unique.some((old) => {
             const dx = capturePoseCenterX(old) - cx;
             const dy = capturePoseCenterY(old) - cy;
-            return Math.hypot(dx, dy) < 0.13;
+            return Math.hypot(dx, dy) < 0.10;
           });
           if (!duplicate) unique.push(pose);
           if (unique.length >= 3) break;
@@ -6856,7 +6853,7 @@ function applyBannerToDom(config) {
         const sh = Math.min(sourceH - sy, Math.round(crop.h * sourceH));
         if (sw <= 0 || sh <= 0) return [];
         const canvas = captureCropCanvas || document.createElement("canvas");
-        const targetW = 360;
+        const targetW = 420;
         canvas.width = targetW;
         canvas.height = Math.max(360, Math.round(targetW * sh / sw));
         captureCropCanvas = canvas;
@@ -6878,9 +6875,12 @@ function applyBannerToDom(config) {
         let candidates = base.slice();
         if (orderCapturePoses(candidates).length < 3) {
           const crops = [
-            { x: 0, y: 0, w: 0.56, h: 1 },
-            { x: 0.22, y: 0, w: 0.56, h: 1 },
-            { x: 0.44, y: 0, w: 0.56, h: 1 }
+            { x: 0, y: 0, w: 0.50, h: 1 },
+            { x: 0.17, y: 0, w: 0.50, h: 1 },
+            { x: 0.34, y: 0, w: 0.50, h: 1 },
+            { x: 0.50, y: 0, w: 0.50, h: 1 },
+            { x: 0, y: 0.08, w: 0.62, h: 0.84 },
+            { x: 0.38, y: 0.08, w: 0.62, h: 0.84 }
           ];
           for (const crop of crops) {
             candidates = candidates.concat(await detectCaptureCropPose(landmarker, crop));
@@ -6989,19 +6989,6 @@ function applyBannerToDom(config) {
       bindCompareInput(compareBeforeInput, compareBeforeVideo);
       bindCompareInput(compareAfterInput, compareAfterVideo);
       compareOpacity?.addEventListener("input", () => { compareAfterVideo.style.opacity = compareOpacity.value; });
-      comparePlayBtn?.addEventListener("click", () => {
-        if (!compareBeforeVideo?.src || !compareAfterVideo?.src) {
-          if (compareEmptyState) {
-            compareEmptyState.textContent = "전 영상과 후 영상을 모두 선택한 뒤 재생하세요.";
-            compareEmptyState.classList.remove("hidden");
-          }
-          return;
-        }
-        compareBeforeVideo.currentTime = 0;
-        compareAfterVideo.currentTime = 0;
-        Promise.all([compareBeforeVideo.play(), compareAfterVideo.play()]).catch(() => {});
-      });
-      comparePauseBtn?.addEventListener("click", () => { compareBeforeVideo.pause(); compareAfterVideo.pause(); });
       function compareVideosReady() {
         return Boolean(compareBeforeVideo?.src && compareAfterVideo?.src && compareBeforeVideo.videoWidth && compareAfterVideo.videoWidth);
       }
@@ -7092,28 +7079,11 @@ function applyBannerToDom(config) {
         const afterRes = `${compareAfterVideo.videoWidth}x${compareAfterVideo.videoHeight}`;
         renderCompareResult(`시간 변화: ${delta >= 0 ? "+" : ""}${delta.toFixed(2)}초 (${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%)<br>전 영상: ${beforeDuration.toFixed(2)}초 · ${beforeRes}<br>후 영상: ${afterDuration.toFixed(2)}초 · ${afterRes}`);
       }
-      function useAfterCompareForAnalysis() {
-        const file = compareAfterInput?.files?.[0];
-        if (!file || !fileInput) {
-          renderCompareResult("후 영상을 먼저 선택하세요.");
-          return;
-        }
-        try {
-          const transfer = new DataTransfer();
-          transfer.items.add(file);
-          fileInput.files = transfer.files;
-          fileInput.dispatchEvent(new Event("change", { bubbles: true }));
-          setAppTab("analysis");
-        } catch (error) {
-          renderCompareResult("후 영상을 분석 탭으로 보내지 못했습니다. 분석 탭에서 직접 선택해 주세요.");
-        }
-      }
       compareSaveBtn?.addEventListener("click", () => saveCompareVideo().catch((error) => {
         console.warn("Compare video save failed.", error);
         renderCompareResult("비교 영상 저장 중 오류가 발생했습니다.");
       }));
       compareAnalyzeBtn?.addEventListener("click", analyzeCompareVideos);
-      compareUseAfterBtn?.addEventListener("click", useAfterCompareForAnalysis);
       renderRecordings();
       const PRESET_VIDEO_LIBRARY = {}; /*
         taegeuk_1: { label: "태극 1장", fileName: "품새_태극1장.mp4", url: "./videos/품새_태극1장.mp4" },
@@ -9236,7 +9206,9 @@ function applyBannerToDom(config) {
             ctx.globalAlpha = poseIndex === 0 ? 1 : .82;
             ctx.beginPath(); ctx.arc(p.x, p.y, poseIndex === 0 ? 4 : 3, 0, Math.PI * 2); ctx.fill();
           }
-          if (poseIndex === 0) drawCaptureAngleLabels(ctx, pose, toXY, Math.max(.75, Math.min(1.4, rect.width / 480)));
+          if (!isCapture || capturePoseMode === "single") {
+            if (poseIndex === 0) drawCaptureAngleLabels(ctx, pose, toXY, Math.max(.75, Math.min(1.4, rect.width / 480)));
+          }
         });
         ctx.globalAlpha = 1;
       }
@@ -9563,9 +9535,9 @@ function applyBannerToDom(config) {
         loadCaptureModelPromise = (async () => {
           const captureOptions = {
             numPoses: 3,
-            minPoseDetectionConfidence: 0.15,
-            minPosePresenceConfidence: 0.15,
-            minTrackingConfidence: 0.15
+            minPoseDetectionConfidence: 0.08,
+            minPosePresenceConfidence: 0.08,
+            minTrackingConfidence: 0.08
           };
           const { FilesetResolver, PoseLandmarker } = await importMediaPipe();
           try {
