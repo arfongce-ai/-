@@ -6692,13 +6692,24 @@ function applyBannerToDom(config) {
             poseTrail[key] = poseTrail[key].filter((item) => now - item.t <= 1000).slice(-36);
             const points = poseTrail[key];
             if (points.length < 2) return;
-            ctx.strokeStyle = key.includes("Foot") ? "#0047a0" : "#cd2e3a";
-            ctx.lineWidth = 3; ctx.globalAlpha = .75; ctx.beginPath();
-            points.forEach((item, index2) => {
-              const point = rotateCanvasPoint({ x: offX + item.x * drawW, y: offY + item.y * drawH }, rect.width, rect.height, captureRotationDeg());
-              if (!index2) ctx.moveTo(point.x, point.y); else ctx.lineTo(point.x, point.y);
-            });
-            ctx.stroke();
+            const color = key.includes("Foot") ? "#0047a0" : "#cd2e3a";
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            for (let i = 1; i < points.length; i += 1) {
+              const prev = points[i - 1];
+              const item = points[i];
+              const age = Math.max(0, Math.min(1, (now - item.t) / 1000));
+              const alpha = 0.10 + (1 - age) * 0.70;
+              const p1 = rotateCanvasPoint({ x: offX + prev.x * drawW, y: offY + prev.y * drawH }, rect.width, rect.height, captureRotationDeg());
+              const p2 = rotateCanvasPoint({ x: offX + item.x * drawW, y: offY + item.y * drawH }, rect.width, rect.height, captureRotationDeg());
+              ctx.strokeStyle = color;
+              ctx.globalAlpha = alpha;
+              ctx.lineWidth = 2 + (1 - age) * 2.2;
+              ctx.beginPath();
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+              ctx.stroke();
+            }
           });
         });
         ctx.globalAlpha = 1;
@@ -6881,11 +6892,11 @@ function applyBannerToDom(config) {
         let candidates = base.slice();
         const orderedBase = orderCapturePoses(candidates);
         const now = performance.now();
-        if (orderedBase.length < 3 && captureLatestLandmarks.length && now - capturePoseState.lastSuccessMs < 650) {
+        if (orderedBase.length < 3 && captureLatestLandmarks.length && now - capturePoseState.lastSuccessMs < 260) {
           candidates = candidates.concat(captureLatestLandmarks);
         }
         if (orderedBase.length < 3 && now >= captureNextCropDetectAt) {
-          captureNextCropDetectAt = now + 350;
+          captureNextCropDetectAt = now + 700;
           const crops = [
             { x: 0, y: 0, w: 0.50, h: 1 },
             { x: 0.17, y: 0, w: 0.50, h: 1 },
@@ -6905,7 +6916,7 @@ function applyBannerToDom(config) {
               };
               return score(b) - score(a);
             })
-            .slice(0, orderedBase.length ? 2 : 3);
+            .slice(0, orderedBase.length ? 1 : 2);
           for (const crop of selectedCrops) {
             candidates = candidates.concat(await detectCaptureCropPose(landmarker, crop));
           }
@@ -6920,7 +6931,9 @@ function applyBannerToDom(config) {
             const old = previous?.[pointIndex];
             if (!old || !Number.isFinite(old.x) || !Number.isFinite(old.y)) return { ...point };
             const visibility = point.visibility == null ? 1 : point.visibility;
-            const alpha = visibility >= .65 ? .48 : .28;
+            const alpha = capturePoseMode === "multi"
+              ? (visibility >= .65 ? .82 : .62)
+              : (visibility >= .65 ? .48 : .28);
             return { ...point, x: old.x + (point.x - old.x) * alpha, y: old.y + (point.y - old.y) * alpha, z: (old.z || 0) + ((point.z || 0) - (old.z || 0)) * alpha };
           });
         });
