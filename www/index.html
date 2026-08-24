@@ -6120,6 +6120,7 @@ function applyBannerToDom(config) {
       let capturePoseMode = "multi";
       let capturePoseLoopStarted = false;
       let captureLastDetectMs = -1;
+      let captureNextCropDetectAt = 0;
       let captureLatestLandmarks = [];
       let captureSmoothedLandmarks = [];
       let capturePoseState = {
@@ -6157,6 +6158,7 @@ function applyBannerToDom(config) {
         captureSmoothedLandmarks = [];
         captureLatestLandmarks = [];
         captureLastDetectMs = -1;
+        captureNextCropDetectAt = 0;
         if (capturePoseStatus) capturePoseStatus.textContent = "검출 대기 · ROM 대기";
       }
       function captureRangeText(range) {
@@ -6687,7 +6689,7 @@ function applyBannerToDom(config) {
             const point = pose && pose[index];
             if (!point || (point.visibility != null && point.visibility < .35)) return;
             poseTrail[key].push({ x: point.x, y: point.y, t: now });
-            poseTrail[key] = poseTrail[key].filter((item) => now - item.t <= 1500).slice(-60);
+            poseTrail[key] = poseTrail[key].filter((item) => now - item.t <= 1000).slice(-36);
             const points = poseTrail[key];
             if (points.length < 2) return;
             ctx.strokeStyle = key.includes("Foot") ? "#0047a0" : "#cd2e3a";
@@ -6857,7 +6859,7 @@ function applyBannerToDom(config) {
         const sh = Math.min(sourceH - sy, Math.round(crop.h * sourceH));
         if (sw <= 0 || sh <= 0) return [];
         const canvas = captureCropCanvas || document.createElement("canvas");
-        const targetW = 420;
+        const targetW = 320;
         canvas.width = targetW;
         canvas.height = Math.max(360, Math.round(targetW * sh / sw));
         captureCropCanvas = canvas;
@@ -6877,7 +6879,13 @@ function applyBannerToDom(config) {
         const base = Array.isArray(initialResult?.landmarks) ? initialResult.landmarks : [];
         if (capturePoseMode === "single") return orderCapturePoses(base).slice(0, 1);
         let candidates = base.slice();
-        if (orderCapturePoses(candidates).length < 3) {
+        const orderedBase = orderCapturePoses(candidates);
+        const now = performance.now();
+        if (orderedBase.length < 3 && captureLatestLandmarks.length && now - capturePoseState.lastSuccessMs < 650) {
+          candidates = candidates.concat(captureLatestLandmarks);
+        }
+        if (orderedBase.length < 3 && now >= captureNextCropDetectAt) {
+          captureNextCropDetectAt = now + 350;
           const crops = [
             { x: 0, y: 0, w: 0.50, h: 1 },
             { x: 0.17, y: 0, w: 0.50, h: 1 },
@@ -6886,7 +6894,19 @@ function applyBannerToDom(config) {
             { x: 0, y: 0.08, w: 0.62, h: 0.84 },
             { x: 0.38, y: 0.08, w: 0.62, h: 0.84 }
           ];
-          for (const crop of crops) {
+          const detectedCenters = orderedBase.map(capturePoseCenterX);
+          const selectedCrops = crops
+            .sort((a, b) => {
+              const score = (crop) => {
+                const cx = crop.x + crop.w / 2;
+                return detectedCenters.length
+                  ? Math.min(...detectedCenters.map((detectedX) => Math.abs(detectedX - cx)))
+                  : 1 - Math.abs(cx - 0.5);
+              };
+              return score(b) - score(a);
+            })
+            .slice(0, orderedBase.length ? 2 : 3);
+          for (const crop of selectedCrops) {
             candidates = candidates.concat(await detectCaptureCropPose(landmarker, crop));
           }
         }
