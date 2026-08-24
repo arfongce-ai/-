@@ -6563,7 +6563,7 @@ function applyBannerToDom(config) {
           clearCaptureCanvas();
           return;
         }
-        const landmarker = await loadModel();
+        const landmarker = await loadCaptureModel();
         if (!landmarker) {
           if (captureCameraStatus) captureCameraStatus.textContent = "스켈레톤 모델을 불러오지 못했습니다.";
           return;
@@ -6845,6 +6845,7 @@ function applyBannerToDom(config) {
       let replayObjectUrl = null;
       let selectedFile = null;
       let poseLandmarker = null;
+      let capturePoseLandmarker = null;
       let actionQualityModel = null;
       const textbookPoseReferences = {};
       const videoMotionReferences = {};
@@ -7354,6 +7355,7 @@ function applyBannerToDom(config) {
       const stableAnalysisCache = new Map();
       let isAnalyzing = false;
       let loadModelPromise = null;
+      let loadCaptureModelPromise = null;
       let mainReplayRange = null;
       let modalReplayRange = null;
       let analysisTimestampOffsetMs = 0;
@@ -9093,23 +9095,23 @@ function applyBannerToDom(config) {
         }
         throw lastError || new Error("MediaPipe import failed");
       }
-      async function createPoseLandmarker(PoseLandmarker, vision, modelUrl, delegate) {
+      async function createPoseLandmarker(PoseLandmarker, vision, modelUrl, delegate, options = {}) {
         return PoseLandmarker.createFromOptions(vision, {
           baseOptions: { modelAssetPath: modelUrl, delegate },
           runningMode: "VIDEO",
-          numPoses: 3,
-          minPoseDetectionConfidence: 0.5,
-          minPosePresenceConfidence: 0.5,
-          minTrackingConfidence: 0.5
+          numPoses: options.numPoses ?? 3,
+          minPoseDetectionConfidence: options.minPoseDetectionConfidence ?? 0.5,
+          minPosePresenceConfidence: options.minPosePresenceConfidence ?? 0.5,
+          minTrackingConfidence: options.minTrackingConfidence ?? 0.5
         });
       }
-      async function createPoseLandmarkerWithFallback(PoseLandmarker, vision, modelUrl) {
+      async function createPoseLandmarkerWithFallback(PoseLandmarker, vision, modelUrl, options = {}) {
         try {
-          return await createPoseLandmarker(PoseLandmarker, vision, modelUrl, "GPU");
+          return await createPoseLandmarker(PoseLandmarker, vision, modelUrl, "GPU", options);
         } catch (gpuError) {
           console.warn("GPU delegate failed; retrying PoseLandmarker with CPU delegate.", gpuError);
           setProgress(45, "GPU delegate failed. Retrying with CPU delegate for device compatibility.");
-          return createPoseLandmarker(PoseLandmarker, vision, modelUrl, "CPU");
+          return createPoseLandmarker(PoseLandmarker, vision, modelUrl, "CPU", options);
         }
       }
       async function loadModel() {
@@ -9149,6 +9151,31 @@ function applyBannerToDom(config) {
         }
         })();
         return loadModelPromise;
+      }
+      async function loadCaptureModel() {
+        if (capturePoseLandmarker) return capturePoseLandmarker;
+        if (loadCaptureModelPromise) return loadCaptureModelPromise;
+        loadCaptureModelPromise = (async () => {
+          const captureOptions = {
+            numPoses: 6,
+            minPoseDetectionConfidence: 0.25,
+            minPosePresenceConfidence: 0.25,
+            minTrackingConfidence: 0.25
+          };
+          const { FilesetResolver, PoseLandmarker } = await importMediaPipe();
+          try {
+            const vision = await FilesetResolver.forVisionTasks(LOCAL_WASM_URL);
+            capturePoseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, LOCAL_MODEL_URL, captureOptions);
+          } catch (localError) {
+            console.warn("Local capture MediaPipe assets unavailable, trying online fallback.", localError);
+            const vision = await FilesetResolver.forVisionTasks(REMOTE_WASM_URL);
+            capturePoseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, REMOTE_MODEL_URL, captureOptions);
+          } finally {
+            loadCaptureModelPromise = null;
+          }
+          return capturePoseLandmarker;
+        })();
+        return loadCaptureModelPromise;
       }
       function getPoint(landmarks, index) {
         const p = landmarks && landmarks[index];
