@@ -3855,7 +3855,10 @@
       // 저장한 뒤 성공한 항목만 제거한다. 무료 Firestore 범위 안에서 별도 유료 서버 없이 동작한다.
       const CLOUD_CORRECTION_QUEUE_KEY = "poomsae_cloud_correction_queue_v1";
       const CLOUD_CORRECTION_QUEUE_MAX = 300;
+      const CLOUD_REPORT_QUEUE_KEY = "poomsae_cloud_learning_report_queue_v1";
+      const CLOUD_REPORT_QUEUE_MAX = 40;
       let _cloudCorrectionFlushPromise = null;
+      let _cloudReportFlushPromise = null;
       function loadPendingCloudCorrections() {
         try {
           const rows = JSON.parse(localStorage.getItem(CLOUD_CORRECTION_QUEUE_KEY) || "[]");
@@ -3896,7 +3899,74 @@
         const sent = await flushPendingCloudCorrections();
         return sent > 0;
       }
-      window.addEventListener("online", () => { flushPendingCloudCorrections(); });
+      function loadPendingCloudReports() {
+        try {
+          const rows = JSON.parse(localStorage.getItem(CLOUD_REPORT_QUEUE_KEY) || "[]");
+          return Array.isArray(rows) ? rows : [];
+        } catch (e) { return []; }
+      }
+      function savePendingCloudReports(rows) {
+        try { localStorage.setItem(CLOUD_REPORT_QUEUE_KEY, JSON.stringify(rows.slice(-CLOUD_REPORT_QUEUE_MAX))); }
+        catch (e) { /* 보고서 전송 대기 저장 실패는 앱 동작에 영향을 주지 않음 */ }
+      }
+      function queueLearningReportForCloud(report) {
+        const queue = loadPendingCloudReports();
+        queue.push(report);
+        savePendingCloudReports(queue);
+      }
+      async function flushPendingCloudReports() {
+        if (_cloudReportFlushPromise) return _cloudReportFlushPromise;
+        _cloudReportFlushPromise = (async () => {
+          if (!_fbReady || !_fbDB || !_fbAddDoc || !_fbCollection) return 0;
+          const queue = loadPendingCloudReports();
+          let sent = 0;
+          while (queue.length) {
+            try {
+              await _fbAddDoc(_fbCollection(_fbDB, "learning_reports"), { ...queue[0], created: _fbServerTs() });
+              queue.shift();
+              sent += 1;
+              savePendingCloudReports(queue);
+            } catch (e) { break; }
+          }
+          return sent;
+        })();
+        try { return await _cloudReportFlushPromise; }
+        finally { _cloudReportFlushPromise = null; }
+      }
+      function compactLearningReport(report) {
+        if (!report || typeof report !== "object") return null;
+        const event = report.competition_event || null;
+        return {
+          schema: "poomsae-learning-report-v1",
+          created_at: report.created_at || new Date().toISOString(),
+          poomsae: String(report.poomsae?.id || "").slice(0, 80),
+          poomsae_name: String(report.poomsae?.name || "").slice(0, 120),
+          training_mode: String(report.training_mode || "").slice(0, 40),
+          competition_event: event ? String(event.key || event.label || "").slice(0, 40) : "",
+          score_100: Number(report.summary?.score_100) || 0,
+          competition_score_10: Number(report.summary?.competition_score_10) || 0,
+          detection_rate: Number(report.summary?.detection_rate) || 0,
+          segment_count: Array.isArray(report.segments) ? report.segments.length : 0,
+          issue_counts: (Array.isArray(report.summary?.issue_counts) ? report.summary.issue_counts : []).slice(0, 20).map((item) => ({
+            key: String(item.key || "").slice(0, 80),
+            label: String(item.label || "").slice(0, 120),
+            count: Math.max(0, Math.round(Number(item.count) || 0))
+          })),
+          needed_training: (Array.isArray(report.summary?.needed_training) ? report.summary.needed_training : []).slice(0, 20).map((item) => String(item).slice(0, 240)),
+          correction_count: Math.max(0, Math.round(Number(report.correction_log?.total) || 0))
+        };
+      }
+      async function sendLearningReportToCloud(report) {
+        const compact = compactLearningReport(report);
+        if (!compact) return false;
+        queueLearningReportForCloud(compact);
+        const sent = await flushPendingCloudReports();
+        return sent > 0;
+      }
+      window.addEventListener("online", () => {
+        flushPendingCloudCorrections();
+        flushPendingCloudReports();
+      });
 
       // ── 학습된 경계 타이밍 보정(원격, 공개 읽기) ──
       // 배경(2026-07-22 사용자 확인): "학습 리포트"가 보여주는 제안은 그동안 관리자 확인 후
@@ -12335,6 +12405,8 @@ function applyBannerToDom(config) {
           analysis_efficiency: analysisEfficiency,
           next_step: "관절 속도 피크와 정지점으로 실제 동작 전환점을 자동 감지하고, 지르기/막기/차기별 궤적 정확도 규칙을 연결"
         };
+        // 원본 영상·파일명·프레임은 저장하지 않고, 전역 학습에 필요한 요약만 Firestore에 누적한다.
+        sendLearningReportToCloud(latestReport);
         // 수동 조정용 캐시 저장: 경계/모션/프레임을 보존해 재추출 없이 구간 재계산.
         if (boundaryDetectionForRun && Array.isArray(boundaryDetectionForRun.boundaries)) {
           lastBoundaryCache = {
