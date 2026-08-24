@@ -6330,7 +6330,7 @@ function applyBannerToDom(config) {
       }
       function captureZoomScale() {
         const scale = Number(captureStage?.dataset.zoomScale || 1);
-        return Number.isFinite(scale) ? Math.max(.75, Math.min(2, scale)) : 1;
+        return Number.isFinite(scale) ? Math.max(.5, Math.min(2, scale)) : 1;
       }
       function captureRotationDeg() {
         const angle = Number(window.screen?.orientation?.angle ?? window.orientation ?? 0);
@@ -6354,7 +6354,7 @@ function applyBannerToDom(config) {
         stage.addEventListener("touchmove", (event) => {
           if (event.touches.length !== 2 || !startDistance) return;
           event.preventDefault();
-          const scale = Math.max(.75, Math.min(2, startScale * distance(event.touches) / startDistance));
+          const scale = Math.max(.5, Math.min(2, startScale * distance(event.touches) / startDistance));
           stage.dataset.zoomScale = scale.toFixed(3);
           videos.forEach((videoEl) => applyVideoZoom(videoEl, scale, null));
           if (input) input.value = scale.toFixed(2);
@@ -6557,7 +6557,7 @@ function applyBannerToDom(config) {
           return;
         }
         if (captureCameraStatus) captureCameraStatus.textContent = "카메라 연결됨 · 스켈레톤 모델 준비 완료";
-        let ts = Date.now();
+        let ts = Math.round(performance.now());
         if (ts <= captureLastDetectMs) ts = captureLastDetectMs + 1;
         captureLastDetectMs = ts;
         let result = null;
