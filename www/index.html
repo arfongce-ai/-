@@ -2358,20 +2358,33 @@
       }
       .capture-status {
         position: absolute;
-        left: min(48px, 5vw);
-        top: 190px;
+        right: min(48px, 5vw);
+        top: 94px;
         bottom: auto;
         display: flex;
-        gap: 8px;
+        gap: 0;
         align-items: center;
-        padding: 7px 9px;
-        border-radius: 8px;
-        background: rgba(0, 0, 0, .62);
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, .5);
         color: #fff;
         font-weight: 800;
         z-index: 3;
-        flex-wrap: wrap;
-        max-width: min(92vw, 520px);
+        max-width: none;
+      }
+      .capture-status #captureCameraStatus,
+      .capture-status #capturePoseStatus,
+      .capture-status .record-dot {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+      }
+      #captureRecordingTime {
+        min-width: 52px;
+        text-align: center;
       }
       .record-dot {
         width: 10px;
@@ -2435,16 +2448,28 @@
         border-color: #d13042;
       }
       .capture-record-btn {
-        width: min(100% - 48px, 480px);
-        min-height: 66px;
-        display: block;
+        width: 96px;
+        height: 96px;
+        min-height: 0;
+        display: grid;
+        place-items: center;
         margin: 18px auto 12px;
         border: 0;
-        border-radius: 8px;
+        border-radius: 50%;
         background: #f34245;
-        color: #fff;
-        font-size: 24px;
+        color: transparent;
+        font-size: 0;
         font-weight: 900;
+        box-shadow: 0 0 0 8px rgba(255,255,255,.14), 0 12px 26px rgba(243,66,69,.35);
+      }
+      .capture-record-btn::after {
+        content: "";
+        display: block;
+        width: 34px;
+        height: 34px;
+        margin: 0;
+        border-radius: 50%;
+        background: rgba(255,255,255,.22);
       }
       .capture-record-btn:disabled {
         opacity: .55;
@@ -2687,11 +2712,10 @@
           font-size: 12px;
         }
         .capture-status {
-          left: 10px;
-          top: 190px;
+          right: 10px;
+          top: 62px;
           bottom: auto;
           font-size: 12px;
-          max-width: calc(100% - 20px);
         }
         .capture-control-card {
           width: min(100% - 40px, 440px);
@@ -2699,10 +2723,11 @@
           padding: 8px;
         }
         .capture-record-btn {
-          width: min(100% - 40px, 440px);
-          min-height: 58px;
+          width: 88px;
+          height: 88px;
+          min-height: 0;
           margin-top: 14px;
-          font-size: 21px;
+          font-size: 0;
         }
         .capture-helper {
           width: min(100% - 40px, 440px);
@@ -3271,7 +3296,7 @@
           </div>
           </div>
           <div class="capture-controls">
-            <button type="button" id="startRecordBtn" class="capture-record-btn">녹화</button>
+            <button type="button" id="startRecordBtn" class="capture-record-btn" aria-label="녹화">녹화</button>
             <p class="capture-helper">표준 화질 · 카메라 4:3 비율로 저장됩니다. 녹화는 최대 2분까지 가능하며, 저장 후 분석탭으로 바로 보낼 수 있습니다.</p>
             <div id="recordingsList" class="recordings-list"></div>
           </div>
@@ -6126,6 +6151,7 @@ function applyBannerToDom(config) {
         if (captureRecordDot) captureRecordDot.classList.toggle("on", Boolean(mediaRecorder && mediaRecorder.state === "recording"));
         if (startRecordBtn && mediaRecorder && mediaRecorder.state === "recording") {
           startRecordBtn.textContent = `녹화 중 ${formatClock(elapsed)}`;
+          startRecordBtn.setAttribute("aria-label", `녹화 중 ${formatClock(elapsed)}`);
         }
         if (elapsed >= MAX_RECORDING_MS && mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
       }
@@ -6302,6 +6328,7 @@ function applyBannerToDom(config) {
             alert("저장된 영상 데이터가 없습니다. 다시 녹화해 주세요.");
             startRecordBtn.disabled = false;
             startRecordBtn.textContent = "녹화";
+            startRecordBtn.setAttribute("aria-label", "녹화");
             if (captureRecordingTime) captureRecordingTime.textContent = "00:00";
             if (captureRecordDot) captureRecordDot.classList.remove("on");
             return;
@@ -6311,6 +6338,7 @@ function applyBannerToDom(config) {
           renderRecordings();
           startRecordBtn.disabled = false;
           startRecordBtn.textContent = "녹화";
+          startRecordBtn.setAttribute("aria-label", "녹화");
           if (captureRecordingTime) captureRecordingTime.textContent = formatClock(durationMs);
           if (captureRecordDot) captureRecordDot.classList.remove("on");
           mediaRecorder = null;
@@ -6321,6 +6349,7 @@ function applyBannerToDom(config) {
         updateRecordingTimer();
         startRecordBtn.disabled = false;
         startRecordBtn.textContent = "녹화 중 00:00";
+        startRecordBtn.setAttribute("aria-label", "녹화 중 00:00");
         if (captureRecordDot) captureRecordDot.classList.add("on");
       }
       function applyVideoZoom(videoEl, value, labelEl) {
@@ -6528,7 +6557,6 @@ function applyBannerToDom(config) {
         const { drawW, drawH, offX, offY } = drawRect;
         const now = performance.now();
         const indices = { leftHand: 15, rightHand: 16, leftFoot: 27, rightFoot: 28 };
-        const palette = ["#38c7bb", "#f5a511", "#f34245"];
         allLandmarks.slice(0, 3).forEach((pose, poseIndex) => {
           const poseTrail = captureTrails[poseIndex];
           Object.entries(indices).forEach(([key, index]) => {
@@ -6538,7 +6566,7 @@ function applyBannerToDom(config) {
             poseTrail[key] = poseTrail[key].filter((item) => now - item.t <= 1500).slice(-60);
             const points = poseTrail[key];
             if (points.length < 2) return;
-            ctx.strokeStyle = key.includes("Foot") ? "#3478db" : (palette[poseIndex] || "#fff");
+            ctx.strokeStyle = key.includes("Foot") ? "#0047a0" : "#cd2e3a";
             ctx.lineWidth = 3; ctx.globalAlpha = .75; ctx.beginPath();
             points.forEach((item, index2) => {
               const point = rotateCanvasPoint({ x: offX + item.x * drawW, y: offY + item.y * drawH }, rect.width, rect.height, captureRotationDeg());
