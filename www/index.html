@@ -9661,6 +9661,32 @@ function applyBannerToDom(config) {
           return createPoseLandmarker(PoseLandmarker, vision, modelUrl, "CPU", options);
         }
       }
+      const STANDARD_ANALYSIS_POSE_OPTIONS = Object.freeze({
+        numPoses: 3,
+        minPoseDetectionConfidence: 0.5,
+        minPosePresenceConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
+      const TEAM_ANALYSIS_POSE_OPTIONS = Object.freeze({
+        numPoses: 3,
+        // 뒤쪽 선수처럼 화면에서 작게 보이는 인물의 후보를 먼저 살리고,
+        // 아래 집단 동시 검증에서 여러 프레임에 걸쳐 반복 검출되는 경우만 인정한다.
+        minPoseDetectionConfidence: 0.3,
+        minPosePresenceConfidence: 0.25,
+        minTrackingConfidence: 0.25
+      });
+      async function configureAnalysisPoseLandmarker() {
+        if (!poseLandmarker || typeof poseLandmarker.setOptions !== "function") return;
+        const options = trainingMode === "competition" && competitionEvent === "team"
+          ? TEAM_ANALYSIS_POSE_OPTIONS
+          : STANDARD_ANALYSIS_POSE_OPTIONS;
+        try {
+          await poseLandmarker.setOptions(options);
+        } catch (error) {
+          // 일부 구형 WebView는 런타임 setOptions를 지원하지 않아 기본 설정으로 계속 분석한다.
+          console.warn("Analysis pose options could not be updated.", error);
+        }
+      }
       async function loadModel() {
         if (poseLandmarker) return poseLandmarker;
         if (loadModelPromise) return loadModelPromise;
@@ -9673,11 +9699,11 @@ function applyBannerToDom(config) {
           setProgress(38, "WASM과 Pose Landmarker를 준비하는 중입니다.");
           try {
             const vision = await FilesetResolver.forVisionTasks(LOCAL_WASM_URL);
-            poseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, LOCAL_MODEL_URL);
+            poseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, LOCAL_MODEL_URL, STANDARD_ANALYSIS_POSE_OPTIONS);
           } catch (localError) {
             console.warn("Local MediaPipe assets unavailable, trying online fallback.", localError);
             const vision = await FilesetResolver.forVisionTasks(REMOTE_WASM_URL);
-            poseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, REMOTE_MODEL_URL);
+            poseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, REMOTE_MODEL_URL, STANDARD_ANALYSIS_POSE_OPTIONS);
           }
           setPill(modelStatus, "good", "모델 준비 완료");
           setProgress(100, "모델 준비 완료. 품새와 영상을 확인한 뒤 분석 시작을 누르세요.");
@@ -12536,6 +12562,7 @@ function applyBannerToDom(config) {
           await loadModel();
         }
         if (poseLandmarker) {
+          await configureAnalysisPoseLandmarker();
           if (cameraView === "triple") {
             if (!selectedFileB || !selectedFileC) {
               setProgress(0, "정면+측면+대각선 융합은 측면(2번)·대각선(3번) 영상이 모두 필요합니다.");
