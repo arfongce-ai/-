@@ -74,10 +74,14 @@ function extractPoomsaeDefinitions(html) {
     const key = match[1];
     const arraySource = match[3];
     const rows = [...arraySource.matchAll(/\[([^\[\]]*)\]/g)];
-    const numberedRows = rows.filter((row) => {
+    const numberedRows = rows.filter((row, index) => {
       const firstString = row[1].match(/"([^"]*)"/);
       const first = firstString ? firstString[1] : "";
-      return first !== "ready_stance" && first !== "준비서기" && first !== "기합" && !first.startsWith("kihap_");
+      return first !== "ready_stance"
+        && first !== "준비서기"
+        && !(index === 0 && /준비$/.test(first))
+        && first !== "기합"
+        && !first.startsWith("kihap_");
     });
     result.set(key, {
       count: Number(match[2]),
@@ -198,7 +202,7 @@ assertContains(webHtml, "const SEEK_TIMEOUT_MS", "waitForSeek 타임아웃 상�
 assertContains(webHtml, "SEEK_EPSILON_SECONDS", "waitForSeek 동일 시간 즉시 처리 상수 존재");
 assertContains(webHtml, "let loadModelPromise = null", "loadModel 동시 호출 방지 플래그 존재");
 assertContains(webHtml, "createPoseLandmarkerWithFallback", "GPU 실패 시 CPU 폴백 함수 존재");
-assertContains(webHtml, "delegate)", "PoseLandmarker delegate 파라미터화");
+assertContains(webHtml, "baseOptions: { modelAssetPath: modelUrl, delegate }", "PoseLandmarker delegate 파라미터화");
 assertContains(webHtml, "const totalSegments = results.length", "리포트 구간 수 동적 계산");
 assertContains(webHtml, "setupLayout()", "UI 레이아웃 초기화 호출 존재");
 assertContains(webHtml, "setupQuickNav()", "빠른 이동 UI 초기화 호출 존재");
@@ -217,7 +221,7 @@ assertContains(webHtml, "field-label", "단계별 입력 안내 스타일 존재
 assertContains(webHtml, "if (reportSection) reportSection.hidden = true", "훈련 화면 중복 분석 요약 숨김");
 assertContains(webHtml, ".quick-nav button.active", "하단 메뉴 활성 상태 스타일 존재");
 assertContains(webHtml, "class=\"utility-actions\" hidden", "상단 기술용 보조 버튼 영역 숨김");
-assertContains(webHtml, "id=\"showReportBtn\" class=\"secondary\" disabled hidden", "상단 결과지 보기 버튼 숨김");
+assertContains(webHtml, "id=\"showReportBtn\" class=\"secondary\" disabled", "상단 리포트 보기 버튼 존재");
 assertContains(webHtml, "playback-settings", "영상 아래 재생 설정 그룹 존재");
 assertContains(webHtml, "repeat-options", "영상 아래 반복 설정 그룹 존재");
 assertContains(webHtml, "replay-actions", "분석 후 재생 버튼 그룹 존재");
@@ -238,7 +242,7 @@ assertContains(readUtf8(capacitorConfigPath), "\"appName\": \"태권도 품새�
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련 보조 · Beta", "헤더 베타 목적 배지 적용");
-assertContains(webHtml, "내 품새 영상을 동작별로 쉽게 확인해요 · v4.15", "짧은 헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
+assertContains(webHtml, "내 품새 영상을 동작별로 쉽게 확인해요 · v4.16", "짧은 헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");

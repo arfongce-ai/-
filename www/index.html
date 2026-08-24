@@ -3263,7 +3263,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새수련 <span class="header-beta">Beta</span></h1>
-          <p class="small">내 품새 영상을 동작별로 쉽게 확인해요 · v4.14</p>
+          <p class="small">내 품새 영상을 동작별로 쉽게 확인해요 · v4.16</p>
         </div>
         <span class="badge">수련 보조 · Beta</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -3621,6 +3621,7 @@
           <span id="manualEditHint" class="small" style="color:var(--muted)">원본 영상은 바뀌지 않아요. 시작점이나 동작의 시작·끝이 다르면 각 카드의 "🎞 프레임으로 찾기"에서 정확한 장면을 눌러 주세요.</span>
           <span id="correctionLogStatus" class="small" style="color:var(--muted)"></span>
           <button type="button" id="restoreAutoBtn" class="secondary" style="font-size:12px;display:none">자동 결과로 되돌리기</button>
+          <button type="button" id="confirmBoundariesBtn" class="secondary" style="font-size:12px;display:none">구간 확인 완료</button>
           <button type="button" id="loadSavedCorrectionBtn" class="secondary" style="font-size:12px;display:none">🔖 저장된 보정 불러오기</button>
           <button type="button" id="exportCorrectionBtn" class="secondary" style="font-size:12px;display:none">보정 기록 내보내기</button>
         </div>
@@ -3691,8 +3692,7 @@
         <h2 style="margin-top:0">관리자 모드 · 배너 설정</h2>
         <p class="small" id="adminPanelStatus"></p>
 
-        <label for="adminPinInput">관리자 PIN</label>
-        <input type="password" id="adminPinInput" inputmode="numeric" placeholder="PIN 입력" />
+          <p class="small" id="adminLoginHint">관리자 이메일·비밀번호로 로그인하면 광고 배너를 수정할 수 있습니다.</p>
 
         <div id="adminPanelFields" style="display:none">
           <label for="adminBannerEnabled">
@@ -3714,11 +3714,11 @@
             <button type="button" class="secondary" id="adminPanelClose" style="min-height:44px">닫기</button>
           </div>
         </div>
-        <button type="button" class="secondary" id="adminPinSubmit" style="width:100%;min-height:44px;margin-top:10px">확인</button>
+        <button type="button" class="secondary" id="adminBannerUnlock" style="width:100%;min-height:44px;margin-top:10px">로그인 상태 확인</button>
 
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e5e7eb">
           <h3 style="margin:0 0 4px">학습 리포트 · 보정 데이터 분석</h3>
-          <p class="small" style="color:var(--muted);margin:0 0 10px">위 PIN과는 별개의 로그인입니다. 여러 영상에 걸쳐 쌓인 보정 기록을 분석해 규칙 개선을 제안합니다 — 실제 반영은 개발자 확인 후 진행됩니다.</p>
+          <p class="small" style="color:var(--muted);margin:0 0 10px">여러 영상에 걸쳐 쌓인 보정 기록을 분석해 규칙 개선을 제안합니다. 같은 관리자 로그인으로 광고 배너 저장도 보호합니다.</p>
           <div id="adminAuthFields">
             <label for="adminEmailInput">관리자 이메일</label>
             <input type="email" id="adminEmailInput" placeholder="admin@example.com" autocomplete="username" />
@@ -3732,8 +3732,10 @@
             <p class="small" id="reportStatus"></p>
             <div style="display:flex;gap:8px;margin-bottom:8px">
               <button type="button" class="secondary" id="reportRefreshBtn" style="flex:1;min-height:40px">새로고침</button>
+              <button type="button" class="secondary" id="importCalibrationBtn" style="min-height:40px">정답 검수 JSON 가져오기</button>
               <button type="button" class="secondary" id="adminSignOutBtn" style="min-height:40px">로그아웃</button>
             </div>
+            <input type="file" id="calibrationImportInput" accept="application/json,.json" hidden />
             <div id="reportBody"></div>
           </div>
         </div>
@@ -3744,6 +3746,7 @@
       import { buildDatasetCandidate, scoreActionSequence } from "./action-model.mjs";
       import { compareTextbookPose } from "./textbook-pose-match.mjs";
       import { compareVideoReference } from "./video-reference-match.mjs";
+      import { buildTrustedCollectiveProfiles, normalizeCalibrationImport } from "./evidence-calibration.mjs";
       // ── Firebase 연동(보정 기록 자동 수집) ──
       // 보정 기록을 사장님 Firestore(momgagym-poomsae-coach)에 자동으로 모은다.
       // 실패해도(오프라인/차단) 앱 본체는 정상 동작하며, 기록은 로컬에도 항상 저장된다(이중 안전).
@@ -3754,10 +3757,10 @@
       // ── 학습된 경계 타이밍 보정(원격, 공개 읽기) 상태 ──
       // null=아직 못 가져옴(폴백 이전), {}=값 없음(보정 없음), {...}=실제 학습된 보정값.
       let _remoteBoundaryBias = null;
-      // ── 관리자 인증(학습 리포트 전용) ──
+      // ── 관리자 인증(학습 리포트·배너 설정 공용) ──
       // corrections 컬렉션은 firestore.rules상 인증된 관리자 계정만 읽을 수 있다(스팸 방지를
-      // 위해 익명 읽기는 막혀 있음 — 아래 firestore.rules 주석 참고). 배너 설정용 PIN과는
-      // 완전히 별개의, 진짜 로그인이다.
+      // 위해 익명 읽기는 막혀 있음 — 아래 firestore.rules 주석 참고). 배너 설정도 같은
+      // Firebase 관리자 인증으로 저장 전 확인한다.
       let _fbAuth = null, _fbSignIn = null, _fbSignOut = null, _fbSendPasswordReset = null;
       let _fbCurrentAdminUser = null;
       const FIREBASE_READ_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -4198,11 +4201,9 @@
 
       // ── 파트너 배너(하단 흐름 광고) ──
       // 저장 위치: Firestore 'app_config/banner' 문서. corrections 데이터와 완전히 분리된 새 경로.
-      // 보안: 로그인 시스템이 없어 PIN 방식(관리자 모드 진입 시 확인 + 저장 시 규칙에서도 재확인)을
-      // 씀. 은행 수준 보안은 아님(문서에 pin 필드가 함께 저장되어 기술적으로는 조회 가능) — 회원/매출
-      // 같은 민감 정보가 아닌 홍보 배너용이라 이 정도로 설계함. PIN을 바꾸려면 아래 상수와
-      // firebase/firestore.rules의 값을 함께 바꿔야 함.
-      const ADMIN_PIN = "0713";
+      // 보안: 공개 PIN을 제거하고 Firebase 관리자 인증으로만 저장한다. Firestore 규칙도
+      // isAdmin() 쓰기만 허용하므로, 저장 전 앱에서 로그인 상태를 확인하고 규칙에서 다시 차단한다.
+      const BANNER_LINK_PROTOCOL_ALLOWLIST = ["http:", "https:"];
       // datetime-local 입력값("2026-07-20T09:00")을 "한국 시간"으로 해석해 UTC 타임스탬프(ms)로 변환.
       function parseKSTLocalInput(value) {
         if (!value) return null;
@@ -4250,9 +4251,19 @@
       }
       function bannerCampaigns(config) {
         if (!config || !config.imageUrl) return [];
+        function safeBannerLinkUrl(url) {
+          const raw = String(url || "").trim();
+          if (!raw) return "";
+          try {
+            const parsed = new URL(raw);
+            return BANNER_LINK_PROTOCOL_ALLOWLIST.includes(parsed.protocol) ? parsed.href : "";
+          } catch (error) {
+            return "";
+          }
+        }
         const makeLegacy = (urls) => urls.map((imageUrl) => ({
           imageUrl,
-          linkUrl: config.linkUrl || "",
+          linkUrl: safeBannerLinkUrl(config.linkUrl),
           startAt: Number.isFinite(config.startAt) ? config.startAt : Date.now(),
           endAt: Number.isFinite(config.endAt) ? config.endAt : addKSTMonths(Date.now(), 1)
         }));
@@ -4269,7 +4280,7 @@
               item && typeof item.imageUrl === "string" && item.imageUrl.startsWith("data:image/")
             ).slice(0, 10).map((item) => ({
               imageUrl: item.imageUrl,
-              linkUrl: typeof item.linkUrl === "string" ? item.linkUrl : "",
+              linkUrl: safeBannerLinkUrl(item.linkUrl),
               startAt: Number(item.startAt),
               endAt: Number(item.endAt)
             }));
@@ -4389,8 +4400,9 @@ function applyBannerToDom(config) {
       }
       async function saveBannerConfig(partial) {
         if (!_fbReady || !_fbDB) return { ok: false, reason: "오프라인 상태라 저장할 수 없어요. 인터넷 연결을 확인해주세요." };
+        if (!_fbCurrentAdminUser) return { ok: false, reason: "관리자 이메일·비밀번호로 먼저 로그인해야 저장할 수 있어요." };
         try {
-          const payload = { ...partial, pin: ADMIN_PIN };
+          const payload = { ...partial };
           await Promise.race([
             _fbSetDoc(_fbDoc(_fbDB, "app_config", "banner"), payload),
             new Promise((_, reject) => setTimeout(() => reject(new Error("banner_save_timeout")), 15000))
@@ -4400,7 +4412,7 @@ function applyBannerToDom(config) {
           applyBannerToDom(_bannerConfigCache);
           return { ok: true };
         } catch (e) {
-          return { ok: false, reason: "저장에 실패했어요. PIN이 맞는지, 인터넷 연결을 확인해주세요." };
+          return { ok: false, reason: "저장에 실패했어요. 관리자 권한 또는 인터넷 연결을 확인해주세요." };
         }
       }
       async function readBannerImageFiles(files) {
@@ -4437,8 +4449,7 @@ function applyBannerToDom(config) {
       (function wireAdminPanel() {
         const trigger = document.getElementById("adminModeTrigger");
         const overlay = document.getElementById("adminPanelOverlay");
-        const pinInput = document.getElementById("adminPinInput");
-        const pinSubmit = document.getElementById("adminPinSubmit");
+        const bannerUnlock = document.getElementById("adminBannerUnlock");
         const fields = document.getElementById("adminPanelFields");
         const status = document.getElementById("adminPanelStatus");
         const closeBtn = document.getElementById("adminPanelClose");
@@ -4533,31 +4544,28 @@ function applyBannerToDom(config) {
           if (bannerImageFile) bannerImageFile.value = "";
           draftCampaigns = [];
           renderCampaignEditors();
-          pinInput.value = "";
-          pinInput.style.display = "";
-          pinSubmit.style.display = "";
+          if (bannerUnlock) bannerUnlock.style.display = "";
           fields.style.display = "none";
-          status.textContent = "";
+          status.textContent = _fbCurrentAdminUser ? "" : "관리자 이메일·비밀번호로 로그인한 뒤 로그인 상태 확인을 누르세요.";
         }
         function unlockFields() {
+          if (!_fbCurrentAdminUser) {
+            status.textContent = "관리자 이메일·비밀번호로 먼저 로그인하세요.";
+            return;
+          }
           const c = _bannerConfigCache || {};
           document.getElementById("adminBannerEnabled").checked = !!c.enabled;
           draftCampaigns = bannerCampaigns(c);
           if (bannerImageFile) bannerImageFile.value = "";
           renderCampaignEditors();
-          pinInput.style.display = "none";
-          pinSubmit.style.display = "none";
+          if (bannerUnlock) bannerUnlock.style.display = "none";
           fields.style.display = "block";
           status.textContent = "";
         }
         trigger.addEventListener("click", () => { overlay.style.display = "flex"; resetPanel(); });
         closeBtn.addEventListener("click", () => { overlay.style.display = "none"; });
         overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.style.display = "none"; });
-        pinSubmit.addEventListener("click", () => {
-          if (pinInput.value === ADMIN_PIN) unlockFields();
-          else status.textContent = "PIN이 올바르지 않아요.";
-        });
-        pinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") pinSubmit.click(); });
+        if (bannerUnlock) bannerUnlock.addEventListener("click", unlockFields);
         if (bannerImageFile) {
           bannerImageFile.addEventListener("change", async () => {
             const files = Array.from((bannerImageFile && bannerImageFile.files) || []);
@@ -4602,7 +4610,14 @@ function applyBannerToDom(config) {
               status.textContent = "광고 사진을 먼저 추가해주세요.";
               return;
             }
-            const badLinkIndex = draftCampaigns.findIndex((item) => !/^https?:\/\/\S+$/i.test(item.linkUrl || ""));
+            const badLinkIndex = draftCampaigns.findIndex((item) => {
+              try {
+                const parsed = new URL(item.linkUrl || "");
+                return !BANNER_LINK_PROTOCOL_ALLOWLIST.includes(parsed.protocol);
+              } catch (error) {
+                return true;
+              }
+            });
             if (badLinkIndex >= 0) {
               status.textContent = `광고 ${badLinkIndex + 1}의 사이트 주소를 https://부터 정확히 적어주세요.`;
               return;
@@ -4648,6 +4663,8 @@ function applyBannerToDom(config) {
         const adminSignInBtn = document.getElementById("adminSignInBtn");
         const adminSignOutBtn = document.getElementById("adminSignOutBtn");
         const reportRefreshBtn = document.getElementById("reportRefreshBtn");
+        const importCalibrationBtn = document.getElementById("importCalibrationBtn");
+        const calibrationImportInput = document.getElementById("calibrationImportInput");
         if (adminSignInBtn) {
           adminSignInBtn.addEventListener("click", async () => {
             const authStatus = document.getElementById("adminAuthStatus");
@@ -4688,6 +4705,14 @@ function applyBannerToDom(config) {
           });
         }
         if (reportRefreshBtn) reportRefreshBtn.addEventListener("click", loadAndRenderCorrectionReport);
+        if (importCalibrationBtn && calibrationImportInput) {
+          importCalibrationBtn.addEventListener("click", () => calibrationImportInput.click());
+          calibrationImportInput.addEventListener("change", () => {
+            const file = calibrationImportInput.files && calibrationImportInput.files[0];
+            calibrationImportInput.value = "";
+            if (file) importCalibrationReviewJson(file);
+          });
+        }
       })();
       // 일반 영상 녹화 기준(10.일반 영상 녹화)과 동일하게 full 모델을 기본 사용한다.
       // lite는 빠르지만 손목·발목·가려진 관절 위치 오차가 커 ROM/잔상에 직접 영향을 준다.
@@ -7310,6 +7335,9 @@ function applyBannerToDom(config) {
       function videoFingerprint(file) {
         return file ? `${file.name}|${file.size}` : "";
       }
+      function fileFingerprint(file) {
+        return file ? `${file.name}|${file.size}|${file.lastModified || 0}` : "";
+      }
       function loadVideoCorrections() {
         try {
           const raw = localStorage.getItem(VIDEO_CORRECTIONS_KEY);
@@ -7364,6 +7392,7 @@ function applyBannerToDom(config) {
             review_session_id: correctionSessionId,
             correction_revision: ++correctionRevision,
             action,
+            trusted_provenance: false,
             ...details
           };
           const log = loadCorrectionLog();
@@ -7374,26 +7403,19 @@ function applyBannerToDom(config) {
           sendCorrectionToCloud(record);
         } catch (e) { /* 무시 */ }
       }
-      // 자동 감지 결과를 고치지 않은 채 다음 영상으로 넘어가면, 그 자체를 "정확했다"는 신호로
-      // 자동 기록한다(버튼 없음). 배경(2026-07-22 사용자 확인): 처음엔 "정확해요" 버튼을 눌러야
-      // 기록되게 했는데, 초등학생도 쓸 만큼 단순해야 한다는 원칙에 맞지 않았다 — 확인차 버튼을
-      // 누르게 하는 것 자체가 번거로움이다. 그래서 "아무것도 안 고치고 다음 영상으로 넘어감"이라는
-      // 행동 자체를 신호로 쓴다. 위치별 진짜 정확도(정확했던 비율)를 계산하려면 '고침'뿐 아니라
-      // '안 고쳐도 됐음'도 데이터가 필요하다 — 경계 개수만큼 펼쳐질 요약 1건만 보낸다(레코드 하나로
-      // N개 위치를 다 확인했다는 의미 — 분석 시점에 confirm_all → confirm N건으로 펼침).
-      function autoConfirmIfUnedited() {
-        if (confirmedThisSession || !lastBoundaryCache || !Array.isArray(lastBoundaryCache.boundaries) || !lastBoundaryCache.autoBoundaries) return;
-        const unchanged = JSON.stringify(lastBoundaryCache.boundaries) === JSON.stringify(lastBoundaryCache.autoBoundaries);
-        if (!unchanged) return; // 뭔가 고쳤으면 그 자체가 이미 (반대) 신호이므로 확인 기록은 안 남긴다.
-        recordCorrection("confirm_all", { boundary_count: lastBoundaryCache.boundaries.length });
+      // 사용자가 직접 "구간 확인 완료"를 누른 경우에만 정확 신호를 남긴다.
+      // 화면 이탈·무수정 상태를 자동으로 정확하다고 기록하면 검수 데이터가 오염될 수 있다.
+      function confirmBoundariesExplicitly() {
+        if (confirmedThisSession || !lastBoundaryCache || !Array.isArray(lastBoundaryCache.boundaries)) return;
+        recordCorrection("confirm_all", {
+          boundary_count: lastBoundaryCache.boundaries.length,
+          explicit_review: true
+        });
         confirmedThisSession = true;
+        const status = document.getElementById("correctionLogStatus");
+        if (status) status.textContent = "구간 확인을 기록했습니다.";
+        renderManualEditPanel();
       }
-      // 새 영상을 고르지 않고 그냥 탭을 닫거나 다른 앱으로 전환해도(모바일에서 흔한 패턴)
-      // 자동 확인이 누락되지 않도록 안전망을 둔다. beforeunload는 모바일에서 신뢰도가 낮아
-      // visibilitychange(hidden)를 쓴다 — idempotent라 여러 번 걸려도 무해하다.
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "hidden") autoConfirmIfUnedited();
-      });
       // 분석 완료 후 수동 조정 바를 보이게 하고, 토글 버튼을 연결한다.
       function renderManualEditPanel() {
         const bar = document.getElementById("manualEditBar");
@@ -7407,6 +7429,7 @@ function applyBannerToDom(config) {
         // 보정 기록 현황 표시 + 내보내기 버튼.
         const status = document.getElementById("correctionLogStatus");
         const exportBtn = document.getElementById("exportCorrectionBtn");
+        const confirmBtn = document.getElementById("confirmBoundariesBtn");
         const sum = correctionLogSummary();
         if (status) {
           status.textContent = sum.total > 0
@@ -7414,6 +7437,7 @@ function applyBannerToDom(config) {
             : "";
         }
         if (exportBtn) exportBtn.style.display = sum.total > 0 ? "inline-block" : "none";
+        if (confirmBtn) confirmBtn.style.display = canManualEdit() && !confirmedThisSession ? "inline-block" : "none";
         // 수동 조정이 자동과 달라졌으면 '되돌리기' 버튼 노출.
         const restoreBtn = document.getElementById("restoreAutoBtn");
         const unchanged = lastBoundaryCache && lastBoundaryCache.autoBoundaries
@@ -7563,6 +7587,35 @@ function applyBannerToDom(config) {
         return suggestions;
       }
       // 인증된 관리자만 호출 가능(그 외엔 Firestore 규칙이 자체적으로 거부).
+      async function importCalibrationReviewJson(file) {
+        const statusEl = document.getElementById("reportStatus");
+        if (!_fbCurrentAdminUser || !_fbDB || !_fbAddDoc || !_fbCollection) {
+          if (statusEl) statusEl.textContent = "정답 검수 JSON을 가져오려면 관리자 로그인과 Firebase 연결이 필요합니다.";
+          return;
+        }
+        try {
+          const parsed = JSON.parse(await file.text());
+          const previewRecord = parsed?.calibration_record;
+          const normalized = normalizeCalibrationImport(previewRecord ? { calibration_record: previewRecord } : parsed);
+          if (!normalized.accepted_count) {
+            if (statusEl) statusEl.textContent = `가져오기 실패: 유효한 정답 검수 기록이 없습니다(거절 ${normalized.rejected_count}건).`;
+            return;
+          }
+          for (const record of normalized.accepted) {
+            await _fbAddDoc(_fbCollection(_fbDB, "calibration_reviews"), {
+              ...record,
+              imported_at: new Date().toISOString(),
+              imported_by: _fbCurrentAdminUser.email || ""
+            });
+          }
+          const trustedProfiles = buildTrustedCollectiveProfiles(normalized.accepted);
+          if (statusEl) statusEl.textContent = `정답 검수 ${normalized.accepted_count}건을 가져왔습니다. 신뢰 프로필 후보 ${Object.keys(trustedProfiles).length}개를 확인했습니다.`;
+          await loadAndRenderCorrectionReport();
+        } catch (error) {
+          console.warn("Calibration import failed", error);
+          if (statusEl) statusEl.textContent = "정답 검수 JSON을 읽거나 저장하지 못했습니다.";
+        }
+      }
       async function loadAndRenderCorrectionReport() {
         const statusEl = document.getElementById("reportStatus");
         const bodyEl = document.getElementById("reportBody");
@@ -10637,7 +10690,7 @@ function applyBannerToDom(config) {
         // 기존에 정의만 되고 쓰이지 않던 detectActionOnset을 실제 경로에 연결한다.
         const coarseOnset = activeRange.start;
         const onsetCandidate = detectActionOnset(motionSamples, activeRange, duration);
-        const maxOnsetRefine = Math.max(1.5, duration * 0.08);
+        const maxOnsetRefine = Math.min(3, Math.max(1.5, duration * 0.04));
         const onsetAccepted = Number.isFinite(onsetCandidate)
           && onsetCandidate >= coarseOnset - 0.1
           && onsetCandidate <= coarseOnset + maxOnsetRefine;
@@ -10675,15 +10728,18 @@ function applyBannerToDom(config) {
         // 유지된 준비자세 구간'을 선택하는 것은 findJunbiPoseStart에서 보장한다.
         const junbiSearchEnd = clamp(Math.max(12, duration * 0.38, activeRange.start + 6), 0, duration);
         const junbiMatch = findJunbiPoseStart(frames, junbiSearchEnd);
-        activeRange.junbiMatch = junbiMatch;
-        if (junbiMatch && Number.isFinite(junbiMatch.time) && Number.isFinite(junbiMatch.endTime)) {
+        const trustedJunbiMatch = junbiMatch && Number.isFinite(junbiMatch.time) && junbiMatch.time <= coarseOnset + maxOnsetRefine
+          ? junbiMatch
+          : null;
+        activeRange.junbiMatch = trustedJunbiMatch;
+        if (trustedJunbiMatch && Number.isFinite(trustedJunbiMatch.time) && Number.isFinite(trustedJunbiMatch.endTime)) {
           // 첫 동작은 준비자세 이후의 움직임이어야 한다. 준비자세 마지막 일치 프레임 직전부터
           // 다시 온셋을 찾되, 경계가 마지막 준비자세보다 앞으로 가지 못하게 제한한다.
-          const anchoredStart = clamp(Math.max(junbiMatch.time + 0.6, junbiMatch.endTime - 0.55), 0, activeRange.end);
+          const anchoredStart = clamp(Math.max(trustedJunbiMatch.time + 0.6, trustedJunbiMatch.endTime - 0.55), 0, activeRange.end);
           const anchoredCandidate = detectActionOnset(motionSamples, { start: anchoredStart, end: activeRange.end }, duration);
-          const anchoredOnset = Math.max(junbiMatch.endTime, anchoredCandidate);
-          if (Number.isFinite(anchoredOnset) && anchoredOnset <= junbiMatch.endTime + 3.2) {
-            activeRange.start = clamp(anchoredOnset, junbiMatch.time, activeRange.end);
+          const anchoredOnset = Math.max(trustedJunbiMatch.endTime, anchoredCandidate);
+          if (Number.isFinite(anchoredOnset) && anchoredOnset <= trustedJunbiMatch.endTime + 3.2) {
+            activeRange.start = clamp(anchoredOnset, trustedJunbiMatch.time, activeRange.end);
             activeRange.onsetMethod = "sustained_junbi_then_motion";
             activeRange.onsetDelta = Number((activeRange.start - coarseOnset).toFixed(3));
           }
@@ -10702,8 +10758,8 @@ function applyBannerToDom(config) {
           const onset = activeRange.start;
           // '준비' 구간 시작 = 준비자세 포즈 매칭 성공 지점(이미지1과 80%↑ 일치하는 가장
           // 이른 지점). 매칭 실패 시(포즈 신뢰도 낮음 등) 영상 맨 앞(0초)으로 안전 폴백한다.
-          const prepStart = (junbiMatch && Number.isFinite(junbiMatch.time))
-            ? clamp(junbiMatch.time, 0, onset)
+          const prepStart = trustedJunbiMatch
+            ? clamp(trustedJunbiMatch.time, 0, onset)
             : 0;
           const moveCount = count - 1;
           const moveBoundaries = refineSegmentBoundaries(duration, moveCount, motionSamples, sensitivity, onset, activeRange.end);
@@ -11898,9 +11954,10 @@ function applyBannerToDom(config) {
         if (!selectedFile || !Number.isFinite(video.duration)) return "";
         return [
           selectedPoomsaeKey,
-          selectedFile.name,
-          selectedFile.size,
-          selectedFile.lastModified || 0,
+          `camera-${cameraView || "front"}`,
+          fileFingerprint(selectedFile),
+          fileFingerprint(selectedFileB),
+          fileFingerprint(selectedFileC),
           video.duration.toFixed(3),
           video.videoWidth,
           video.videoHeight,
@@ -13456,7 +13513,6 @@ function applyBannerToDom(config) {
       }
 
       fileInput.addEventListener("change", () => {
-        autoConfirmIfUnedited(); // 직전 영상이 안 고쳐진 채였다면, 다음 영상으로 넘어가기 전에 자동 기록.
         showTrainingPage();
         closeReplayModal();
         selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
@@ -13651,6 +13707,8 @@ function applyBannerToDom(config) {
         });
         const exportBtn = document.getElementById("exportCorrectionBtn");
         if (exportBtn) exportBtn.addEventListener("click", exportCorrectionLog);
+        const confirmBtn = document.getElementById("confirmBoundariesBtn");
+        if (confirmBtn) confirmBtn.addEventListener("click", confirmBoundariesExplicitly);
         const restoreBtn = document.getElementById("restoreAutoBtn");
         if (restoreBtn) restoreBtn.addEventListener("click", restoreAutoBoundaries);
         const loadSavedBtn = document.getElementById("loadSavedCorrectionBtn");
