@@ -2303,41 +2303,6 @@
         pointer-events: none;
         z-index: 4;
       }
-      .capture-person-guide {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        width: min(46vw, 230px);
-        height: min(58vh, 520px);
-        transform: translate(-50%, -48%);
-        border: 3px solid rgba(255, 216, 76, .78);
-        border-radius: 999px 999px 28px 28px;
-        box-shadow: 0 0 0 1px rgba(0,0,0,.24), 0 0 22px rgba(255,216,76,.22);
-        pointer-events: none;
-        z-index: 2;
-      }
-      .capture-person-guide::before,
-      .capture-person-guide::after {
-        content: "";
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-        border: 2px dashed rgba(255,255,255,.5);
-        border-left: 0;
-        border-right: 0;
-      }
-      .capture-person-guide::before {
-        top: 14%;
-        width: 38%;
-        height: 14%;
-        border-radius: 50%;
-      }
-      .capture-person-guide::after {
-        bottom: 16%;
-        width: 82%;
-        height: 52%;
-        border-radius: 40% 40% 18px 18px;
-      }
       .capture-overlay-toggles {
         position: absolute;
         left: min(48px, 5vw);
@@ -2393,19 +2358,21 @@
       }
       .capture-status {
         position: absolute;
-        right: min(48px, 5vw);
+        right: max(16px, env(safe-area-inset-right));
         top: 94px;
         bottom: auto;
         display: flex;
         gap: 0;
         align-items: center;
-        padding: 7px 10px;
+        justify-content: center;
+        padding: 8px 14px;
         border-radius: 999px;
         background: rgba(0, 0, 0, .5);
         color: #fff;
         font-weight: 800;
-        z-index: 3;
-        max-width: none;
+        z-index: 10;
+        box-sizing: border-box;
+        max-width: calc(100% - 32px - env(safe-area-inset-left) - env(safe-area-inset-right));
       }
       .capture-status #captureCameraStatus,
       .capture-status #capturePoseStatus,
@@ -2418,9 +2385,11 @@
         white-space: nowrap;
       }
       #captureRecordingTime {
-        min-width: 64px;
+        display: block;
+        min-width: 74px;
         text-align: center;
         line-height: 1.2;
+        white-space: nowrap;
       }
       .record-dot {
         width: 10px;
@@ -2759,11 +2728,13 @@
           font-size: 12px;
         }
         .capture-status {
-          right: 10px;
-          top: 92px;
+          right: max(16px, env(safe-area-inset-right));
+          top: calc(96px + env(safe-area-inset-top));
           bottom: auto;
           z-index: 9;
           font-size: 12px;
+          padding: 8px 12px;
+          min-width: 94px;
         }
         .capture-control-card {
           width: min(100% - 40px, 440px);
@@ -3325,7 +3296,6 @@
             </div>
           <div class="capture-stage">
             <video id="capturePreview" autoplay muted playsinline></video>
-            <div class="capture-person-guide" aria-hidden="true"></div>
             <canvas id="captureCanvas" class="capture-canvas"></canvas>
           <div class="capture-overlay-toggles" aria-label="촬영 보조 표시">
             <button type="button" id="captureSkeletonToggle" class="capture-chip">스켈레톤 OFF</button>
@@ -6274,6 +6244,7 @@ function applyBannerToDom(config) {
         capturePreview.srcObject = captureStream;
         capturePreview.muted = true;
         await capturePreview.play().catch(() => {});
+        syncCaptureOrientationState();
         await setWidestCaptureCameraZoom();
         startRecordBtn.disabled = false;
         if (captureCameraStatus) captureCameraStatus.textContent = "카메라 연결됨 · 녹화 버튼을 눌러 저장하세요.";
@@ -6481,10 +6452,22 @@ function applyBannerToDom(config) {
         }, { passive: true });
       }
       function captureRotationDeg() {
-        const angle = Number(window.screen?.orientation?.angle ?? window.orientation ?? 0);
-        if (!Number.isFinite(angle)) return 0;
-        const normalized = ((angle % 360) + 360) % 360;
-        return [90, 180, 270].includes(normalized) ? normalized : 0;
+        return 0;
+      }
+      function captureIsLandscapeMode() {
+        const stageRect = captureStage?.getBoundingClientRect?.();
+        const stageLandscape = Boolean(stageRect?.width && stageRect?.height && stageRect.width >= stageRect.height);
+        const videoLandscape = Boolean(capturePreview?.videoWidth && capturePreview.videoWidth >= capturePreview.videoHeight);
+        const screenLandscape = Boolean(window.matchMedia?.("(orientation: landscape)").matches);
+        return stageLandscape || videoLandscape || screenLandscape;
+      }
+      function syncCaptureOrientationState() {
+        if (!captureStage) return;
+        captureStage.classList.toggle("landscape-capture", captureIsLandscapeMode());
+        if (captureCanvas) {
+          captureCanvas.width = 0;
+          captureCanvas.height = 0;
+        }
       }
       function bindPinchZoom(stage, videos, input, label) {
         if (!stage || !videos.length) return;
@@ -6612,10 +6595,7 @@ function applyBannerToDom(config) {
       }
       function captureRecordingSize() {
         const high = captureQuality === "high";
-        const landscape =
-          captureRotationDeg() % 180 !== 0 ||
-          (window.matchMedia && window.matchMedia("(orientation: landscape)").matches) ||
-          (capturePreview?.videoWidth && capturePreview.videoWidth >= capturePreview.videoHeight);
+        const landscape = captureIsLandscapeMode();
         const longSide = high ? 1440 : 960;
         const shortSide = high ? 1080 : 720;
         return landscape
@@ -6936,8 +6916,14 @@ function applyBannerToDom(config) {
         if (captureStream) startCamera().catch((error) => alert(`카메라를 다시 열지 못했습니다: ${error.message || error}`));
       });
       captureBackBtn?.addEventListener("click", () => { releaseOrientation(); setAppTab("home"); });
-      capturePreview?.addEventListener("playing", () => captureStage?.classList.add("camera-ready"));
+      capturePreview?.addEventListener("loadedmetadata", syncCaptureOrientationState);
+      capturePreview?.addEventListener("playing", () => {
+        syncCaptureOrientationState();
+        captureStage?.classList.add("camera-ready");
+      });
       capturePreview?.addEventListener("pause", () => captureStage?.classList.remove("camera-ready"));
+      window.addEventListener("resize", syncCaptureOrientationState);
+      window.screen?.orientation?.addEventListener?.("change", syncCaptureOrientationState);
       let metroTimer = null;
       metronomeBtn?.addEventListener("click", () => {
         if (metroTimer) { clearInterval(metroTimer); metroTimer = null; metronomeBtn.textContent = "메트로놈 60"; return; }
