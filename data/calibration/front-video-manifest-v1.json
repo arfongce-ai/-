@@ -13,14 +13,14 @@
     { "poomsae": "taegeuk_6", "name": "태극 6장", "file": "품새_태극6장.mp4", "official_movements": 19, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/taegeuk-6-gpt-review-v1.json", "quality_note": "단일 시범자가 전체 분석 구간에 표시되며 26.9~32.4초의 긴 정지 구간이 자동 경계 배치에 큰 오차를 유발함" },
     { "poomsae": "taegeuk_7", "name": "태극 7장", "file": "품새_태극7장.mp4", "official_movements": 25, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/taegeuk-7-gpt-review-v1.json", "quality_note": "45.5~55.7초에 동기화된 정면·후면 시범자 2명이 동시에 표시되어 관절 점수 학습에서 제외함" },
     { "poomsae": "taegeuk_8", "name": "태극 8장", "file": "품새_태극8장.mp4", "official_movements": 27, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/taegeuk-8-gpt-review-v1.json", "quality_note": "자동 분석이 준비·초반 동작을 놓쳐 전체 경계가 지연됐고 42.3~46.7초에는 정면·후면 시범자 2명이 동시에 표시되어 관절 점수 학습에서 제외함" },
-    { "poomsae": "koryo", "name": "고려", "file": "품새_고려.mp4", "official_movements": 30, "review_status": "pending_gpt_boundary_review" },
-    { "poomsae": "keumgang", "name": "금강", "file": "품새_금강.mp4", "official_movements": 27, "review_status": "pending_gpt_boundary_review" },
-    { "poomsae": "taebaek", "name": "태백", "file": "품새_태백.mp4", "official_movements": 26, "review_status": "pending_gpt_boundary_review" },
-    { "poomsae": "pyongwon", "name": "평원", "file": "품새_평원.mp4", "official_movements": 21, "review_status": "pending_gpt_boundary_review" },
-    { "poomsae": "sipjin", "name": "십진", "file": "품새_십진.mp4", "official_movements": 28, "review_status": "pending_gpt_boundary_review" },
-    { "poomsae": "jitae", "name": "지태", "file": "품새_지태.mp4", "official_movements": 28, "review_status": "pending_gpt_boundary_review" },
-    { "poomsae": "cheonkwon", "name": "천권", "file": "품새_천권.mp4", "official_movements": 26, "review_status": "pending_gpt_boundary_review" },
-    { "poomsae": "hansu", "name": "한수", "file": "품새_한수.mp4", "official_movements": 27, "review_status": "pending_gpt_boundary_review" },
-    { "poomsae": "ilyeo", "name": "일여", "file": "품새_일여.mp4", "official_movements": 23, "review_status": "pending_gpt_boundary_review" }
+    { "poomsae": "koryo", "name": "고려", "file": "품새_고려.mp4", "official_movements": 30, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/koryo-gpt-review-v1.json", "quality_note": "자동 분석이 첫 공식동작 전 준비 자세를 과분할하고 마지막 4개 동작을 누락했으며 49.3~56.9초에는 정면·후면 시범자 2명이 동시에 표시되어 관절 점수 학습에서 제외함" },
+    { "poomsae": "keumgang", "name": "금강", "file": "품새_금강.mp4", "official_movements": 27, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/keumgang-gpt-review-v1.json", "quality_note": "전체 단일 시범자·전면 구도이며 준비 자세 시작점만 3.2초로 보정하고 21.7초 이후 공식 경계는 자동 분석과 일치" },
+    { "poomsae": "taebaek", "name": "태백", "file": "품새_태백.mp4", "official_movements": 26, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/taebaek-gpt-review-v1.json", "quality_note": "30.8~44.7초 정면·후면 시범자 합성으로 관절 점수 학습에서 제외하고 경계 타이밍만 사용" },
+    { "poomsae": "pyongwon", "name": "평원", "file": "품새_평원.mp4", "official_movements": 21, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/pyongwon-gpt-review-v1.json", "quality_note": "전체 단일 시범자·전면 구도이며 13.7초 이후 21개 공식 경계가 프레임 검수와 일치" },
+    { "poomsae": "sipjin", "name": "십진", "file": "품새_십진.mp4", "official_movements": 28, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/sipjin-gpt-review-v1.json", "quality_note": "40.0~90.5초 정면·후면 시범자 합성으로 관절 점수 학습에서 제외하고 경계 타이밍만 사용" },
+    { "poomsae": "jitae", "name": "지태", "file": "품새_지태.mp4", "official_movements": 28, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/jitae-gpt-review-v1.json", "quality_note": "65.0~80.0초 정면·후면 시범자 합성으로 관절 점수 학습에서 제외하고 경계 타이밍만 사용" },
+    { "poomsae": "cheonkwon", "name": "천권", "file": "품새_천권.mp4", "official_movements": 26, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/cheonkwon-gpt-review-v1.json", "quality_note": "61.0~72.5초 정면·후면 시범자 합성으로 관절 점수 학습에서 제외하고 경계 타이밍만 사용" },
+    { "poomsae": "hansu", "name": "한수", "file": "품새_한수.mp4", "official_movements": 27, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/hansu-gpt-review-v1.json", "quality_note": "전체 단일 시범자·전면 구도이며 3.1초 이후 27개 공식 경계가 프레임 검수와 일치" },
+    { "poomsae": "ilyeo", "name": "일여", "file": "품새_일여.mp4", "official_movements": 23, "review_status": "gpt_reviewed_pending_expert", "ground_truth": "../ground-truth/ilyeo-gpt-review-v1.json", "quality_note": "전체 단일 시범자·전면 구도이며 7.3초 이후 23개 공식 경계가 프레임 검수와 일치" }
   ]
 }

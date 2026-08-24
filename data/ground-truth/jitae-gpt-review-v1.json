@@ -1,0 +1,29 @@
+{
+  "schema": "poomsae-ground-truth-review-v1",
+  "created_at": "2026-08-20T22:30:00+09:00",
+  "source_file": { "name": "품새_지태.mp4", "size_bytes": 5312546, "sha256": "AF6F464E44CF41E568DA2DECB41FEC598B4DE303F1726C1ACDDFE22E935DA283", "duration_seconds": 83.6, "resolution": "1280x720", "frame_rate": 29.97, "camera_view": "front" },
+  "poomsae": { "id": "jitae", "name": "지태", "official_movements": 28, "scene_count_with_ready": 29 },
+  "evidence": {
+    "video_review": "전체 영상을 5fps 프레임과 앱 타임코드로 검수하여 준비·정지 구간, 28개 공식 동작 경계, 마지막 정지 구간을 교차검수함",
+    "textbook_reference": "www/index.html의 jitae 동작표 및 www/models/jitae-textbook-reference.json",
+    "official_rules": [
+      { "source": "태권도심사규칙.pdf", "pages": [6, 24], "use": "품새 완성성·숙련도·품위 평가 근거" },
+      { "source": "2026년 태권도 품새 경기규칙.pdf", "pages": [16, 17, 39, 41, 42, 44], "use": "정확성 감점과 기본 서기·막기·지르기 기준" },
+      { "source": "Poomsae Competition Rules and Interpretation In force as of June 14 2024.pdf", "pages": [24, 26, 27, 28], "use": "국제 공인품새 정확성·표현력 구조 교차검증" }
+    ]
+  },
+  "video_quality": { "single_subject_until_seconds": 65.0, "multi_person_overlap_after_seconds": 65.0, "multi_person_overlap_intervals_seconds": [[65.0, 80.0]], "multi_person_note": "65.0~80.0초 정면·후면 시범자 합성으로 두 시범자가 동기화되어 표시되며, 경계 검수에는 사용하되 관절 점수 학습에서는 제외함", "boundary_review_usable": true, "pose_score_training_usable": false, "subject_tracking_confidence": 0.65 },
+  "app_analysis": { "version": "v4.15", "pose_detection_rate": 1.0, "boundaries_seconds": [4.7, 11.0, 13.0, 18.0, 19.9, 21.9, 24.2, 26.5, 29.2, 33.1, 35.4, 43.9, 45.1, 48.6, 52.0, 53.6, 55.1, 56.3, 58.6, 60.2, 63.3, 65.2, 66.7, 70.6, 72.2, 73.7, 74.9, 76.8, 79.7] },
+  "review": {
+    "status": "gpt_reviewed", "expert_approval": "pending", "boundary_definition": "직전 완성 자세에서 다음 공식 동작을 위한 신체 이동이 처음 보이는 시점", "temporal_resolution_seconds": 0.1,
+    "reviewed_boundaries_seconds": [4.7, 11.0, 13.0, 18.0, 19.9, 21.9, 24.2, 26.5, 29.2, 33.1, 35.4, 43.9, 45.1, 48.6, 52.0, 53.6, 55.1, 56.3, 58.6, 60.2, 63.3, 65.2, 66.7, 70.6, 72.2, 73.7, 74.9, 76.8, 79.7],
+    "boundary_confidence": ["high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "medium", "medium", "medium", "medium", "medium", "medium"],
+    "notes": ["0~4.7초는 준비·정지 구간이며 첫 공식 동작 진입이 4.7초로 확인됨.", "4.7~79.7초 28개 공식 동작 경계가 프레임 검수와 앱 카드에 일치하여 자동 경계를 유지함.", "65.0~80.0초는 정면·후면 시범자 합성 구간이므로 경계 타이밍만 사용하고 관절 점수 학습에서는 제외함.", "79.7~83.6초는 마지막 완성 자세 유지·정지 구간으로 공식 동작 경계에는 포함하지 않음.", "이 기록은 GPT 검수 표본이며 지도자 승인 표본으로 간주하지 않음."]
+  },
+  "calibration_record": {
+    "action": "adjust", "poomsae": "jitae", "poomsae_name": "지태", "review_session_id": "gpt-jitae-front-20260820-v1", "correction_revision": 1, "boundary_count": 29,
+    "result_boundary_ratios": [0, 0.084, 0.11067, 0.17733, 0.20267, 0.22933, 0.26, 0.29067, 0.32667, 0.37867, 0.40933, 0.52267, 0.53867, 0.58533, 0.63067, 0.652, 0.672, 0.688, 0.71867, 0.74, 0.78133, 0.80667, 0.82667, 0.87867, 0.9, 0.92, 0.936, 0.96133, 1],
+    "review_source": "gpt", "review_status": "gpt_reviewed", "explicit_review": true, "textbook_aligned": true, "video_evidence": true, "trusted_provenance": true, "camera_view": "front", "pose_detection_rate": 1.0, "subject_tracking_confidence": 0.65, "reviewed_at": "2026-08-20T22:30:00+09:00",
+    "review_note": "지태 28동작의 전면 영상을 검수했으며 자동 경계와 공식 동작 경계가 일치함. 65.0~80.0초 정면·후면 합성 구간은 경계 보정에만 사용하고 관절 점수 학습에서는 제외함."
+  }
+}

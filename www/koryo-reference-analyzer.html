@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>고려 기준 관절 생성 중</title></head>
+<body><pre id="status">고려 교본·영상 기준 관절을 생성하고 있습니다…</pre>
+<script type="module">
+import { FilesetResolver, PoseLandmarker } from "./vendor/mediapipe/tasks-vision/vision_bundle.mjs";
+
+const status = document.querySelector("#status");
+const JOINTS = [0,11,12,13,14,15,16,23,24,25,26,27,28,29,30,31,32];
+const ANGLES = {
+  left_elbow:[11,13,15], right_elbow:[12,14,16],
+  left_shoulder:[13,11,23], right_shoulder:[14,12,24],
+  left_hip:[11,23,25], right_hip:[12,24,26],
+  left_knee:[23,25,27], right_knee:[24,26,28]
+};
+const COMPLETIONS = [
+  ["ready_stance",5],["koryo_m1",7],["koryo_m2",10],["koryo_m3",11],
+  ["koryo_m4",12],["koryo_m5",13],["koryo_m6",16],["koryo_m7",17],
+  ["koryo_m8",18],["koryo_m9",19],["koryo_m10",21],["koryo_m11",23],
+  ["koryo_m12",25],["koryo_m13",26],["koryo_m14",28],["koryo_m15",29],
+  ["koryo_m16",30],["koryo_m17",31],["koryo_m18",33],["koryo_m19",34],
+  ["koryo_m20",35],["koryo_m21",36],["koryo_m22",37],["koryo_m23",39],
+  ["koryo_m24",40],["koryo_m25",41],["koryo_m26",42],["koryo_m27",43],
+  ["koryo_m28",44],["koryo_m29",45],["koryo_m30",47]
+];
+const FPS = 5;
+
+function angle(a,b,c) {
+  const u={x:a.x-b.x,y:a.y-b.y}, v={x:c.x-b.x,y:c.y-b.y};
+  const d=Math.hypot(u.x,u.y)*Math.hypot(v.x,v.y);
+  return d ? Math.acos(Math.max(-1,Math.min(1,(u.x*v.x+u.y*v.y)/d)))*180/Math.PI : 0;
+}
+function poseRecord(raw) {
+  const hip={x:(raw[23].x+raw[24].x)/2,y:(raw[23].y+raw[24].y)/2};
+  const shoulder={x:(raw[11].x+raw[12].x)/2,y:(raw[11].y+raw[12].y)/2};
+  const scale=Math.max(0.05,Math.hypot(shoulder.x-hip.x,shoulder.y-hip.y));
+  const joints={};
+  for (const i of JOINTS) joints[i]=[
+    Number(((raw[i].x-hip.x)/scale).toFixed(6)),
+    Number(((raw[i].y-hip.y)/scale).toFixed(6)),
+    Number((raw[i].visibility ?? 1).toFixed(6))
+  ];
+  const angles={};
+  for (const [name,[a,b,c]] of Object.entries(ANGLES)) angles[name]=Number(angle(raw[a],raw[b],raw[c]).toFixed(4));
+  angles.torso_lean=Number((Math.atan2(shoulder.x-hip.x,hip.y-shoulder.y)*180/Math.PI).toFixed(4));
+  return {joints,angles};
+}
+function framePath(n){ return `./koryo-reference/frames/frame-${String(n).padStart(4,"0")}.jpg`; }
+async function loadImage(n){
+  const img=new Image(); img.src=framePath(n); await img.decode(); return img;
+}
+function nearest(records,time,window=0.65){
+  const candidates=records.filter(r=>Math.abs(r.time-time)<=window);
+  const pool=candidates.length?candidates:records;
+  return pool.reduce((best,r)=>Math.abs(r.time-time)<Math.abs(best.time-time)?r:best);
+}
+try {
+  const vision=await FilesetResolver.forVisionTasks("./vendor/mediapipe/tasks-vision/wasm");
+  const detector=await PoseLandmarker.createFromOptions(vision,{
+  baseOptions:{modelAssetPath:"./models/pose_landmarker_lite.task"},
+    runningMode:"IMAGE",numPoses:1,minPoseDetectionConfidence:0.35,minPosePresenceConfidence:0.35
+  });
+  const records=[];
+  for(let n=1;n<=325;n++){
+    const img=await loadImage(n);
+    const result=detector.detect(img);
+    if(result.landmarks?.[0]) records.push({time:(n-1)/FPS,...poseRecord(result.landmarks[0])});
+    if(n%10===0) status.textContent=`관절 추출 ${n}/325 (${records.length}개 성공)`;
+  }
+  if(records.length<250) throw new Error(`검출 프레임 부족: ${records.length}`);
+  const movements={};
+  const videoMovements={};
+  for(let i=0;i<COMPLETIONS.length;i++){
+    const [id,end]=COMPLETIONS[i];
+    const start=i===0?Math.max(0,end-2):COMPLETIONS[i-1][1];
+    const terminal=nearest(records,end);
+    movements[id]=[{variant:"official-video-terminal",joints:terminal.joints,angles:terminal.angles}];
+    videoMovements[id]=[0.25,0.5,0.75,1].map(phase=>{
+      const r=nearest(records,start+(end-start)*phase,0.45);
+      return {phase,joints:r.joints,angles:r.angles};
+    });
+  }
+  const base={schema_version:1,poomsae_id:"koryo",coordinate_system:"hip_centered_torso_scaled_2d",joint_indexes:JOINTS,failures:[]};
+  const textbook={...base,source:"국기원 고려 공식 영상 종결 자세",detector:"MediaPipe Pose Landmarker Lite",stored_content:"joint_coordinates_and_angles_only",movements};
+  const video={...base,source:"국기원 고려 공식 영상 동작 구간",detector:"MediaPipe Pose Landmarker Lite",stored_content:"ordered_joint_coordinates_and_angles_only",movements:videoMovements};
+  const response=await fetch("/__save-koryo",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({textbook,video})});
+  if(!response.ok) throw new Error(await response.text());
+  status.textContent=`완료: 교본 ${Object.keys(movements).length}동작, 영상 ${Object.values(videoMovements).reduce((n,v)=>n+v.length,0)}단계`;
+  document.title="KORYO_REFERENCE_READY";
+} catch(error) {
+  status.textContent=error.stack||String(error); document.title="KORYO_REFERENCE_ERROR";
+}
+</script></body></html>

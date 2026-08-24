@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>태극 6장 교체 영상 미리보기</title>
+  <style>
+    body { margin: 20px; font-family: system-ui, sans-serif; background: #f6f8fb; color: #123; }
+    #status { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+    #sheet { display: grid; grid-template-columns: repeat(5, 240px); gap: 10px; }
+    figure { margin: 0; background: white; border: 1px solid #ccd5df; padding: 6px; }
+    canvas { width: 228px; height: 128px; object-fit: contain; background: #fff; }
+    figcaption { text-align: center; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div id="status">영상 메타데이터 읽는 중…</div>
+  <video id="video" src="./t6-replacement/source-h264.mp4" muted playsinline preload="auto" controls
+    style="display:block;width:960px;height:540px"></video>
+  <div id="sheet"></div>
+  <script>
+    const video = document.querySelector("#video");
+    const status = document.querySelector("#status");
+    const sheet = document.querySelector("#sheet");
+    const seek = (time) => new Promise((resolve) => {
+      video.addEventListener("seeked", () => setTimeout(resolve, 180), { once: true });
+      video.currentTime = Math.min(time, video.duration - 0.04);
+    });
+    video.addEventListener("loadedmetadata", async () => {
+      status.textContent = `길이 ${video.duration.toFixed(3)}초 · ${video.videoWidth}×${video.videoHeight}`;
+      await video.play();
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      video.pause();
+      const interval = video.duration > 80 ? 3 : video.duration > 45 ? 2 : 1.5;
+      for (let time = 0.05; time < video.duration; time += interval) {
+        await seek(time);
+        const figure = document.createElement("figure");
+        const canvas = document.createElement("canvas");
+        canvas.width = 456;
+        canvas.height = 256;
+        canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+        const caption = document.createElement("figcaption");
+        caption.textContent = `${time.toFixed(1)}초`;
+        figure.append(canvas, caption);
+        sheet.append(figure);
+      }
+      status.textContent += ` · ${sheet.children.length}개 표본 완료`;
+      document.title = "T6_PREVIEW_READY";
+    }, { once: true });
+  </script>
+</body>
+</html>

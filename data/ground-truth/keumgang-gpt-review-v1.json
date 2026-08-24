@@ -1,0 +1,71 @@
+{
+  "schema": "poomsae-ground-truth-review-v1",
+  "created_at": "2026-08-20T20:10:00+09:00",
+  "source_file": {
+    "name": "품새_금강.mp4",
+    "size_bytes": 5437368,
+    "sha256": "AB64C884863C98E1F0F0EB89F3701C7E7266191FF97FBB52CE5112721DDADA54",
+    "duration_seconds": 95.7,
+    "resolution": "1280x720",
+    "frame_rate": 29.97,
+    "camera_view": "front"
+  },
+  "poomsae": { "id": "keumgang", "name": "금강", "official_movements": 27, "scene_count_with_ready": 28 },
+  "evidence": {
+    "video_review": "전체 영상을 5fps와 10fps 타임코드 프레임으로 검수하고 준비 자세 진입, 27개 공식 동작 카드 경계, 마지막 정지·퇴장 구간을 교차검수함",
+    "textbook_reference": "www/index.html의 keumgang 동작표 및 www/models/keumgang-textbook-reference.json",
+    "official_rules": [
+      { "source": "태권도심사규칙.pdf", "pages": [6, 24], "use": "품새 완성성·숙련도·품위 평가 근거" },
+      { "source": "2026년 태권도 품새 경기규칙.pdf", "pages": [16, 17, 39, 41, 42, 44], "use": "정확성 감점과 기본 서기·막기·지르기 기준" },
+      { "source": "Poomsae Competition Rules and Interpretation In force as of June 14 2024.pdf", "pages": [24, 26, 27, 28], "use": "국제 공인품새 정확성·표현력 구조 교차검증" }
+    ]
+  },
+  "video_quality": {
+    "single_subject_until_seconds": 95.7,
+    "multi_person_overlap_after_seconds": null,
+    "multi_person_overlap_intervals_seconds": [],
+    "multi_person_note": "전체 검수 구간에서 단일 시범자가 유지되며 다중 인물 합성은 확인되지 않음",
+    "boundary_review_usable": true,
+    "pose_score_training_usable": true,
+    "subject_tracking_confidence": 1.0
+  },
+  "app_analysis": {
+    "version": "v4.15",
+    "pose_detection_rate": 1.0,
+    "boundaries_seconds": [6.6, 21.7, 24.1, 26.4, 28.7, 30.3, 31.9, 33.4, 37.2, 39.2, 41.9, 44.2, 49.6, 51.5, 53.8, 56.1, 61.5, 63.5, 65.0, 66.9, 68.1, 70.4, 74.6, 77.0, 79.7, 84.7, 86.6, 88.9, 90.5]
+  },
+  "review": {
+    "status": "gpt_reviewed",
+    "expert_approval": "pending",
+    "boundary_definition": "직전 완성 자세에서 다음 공식 동작을 위한 신체 이동이 처음 보이는 시점",
+    "temporal_resolution_seconds": 0.1,
+    "reviewed_boundaries_seconds": [3.2, 21.7, 24.1, 26.4, 28.7, 30.3, 31.9, 33.4, 37.2, 39.2, 41.9, 44.2, 49.6, 51.5, 53.8, 56.1, 61.5, 63.5, 65.0, 66.9, 68.1, 70.4, 74.6, 77.0, 79.7, 84.7, 86.6, 88.9, 90.5],
+    "boundary_confidence": ["high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high", "high"],
+    "notes": [
+      "초반 0~6.6초는 타이틀·정지 구간이며 실제 준비 자세 진입은 약 3.2초로 확인되어 첫 경계를 보정함.",
+      "21.7초 이후 27개 공식 동작과 마지막 완성·정지 구간은 10fps 프레임 및 앱 카드가 일치하여 자동 경계를 유지함.",
+      "전체 영상에서 단일 시범자와 전면 카메라 구도가 유지되어 경계·자세 학습 모두 사용 가능함.",
+      "이 기록은 GPT 검수 표본이며 지도자 승인 표본으로 간주하지 않음."
+    ]
+  },
+  "calibration_record": {
+    "action": "adjust",
+    "poomsae": "keumgang",
+    "poomsae_name": "금강",
+    "review_session_id": "gpt-keumgang-front-20260820-v1",
+    "correction_revision": 1,
+    "boundary_count": 29,
+    "result_boundary_ratios": [0, 0.23302, 0.25813, 0.28202, 0.30705, 0.32377, 0.3405, 0.35619, 0.39686, 0.41779, 0.44655, 0.47065, 0.52708, 0.54697, 0.57105, 0.59515, 0.65188, 0.67282, 0.68852, 0.70842, 0.721, 0.74498, 0.78902, 0.81413, 0.84242, 0.89477, 0.91465, 0.93875, 1],
+    "review_source": "gpt",
+    "review_status": "gpt_reviewed",
+    "explicit_review": true,
+    "textbook_aligned": true,
+    "video_evidence": true,
+    "trusted_provenance": true,
+    "camera_view": "front",
+    "pose_detection_rate": 1.0,
+    "subject_tracking_confidence": 1.0,
+    "reviewed_at": "2026-08-20T20:10:00+09:00",
+    "review_note": "금강 전체 27동작을 전면 단일 시범자 영상으로 검수했으며, 준비 자세 시작점만 3.2초로 보정하고 공식 동작 경계는 앱 분석과 일치함."
+  }
+}

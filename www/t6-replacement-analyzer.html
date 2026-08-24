@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>태극 6장 교체 영상 관절 추출</title>
+  <style>
+    body { margin: 24px; font-family: system-ui, sans-serif; color: #123; }
+    progress { width: 720px; height: 24px; }
+    table { border-collapse: collapse; margin: 18px 0; }
+    th, td { border: 1px solid #ccd5df; padding: 5px 9px; text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+    #download { display: none; font-size: 20px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h1>태극 6장 전체 영상 관절 추출</h1>
+  <p id="status">초기화 중…</p>
+  <progress id="progress" max="276" value="0"></progress>
+  <table>
+    <thead><tr><th>동작</th><th>완료 시각</th><th>정적 기준 점수</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <a id="download" download="taegeuk-6-video-reference.json">교체 JSON 다운로드</a>
+  <textarea id="output" hidden></textarea>
+  <script type="module">
+    import { FilesetResolver, PoseLandmarker } from "./vendor/mediapipe/tasks-vision/vision_bundle.mjs";
+
+    const JOINTS = [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
+    const ANGLES = {
+      left_elbow: [11, 13, 15], right_elbow: [12, 14, 16],
+      left_shoulder: [13, 11, 23], right_shoulder: [14, 12, 24],
+      left_hip: [11, 23, 25], right_hip: [12, 24, 26],
+      left_knee: [23, 25, 27], right_knee: [24, 26, 28]
+    };
+    const COMPLETIONS = [
+      ["ready_stance", 6.1],
+      ["taegeuk_6_m1", 10.7],
+      ["taegeuk_6_m2", 12.7],
+      ["taegeuk_6_m3", 13.9],
+      ["taegeuk_6_m4", 15.7],
+      ["taegeuk_6_m5", 16.3],
+      ["taegeuk_6_m6", 19.5],
+      ["taegeuk_6_m7", 21.3],
+      ["taegeuk_6_m8", 23.1],
+      ["taegeuk_6_m9", 25.1],
+      ["taegeuk_6_m10", 31.1],
+      ["taegeuk_6_m11", 33.7],
+      ["taegeuk_6_m12", 35.7],
+      ["taegeuk_6_m13", 37.5],
+      ["taegeuk_6_m14", 38.7],
+      ["taegeuk_6_m15", 40.7],
+      ["taegeuk_6_m16", 42.1],
+      ["taegeuk_6_m17", 43.5],
+      ["taegeuk_6_m18", 46.1],
+      ["taegeuk_6_m19", 48.9]
+    ];
+    const status = document.querySelector("#status");
+    const progress = document.querySelector("#progress");
+    const rows = document.querySelector("#rows");
+
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    function angleDeg(a, b, c) {
+      const abX = a.x - b.x, abY = a.y - b.y;
+      const cbX = c.x - b.x, cbY = c.y - b.y;
+      const denominator = Math.hypot(abX, abY) * Math.hypot(cbX, cbY);
+      if (!(denominator > 0)) return null;
+      return Math.acos(clamp((abX * cbX + abY * cbY) / denominator, -1, 1)) * 180 / Math.PI;
+    }
+    function normalize(landmarks) {
+      const leftHip = landmarks[23], rightHip = landmarks[24];
+      const leftShoulder = landmarks[11], rightShoulder = landmarks[12];
+      if (!(leftHip && rightHip && leftShoulder && rightShoulder)) return null;
+      const hip = { x: (leftHip.x + rightHip.x) / 2, y: (leftHip.y + rightHip.y) / 2 };
+      const shoulder = { x: (leftShoulder.x + rightShoulder.x) / 2, y: (leftShoulder.y + rightShoulder.y) / 2 };
+      const scale = Math.hypot(shoulder.x - hip.x, shoulder.y - hip.y);
+      if (!(scale > 0.015)) return null;
+      const joints = {};
+      for (const index of JOINTS) {
+        const point = landmarks[index];
+        joints[index] = [
+          Number(((point.x - hip.x) / scale).toFixed(4)),
+          Number(((point.y - hip.y) / scale).toFixed(4)),
+          Number((Number.isFinite(point.visibility) ? point.visibility : 0.5).toFixed(4))
+        ];
+      }
+      const angles = {};
+      for (const [name, [a, b, c]] of Object.entries(ANGLES)) {
+        angles[name] = Number(angleDeg(landmarks[a], landmarks[b], landmarks[c]).toFixed(2));
+      }
+      angles.torso_lean = Number((Math.atan2(shoulder.x - hip.x, hip.y - shoulder.y) * 180 / Math.PI).toFixed(2));
+      return { joints, angles };
+    }
+    function scorePair(pose, reference) {
+      let squaredDistance = 0, coordinateWeight = 0;
+      for (const index of JOINTS) {
+        const point = pose.joints[index], target = reference.joints[index];
+        if (!(point && target)) continue;
+        const visibility = Math.min(point[2] ?? 0.5, target[2] ?? 0.5);
+        if (visibility < 0.2) continue;
+        const importance = index === 0 ? 0.55 : (index >= 29 ? 0.7 : 1);
+        const weight = visibility * importance;
+        squaredDistance += ((point[0] - target[0]) ** 2 + (point[1] - target[1]) ** 2) * weight;
+        coordinateWeight += weight;
+      }
+      if (!(coordinateWeight > 4)) return -1;
+      const coordinateScore = 100 * Math.exp(-Math.sqrt(squaredDistance / coordinateWeight) / 0.62);
+      let angleDifference = 0, angleCount = 0;
+      for (const [name, value] of Object.entries(pose.angles)) {
+        const target = reference.angles[name];
+        if (!Number.isFinite(value) || !Number.isFinite(target)) continue;
+        angleDifference += Math.min(90, Math.abs(value - target));
+        angleCount++;
+      }
+      const angleScore = angleCount ? 100 * Math.exp(-(angleDifference / angleCount) / 36) : coordinateScore;
+      return coordinateScore * 0.62 + angleScore * 0.38;
+    }
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = src;
+      });
+    }
+    function closestPose(frames, time) {
+      let best = null;
+      for (const frame of frames) {
+        if (!frame.pose) continue;
+        const distance = Math.abs(frame.time - time);
+        if (!best || distance < best.distance) best = { ...frame, distance };
+      }
+      return best;
+    }
+
+    try {
+      const [reference, vision] = await Promise.all([
+        fetch("./models/taegeuk-6-textbook-reference.json").then((response) => response.json()),
+        FilesetResolver.forVisionTasks("./vendor/mediapipe/tasks-vision/wasm")
+      ]);
+      const detector = await PoseLandmarker.createFromOptions(vision, {
+        baseOptions: { modelAssetPath: "./models/pose_landmarker_lite.task", delegate: "CPU" },
+        runningMode: "IMAGE",
+        numPoses: 1,
+        minPoseDetectionConfidence: 0.35,
+        minPosePresenceConfidence: 0.35
+      });
+      const frames = [];
+      for (let index = 1; index <= 276; index++) {
+        const image = await loadImage(`./t6-replacement/frames/frame-${String(index).padStart(4, "0")}.jpg`);
+        const detected = detector.detect(image);
+        const pose = detected.landmarks?.[0] ? normalize(detected.landmarks[0]) : null;
+        frames.push({ time: Number(((index - 0.5) / 5).toFixed(3)), pose });
+        progress.value = index;
+        if (index % 8 === 0) {
+          status.textContent = `${index}/276 프레임 분석 중…`;
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+      }
+      const completions = [];
+      for (const [movementId, completionTime] of COMPLETIONS) {
+        const variants = reference.movements[movementId];
+        const target = variants[variants.length - 1];
+        const frame = closestPose(frames, completionTime);
+        const best = { ...frame, score: scorePair(frame.pose, target) };
+        if (!best) throw new Error(`${movementId} 완료 프레임을 찾지 못했습니다.`);
+        completions.push({ movementId, time: best.time, score: best.score });
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${movementId}</td><td>${best.time.toFixed(1)}초</td><td>${best.score.toFixed(1)}</td>`;
+        rows.append(row);
+      }
+      const movements = {};
+      let startTime = 4.8;
+      for (const completion of completions) {
+        movements[completion.movementId] = [0.25, 0.5, 0.75, 1].map((phase) => {
+          const time = startTime + (completion.time - startTime) * phase;
+          const frame = closestPose(frames, time);
+          return { phase, joints: frame.pose.joints, angles: frame.pose.angles };
+        });
+        startTime = completion.time;
+      }
+      const output = {
+        schema_version: 1,
+        poomsae_id: "taegeuk_6",
+        source: "Kukkiwon Taegeuk 6 full-form video (replacement uploaded 2026-07-24)",
+        detector: "MediaPipe Pose Landmarker Lite",
+        coordinate_system: "hip-centered torso-scaled normalized 2D",
+        stored_content: "ordered_joint_coordinates_and_angles_only",
+        joint_indexes: JOINTS,
+        movements
+      };
+      const json = JSON.stringify(output, null, 2);
+      document.querySelector("#output").value = json;
+      const link = document.querySelector("#download");
+      link.href = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+      link.style.display = "inline";
+      status.textContent = `완료: ${Object.keys(movements).length}개 동작 · ${Object.values(movements).flat().length}개 관절 단계`;
+      document.title = "T6_REPLACEMENT_READY";
+    } catch (error) {
+      status.textContent = `오류: ${error.stack || error.message}`;
+      document.title = "T6_REPLACEMENT_ERROR";
+    }
+  </script>
+</body>
+</html>
