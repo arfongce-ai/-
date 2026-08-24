@@ -3504,9 +3504,11 @@
           flushPendingCloudCorrections(); // 오프라인 때 쌓인 기록을 연결 즉시 재전송.
           initPartnerBanner(); // Firebase 준비된 뒤 배너 설정을 불러온다.
           loadBoundaryBias(); // 학습된 경계 타이밍 보정도 함께 불러온다(실패해도 무해).
+          loadLearningStats(); // 여러 기기에서 축적된 정확도·신뢰도 요약도 함께 불러온다.
         } catch (e) {
           _fbReady = false; // 조용히 실패. 로컬 기록은 계속 동작.
           loadBoundaryBias(); // 오프라인이어도 이전에 캐시된 보정값(localStorage)은 적용.
+          loadLearningStats(); // 오프라인이면 이전 통계 캐시를 요약 안내에 사용.
         }
       })();
       function describeAdminAuthError(error) {
@@ -3589,6 +3591,8 @@
       // 위치만 미세조정. (2) 값은 ±1.5초로 상한(서버에 이상값이 게시돼도 영향 제한).
       // (3) 오프라인/실패 시 localStorage 캐시 → 그마저 없으면 빈 값(=기존과 동일 동작).
       const BOUNDARY_BIAS_CACHE_KEY = "poomsae_boundary_bias_v1";
+      const LEARNING_STATS_CACHE_KEY = "poomsae_learning_stats_v1";
+      const LEARNING_STATS_SCHEMA = "poomsae-learning-stats-v1";
       const BOUNDARY_BIAS_MAX_SHIFT = 1.5;
       const LOCAL_BOUNDARY_BIAS_KEY = "poomsae_local_boundary_bias_v1";
       const LOCAL_BOUNDARY_BIAS_MIN_SAMPLES = 3;
@@ -3596,6 +3600,7 @@
       const COLLECTIVE_PROFILE_FIELD = "_profiles";
       const COLLECTIVE_PROFILE_MIN_SESSIONS = 3;
       let _localBoundaryBias = {};
+      let _remoteLearningStats = {};
       function clampBiasValue(v) {
         return Number.isFinite(v) ? clamp(v, -BOUNDARY_BIAS_MAX_SHIFT, BOUNDARY_BIAS_MAX_SHIFT) : 0;
       }
@@ -3624,6 +3629,15 @@
             ratios: ratios.map((n) => Number(n.toFixed(5))),
             samples,
             blend,
+            effectiveSamples: Math.max(0, Number(Number(raw.effectiveSamples ?? samples).toFixed(2))),
+            confidence: clamp(Number(raw.confidence) || 0, 0, 1),
+            accuracyRate: clamp(Number(raw.accuracyRate) || 0, 0, 1),
+            sourceCounts: raw.sourceCounts && typeof raw.sourceCounts === "object" ? {
+              totalSessions: Math.max(0, Math.round(Number(raw.sourceCounts.totalSessions) || 0)),
+              dominantSessions: Math.max(0, Math.round(Number(raw.sourceCounts.dominantSessions) || samples)),
+              confirmed: Math.max(0, Math.round(Number(raw.sourceCounts.confirmed) || 0)),
+              corrected: Math.max(0, Math.round(Number(raw.sourceCounts.corrected) || 0))
+            } : { totalSessions: samples, dominantSessions: samples, confirmed: 0, corrected: 0 },
             updatedAtMs: Number(raw.updatedAtMs) || 0
           };
         }
@@ -3649,6 +3663,14 @@
       // 누른 과정은 마지막 상태 1개만 사용해, 클릭 횟수가 많은 한 사용자가 결과를 지배하지 않게 한다.
       function buildCollectiveLearningProfiles(records, minSessions = COLLECTIVE_PROFILE_MIN_SESSIONS) {
         const latestBySession = new Map();
+        const qualityByPoomsae = analyzeCorrectionRecords(records).locations.reduce((acc, loc) => {
+          const key = loc.poomsae || "unknown";
+          const item = (acc[key] ||= { total: 0, confirmed: 0, corrected: 0 });
+          item.total += loc.total || 0;
+          item.confirmed += loc.counts?.confirm || 0;
+          item.corrected += Math.max(0, (loc.total || 0) - (loc.counts?.confirm || 0));
+          return acc;
+        }, {});
         for (const record of Array.isArray(records) ? records : []) {
           const poomsaeKey = String(record && record.poomsae || "");
           const sessionId = String(record && record.review_session_id || "");
@@ -3676,7 +3698,8 @@
           const groups = Object.values(lengthGroups).sort((a, b) => b.length - a.length);
           const dominant = groups[0] || [];
           const totalSessions = groups.reduce((sum, rows) => sum + rows.length, 0);
-          if (dominant.length < minSessions || dominant.length / Math.max(totalSessions, 1) < 0.67) continue;
+          const dominanceShare = dominant.length / Math.max(totalSessions, 1);
+          if (dominant.length < minSessions || dominanceShare < 0.67) continue;
           const boundaryCount = dominant[0].length;
           const ratios = Array.from({ length: boundaryCount }, (_, index) =>
             Number(medianNumber(dominant.map((row) => row[index])).toFixed(5))
@@ -3684,15 +3707,98 @@
           ratios[0] = 0;
           ratios[ratios.length - 1] = 1;
           if (!ratios.every((n, i) => n >= 0 && n <= 1 && (i === 0 || n > ratios[i - 1]))) continue;
+          const quality = qualityByPoomsae[poomsaeKey] || { total: 0, confirmed: 0, corrected: 0 };
+          const accuracyRate = quality.total > 0 ? quality.confirmed / quality.total : dominanceShare;
+          const sampleWeight = Math.min(1, dominant.length / 20);
+          const confidence = clamp((sampleWeight * 0.55) + (dominanceShare * 0.25) + (accuracyRate * 0.2), 0, 1);
+          const effectiveSamples = dominant.length * Math.max(0.35, accuracyRate) * dominanceShare;
           profiles[poomsaeKey] = {
             boundaryCount,
             ratios,
             samples: dominant.length,
             blend: Number(Math.min(0.45, 0.12 + dominant.length * 0.015).toFixed(3)),
+            effectiveSamples: Number(effectiveSamples.toFixed(2)),
+            confidence: Number(confidence.toFixed(3)),
+            accuracyRate: Number(accuracyRate.toFixed(3)),
+            sourceCounts: {
+              totalSessions,
+              dominantSessions: dominant.length,
+              confirmed: quality.confirmed,
+              corrected: quality.corrected
+            },
             updatedAtMs: Date.now()
           };
         }
         return profiles;
+      }
+      function cleanLearningStats(value) {
+        if (!value || typeof value !== "object" || value.schema !== LEARNING_STATS_SCHEMA) return {};
+        const poomsae = {};
+        for (const [key, raw] of Object.entries(value.poomsae || {})) {
+          if (!raw || typeof raw !== "object") continue;
+          poomsae[key] = {
+            total: Math.max(0, Math.round(Number(raw.total) || 0)),
+            confirmed: Math.max(0, Math.round(Number(raw.confirmed) || 0)),
+            corrected: Math.max(0, Math.round(Number(raw.corrected) || 0)),
+            accuracyRate: clamp(Number(raw.accuracyRate) || 0, 0, 1),
+            confidence: clamp(Number(raw.confidence) || 0, 0, 1),
+            profileSamples: Math.max(0, Math.round(Number(raw.profileSamples) || 0)),
+            profileConfidence: clamp(Number(raw.profileConfidence) || 0, 0, 1),
+            activeBiasCount: Math.max(0, Math.round(Number(raw.activeBiasCount) || 0))
+          };
+        }
+        return {
+          schema: LEARNING_STATS_SCHEMA,
+          updatedAtMs: Number(value.updatedAtMs) || 0,
+          totalRecords: Math.max(0, Math.round(Number(value.totalRecords) || 0)),
+          overallAccuracyRate: clamp(Number(value.overallAccuracyRate) || 0, 0, 1),
+          poomsae,
+          locations: Array.isArray(value.locations) ? value.locations.slice(0, 120).map((raw) => ({
+            location: String(raw.location || "").slice(0, 80),
+            poomsae: String(raw.poomsae || "").slice(0, 40),
+            total: Math.max(0, Math.round(Number(raw.total) || 0)),
+            accuracyRate: clamp(Number(raw.accuracyRate) || 0, 0, 1),
+            confidence: String(raw.confidence || "insufficient").slice(0, 20),
+            activeBiasSeconds: Number.isFinite(Number(raw.activeBiasSeconds)) ? clampBiasValue(Number(raw.activeBiasSeconds)) : null
+          })).filter((row) => row.location) : []
+        };
+      }
+      function buildLearningStatsSnapshot(records, activeBias = {}, profiles = {}) {
+        const { locations, byPoomsae } = analyzeCorrectionRecords(records);
+        const confirmTotal = locations.reduce((n, loc) => n + (loc.counts?.confirm || 0), 0);
+        const reviewedTotal = locations.reduce((n, loc) => n + (loc.total || 0), 0);
+        const poomsae = {};
+        for (const loc of locations) {
+          const key = loc.poomsae || "unknown";
+          const item = (poomsae[key] ||= { total: 0, confirmed: 0, corrected: 0, activeBiasCount: 0 });
+          item.total += loc.total || 0;
+          item.confirmed += loc.counts?.confirm || 0;
+          item.corrected += Math.max(0, (loc.total || 0) - (loc.counts?.confirm || 0));
+          if (typeof activeBias[loc.location] === "number") item.activeBiasCount += 1;
+        }
+        for (const [key, item] of Object.entries(poomsae)) {
+          const profile = profiles[key] || {};
+          item.accuracyRate = item.total > 0 ? Number((item.confirmed / item.total).toFixed(3)) : 0;
+          item.confidence = Number(Math.min(1, (item.total / REPORT_MIN_SAMPLES_ML) * 0.65 + item.accuracyRate * 0.35).toFixed(3));
+          item.profileSamples = Math.max(0, Math.round(Number(profile.samples) || 0));
+          item.profileConfidence = clamp(Number(profile.confidence) || 0, 0, 1);
+          if (!byPoomsae[key]) item.total = item.total || 0;
+        }
+        return cleanLearningStats({
+          schema: LEARNING_STATS_SCHEMA,
+          updatedAtMs: Date.now(),
+          totalRecords: Array.isArray(records) ? records.length : 0,
+          overallAccuracyRate: reviewedTotal > 0 ? Number((confirmTotal / reviewedTotal).toFixed(3)) : 0,
+          poomsae,
+          locations: locations.slice(0, 120).map((loc) => ({
+            location: loc.location,
+            poomsae: loc.poomsae,
+            total: loc.total,
+            accuracyRate: loc.accuracy_rate || 0,
+            confidence: loc.confidence,
+            activeBiasSeconds: typeof activeBias[loc.location] === "number" ? activeBias[loc.location] : null
+          }))
+        });
       }
       // 이 기기에서 같은 품새·같은 경계를 반복해서 고친 경우에만 개인 보정값을 만든다.
       // 평균 대신 중앙값을 써서 한 번의 잘못된 터치가 다음 분석을 망치지 않게 하고,
@@ -3765,6 +3871,20 @@
           if (_remoteBoundaryBias == null) _remoteBoundaryBias = {}; // 캐시도 없었으면 빈 값으로 안전 폴백.
         }
       }
+      async function loadLearningStats() {
+        try {
+          const cachedRaw = localStorage.getItem(LEARNING_STATS_CACHE_KEY);
+          if (cachedRaw) _remoteLearningStats = cleanLearningStats(JSON.parse(cachedRaw));
+        } catch (e) { _remoteLearningStats = {}; }
+        try {
+          if (!_fbReady || !_fbDB || !_fbGetDoc || !_fbDoc) return _remoteLearningStats;
+          const snap = await _fbGetDoc(_fbDoc(_fbDB, "app_config", "learning_stats"));
+          const clean = cleanLearningStats(snap.exists() ? snap.data() : {});
+          _remoteLearningStats = clean;
+          localStorage.setItem(LEARNING_STATS_CACHE_KEY, JSON.stringify(clean));
+        } catch (e) { /* 통계 읽기 실패 시 캐시만 사용 */ }
+        return _remoteLearningStats;
+      }
       function getBoundaryBias(poomsaeKey, boundaryIndex) {
         const key = `${poomsaeKey}#${boundaryIndex}`;
         const remote = _remoteBoundaryBias && typeof _remoteBoundaryBias[key] === "number" ? _remoteBoundaryBias[key] : 0;
@@ -3806,7 +3926,15 @@
           const blended = out[i] * (1 - profile.blend) + collectiveTarget * profile.blend;
           out[i] = clamp(blended, out[i - 1] + 0.1, boundaries[i + 1] - 0.1);
         }
-        return { boundaries: out, applied: true, samples: profile.samples, blend: profile.blend };
+        return {
+          boundaries: out,
+          applied: true,
+          samples: profile.samples,
+          blend: profile.blend,
+          confidence: profile.confidence,
+          accuracyRate: profile.accuracyRate,
+          effectiveSamples: profile.effectiveSamples
+        };
       }
       async function publishCollectiveLearningProfiles(profiles) {
         if (!_fbCurrentAdminUser || !_fbDB || !_fbSetDoc || !_fbDoc) return false;
@@ -3819,6 +3947,18 @@
           );
           _remoteBoundaryBias = { ...(_remoteBoundaryBias || {}), [COLLECTIVE_PROFILE_FIELD]: clean };
           localStorage.setItem(BOUNDARY_BIAS_CACHE_KEY, JSON.stringify(_remoteBoundaryBias));
+          return true;
+        } catch (e) { return false; }
+      }
+      async function publishLearningStatsSnapshot(records, profiles = null) {
+        if (!_fbCurrentAdminUser || !_fbDB || !_fbSetDoc || !_fbDoc) return false;
+        try {
+          const activeBias = _remoteBoundaryBias || {};
+          const cleanProfiles = profiles ? cleanCollectiveProfiles(profiles) : collectiveProfiles();
+          const snapshot = buildLearningStatsSnapshot(records, activeBias, cleanProfiles);
+          await _fbSetDoc(_fbDoc(_fbDB, "app_config", "learning_stats"), snapshot, { merge: false });
+          _remoteLearningStats = snapshot;
+          localStorage.setItem(LEARNING_STATS_CACHE_KEY, JSON.stringify(snapshot));
           return true;
         } catch (e) { return false; }
       }
@@ -3883,6 +4023,7 @@
             localStorage.setItem(AUTO_PUBLISH_LOG_KEY, JSON.stringify([...published, ...log].slice(0, 100)));
           }
           if (Object.keys(collective).length) await publishCollectiveLearningProfiles(collective);
+          await publishLearningStatsSnapshot(records, collective);
         } catch (e) { /* 조용히 실패 — 다음 접속 때 다시 시도(12시간 제한이 자연스러운 재시도 역할) */ }
       }
 
@@ -9248,6 +9389,9 @@ function applyBannerToDom(config) {
           collectiveProfileApplied: collectiveResult.applied,
           collectiveProfileSamples: collectiveResult.samples,
           collectiveProfileBlend: collectiveResult.blend || 0,
+          collectiveProfileConfidence: collectiveResult.confidence || 0,
+          collectiveProfileAccuracyRate: collectiveResult.accuracyRate || 0,
+          collectiveProfileEffectiveSamples: collectiveResult.effectiveSamples || collectiveResult.samples || 0,
           completionTimes: chooseCompletionSnapshotTimes(boundaries, motionSamples),
           motionSamples,
           frames,
@@ -10484,9 +10628,19 @@ function applyBannerToDom(config) {
           results._boundaryBiasNote = { type: "good", text: `그동안 쌓인 보정 데이터를 학습해 경계 ${boundaryDetectionForRun.biasAppliedCount}곳의 타이밍을 다음 측정에 실제 반영했습니다.` };
         }
         if (boundaryDetectionForRun && boundaryDetectionForRun.collectiveProfileApplied) {
+          const learningStats = _remoteLearningStats && _remoteLearningStats.poomsae
+            ? _remoteLearningStats.poomsae[selectedPoomsaeKey] : null;
+          const profileConfidence = Number(boundaryDetectionForRun.collectiveProfileConfidence || learningStats?.profileConfidence || 0);
+          const profileAccuracy = Number(boundaryDetectionForRun.collectiveProfileAccuracyRate || learningStats?.accuracyRate || 0);
+          const confidenceText = profileConfidence > 0
+            ? ` 신뢰도 ${(profileConfidence * 100).toFixed(0)}%`
+            : "";
+          const accuracyText = profileAccuracy > 0
+            ? `, 누적 정확도 ${(profileAccuracy * 100).toFixed(0)}%`
+            : "";
           results._collectiveLearningNote = {
             type: "good",
-            text: `여러 기기에서 확인한 ${boundaryDetectionForRun.collectiveProfileSamples}개의 ${currentPoomsae().name} 분석을 함께 배워 이번 구간 찾기에 반영했습니다.`
+            text: `여러 기기에서 확인한 ${boundaryDetectionForRun.collectiveProfileSamples}개의 ${currentPoomsae().name} 분석을 데이터베이스에 축적해 이번 구간 찾기에 반영했습니다.${confidenceText}${accuracyText}`
           };
         }
         const fusedView = (analysisEfficiency && (analysisEfficiency.triple_view ? "triple" : analysisEfficiency.dual_view ? "dual" : null)) || cameraView;

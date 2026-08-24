@@ -51,6 +51,14 @@ service cloud.firestore {
         && request.resource.data.size() < 200; // 문서 비대화 방지(스팸/실수 보호).
     }
 
+    // ── 개인정보 없는 누적 학습 통계 ──
+    // corrections 원본은 관리자만 읽고, 앱은 이 요약 문서만 공개로 읽어 신뢰도 안내에 사용한다.
+    // 쓰기는 관리자 백그라운드 반영(autoPublishHighConfidenceSuggestions)만 허용한다.
+    match /app_config/learning_stats {
+      allow read: if true;
+      allow write: if isAdmin() && isValidLearningStats(request.resource.data);
+    }
+
     // 그 외 모든 경로는 차단(기존 momgagym-cms 데이터 보호).
     // ※ 기존에 다른 컬렉션 규칙이 있으면 이 블록과 합쳐서 쓰세요.
 
@@ -68,6 +76,15 @@ service cloud.firestore {
         && d.issue_counts is list
         && d.needed_training is list
         && d.size() < 20;
+    }
+    function isValidLearningStats(d) {
+      return d.schema == 'poomsae-learning-stats-v1'
+        && d.updatedAtMs is number
+        && d.totalRecords is number
+        && d.overallAccuracyRate is number
+        && d.poomsae is map
+        && d.locations is list
+        && d.size() < 10;
     }
     function isValidCalibrationReview(d) {
       return d.action in ['merge', 'split', 'adjust', 'cascade_adjust', 'confirm_all']

@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-root-v28-taegeuk-ui";
+const CACHE_NAME = "poomsae-training-root-v29-learning-stats";
 const APP_URL = "./www/index.html";
 const CORE_ASSETS = [
   "./www/",

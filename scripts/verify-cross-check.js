@@ -332,11 +332,11 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v96-taegeuk-ui", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v97-learning-stats", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
-assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-v28-taegeuk-ui", "최상단 배포용 오프라인 엔진 서비스워커 존재");
+assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-v29-learning-stats", "최상단 배포용 오프라인 엔진 서비스워커 존재");
 assertContains(webHtml, 'import { buildDatasetCandidate, scoreActionSequence } from "./action-model.mjs"', "별도 동작 시퀀스 모델 모듈 연결");
 assertContains(webHtml, 'import { compareTextbookPose } from "./textbook-pose-match.mjs"', "교본 관절선 비교 모듈 연결");
 assertContains(webHtml, 'import { compareVideoReference } from "./video-reference-match.mjs"', "영상 관절 흐름 비교 모듈 연결");
@@ -646,6 +646,11 @@ assertContains(webHtml, "function loadBoundaryBias(", "경계 보정값 로드 �
 assertContains(webHtml, "function getBoundaryBias(", "경계 보정값 조회 함수 존재");
 assertContains(webHtml, "function applyLearnedBoundaryBias(", "경계 보정 적용 함수 존재");
 assertContains(webHtml, "function buildCollectiveLearningProfiles(", "여러 기기의 최종 보정을 품새별 집단 학습값으로 모음");
+assertContains(webHtml, "const LEARNING_STATS_SCHEMA = \"poomsae-learning-stats-v1\"", "누적 학습 통계 스키마 존재");
+assertContains(webHtml, "function buildLearningStatsSnapshot(", "여러 기기 보정 데이터를 개인정보 없는 DB 요약으로 축적");
+assertContains(webHtml, "async function publishLearningStatsSnapshot(", "관리자 백그라운드 반영 시 누적 학습 통계를 Firestore에 게시");
+assertContains(webHtml, "async function loadLearningStats(", "앱이 누적 학습 통계를 읽어 신뢰도 안내에 반영");
+assertContains(webHtml, "_fbDoc(_fbDB, \"app_config\", \"learning_stats\")", "학습 통계 Firestore 경로가 앱 코드에 연결됨");
 assertContains(webHtml, "review_session_id: correctionSessionId", "한 영상의 여러 클릭을 하나의 검토 세션으로 구분");
 assertContains(webHtml, "result_boundary_ratios", "기기와 영상 길이가 달라도 비교 가능한 최종 경계 비율을 수집");
 assertContains(webHtml, "function applyCollectiveBoundaryProfile(", "공개 집단 학습 프로필을 다음 분석 경계에 반영");
@@ -668,6 +673,9 @@ assertContains(webHtml, "bodyEl.dataset.biasDelegated", "보정 버튼 이벤트
 assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "match /app_config/boundary_bias", "경계 보정값 문서 규칙 존재");
 assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "allow write: if request.auth != null && request.auth.token.email in ADMIN_EMAILS()", "경계 보정값 쓰기는 인증된 관리자로만 제한됨");
 assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "&& request.resource.data.size() < 200", "경계 보정값 문서 크기 제한 존재");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "match /app_config/learning_stats", "누적 학습 통계 문서 규칙 존재");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "function isValidLearningStats(d)", "학습 통계 쓰기 검증 함수 존재");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "d.schema == 'poomsae-learning-stats-v1'", "학습 통계 스키마 검증 존재");
 
 // ── 관리자 비밀번호 재설정 ──
 assertContains(webHtml, "id=\"adminForgotPasswordBtn\"", "비밀번호 재설정 버튼 존재");
