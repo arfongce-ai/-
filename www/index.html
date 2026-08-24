@@ -6462,12 +6462,24 @@ function applyBannerToDom(config) {
         }));
         ctx.globalAlpha = 1;
       }
+      function captureRecordingSize() {
+        const high = captureQuality === "high";
+        const landscape =
+          captureRotationDeg() % 180 !== 0 ||
+          (window.matchMedia && window.matchMedia("(orientation: landscape)").matches) ||
+          (capturePreview?.videoWidth && capturePreview.videoWidth >= capturePreview.videoHeight);
+        const longSide = high ? 1440 : 960;
+        const shortSide = high ? 1080 : 720;
+        return landscape
+          ? { width: longSide, height: shortSide }
+          : { width: shortSide, height: longSide };
+      }
       function createCaptureRecordingStream() {
         if (!HTMLCanvasElement.prototype.captureStream) return captureStream;
         const canvas = captureComposeCanvas || document.createElement("canvas");
-        const high = captureQuality === "high";
-        canvas.width = high ? 1080 : 720;
-        canvas.height = high ? 1440 : 960;
+        const size = captureRecordingSize();
+        canvas.width = size.width;
+        canvas.height = size.height;
         captureComposeCanvas = canvas;
         const ctx = canvas.getContext("2d", { alpha: false });
         const draw = () => {
