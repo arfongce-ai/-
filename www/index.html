@@ -6181,13 +6181,16 @@ function applyBannerToDom(config) {
         update(capturePoseState.rom.rightShoulder, jointAngleDeg(getPoint(pose, 24), getPoint(pose, 12), getPoint(pose, 14)));
         update(capturePoseState.rom.leftHip, jointAngleDeg(getPoint(pose, 11), getPoint(pose, 23), getPoint(pose, 25)));
         update(capturePoseState.rom.rightHip, jointAngleDeg(getPoint(pose, 12), getPoint(pose, 24), getPoint(pose, 26)));
-        capturePoseState.samples += 1;
       }
       function updateCapturePoseStatus() {
         if (!capturePoseStatus) return;
         const age = capturePoseState.lastSuccessMs ? Date.now() - capturePoseState.lastSuccessMs : Infinity;
-        if (!capturePoseState.samples || age > 1200) {
+        if (!capturePoseState.detectionCount || age > 1200) {
           capturePoseStatus.textContent = "검출 0명 · 피사체를 화면 중앙에 맞추세요";
+          return;
+        }
+        if (capturePoseMode !== "single") {
+          capturePoseStatus.textContent = `검출 ${capturePoseState.detectionCount}명`;
           return;
         }
         const rom = capturePoseState.rom;
@@ -6740,7 +6743,8 @@ function applyBannerToDom(config) {
         capturePoseState.detectionCount = displayedLandmarks.length;
         if (displayedLandmarks.length) {
           capturePoseState.lastSuccessMs = Date.now();
-          updateCaptureRom(displayedLandmarks);
+          capturePoseState.samples += 1;
+          if (capturePoseMode === "single") updateCaptureRom(displayedLandmarks);
         }
         updateCapturePoseStatus();
         drawSkeletonFrame(captureCanvas, capturePreview, captureSkeletonEnabled ? displayedLandmarks : null);
