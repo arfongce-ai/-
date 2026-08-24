@@ -177,12 +177,23 @@
         font-family: var(--font-body);
       }
       header, main, .quick-nav, .app-footer { position: relative; z-index: 1; }
+      header,
+      .quick-nav {
+        display: none;
+      }
       p {
         margin: 0 0 12px;
         color: var(--muted);
         line-height: 1.55;
       }
       main { padding: 24px 0 36px; }
+      main.wrap {
+        width: 100%;
+        padding-top: calc(78px + env(safe-area-inset-top));
+      }
+      body[data-app-page="home"] main.wrap {
+        padding-top: 0;
+      }
       .setup-copy {
         margin-bottom: 14px;
         max-width: 720px;
@@ -2048,6 +2059,729 @@
         margin: 0;
         background: #ffffff;
       }
+      .app-tabs {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 0;
+        z-index: 50;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0;
+        min-height: calc(78px + env(safe-area-inset-top));
+        margin: 0;
+        padding: env(safe-area-inset-top) 20px 10px;
+        background: rgba(27, 28, 24, .96);
+        border-bottom: 1px solid rgba(255,255,255,.08);
+        box-shadow: 0 8px 22px rgba(0,0,0,.28);
+      }
+      body[data-app-page="home"] .app-tabs {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        right: auto;
+        width: min(360px, calc(100vw - 48px));
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 18px;
+        padding: 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        transform: translate(-50%, -50%);
+      }
+      body[data-app-page="home"] .start-panel-tabs { display: none; }
+      body[data-app-page="home"] .app-tab {
+        min-height: 78px;
+        border: 2px solid #2b2420;
+        border-radius: 10px;
+        background: #211b15;
+        color: #f5eee3;
+        font-size: 26px;
+      }
+      body[data-app-page="home"] .app-tab.active,
+      body[data-app-page="home"] .app-tab:hover,
+      body[data-app-page="home"] .app-tab:focus-visible {
+        background: #0c2926;
+        border-color: #d13042;
+        color: #f5eee3;
+      }
+      body[data-app-page]:not([data-app-page="home"]) .quick-nav,
+      body[data-app-page]:not([data-app-page="home"]) header {
+        display: none !important;
+      }
+      body[data-app-page] {
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior-x: none;
+      }
+      body[data-app-page] main.wrap {
+        min-height: 100dvh;
+        height: auto;
+        overflow-x: hidden;
+        overflow-y: visible;
+        overscroll-behavior-x: none;
+        touch-action: pan-y;
+      }
+      body[data-app-page] .app-footer {
+        display: block !important;
+      }
+      .app-tab {
+        min-height: 58px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 19px;
+        font-weight: 900;
+        cursor: pointer;
+      }
+      .app-tab.active {
+        background: var(--brand-strong);
+        color: #071715;
+      }
+      .app-panel { display: none; }
+      .app-panel.active { display: block; }
+      #homePanel {
+        min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        margin-left: calc(50% - 50vw);
+        margin-right: calc(50% - 50vw);
+        background: #171717;
+        color: #050505;
+        padding: 12px 16px calc(88px + env(safe-area-inset-bottom));
+      }
+      .home-menu-frame {
+        width: min(560px, 100%);
+        min-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 30px;
+        margin: 0 auto;
+        border-radius: 24px;
+        padding: 92px 34px 54px;
+        background: #f7f7f4;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, .24);
+        box-sizing: border-box;
+      }
+      .home-menu-buttons {
+        display: grid;
+        gap: 34px;
+        align-content: start;
+        justify-items: center;
+      }
+      .home-menu-button {
+        width: min(360px, 100%);
+        min-height: 84px;
+        border: 3px solid #050505;
+        border-radius: 0;
+        background: #f7f7f4;
+        color: #050505;
+        font-size: clamp(25px, 4vw, 36px);
+        font-weight: 800;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .home-ad-slot {
+        align-self: end;
+        width: 100%;
+        min-height: 64px;
+        border: 3px solid #050505;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #050505;
+        background: #f7f7f4;
+        font-size: 24px;
+        font-weight: 700;
+      }
+      body[data-app-page="home"] .quick-nav {
+        display: none !important;
+      }
+      #capturePanel {
+        margin-left: calc(50% - 50vw);
+        margin-right: calc(50% - 50vw);
+        background: #000;
+        color: #fff;
+      }
+      .capture-shell {
+        min-height: calc(100dvh - 78px - env(safe-area-inset-top));
+        display: grid;
+        grid-template-rows: auto auto;
+      }
+      .capture-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 18px min(48px, 5vw) 12px;
+      }
+      .capture-menu-btn {
+        min-height: 48px;
+        border: 0;
+        border-radius: 8px;
+        padding: 0 10px;
+        background: transparent;
+        color: #f4f7fb;
+        font-size: 20px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+      .capture-menu-btn:focus-visible,
+      .capture-menu-btn:hover {
+        background: rgba(255,255,255,.12);
+      }
+      .capture-mode-group {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .capture-mode {
+        min-width: 92px;
+        min-height: 48px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: #d7dde7;
+        font-size: 18px;
+        font-weight: 900;
+      }
+      .capture-mode.active {
+        background: #31c7d8;
+        color: #051114;
+      }
+      .capture-aspect {
+        min-width: 82px;
+        min-height: 48px;
+        border-radius: 8px;
+        border: 0;
+        background: #f5a511;
+        color: #070707;
+        font-size: 20px;
+        font-weight: 900;
+      }
+      .compare-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
+        gap: 16px;
+        align-items: start;
+      }
+      .capture-stage {
+        position: relative;
+        width: min(100vw, 560px);
+        aspect-ratio: 3 / 4;
+        min-height: 0;
+        max-height: calc(100dvh - 380px);
+        margin: 0 auto;
+        overflow: hidden;
+        background: #050505;
+        touch-action: none;
+      }
+      .compare-stage {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--panel-line);
+        border-radius: 8px;
+        background: #000;
+        aspect-ratio: 16 / 9;
+        min-width: 0;
+        touch-action: none;
+      }
+      .capture-stage video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        max-height: none;
+        object-fit: contain;
+        transform-origin: center;
+      }
+      .capture-canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 4;
+      }
+      .capture-overlay-toggles {
+        position: absolute;
+        left: min(48px, 5vw);
+        top: 78px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        z-index: 2;
+      }
+      .capture-chip {
+        min-height: 44px;
+        border: 2px solid rgba(255, 255, 255, .22);
+        border-radius: 999px;
+        background: rgba(36, 36, 36, .78);
+        color: #dce4ee;
+        padding: 0 16px;
+        font-size: 17px;
+        font-weight: 900;
+      }
+      .capture-chip.active {
+        border-color: rgba(56, 199, 187, .86);
+        background: rgba(6, 70, 67, .82);
+        color: #a9fff8;
+      }
+      .capture-pose-mode {
+        position: absolute;
+        top: 78px;
+        right: min(48px, 5vw);
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        z-index: 2;
+      }
+      .capture-focus-ring {
+        position: absolute;
+        right: 0;
+        bottom: 4%;
+        width: 88px;
+        height: 88px;
+        border: 5px solid #ffd84c;
+        border-radius: 50%;
+        opacity: .9;
+        box-shadow: 0 0 28px rgba(255, 216, 76, .5);
+        z-index: 2;
+      }
+      .compare-stage video {
+        width: 100%;
+        height: 100%;
+        max-height: none;
+        object-fit: contain;
+        transform-origin: center;
+      }
+      .capture-status {
+        position: absolute;
+        right: max(16px, env(safe-area-inset-right));
+        top: 94px;
+        bottom: auto;
+        display: flex;
+        gap: 0;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, .5);
+        color: #fff;
+        font-weight: 800;
+        z-index: 10;
+        box-sizing: border-box;
+        max-width: calc(100% - 32px - env(safe-area-inset-left) - env(safe-area-inset-right));
+      }
+      .capture-status #captureCameraStatus,
+      .capture-status #capturePoseStatus,
+      .capture-status .record-dot {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+      }
+      #captureRecordingTime {
+        display: block;
+        min-width: 74px;
+        text-align: center;
+        line-height: 1.2;
+        white-space: nowrap;
+      }
+      .record-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--muted);
+      }
+      .record-dot.on {
+        background: #ff3b30;
+        box-shadow: 0 0 0 5px rgba(255, 59, 48, .2);
+      }
+      .tool-panel {
+        border: 1px solid var(--panel-line);
+        border-radius: 8px;
+        background: var(--panel);
+        padding: 12px;
+      }
+      .capture-control-card {
+        width: min(100% - 48px, 480px);
+        margin: -44px auto 0;
+        position: relative;
+        z-index: 3;
+        border: 1px solid rgba(255,255,255,.16);
+        border-radius: 8px;
+        background: rgba(235, 235, 224, .46);
+        backdrop-filter: blur(10px);
+        padding: 10px;
+      }
+      .capture-camera-status {
+        margin: 8px 0 0;
+        color: #292929;
+        font-size: 12px;
+        text-align: center;
+      }
+      .start-panel {
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 32px 20px;
+        background: #171717;
+      }
+      .start-panel-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        width: min(680px, 100%);
+      }
+      .start-panel-tab {
+        min-height: 78px;
+        border: 2px solid #2b2420;
+        border-radius: 10px;
+        background: #211b15;
+        color: #f5eee3;
+        font-size: clamp(18px, 3vw, 28px);
+        font-weight: 900;
+        cursor: pointer;
+      }
+      .start-panel-tab:hover,
+      .start-panel-tab:focus-visible {
+        background: #0c2926;
+        border-color: #d13042;
+      }
+      .capture-record-btn {
+        width: 66px;
+        height: 66px;
+        min-height: 0;
+        display: grid;
+        place-items: center;
+        margin: 18px auto 12px;
+        border: 0;
+        border-radius: 50%;
+        background: #f34245;
+        color: transparent;
+        font-size: 0;
+        font-weight: 900;
+        box-shadow: 0 0 0 6px rgba(255,255,255,.16), 0 10px 22px rgba(243,66,69,.32);
+      }
+      .capture-record-btn::after {
+        content: "";
+        display: block;
+        width: 24px;
+        height: 24px;
+        margin: 0;
+        border-radius: 50%;
+        background: rgba(255,255,255,.22);
+      }
+      .capture-record-btn:disabled {
+        opacity: .55;
+      }
+      .capture-helper {
+        width: min(100% - 48px, 480px);
+        margin: 0 auto;
+        color: #b9b9b9;
+        text-align: center;
+        line-height: 1.6;
+        font-size: 13px;
+      }
+      .tool-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 10px;
+      }
+      .tool-row input[type="range"] { min-width: 150px; flex: 1; }
+      .recordings-list {
+        display: grid;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .recording-item {
+        display: grid;
+        grid-template-columns: 120px minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        padding: 9px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel-2);
+      }
+      .recording-item strong,
+      .recording-item small { display: block; }
+      .recording-preview {
+        width: 120px;
+        height: 78px;
+        display: block;
+        object-fit: cover;
+        border-radius: 6px;
+        background: #000;
+      }
+      .recording-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 6px;
+      }
+      .compare-layer {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        transform: none !important;
+      }
+      .compare-result {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--panel-line);
+        border-radius: 8px;
+        background: var(--panel-2);
+        color: var(--text);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+      .compare-empty-state {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        color: #c9d0d9;
+        background: #101010;
+        text-align: center;
+        font-size: 16px;
+        pointer-events: none;
+      }
+      .compare-empty-state.hidden { display: none; }
+      #compareBeforeVideo { z-index: 1; }
+      #compareAfterVideo { z-index: 2; opacity: .52; mix-blend-mode: normal; }
+      .analysis-zoom {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      .analysis-zoom input[type="range"] { min-width: 150px; }
+      #analysisPanel,
+      #comparePanel {
+        width: min(1240px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+      body[data-app-page="capture"] main.wrap {
+        padding-top: 0;
+        height: 100dvh;
+        min-height: 100dvh;
+        overflow: hidden;
+      }
+      body[data-app-page="capture"] .app-tabs {
+        display: none !important;
+      }
+      body[data-app-page="capture"] #capturePanel {
+        display: block !important;
+        min-height: 100dvh;
+        height: 100dvh;
+        overflow: hidden;
+      }
+      body[data-app-page="capture"] .capture-shell {
+        min-height: 100dvh;
+        height: 100dvh;
+        display: block;
+        position: relative;
+        overflow: hidden;
+      }
+      body[data-app-page="capture"] .capture-topbar {
+        position: absolute;
+        inset: 0 0 auto;
+        z-index: 6;
+        min-height: 78px;
+        box-sizing: border-box;
+        background: #000;
+      }
+      body[data-app-page="capture"] .capture-stage {
+        position: absolute;
+        inset: 0;
+        width: 100vw;
+        height: 100dvh;
+        aspect-ratio: auto;
+        max-height: none;
+        margin: 0;
+      }
+      body[data-app-page="capture"] .capture-stage::after {
+        content: "카메라 연결 중...";
+        position: absolute;
+        inset: 50% auto auto 50%;
+        z-index: 1;
+        transform: translate(-50%, -50%);
+        color: rgba(255,255,255,.72);
+        font-size: 15px;
+        pointer-events: none;
+      }
+      body[data-app-page="capture"] .capture-stage.camera-ready::after {
+        display: none;
+      }
+      body[data-app-page="capture"] .capture-stage video {
+        object-fit: cover;
+      }
+      /* 모바일 미디어 쿼리의 기본 위치보다 우선해 보조 버튼을 영상 위에 고정한다. */
+      body[data-app-page="capture"] .capture-overlay-toggles {
+        top: 86px !important;
+        left: 12px !important;
+        right: 12px !important;
+        z-index: 8;
+      }
+      body[data-app-page="capture"] .capture-pose-mode {
+        top: 140px;
+        left: 12px;
+        right: 12px;
+        justify-content: flex-start;
+        max-width: calc(100% - 24px);
+        z-index: 8;
+      }
+      body[data-app-page="capture"] .capture-controls {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 7;
+        padding: 0 0 calc(12px + env(safe-area-inset-bottom));
+        background: linear-gradient(to top, rgba(0,0,0,.9), rgba(0,0,0,0));
+      }
+      /* 탭 전환 상태가 늦게 갱신되어도 이전 패널이 화면에 남지 않게 한다. */
+      body[data-app-page="home"] #capturePanel,
+      body[data-app-page="home"] #analysisPanel,
+      body[data-app-page="home"] #comparePanel,
+      body[data-app-page="capture"] #homePanel,
+      body[data-app-page="capture"] #analysisPanel,
+      body[data-app-page="capture"] #comparePanel,
+      body[data-app-page="analysis"] #homePanel,
+      body[data-app-page="analysis"] #capturePanel,
+      body[data-app-page="analysis"] #comparePanel,
+      body[data-app-page="compare"] #homePanel,
+      body[data-app-page="compare"] #capturePanel,
+      body[data-app-page="compare"] #analysisPanel {
+        display: none !important;
+      }
+      body[data-app-page="home"] #homePanel,
+      body[data-app-page="capture"] #capturePanel,
+      body[data-app-page="analysis"] #analysisPanel,
+      body[data-app-page="compare"] #comparePanel {
+        display: block !important;
+      }
+      @media (min-width: 769px) {
+        .app-tabs {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .app-tab[data-app-tab="capture"],
+        #capturePanel {
+          display: none !important;
+        }
+        body[data-app-page="home"] .app-tabs {
+          width: min(360px, calc(100vw - 48px));
+        }
+      }
+      @media (max-width: 768px) {
+        main.wrap {
+          padding-top: calc(68px + env(safe-area-inset-top));
+        }
+        .app-tabs {
+          min-height: calc(68px + env(safe-area-inset-top));
+          padding-left: 16px;
+          padding-right: 16px;
+          padding-bottom: 8px;
+        }
+        .app-tab {
+          min-height: 48px;
+          font-size: 15px;
+        }
+        .capture-topbar {
+          padding: 10px 20px 8px;
+        }
+        .capture-mode {
+          min-width: 72px;
+          min-height: 38px;
+          font-size: 13px;
+        }
+        .capture-aspect {
+          min-width: 58px;
+          min-height: 38px;
+          font-size: 14px;
+        }
+        .capture-stage {
+          width: 100vw;
+          height: calc(100dvh - 68px);
+          aspect-ratio: auto;
+          max-height: none;
+        }
+        .capture-overlay-toggles {
+          left: 10px;
+          top: 8px;
+        }
+        .capture-chip {
+          min-height: 34px;
+          padding: 0 11px;
+          font-size: 12px;
+        }
+        .capture-status {
+          right: max(16px, env(safe-area-inset-right));
+          top: calc(96px + env(safe-area-inset-top));
+          bottom: auto;
+          z-index: 9;
+          font-size: 12px;
+          padding: 8px 12px;
+          min-width: 94px;
+        }
+        .capture-control-card {
+          width: min(100% - 40px, 440px);
+          margin-top: -36px;
+          padding: 8px;
+        }
+        .capture-record-btn {
+          width: 64px;
+          height: 64px;
+          min-height: 0;
+          margin-top: 14px;
+          font-size: 0;
+        }
+        .capture-helper {
+          width: min(100% - 40px, 440px);
+          font-size: 12px;
+        }
+        .recording-item {
+          grid-template-columns: 88px minmax(0, 1fr);
+        }
+        .recording-preview {
+          width: 88px;
+          height: 60px;
+        }
+        .recording-actions {
+          grid-column: 2;
+          justify-content: flex-start;
+        }
+        #analysisPanel,
+        #comparePanel {
+          width: min(100% - 16px, 1240px);
+        }
+        .compare-grid {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 12px;
+        }
+        .compare-stage {
+          width: 100%;
+          min-height: 0;
+          max-height: 31dvh;
+          aspect-ratio: 16 / 9;
+        }
+        body[data-app-page="compare"] main.wrap {
+          min-height: 100dvh;
+          overflow-x: hidden;
+        }
+      }
       .app-footer-campaign {
         position: relative;
         z-index: 2;
@@ -2522,541 +3256,14 @@
           font-weight: 900;
         }
       }
-
-      /* ===================== UI/UX consistency pass: device-safe sizing ===================== */
-      html {
-        font-size: 16px;
-        scroll-padding-top: 88px;
-      }
-      body {
-        min-width: 320px;
-        font-size: 15px;
-        line-height: 1.55;
-      }
-      button,
-      select,
-      input,
-      summary {
-        font: inherit;
-        letter-spacing: 0;
-      }
-      button,
-      .poomsae-tab,
-      .mode-tab,
-      .camera-view-tab,
-      .quick-nav button,
-      .wizard-nav button,
-      .primary-actions button,
-      .utility-actions button,
-      .replay-actions button {
-        min-width: 0;
-        max-width: 100%;
-        overflow-wrap: anywhere;
-        word-break: keep-all;
-        line-height: 1.25;
-      }
-      .wrap,
-      .grid,
-      section,
-      .result-card,
-      .scene-card,
-      .segment,
-      .metric,
-      .code,
-      .program-guide,
-      .beta-purpose,
-      .multi-device-panel,
-      .upload-slot {
-        min-width: 0;
-      }
-      p,
-      li,
-      .small,
-      .code,
-      .status,
-      .badge,
-      .field-label,
-      .scene-meta,
-      .segment-feedback,
-      .movement-estimate-note {
-        overflow-wrap: anywhere;
-        word-break: keep-all;
-      }
-      .grid {
-        align-items: start;
-      }
-      section,
-      .result-card,
-      .program-guide,
-      .multi-device-panel,
-      .upload-slot,
-      .segment,
-      .scene-card,
-      .metric {
-        border-radius: 12px;
-      }
-      .poomsae-tabs,
-      .mode-tabs,
-      .camera-view-row,
-      .primary-actions,
-      .utility-actions,
-      .replay-actions,
-      .repeat-options,
-      .playback-settings,
-      .result-grid {
-        min-width: 0;
-      }
-      .poomsae-tabs:not(.mode-tabs) {
-        grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-      }
-      .mode-tabs,
-      .camera-view-row {
-        grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
-      }
-      .primary-actions,
-      .utility-actions,
-      .replay-actions {
-        grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
-      }
-      .result-grid {
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      }
-      .field-label {
-        flex-wrap: wrap;
-      }
-      .field-label span,
-      .upload-status,
-      .wizard-hint {
-        min-width: 0;
-      }
-      input[type="file"],
-      select {
-        width: 100%;
-      }
-      .quick-nav {
-        overflow-x: auto;
-        scrollbar-width: none;
-      }
-      .quick-nav::-webkit-scrollbar {
-        display: none;
-      }
-      .quick-nav button {
-        white-space: normal;
-      }
-      .video-stage {
-        aspect-ratio: 16 / 9;
-      }
-      .video-stage video,
-      .video-stage canvas {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-      }
-      .scene-shot,
-      .scene-placeholder {
-        aspect-ratio: 16 / 9;
-        object-fit: cover;
-      }
-      .segment-media {
-        min-width: 0;
-      }
-      .segment-head {
-        gap: 8px;
-      }
-      .segment-head strong {
-        min-width: 0;
-      }
-      .segment-head .status {
-        flex: 0 0 auto;
-      }
-
-      @media (min-width: 1025px) {
-        body { font-size: 15px; }
-        .wrap { width: min(1180px, calc(100% - 48px)); }
-        .grid {
-          grid-template-columns: minmax(360px, .88fr) minmax(0, 1.12fr);
-          gap: 20px;
-        }
-        section { padding: 20px; }
-        h1 { font-size: 24px; }
-        h2 { font-size: 20px; }
-        .wizard-steptitle { font-size: 21px; }
-      }
-
-      @media (min-width: 769px) and (max-width: 1024px) {
-        body { font-size: 15px; }
-        .wrap { width: min(100% - 32px, 960px); }
-        header .wrap { gap: 12px; }
-        .grid {
-          grid-template-columns: minmax(0, 1fr);
-          gap: 16px;
-        }
-        .video-dock {
-          position: static;
-          max-height: none;
-          overflow: visible;
-        }
-        video { max-height: 48dvh; }
-        .quick-nav {
-          top: 0;
-          padding-inline: 16px;
-        }
-        .quick-nav button {
-          min-height: 48px;
-          font-size: 14px;
-        }
-        .segment {
-          grid-template-columns: 136px minmax(0, 1fr) 64px;
-        }
-        .scene-card {
-          grid-template-columns: 164px minmax(0, 1fr);
-        }
-      }
-
-      @media (max-width: 768px) {
-        html { scroll-padding-top: 12px; }
-        body {
-          font-size: 15px;
-          padding-bottom: calc(78px + env(safe-area-inset-bottom));
-        }
-        .wrap { width: calc(100% - 18px); }
-        header {
-          position: sticky;
-          top: 0;
-          z-index: 30;
-        }
-        header .wrap {
-          gap: 8px;
-        }
-        header h1 {
-          min-width: 0;
-          max-width: calc(100vw - 78px);
-          white-space: normal;
-          line-height: 1.15;
-        }
-        .theme-toggle {
-          flex: 0 0 42px;
-        }
-        .quick-nav {
-          z-index: 35;
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          width: 100%;
-        }
-        .quick-nav button {
-          min-height: 54px;
-          font-size: 12px;
-        }
-        main { padding-bottom: 20px; }
-        section { padding: 13px 11px; }
-        .beta-purpose {
-          display: grid;
-          grid-template-columns: auto minmax(0, 1fr);
-        }
-        .beta-purpose span {
-          font-size: 12px;
-        }
-        .program-guide summary {
-          min-height: 44px;
-          font-size: 13px;
-        }
-        .wizard-steptitle {
-          font-size: 20px;
-          line-height: 1.22;
-        }
-        .poomsae-tabs:not(.mode-tabs),
-        .mode-tabs,
-        .camera-view-row,
-        .primary-actions,
-        .utility-actions,
-        .replay-actions,
-        .repeat-options,
-        .playback-settings,
-        .result-grid {
-          grid-template-columns: 1fr;
-        }
-        .poomsae-tabs:not(.mode-tabs) {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-        .poomsae-tabs:not(.mode-tabs) .poomsae-tab {
-          font-size: 14px;
-        }
-        .mode-tab,
-        .camera-view-tab {
-          min-height: 64px;
-        }
-        .camera-view-tab .cv-cams {
-          position: static;
-          justify-self: start;
-          margin-bottom: 4px;
-        }
-        .upload-slot .field-label {
-          display: block;
-          font-size: 15px;
-        }
-        .upload-slot .field-label span {
-          display: block;
-          margin-top: 3px;
-          font-size: 11px;
-        }
-        .primary-actions button,
-        .wizard-nav button {
-          min-height: 56px;
-          font-size: 17px;
-        }
-        .scene-card,
-        .segment {
-          grid-template-columns: 1fr;
-        }
-        .segment-head {
-          align-items: flex-start;
-          flex-wrap: wrap;
-        }
-        .segment-score {
-          text-align: left;
-        }
-        .scene-shot,
-        .scene-placeholder {
-          width: 100%;
-        }
-        .seg-time-edit {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
-          gap: 6px;
-        }
-        .seg-time-input {
-          min-width: 0;
-          width: 100%;
-        }
-        .app-footer {
-          padding-bottom: calc(92px + env(safe-area-inset-bottom));
-        }
-      }
-
-      @media (max-width: 380px) {
-        .wrap { width: calc(100% - 12px); }
-        header h1 { font-size: 15px; }
-        header h1::before,
-        .theme-toggle {
-          width: 36px;
-          height: 36px;
-          min-height: 36px;
-        }
-        .quick-nav button {
-          min-height: 50px;
-          font-size: 11px;
-        }
-        .wizard-steptitle { font-size: 18px; }
-        .mode-tab strong,
-        .camera-view-tab strong,
-        .primary-actions button,
-        .wizard-nav button {
-          font-size: 16px;
-        }
-        .poomsae-tabs:not(.mode-tabs) .poomsae-tab {
-          min-height: 52px;
-          padding-inline: 2px;
-          font-size: 13px;
-        }
-      }
-
-      /* ===================== Taegeuk + Korean pattern visual system ===================== */
-      :root, [data-theme="dark"] {
-        --taegeuk-red: #d83b37;
-        --taegeuk-blue: #1756a9;
-        --taegeuk-ink: #111111;
-        --pattern-line: rgba(205, 169, 97, .14);
-        --pattern-soft: rgba(255, 255, 255, .035);
-      }
-      [data-theme="light"] {
-        --taegeuk-red: #c8242f;
-        --taegeuk-blue: #124a9c;
-        --taegeuk-ink: #19140c;
-        --pattern-line: rgba(156, 122, 60, .18);
-        --pattern-soft: rgba(255, 255, 255, .58);
-      }
-      body {
-        background-image:
-          radial-gradient(circle at 16% 5%, color-mix(in srgb, var(--taegeuk-red) 12%, transparent), transparent 24%),
-          radial-gradient(circle at 88% 6%, color-mix(in srgb, var(--taegeuk-blue) 12%, transparent), transparent 24%),
-          linear-gradient(135deg, var(--pattern-line) 1px, transparent 1px),
-          linear-gradient(45deg, var(--pattern-line) 1px, transparent 1px),
-          radial-gradient(1100px 560px at 82% -12%, rgba(42,163,154,.10), transparent 60%),
-          radial-gradient(820px 460px at -12% 112%, rgba(192,57,47,.07), transparent 55%),
-          linear-gradient(180deg, var(--bg-grad-1), var(--bg-grad-2));
-        background-size:
-          auto,
-          auto,
-          34px 34px,
-          34px 34px,
-          auto,
-          auto,
-          auto;
-        background-position:
-          center,
-          center,
-          0 0,
-          17px 17px,
-          center,
-          center,
-          center;
-      }
-      body::after {
-        content: "";
-        position: fixed;
-        inset: 0;
-        z-index: 0;
-        pointer-events: none;
-        opacity: .34;
-        background:
-          repeating-linear-gradient(90deg, transparent 0 38px, var(--pattern-soft) 38px 39px),
-          repeating-linear-gradient(0deg, transparent 0 38px, var(--pattern-soft) 38px 39px);
-        mask-image: linear-gradient(180deg, rgba(0,0,0,.65), transparent 62%);
-      }
-      header {
-        background:
-          linear-gradient(90deg, color-mix(in srgb, var(--taegeuk-blue) 18%, transparent), transparent 30%, color-mix(in srgb, var(--taegeuk-red) 18%, transparent)),
-          linear-gradient(180deg, rgba(255,255,255,.04), transparent),
-          var(--header-bg);
-      }
-      header::after {
-        height: 4px;
-        background:
-          linear-gradient(90deg,
-            var(--taegeuk-blue) 0 22%,
-            #ffffff 22% 27%,
-            var(--taegeuk-red) 27% 49%,
-            var(--gold-bright) 49% 51%,
-            var(--taegeuk-blue) 51% 73%,
-            #ffffff 73% 78%,
-            var(--taegeuk-red) 78% 100%);
-        opacity: .92;
-      }
-      header h1::before {
-        content: "";
-        border-radius: 50%;
-        border: 2px solid color-mix(in srgb, var(--text) 58%, transparent);
-        background:
-          radial-gradient(circle at 50% 27%, var(--taegeuk-red) 0 24%, transparent 25%),
-          radial-gradient(circle at 50% 73%, var(--taegeuk-blue) 0 24%, transparent 25%),
-          linear-gradient(180deg, var(--taegeuk-red) 0 50%, var(--taegeuk-blue) 50% 100%);
-        box-shadow: 0 0 0 4px color-mix(in srgb, var(--panel) 78%, transparent), 0 8px 20px rgba(0,0,0,.24);
-      }
-      .badge,
-      .status,
-      .beginner-tag,
-      .cv-badge {
-        border-radius: 999px;
-      }
-      section {
-        position: relative;
-        overflow: hidden;
-        border-color: color-mix(in srgb, var(--gold) 52%, var(--panel-line));
-      }
-      section::before,
-      .result-card::before,
-      .program-guide::before,
-      .multi-device-panel::before,
-      .upload-slot::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        opacity: .18;
-        background:
-          linear-gradient(135deg, transparent 0 12px, var(--pattern-line) 12px 13px, transparent 13px 26px),
-          linear-gradient(45deg, transparent 0 12px, var(--pattern-line) 12px 13px, transparent 13px 26px);
-        background-size: 26px 26px;
-      }
-      section > *,
-      .result-card > *,
-      .program-guide > *,
-      .multi-device-panel > *,
-      .upload-slot > * {
-        position: relative;
-        z-index: 1;
-      }
-      section > h2,
-      .wizard-steptitle,
-      .result-section-title h3 {
-        padding-left: 12px;
-        border-left: 4px solid var(--taegeuk-red);
-      }
-      section > h2::after,
-      .wizard-steptitle::after,
-      .result-section-title h3::after {
-        content: "";
-        display: inline-block;
-        width: 28px;
-        height: 4px;
-        margin-left: 8px;
-        vertical-align: middle;
-        border-radius: 999px;
-        background: linear-gradient(90deg, var(--taegeuk-blue), var(--taegeuk-red));
-      }
-      .quick-nav button.active,
-      .poomsae-tab.active,
-      .wizard-progress .wp-dot.current {
-        border-color: color-mix(in srgb, var(--taegeuk-blue) 55%, var(--gold));
-        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--taegeuk-red) 24%, transparent), var(--shadow-sm);
-      }
-      #analyzeBtn,
-      .primary-actions > button:first-child,
-      .wizard-nav .wn-next {
-        background: linear-gradient(135deg, var(--taegeuk-red), #7b1f25 48%, var(--taegeuk-blue)) !important;
-        border-color: color-mix(in srgb, var(--gold) 52%, transparent);
-      }
-      button.secondary,
-      .wizard-nav .wn-prev {
-        border-color: color-mix(in srgb, var(--taegeuk-blue) 34%, var(--panel-line));
-      }
-      .program-guide summary::after {
-        border-color: var(--taegeuk-blue);
-        color: var(--taegeuk-red);
-      }
-      .wizard-progress .wp-dot.done {
-        background: linear-gradient(90deg, var(--taegeuk-blue), var(--taegeuk-red));
-      }
-      .app-footer {
-        border-top: 4px solid transparent;
-        border-image: linear-gradient(90deg, var(--taegeuk-blue), #fff, var(--taegeuk-red), var(--gold), var(--taegeuk-blue)) 1;
-      }
-
-      @media (max-width: 768px) {
-        body {
-          background-size:
-            auto,
-            auto,
-            28px 28px,
-            28px 28px,
-            auto,
-            auto,
-            auto;
-        }
-        section > h2,
-        .wizard-steptitle,
-        .result-section-title h3 {
-          padding-left: 9px;
-          border-left-width: 3px;
-        }
-        section > h2::after,
-        .wizard-steptitle::after,
-        .result-section-title h3::after {
-          width: 18px;
-          margin-left: 5px;
-        }
-        header h1::before {
-          box-shadow: 0 0 0 3px color-mix(in srgb, var(--panel) 78%, transparent);
-        }
-      }
     </style>
   </head>
-  <body>
+  <body data-app-page="home">
     <header>
       <div class="wrap">
         <div>
           <h1>태권도 품새수련 <span class="header-beta">Beta</span></h1>
-          <p class="small">내 품새 영상을 동작별로 쉽게 확인해요 · v4.14</p>
+          <p class="small">내 품새 영상을 동작별로 쉽게 확인해요 · v4.16</p>
         </div>
         <span class="badge">수련 보조 · Beta</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -3066,10 +3273,55 @@
       <button type="button" data-jump="setup" class="active">시작</button>
       <button type="button" data-jump="video">영상</button>
       <button type="button" data-jump="segments">동작</button>
-      <button type="button" data-jump="result">결과</button>
+      <button type="button" data-jump="result">리포트</button>
     </nav>
 
     <main class="wrap">
+      <section id="homePanel" class="app-panel active start-panel" aria-label="시작 화면">
+      </section>
+      <nav class="app-tabs" aria-label="주요 기능">
+        <button type="button" class="app-tab" data-app-tab="capture">촬영</button>
+        <button type="button" class="app-tab" data-app-tab="analysis">분석</button>
+        <button type="button" class="app-tab" data-app-tab="compare">비교</button>
+      </nav>
+      <section id="capturePanel" class="app-panel">
+        <div class="capture-shell">
+          <div>
+            <div class="capture-topbar">
+              <button type="button" id="captureBackBtn" class="capture-menu-btn">← 메뉴</button>
+              <div class="capture-mode-group" aria-label="촬영 화질">
+                <button type="button" class="capture-mode active" id="captureQualityStandard">표준</button>
+                <button type="button" class="capture-mode" id="captureQualityHigh">고화질</button>
+              </div>
+            </div>
+          <div class="capture-stage">
+            <video id="capturePreview" autoplay muted playsinline></video>
+            <canvas id="captureCanvas" class="capture-canvas"></canvas>
+          <div class="capture-overlay-toggles" aria-label="촬영 보조 표시">
+            <button type="button" id="captureSkeletonToggle" class="capture-chip">스켈레톤 OFF</button>
+            <button type="button" id="captureTrajectoryToggle" class="capture-chip">궤적 OFF</button>
+          </div>
+          <div class="capture-pose-mode" aria-label="스켈레톤 인식 인원">
+            <button type="button" id="captureSinglePose" class="capture-chip">개인</button>
+            <button type="button" id="captureMultiPose" class="capture-chip active">단체</button>
+          </div>
+          <div class="capture-status" id="captureStatus">
+            <span class="record-dot" id="captureRecordDot"></span>
+            <span id="captureRecordingTime">00:00</span>
+            <span id="captureCameraStatus">카메라 대기</span>
+            <span id="capturePoseStatus">검출 대기 · ROM 대기</span>
+          </div>
+          <div class="capture-focus-ring" aria-hidden="true"></div>
+          </div>
+          </div>
+          <div class="capture-controls">
+            <button type="button" id="startRecordBtn" class="capture-record-btn" aria-label="녹화">녹화</button>
+            <p class="capture-helper">표준 화질 · 카메라 4:3 비율로 저장됩니다. 녹화는 최대 2분까지 가능하며, 종료하면 바로 폰에 저장을 시도합니다.</p>
+            <div id="recordingsList" class="recordings-list"></div>
+          </div>
+        </div>
+      </section>
+      <section id="analysisPanel" class="app-panel">
       <div class="grid">
         <section>
           <h2>품새 분석 시작</h2>
@@ -3123,6 +3375,19 @@
             </div>
             <div class="code" id="modeHelp" style="margin-top: 10px;">
               기본 분석은 동작의 시작·끝과 고칠 점을 쉽게 보여줘요.
+            </div>
+            <div class="competition-event-wrap" id="competitionEventWrap" hidden>
+              <div class="field-label mobile-secondary-label" style="margin-top:12px;">경기 구분 <span>분석·평가 기준을 나눠 적용해요</span></div>
+              <div class="poomsae-tabs mode-tabs" role="tablist" aria-label="경기 구분">
+                <button type="button" class="poomsae-tab event-tab active" data-event="individual">
+                  <strong>개인전</strong>
+                  <span>개인 기술 완성도 중심</span>
+                </button>
+                <button type="button" class="poomsae-tab event-tab" data-event="team">
+                  <strong>단체전</strong>
+                  <span>동시성·대형·간격까지 확인</span>
+                </button>
+              </div>
             </div>
             <details class="advanced-fold mobile-advanced-fold">
               <summary>고급 분석</summary>
@@ -3253,12 +3518,12 @@
             <div class="field-label analyze-label">준비됐어요!</div>
             <div class="primary-actions">
               <button id="analyzeBtn" disabled>분석 시작 ▶</button>
+              <button id="showReportBtn" class="secondary" disabled>리포트 보기</button>
               <button id="reanalyzeBtn" class="secondary" disabled hidden>재분석(초기화)</button>
               <button id="loadModelBtn" type="button" hidden>모델 준비</button>
             </div>
             <div class="utility-actions" hidden>
               <button id="downloadBtn" class="secondary" disabled>JSON 저장</button>
-              <button id="showReportBtn" class="secondary" disabled hidden>리포트</button>
               <button id="jpgBtn" class="secondary" disabled hidden>A4 카드 JPG 저장</button>
             </div>
             <div class="code" style="margin-top: 12px;">
@@ -3290,6 +3555,13 @@
               </div>
             </div>
             <div class="player-controls">
+              <div class="analysis-zoom">
+                <span class="small">분석 화면 배율</span>
+                <button type="button" id="analysisZoomOut" class="secondary">축소</button>
+                <input id="analysisZoom" type="range" min="0.75" max="2" step="0.05" value="1" />
+                <button type="button" id="analysisZoomIn" class="secondary">확대</button>
+                <span id="analysisZoomText" class="status">1.00x</span>
+              </div>
               <div class="playback-settings">
                 <label class="speed-control">
                   <span>재생 속도</span>
@@ -3362,10 +3634,36 @@
           <span id="manualEditHint" class="small" style="color:var(--muted)">원본 영상은 바뀌지 않아요. 시작점이나 동작의 시작·끝이 다르면 각 카드의 "🎞 프레임으로 찾기"에서 정확한 장면을 눌러 주세요.</span>
           <span id="correctionLogStatus" class="small" style="color:var(--muted)"></span>
           <button type="button" id="restoreAutoBtn" class="secondary" style="font-size:12px;display:none">자동 결과로 되돌리기</button>
+          <button type="button" id="confirmBoundariesBtn" class="secondary" style="font-size:12px;display:none">구간 확인 완료</button>
           <button type="button" id="loadSavedCorrectionBtn" class="secondary" style="font-size:12px;display:none">🔖 저장된 보정 불러오기</button>
           <button type="button" id="exportCorrectionBtn" class="secondary" style="font-size:12px;display:none">보정 기록 내보내기</button>
         </div>
         <div id="segments" class="segments"></div>
+      </section>
+      </section>
+      <section id="comparePanel" class="app-panel">
+        <h2>전/후 비교</h2>
+        <div class="compare-grid">
+          <div id="compareStage" class="compare-stage">
+            <video id="compareBeforeVideo" class="compare-layer" controls muted playsinline></video>
+            <video id="compareAfterVideo" class="compare-layer" controls muted playsinline></video>
+            <div id="compareEmptyState" class="compare-empty-state">전 영상과 후 영상을 선택하면 여기에서 비교할 수 있습니다.</div>
+          </div>
+          <div class="tool-panel">
+            <h3>오버레이 비교</h3>
+            <p class="small">촬영 전/후 영상을 겹쳐 자세 변화와 위치 차이를 확인합니다.</p>
+            <div class="control-grid">
+              <label class="field-label">전 영상<input id="compareBeforeInput" type="file" accept="video/mp4,video/*" /></label>
+              <label class="field-label">후 영상<input id="compareAfterInput" type="file" accept="video/mp4,video/*" /></label>
+            </div>
+            <div class="tool-row">
+              <label class="speed-control"><span>후 영상 투명도</span><input id="compareOpacity" type="range" min="0.15" max="1" step="0.05" value="0.52" /></label>
+              <button type="button" id="compareSaveBtn" class="secondary">비교 영상 저장</button>
+              <button type="button" id="compareAnalyzeBtn" class="secondary">비교 분석</button>
+            </div>
+            <div id="compareResult" class="compare-result" hidden></div>
+          </div>
+        </div>
       </section>
     </main>
     <footer class="app-footer">
@@ -3404,8 +3702,7 @@
         <h2 style="margin-top:0">관리자 모드 · 배너 설정</h2>
         <p class="small" id="adminPanelStatus"></p>
 
-        <label for="adminPinInput">관리자 PIN</label>
-        <input type="password" id="adminPinInput" inputmode="numeric" placeholder="PIN 입력" />
+          <p class="small" id="adminLoginHint">관리자 이메일·비밀번호로 로그인하면 광고 배너를 수정할 수 있습니다.</p>
 
         <div id="adminPanelFields" style="display:none">
           <label for="adminBannerEnabled">
@@ -3427,11 +3724,11 @@
             <button type="button" class="secondary" id="adminPanelClose" style="min-height:44px">닫기</button>
           </div>
         </div>
-        <button type="button" class="secondary" id="adminPinSubmit" style="width:100%;min-height:44px;margin-top:10px">확인</button>
+        <button type="button" class="secondary" id="adminBannerUnlock" style="width:100%;min-height:44px;margin-top:10px">로그인 상태 확인</button>
 
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e5e7eb">
           <h3 style="margin:0 0 4px">학습 리포트 · 보정 데이터 분석</h3>
-          <p class="small" style="color:var(--muted);margin:0 0 10px">위 PIN과는 별개의 로그인입니다. 여러 영상에 걸쳐 쌓인 보정 기록을 분석해 규칙 개선을 제안합니다 — 실제 반영은 개발자 확인 후 진행됩니다.</p>
+          <p class="small" style="color:var(--muted);margin:0 0 10px">여러 영상에 걸쳐 쌓인 보정 기록을 분석해 규칙 개선을 제안합니다. 같은 관리자 로그인으로 광고 배너 저장도 보호합니다.</p>
           <div id="adminAuthFields">
             <label for="adminEmailInput">관리자 이메일</label>
             <input type="email" id="adminEmailInput" placeholder="admin@example.com" autocomplete="username" />
@@ -3445,8 +3742,10 @@
             <p class="small" id="reportStatus"></p>
             <div style="display:flex;gap:8px;margin-bottom:8px">
               <button type="button" class="secondary" id="reportRefreshBtn" style="flex:1;min-height:40px">새로고침</button>
+              <button type="button" class="secondary" id="importCalibrationBtn" style="min-height:40px">정답 검수 JSON 가져오기</button>
               <button type="button" class="secondary" id="adminSignOutBtn" style="min-height:40px">로그아웃</button>
             </div>
+            <input type="file" id="calibrationImportInput" accept="application/json,.json" hidden />
             <div id="reportBody"></div>
           </div>
         </div>
@@ -3457,6 +3756,7 @@
       import { buildDatasetCandidate, scoreActionSequence } from "./action-model.mjs";
       import { compareTextbookPose } from "./textbook-pose-match.mjs";
       import { compareVideoReference } from "./video-reference-match.mjs";
+      import { buildTrustedCollectiveProfiles, normalizeCalibrationImport } from "./evidence-calibration.mjs";
       // ── Firebase 연동(보정 기록 자동 수집) ──
       // 보정 기록을 사장님 Firestore(momgagym-poomsae-coach)에 자동으로 모은다.
       // 실패해도(오프라인/차단) 앱 본체는 정상 동작하며, 기록은 로컬에도 항상 저장된다(이중 안전).
@@ -3467,12 +3767,14 @@
       // ── 학습된 경계 타이밍 보정(원격, 공개 읽기) 상태 ──
       // null=아직 못 가져옴(폴백 이전), {}=값 없음(보정 없음), {...}=실제 학습된 보정값.
       let _remoteBoundaryBias = null;
-      // ── 관리자 인증(학습 리포트 전용) ──
+      // ── 관리자 인증(학습 리포트·배너 설정 공용) ──
       // corrections 컬렉션은 firestore.rules상 인증된 관리자 계정만 읽을 수 있다(스팸 방지를
-      // 위해 익명 읽기는 막혀 있음 — 아래 firestore.rules 주석 참고). 배너 설정용 PIN과는
-      // 완전히 별개의, 진짜 로그인이다.
+      // 위해 익명 읽기는 막혀 있음 — 아래 firestore.rules 주석 참고). 배너 설정도 같은
+      // Firebase 관리자 인증으로 저장 전 확인한다.
       let _fbAuth = null, _fbSignIn = null, _fbSignOut = null, _fbSendPasswordReset = null;
       let _fbCurrentAdminUser = null;
+      const FIREBASE_READ_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+      const BANNER_CACHE_KEY = "poomsae_banner_cache_v1";
       (async function initFirebase() {
         try {
           const appMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
@@ -3521,6 +3823,23 @@
         if (code === "auth/network-request-failed") return "로그인 실패: 인터넷 연결을 확인하세요.";
         return code ? `로그인 실패: ${code}` : "로그인 실패: 이메일·비밀번호를 확인하세요.";
       }
+      function describeReportLoadError(error) {
+        const code = error && error.code ? String(error.code) : "";
+        if (code === "permission-denied" || code === "firestore/permission-denied") {
+          const email = _fbCurrentAdminUser?.email || "현재 로그인 계정";
+          return `불러오기 실패: ${email}은(는) 학습 리포트 관리자 권한이 없습니다. Firebase 규칙의 ADMIN_EMAILS에 이 이메일을 등록하세요.`;
+        }
+        if (code === "unauthenticated" || code === "firestore/unauthenticated") {
+          return "불러오기 실패: 관리자 이메일·비밀번호로 먼저 로그인해야 합니다.";
+        }
+        if (code === "failed-precondition" || code === "firestore/failed-precondition") {
+          return "불러오기 실패: Firebase Firestore 데이터베이스가 아직 생성되지 않았거나 설정이 완료되지 않았습니다.";
+        }
+        if (code === "unavailable" || code === "deadline-exceeded" || code === "network-request-failed") {
+          return "불러오기 실패: 네트워크가 끊겼거나 Firebase에 연결할 수 없습니다. 연결 후 새로고침하세요.";
+        }
+        return code ? `불러오기 실패: Firebase 오류(${code})` : "불러오기 실패: Firebase 초기화 또는 보안 규칙을 확인하세요.";
+      }
       function describeAdminPasswordResetError(error) {
         const code = error && error.code ? String(error.code) : "";
         if (code === "auth/invalid-email") return "메일 발송 실패: 이메일 주소 형식을 확인하세요.";
@@ -3536,7 +3855,10 @@
       // 저장한 뒤 성공한 항목만 제거한다. 무료 Firestore 범위 안에서 별도 유료 서버 없이 동작한다.
       const CLOUD_CORRECTION_QUEUE_KEY = "poomsae_cloud_correction_queue_v1";
       const CLOUD_CORRECTION_QUEUE_MAX = 300;
+      const CLOUD_REPORT_QUEUE_KEY = "poomsae_cloud_learning_report_queue_v1";
+      const CLOUD_REPORT_QUEUE_MAX = 40;
       let _cloudCorrectionFlushPromise = null;
+      let _cloudReportFlushPromise = null;
       function loadPendingCloudCorrections() {
         try {
           const rows = JSON.parse(localStorage.getItem(CLOUD_CORRECTION_QUEUE_KEY) || "[]");
@@ -3577,7 +3899,76 @@
         const sent = await flushPendingCloudCorrections();
         return sent > 0;
       }
-      window.addEventListener("online", () => { flushPendingCloudCorrections(); });
+      function loadPendingCloudReports() {
+        try {
+          const rows = JSON.parse(localStorage.getItem(CLOUD_REPORT_QUEUE_KEY) || "[]");
+          return Array.isArray(rows) ? rows : [];
+        } catch (e) { return []; }
+      }
+      function savePendingCloudReports(rows) {
+        try { localStorage.setItem(CLOUD_REPORT_QUEUE_KEY, JSON.stringify(rows.slice(-CLOUD_REPORT_QUEUE_MAX))); }
+        catch (e) { /* 보고서 전송 대기 저장 실패는 앱 동작에 영향을 주지 않음 */ }
+      }
+      function queueLearningReportForCloud(report) {
+        const queue = loadPendingCloudReports();
+        queue.push(report);
+        savePendingCloudReports(queue);
+      }
+      async function flushPendingCloudReports() {
+        if (_cloudReportFlushPromise) return _cloudReportFlushPromise;
+        _cloudReportFlushPromise = (async () => {
+          if (!_fbReady || !_fbDB || !_fbAddDoc || !_fbCollection) return 0;
+          const queue = loadPendingCloudReports();
+          let sent = 0;
+          while (queue.length) {
+            try {
+              await _fbAddDoc(_fbCollection(_fbDB, "learning_reports"), { ...queue[0], created: _fbServerTs() });
+              queue.shift();
+              sent += 1;
+              savePendingCloudReports(queue);
+            } catch (e) { break; }
+          }
+          return sent;
+        })();
+        try { return await _cloudReportFlushPromise; }
+        finally { _cloudReportFlushPromise = null; }
+      }
+      function compactLearningReport(report) {
+        if (!report || typeof report !== "object") return null;
+        const event = report.competition_event || null;
+        return {
+          schema: "poomsae-learning-report-v1",
+          created_at: report.created_at || new Date().toISOString(),
+          poomsae: String(report.poomsae?.id || "").slice(0, 80),
+          poomsae_name: String(report.poomsae?.name || "").slice(0, 120),
+          training_mode: String(report.training_mode || "").slice(0, 40),
+          competition_event: event ? String(event.key || event.label || "").slice(0, 40) : "",
+          score_100: Number(report.summary?.score_100) || 0,
+          competition_score_10: Number(report.summary?.competition_score_10) || 0,
+          detection_rate: Number(report.summary?.detection_rate) || 0,
+          segment_count: Array.isArray(report.segments) ? report.segments.length : 0,
+          issue_counts: (Array.isArray(report.summary?.issue_counts) ? report.summary.issue_counts : []).slice(0, 20).map((item) => ({
+            key: String(item.key || "").slice(0, 80),
+            label: String(item.label || "").slice(0, 120),
+            count: Math.max(0, Math.round(Number(item.count) || 0))
+          })),
+          needed_training: (Array.isArray(report.summary?.needed_training) ? report.summary.needed_training : []).slice(0, 20).map((item) => String(item).slice(0, 240)),
+          correction_count: Math.max(0, Math.round(Number(report.correction_log?.total) || 0)),
+          team_concurrent_ratio: report.team_concurrent ? Number(report.team_concurrent.average_three_pose_ratio) || 0 : null,
+          team_concurrent_segments: report.team_concurrent ? Math.max(0, Math.round(Number(report.team_concurrent.concurrent_segments) || 0)) : null
+        };
+      }
+      async function sendLearningReportToCloud(report) {
+        const compact = compactLearningReport(report);
+        if (!compact) return false;
+        queueLearningReportForCloud(compact);
+        const sent = await flushPendingCloudReports();
+        return sent > 0;
+      }
+      window.addEventListener("online", () => {
+        flushPendingCloudCorrections();
+        flushPendingCloudReports();
+      });
 
       // ── 학습된 경계 타이밍 보정(원격, 공개 읽기) ──
       // 배경(2026-07-22 사용자 확인): "학습 리포트"가 보여주는 제안은 그동안 관리자 확인 후
@@ -3739,15 +4130,19 @@
         return _localBoundaryBias;
       }
       async function loadBoundaryBias() {
+        let cacheIsFresh = false;
         try {
           const cachedRaw = localStorage.getItem(BOUNDARY_BIAS_CACHE_KEY);
           if (cachedRaw) {
             const cached = JSON.parse(cachedRaw);
-            if (cached && typeof cached === "object") _remoteBoundaryBias = cached;
+            const data = cached && cached.data && typeof cached.data === "object" ? cached.data : cached;
+            const savedAt = cached && cached.savedAt ? Number(cached.savedAt) : 0;
+            if (data && typeof data === "object") _remoteBoundaryBias = data;
+            cacheIsFresh = savedAt > 0 && Date.now() - savedAt < FIREBASE_READ_CACHE_TTL_MS;
           }
         } catch (e) { /* 캐시 손상은 무시 */ }
         try {
-          if (!_fbReady || !_fbDB || !_fbGetDoc || !_fbDoc) return;
+          if (cacheIsFresh || !_fbReady || !_fbDB || !_fbGetDoc || !_fbDoc) return;
           const snap = await _fbGetDoc(_fbDoc(_fbDB, "app_config", "boundary_bias"));
           const data = snap.exists() ? snap.data() : {};
           const clean = {};
@@ -3757,7 +4152,7 @@
           const profiles = cleanCollectiveProfiles(data && data[COLLECTIVE_PROFILE_FIELD]);
           if (Object.keys(profiles).length) clean[COLLECTIVE_PROFILE_FIELD] = profiles;
           _remoteBoundaryBias = clean;
-          localStorage.setItem(BOUNDARY_BIAS_CACHE_KEY, JSON.stringify(clean));
+          localStorage.setItem(BOUNDARY_BIAS_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: clean }));
           // 전역 보정이 새로 내려오면 과거 개인 보정을 '최종 목표값 - 새 전역값'으로 즉시
           // 다시 계산해 같은 보정이 두 번 더해지지 않게 한다.
           refreshLocalBoundaryBias(loadCorrectionLog());
@@ -3818,7 +4213,7 @@
             { merge: true }
           );
           _remoteBoundaryBias = { ...(_remoteBoundaryBias || {}), [COLLECTIVE_PROFILE_FIELD]: clean };
-          localStorage.setItem(BOUNDARY_BIAS_CACHE_KEY, JSON.stringify(_remoteBoundaryBias));
+          localStorage.setItem(BOUNDARY_BIAS_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: _remoteBoundaryBias }));
           return true;
         } catch (e) { return false; }
       }
@@ -3829,7 +4224,7 @@
           const value = clampBiasValue(seconds);
           await _fbSetDoc(_fbDoc(_fbDB, "app_config", "boundary_bias"), { [locationKey]: value }, { merge: true });
           _remoteBoundaryBias = { ...(_remoteBoundaryBias || {}), [locationKey]: value };
-          localStorage.setItem(BOUNDARY_BIAS_CACHE_KEY, JSON.stringify(_remoteBoundaryBias));
+          localStorage.setItem(BOUNDARY_BIAS_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: _remoteBoundaryBias }));
           return true;
         } catch (e) { return false; }
       }
@@ -3839,7 +4234,7 @@
         try {
           await _fbSetDoc(_fbDoc(_fbDB, "app_config", "boundary_bias"), { [locationKey]: _fbDeleteField() }, { merge: true });
           if (_remoteBoundaryBias) { const next = { ..._remoteBoundaryBias }; delete next[locationKey]; _remoteBoundaryBias = next; }
-          localStorage.setItem(BOUNDARY_BIAS_CACHE_KEY, JSON.stringify(_remoteBoundaryBias || {}));
+          localStorage.setItem(BOUNDARY_BIAS_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: _remoteBoundaryBias || {} }));
           return true;
         } catch (e) { return false; }
       }
@@ -3888,11 +4283,9 @@
 
       // ── 파트너 배너(하단 흐름 광고) ──
       // 저장 위치: Firestore 'app_config/banner' 문서. corrections 데이터와 완전히 분리된 새 경로.
-      // 보안: 로그인 시스템이 없어 PIN 방식(관리자 모드 진입 시 확인 + 저장 시 규칙에서도 재확인)을
-      // 씀. 은행 수준 보안은 아님(문서에 pin 필드가 함께 저장되어 기술적으로는 조회 가능) — 회원/매출
-      // 같은 민감 정보가 아닌 홍보 배너용이라 이 정도로 설계함. PIN을 바꾸려면 아래 상수와
-      // firebase/firestore.rules의 값을 함께 바꿔야 함.
-      const ADMIN_PIN = "0713";
+      // 보안: 공개 PIN을 제거하고 Firebase 관리자 인증으로만 저장한다. Firestore 규칙도
+      // isAdmin() 쓰기만 허용하므로, 저장 전 앱에서 로그인 상태를 확인하고 규칙에서 다시 차단한다.
+      const BANNER_LINK_PROTOCOL_ALLOWLIST = ["http:", "https:"];
       // datetime-local 입력값("2026-07-20T09:00")을 "한국 시간"으로 해석해 UTC 타임스탬프(ms)로 변환.
       function parseKSTLocalInput(value) {
         if (!value) return null;
@@ -3940,9 +4333,19 @@
       }
       function bannerCampaigns(config) {
         if (!config || !config.imageUrl) return [];
+        function safeBannerLinkUrl(url) {
+          const raw = String(url || "").trim();
+          if (!raw) return "";
+          try {
+            const parsed = new URL(raw);
+            return BANNER_LINK_PROTOCOL_ALLOWLIST.includes(parsed.protocol) ? parsed.href : "";
+          } catch (error) {
+            return "";
+          }
+        }
         const makeLegacy = (urls) => urls.map((imageUrl) => ({
           imageUrl,
-          linkUrl: config.linkUrl || "",
+          linkUrl: safeBannerLinkUrl(config.linkUrl),
           startAt: Number.isFinite(config.startAt) ? config.startAt : Date.now(),
           endAt: Number.isFinite(config.endAt) ? config.endAt : addKSTMonths(Date.now(), 1)
         }));
@@ -3959,7 +4362,7 @@
               item && typeof item.imageUrl === "string" && item.imageUrl.startsWith("data:image/")
             ).slice(0, 10).map((item) => ({
               imageUrl: item.imageUrl,
-              linkUrl: typeof item.linkUrl === "string" ? item.linkUrl : "",
+              linkUrl: safeBannerLinkUrl(item.linkUrl),
               startAt: Number(item.startAt),
               endAt: Number(item.endAt)
             }));
@@ -4050,30 +4453,48 @@ function applyBannerToDom(config) {
   requestAnimationFrame(() => syncFooterPartnerMarquee(true));
 }
       async function initPartnerBanner() {
+        let cacheIsFresh = false;
         try {
-          const snap = await _fbGetDoc(_fbDoc(_fbDB, "app_config", "banner"));
-          _bannerConfigCache = snap.exists() ? snap.data() : null;
+          const cachedRaw = localStorage.getItem(BANNER_CACHE_KEY);
+          if (cachedRaw) {
+            const cached = JSON.parse(cachedRaw);
+            if (cached && typeof cached.data === "object") {
+              _bannerConfigCache = cached.data;
+              cacheIsFresh = Number(cached.savedAt) > 0 && Date.now() - Number(cached.savedAt) < FIREBASE_READ_CACHE_TTL_MS;
+            }
+          }
         } catch (e) {
-          _bannerConfigCache = null; // 오프라인/차단이어도 앱은 정상 동작(배너만 안 보임).
+          /* 손상된 캐시는 무시하고 원격 값을 시도한다. */
+        }
+        if (!cacheIsFresh) {
+          try {
+            const snap = await _fbGetDoc(_fbDoc(_fbDB, "app_config", "banner"));
+            _bannerConfigCache = snap.exists() ? snap.data() : null;
+            localStorage.setItem(BANNER_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: _bannerConfigCache }));
+          } catch (e) {
+            /* 오프라인/차단이어도 캐시된 배너가 있으면 앱은 정상 동작한다. */
+          }
         }
         applyBannerToDom(_bannerConfigCache);
-        // 앱을 켜둔 채로 종료 시각이 지나면 실시간으로 사라지도록 1분마다 재확인.
+        // 종료 시각 확인은 로컬 캐시만 사용한다. Firestore를 반복 조회하지 않는다.
         if (_bannerCheckTimer) clearInterval(_bannerCheckTimer);
         _bannerCheckTimer = setInterval(() => applyBannerToDom(_bannerConfigCache), 60000);
       }
       async function saveBannerConfig(partial) {
         if (!_fbReady || !_fbDB) return { ok: false, reason: "오프라인 상태라 저장할 수 없어요. 인터넷 연결을 확인해주세요." };
+        if (!_fbCurrentAdminUser) return { ok: false, reason: "관리자 이메일·비밀번호로 먼저 로그인해야 저장할 수 있어요." };
         try {
-          const payload = { ...partial, pin: ADMIN_PIN };
+          const payload = { ...partial };
           await Promise.race([
             _fbSetDoc(_fbDoc(_fbDB, "app_config", "banner"), payload),
             new Promise((_, reject) => setTimeout(() => reject(new Error("banner_save_timeout")), 15000))
           ]);
           _bannerConfigCache = partial;
+          localStorage.setItem(BANNER_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: partial }));
           applyBannerToDom(_bannerConfigCache);
           return { ok: true };
         } catch (e) {
-          return { ok: false, reason: "저장에 실패했어요. PIN이 맞는지, 인터넷 연결을 확인해주세요." };
+          return { ok: false, reason: "저장에 실패했어요. 관리자 권한 또는 인터넷 연결을 확인해주세요." };
         }
       }
       async function readBannerImageFiles(files) {
@@ -4110,8 +4531,7 @@ function applyBannerToDom(config) {
       (function wireAdminPanel() {
         const trigger = document.getElementById("adminModeTrigger");
         const overlay = document.getElementById("adminPanelOverlay");
-        const pinInput = document.getElementById("adminPinInput");
-        const pinSubmit = document.getElementById("adminPinSubmit");
+        const bannerUnlock = document.getElementById("adminBannerUnlock");
         const fields = document.getElementById("adminPanelFields");
         const status = document.getElementById("adminPanelStatus");
         const closeBtn = document.getElementById("adminPanelClose");
@@ -4206,31 +4626,28 @@ function applyBannerToDom(config) {
           if (bannerImageFile) bannerImageFile.value = "";
           draftCampaigns = [];
           renderCampaignEditors();
-          pinInput.value = "";
-          pinInput.style.display = "";
-          pinSubmit.style.display = "";
+          if (bannerUnlock) bannerUnlock.style.display = "";
           fields.style.display = "none";
-          status.textContent = "";
+          status.textContent = _fbCurrentAdminUser ? "" : "관리자 이메일·비밀번호로 로그인한 뒤 로그인 상태 확인을 누르세요.";
         }
         function unlockFields() {
+          if (!_fbCurrentAdminUser) {
+            status.textContent = "관리자 이메일·비밀번호로 먼저 로그인하세요.";
+            return;
+          }
           const c = _bannerConfigCache || {};
           document.getElementById("adminBannerEnabled").checked = !!c.enabled;
           draftCampaigns = bannerCampaigns(c);
           if (bannerImageFile) bannerImageFile.value = "";
           renderCampaignEditors();
-          pinInput.style.display = "none";
-          pinSubmit.style.display = "none";
+          if (bannerUnlock) bannerUnlock.style.display = "none";
           fields.style.display = "block";
           status.textContent = "";
         }
         trigger.addEventListener("click", () => { overlay.style.display = "flex"; resetPanel(); });
         closeBtn.addEventListener("click", () => { overlay.style.display = "none"; });
         overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.style.display = "none"; });
-        pinSubmit.addEventListener("click", () => {
-          if (pinInput.value === ADMIN_PIN) unlockFields();
-          else status.textContent = "PIN이 올바르지 않아요.";
-        });
-        pinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") pinSubmit.click(); });
+        if (bannerUnlock) bannerUnlock.addEventListener("click", unlockFields);
         if (bannerImageFile) {
           bannerImageFile.addEventListener("change", async () => {
             const files = Array.from((bannerImageFile && bannerImageFile.files) || []);
@@ -4275,7 +4692,14 @@ function applyBannerToDom(config) {
               status.textContent = "광고 사진을 먼저 추가해주세요.";
               return;
             }
-            const badLinkIndex = draftCampaigns.findIndex((item) => !/^https?:\/\/\S+$/i.test(item.linkUrl || ""));
+            const badLinkIndex = draftCampaigns.findIndex((item) => {
+              try {
+                const parsed = new URL(item.linkUrl || "");
+                return !BANNER_LINK_PROTOCOL_ALLOWLIST.includes(parsed.protocol);
+              } catch (error) {
+                return true;
+              }
+            });
             if (badLinkIndex >= 0) {
               status.textContent = `광고 ${badLinkIndex + 1}의 사이트 주소를 https://부터 정확히 적어주세요.`;
               return;
@@ -4321,6 +4745,8 @@ function applyBannerToDom(config) {
         const adminSignInBtn = document.getElementById("adminSignInBtn");
         const adminSignOutBtn = document.getElementById("adminSignOutBtn");
         const reportRefreshBtn = document.getElementById("reportRefreshBtn");
+        const importCalibrationBtn = document.getElementById("importCalibrationBtn");
+        const calibrationImportInput = document.getElementById("calibrationImportInput");
         if (adminSignInBtn) {
           adminSignInBtn.addEventListener("click", async () => {
             const authStatus = document.getElementById("adminAuthStatus");
@@ -4361,15 +4787,24 @@ function applyBannerToDom(config) {
           });
         }
         if (reportRefreshBtn) reportRefreshBtn.addEventListener("click", loadAndRenderCorrectionReport);
+        if (importCalibrationBtn && calibrationImportInput) {
+          importCalibrationBtn.addEventListener("click", () => calibrationImportInput.click());
+          calibrationImportInput.addEventListener("change", () => {
+            const file = calibrationImportInput.files && calibrationImportInput.files[0];
+            calibrationImportInput.value = "";
+            if (file) importCalibrationReviewJson(file);
+          });
+        }
       })();
-      const LOCAL_MODEL_URL = "./models/pose_landmarker_lite.task";
-      const REMOTE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task";
+      // 일반 영상 녹화 기준(10.일반 영상 녹화)과 동일하게 full 모델을 기본 사용한다.
+      // lite는 빠르지만 손목·발목·가려진 관절 위치 오차가 커 ROM/잔상에 직접 영향을 준다.
+      const LOCAL_MODEL_URL = "./models/pose_landmarker_full.task";
+      const REMOTE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task";
       const LOCAL_WASM_URL = "./vendor/mediapipe/tasks-vision/wasm";
-      const REMOTE_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm";
+      const REMOTE_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
       const MODULE_URLS = [
         "./vendor/mediapipe/tasks-vision/vision_bundle.mjs",
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest",
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs"
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14"
       ];
 
 
@@ -4464,12 +4899,40 @@ function applyBannerToDom(config) {
             automated_decision: false
           };
         }
+        const eventProfile = activeCompetitionEventProfile();
         return {
-          purpose: "경기품새 훈련",
+          purpose: `경기품새 훈련 · ${eventProfile.label}`,
           primary: COMPETITION_RULES_2026,
           cross_check: OFFICIAL_RULE_REFERENCES.wt_competition_2024,
-          axes: OFFICIAL_RULE_REFERENCES.wt_competition_2024.recognized_poomsae_axes,
+          axes: [
+            ...OFFICIAL_RULE_REFERENCES.wt_competition_2024.recognized_poomsae_axes,
+            ...eventProfile.axes
+          ],
+          event: eventProfile,
           automated_decision: false
+        };
+      }
+
+      function activeCompetitionEventProfile() {
+        if (competitionEvent === "team") {
+          return {
+            id: "team",
+            label: "단체전",
+            score_label: "단체전 참고점수",
+            analysis_focus: "개인 수행 + 팀 전체 싱크",
+            axes: ["단체전 추가 확인: 동작 타이밍 일치", "단체전 추가 확인: 선수 간 간격·대형 유지", "단체전 추가 확인: 높낮이·속도·방향 통일"],
+            summary: "단체전은 개인별 정확성에 더해 여러 선수가 하나처럼 보이는지, 동시성·간격·대형·방향 일치를 함께 확인합니다.",
+            card_hint: "단체전 적용: 이 동작의 개인 완성도와 함께 팀원 간 시작·맺음 타이밍, 높낮이, 방향, 대형 간격을 확인하세요."
+          };
+        }
+        return {
+          id: "individual",
+          label: "개인전",
+          score_label: "개인전 참고점수",
+          analysis_focus: "개인 기술 완성도",
+          axes: ["개인전 적용: 동작 정확성·균형·힘·속도·리듬·시선·기합·연결 완성도 중심"],
+          summary: "개인전은 한 선수의 동작 정확성, 균형, 힘의 표현, 속도 조절, 리듬, 시선, 기합, 연결 완성도를 중심으로 확인합니다.",
+          card_hint: "개인전 적용: 이 선수의 자세 정확성, 균형, 힘·속도 표현, 맺음과 연결 완성도를 중심으로 확인하세요."
         };
       }
 
@@ -5469,7 +5932,7 @@ function applyBannerToDom(config) {
       // 단, 시작의 '준비서기'와 종료 직전 '기본준비서기로 돌아오기'를 모두 잡는다.
       function isReadyStance(name) {
         const n = String(name || "").trim();
-        return /준비서기|준비 자세|준비자세|준비$/.test(n);
+        return /^(준비서기|준비 자세|준비자세|기본준비|기본준비서기|기본준비서기로 돌아오기)$/.test(n);
       }
       // 품새의 '본동작'(번호 매겨지는 기술 동작) 목록을 만든다. 준비서기·메모는 제외.
       function coreMovementNames(dataKey) {
@@ -5605,6 +6068,7 @@ function applyBannerToDom(config) {
       let selectedPoomsaeGroup = "yugeup";
       let selectedPoomsaeKey = "taegeuk_1";
       let trainingMode = "exam";
+      let competitionEvent = "individual";
       // ── 촬영 방식(카메라 각도) ──
       // front: 정면 1대 / diagonal: 대각선 1대
       // dual: 정면+측면 두 대 융합 / triple: 정면+측면+대각선 세 대 융합
@@ -5694,6 +6158,1089 @@ function applyBannerToDom(config) {
       const presetVideoStatus = null;
       const boundarySensitivitySelect = document.getElementById("boundarySensitivitySelect");
       const loadModelBtn = document.getElementById("loadModelBtn");
+      const appTabs = Array.from(document.querySelectorAll("[data-app-tab]"));
+      const appPanels = {
+        home: document.getElementById("homePanel"),
+        capture: document.getElementById("capturePanel"),
+        analysis: document.getElementById("analysisPanel"),
+        compare: document.getElementById("comparePanel")
+      };
+      function setAppTab(name) {
+        if (name === "capture" && window.matchMedia && window.matchMedia("(min-width: 769px)").matches) {
+          name = "analysis";
+        }
+        if (name !== "capture") releaseCaptureCamera();
+        document.body.dataset.appPage = name;
+        appTabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.appTab === name));
+        Object.entries(appPanels).forEach(([key, panel]) => {
+          if (panel) panel.classList.toggle("active", key === name);
+        });
+        if (name === "analysis") renderWizard();
+      }
+      document.addEventListener("click", (event) => {
+        const button = event.target && event.target.closest ? event.target.closest("[data-app-tab], [data-open-tab]") : null;
+        if (!button) return;
+        let name = button.dataset.appTab || button.dataset.openTab;
+        if (!name) return;
+        if (name === "capture" && window.matchMedia && window.matchMedia("(min-width: 769px)").matches) name = "analysis";
+        setAppTab(name);
+        if (name === "capture") {
+          requestLandscape();
+          startCamera().catch((error) => {
+            if (captureCameraStatus) captureCameraStatus.textContent = `카메라를 열 수 없습니다: ${error.message || error}`;
+          });
+        }
+      });
+      const capturePreview = document.getElementById("capturePreview");
+      const captureCanvas = document.getElementById("captureCanvas");
+      const captureStage = document.querySelector(".capture-stage");
+      const startRecordBtn = document.getElementById("startRecordBtn");
+      const recordingsList = document.getElementById("recordingsList");
+      const captureCameraStatus = document.getElementById("captureCameraStatus");
+      const capturePoseStatus = document.getElementById("capturePoseStatus");
+      const captureRecordDot = document.getElementById("captureRecordDot");
+      const captureRecordingTime = document.getElementById("captureRecordingTime");
+      const captureSkeletonToggle = document.getElementById("captureSkeletonToggle");
+      const captureTrajectoryToggle = document.getElementById("captureTrajectoryToggle");
+      const captureSinglePose = document.getElementById("captureSinglePose");
+      const captureMultiPose = document.getElementById("captureMultiPose");
+      const captureQualityStandard = document.getElementById("captureQualityStandard");
+      const captureQualityHigh = document.getElementById("captureQualityHigh");
+      const captureBackBtn = document.getElementById("captureBackBtn");
+      const metronomeBtn = document.getElementById("metronomeBtn");
+      const analysisZoom = document.getElementById("analysisZoom");
+      const analysisZoomText = document.getElementById("analysisZoomText");
+      const analysisZoomIn = document.getElementById("analysisZoomIn");
+      const analysisZoomOut = document.getElementById("analysisZoomOut");
+      const compareBeforeInput = document.getElementById("compareBeforeInput");
+      const compareAfterInput = document.getElementById("compareAfterInput");
+      const compareBeforeVideo = document.getElementById("compareBeforeVideo");
+      const compareAfterVideo = document.getElementById("compareAfterVideo");
+      const compareStage = document.getElementById("compareStage");
+      const compareEmptyState = document.getElementById("compareEmptyState");
+      const compareOpacity = document.getElementById("compareOpacity");
+      const compareSaveBtn = document.getElementById("compareSaveBtn");
+      const compareAnalyzeBtn = document.getElementById("compareAnalyzeBtn");
+      const compareResult = document.getElementById("compareResult");
+      const MAX_RECORDING_MS = 120000;
+      let captureStream = null;
+      let mediaRecorder = null;
+      let recordingChunks = [];
+      let recordingStartedAt = 0;
+      let recordingTimerId = null;
+      let captureSkeletonEnabled = false;
+      let captureTrajectoryEnabled = false;
+      let captureQuality = "standard";
+      let capturePoseMode = "multi";
+      let capturePoseLoopStarted = false;
+      let captureLastDetectMs = -1;
+      let captureLatestLandmarks = [];
+      let captureSmoothedLandmarks = [];
+      let capturePoseState = {
+        detectionCount: 0,
+        lastSuccessMs: 0,
+        samples: 0,
+        rom: {
+          leftElbow: { min: null, max: null }, rightElbow: { min: null, max: null },
+          leftKnee: { min: null, max: null }, rightKnee: { min: null, max: null },
+          leftShoulder: { min: null, max: null }, rightShoulder: { min: null, max: null },
+          leftHip: { min: null, max: null }, rightHip: { min: null, max: null }
+        }
+      };
+      let captureComposeCanvas = null;
+      let captureCropCanvas = null;
+      let captureComposeRaf = 0;
+      const captureTrails = Array.from({ length: 3 }, () => ({ leftHand: [], rightHand: [], leftFoot: [], rightFoot: [] }));
+      const savedRecordings = [];
+      function formatClock(ms) {
+        const total = Math.max(0, Math.floor(ms / 1000));
+        return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+      }
+      function resetCapturePoseState() {
+        capturePoseState = {
+          detectionCount: 0,
+          lastSuccessMs: 0,
+          samples: 0,
+          rom: {
+            leftElbow: { min: null, max: null }, rightElbow: { min: null, max: null },
+            leftKnee: { min: null, max: null }, rightKnee: { min: null, max: null },
+            leftShoulder: { min: null, max: null }, rightShoulder: { min: null, max: null },
+            leftHip: { min: null, max: null }, rightHip: { min: null, max: null }
+          }
+        };
+        captureSmoothedLandmarks = [];
+        captureLatestLandmarks = [];
+        captureLastDetectMs = -1;
+        if (capturePoseStatus) capturePoseStatus.textContent = "검출 대기 · ROM 대기";
+      }
+      function captureRangeText(range) {
+        if (!range || range.min == null || range.max == null) return "-";
+        return `${Math.round(range.max - range.min)}°`;
+      }
+      function updateCaptureRom(landmarks) {
+        if (capturePoseMode !== "single") return;
+        const poses = Array.isArray(landmarks?.[0]) ? landmarks : [landmarks];
+        const update = (range, value) => {
+          if (!range || !Number.isFinite(value)) return;
+          range.min = range.min == null ? value : Math.min(range.min, value);
+          range.max = range.max == null ? value : Math.max(range.max, value);
+        };
+        const pose = poses[0];
+        if (!pose) return;
+        update(capturePoseState.rom.leftElbow, jointAngleDeg(getPoint(pose, 11), getPoint(pose, 13), getPoint(pose, 15)));
+        update(capturePoseState.rom.rightElbow, jointAngleDeg(getPoint(pose, 12), getPoint(pose, 14), getPoint(pose, 16)));
+        update(capturePoseState.rom.leftKnee, jointAngleDeg(getPoint(pose, 23), getPoint(pose, 25), getPoint(pose, 27)));
+        update(capturePoseState.rom.rightKnee, jointAngleDeg(getPoint(pose, 24), getPoint(pose, 26), getPoint(pose, 28)));
+        update(capturePoseState.rom.leftShoulder, jointAngleDeg(getPoint(pose, 23), getPoint(pose, 11), getPoint(pose, 13)));
+        update(capturePoseState.rom.rightShoulder, jointAngleDeg(getPoint(pose, 24), getPoint(pose, 12), getPoint(pose, 14)));
+        update(capturePoseState.rom.leftHip, jointAngleDeg(getPoint(pose, 11), getPoint(pose, 23), getPoint(pose, 25)));
+        update(capturePoseState.rom.rightHip, jointAngleDeg(getPoint(pose, 12), getPoint(pose, 24), getPoint(pose, 26)));
+      }
+      function updateCapturePoseStatus() {
+        if (!capturePoseStatus) return;
+        const age = capturePoseState.lastSuccessMs ? Date.now() - capturePoseState.lastSuccessMs : Infinity;
+        if (!capturePoseState.detectionCount || age > 1200) {
+          capturePoseStatus.textContent = "검출 0명 · 피사체를 화면 중앙에 맞추세요";
+          return;
+        }
+        if (capturePoseMode !== "single") {
+          capturePoseStatus.textContent = `검출 ${capturePoseState.detectionCount}명`;
+          return;
+        }
+        const rom = capturePoseState.rom;
+        capturePoseStatus.textContent = `검출 ${capturePoseState.detectionCount}명 · ROM 팔 L/R ${captureRangeText(rom.leftElbow)}/${captureRangeText(rom.rightElbow)} · 무릎 L/R ${captureRangeText(rom.leftKnee)}/${captureRangeText(rom.rightKnee)}`;
+      }
+      function updateRecordingTimer() {
+        const elapsed = Date.now() - recordingStartedAt;
+        if (captureRecordingTime) captureRecordingTime.textContent = formatClock(elapsed);
+        if (captureRecordDot) captureRecordDot.classList.toggle("on", Boolean(mediaRecorder && mediaRecorder.state === "recording"));
+        if (startRecordBtn && mediaRecorder && mediaRecorder.state === "recording") {
+          startRecordBtn.textContent = `녹화 중 ${formatClock(elapsed)}`;
+          startRecordBtn.setAttribute("aria-label", `녹화 중 ${formatClock(elapsed)}`);
+        }
+        if (elapsed >= MAX_RECORDING_MS && mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+      }
+      async function requestCaptureStream() {
+        const high = captureQuality === "high";
+        const aspectRatio = 4 / 3;
+        const attempts = [
+          {
+            video: {
+              facingMode: { ideal: "environment" },
+              width: { ideal: high ? 1920 : 1280 },
+              height: { ideal: high ? 1440 : 960 },
+              aspectRatio: { ideal: aspectRatio },
+              zoom: { ideal: 0.5 }
+            },
+            audio: false
+          },
+          {
+            video: {
+              facingMode: { ideal: "environment" },
+              width: { ideal: high ? 1920 : 1280 },
+              height: { ideal: high ? 1080 : 720 },
+              zoom: { ideal: 0.5 }
+            },
+            audio: false
+          },
+          {
+              video: { facingMode: { ideal: "environment" } },
+              audio: false
+          },
+          {
+            video: true,
+            audio: false
+          },
+          {
+            video: { facingMode: { ideal: "environment" } },
+            audio: true
+          }
+        ];
+        let lastError = null;
+        for (const constraints of attempts) {
+          try {
+            return await navigator.mediaDevices.getUserMedia(constraints);
+          } catch (error) {
+            lastError = error;
+          }
+        }
+        throw lastError || new Error("camera unavailable");
+      }
+      async function startCamera() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("이 브라우저에서는 카메라 촬영을 사용할 수 없습니다.");
+        }
+        if (!window.isSecureContext) throw new Error("HTTPS 주소에서 카메라를 사용할 수 있습니다.");
+        if (captureCameraStatus) captureCameraStatus.textContent = "카메라 권한을 요청하는 중입니다...";
+        if (captureStream) {
+          captureStream.getTracks().forEach((track) => track.stop());
+          captureStream = null;
+        }
+        captureStream = await requestCaptureStream();
+        resetCapturePoseState();
+        capturePreview.srcObject = captureStream;
+        capturePreview.muted = true;
+        await capturePreview.play().catch(() => {});
+        syncCaptureOrientationState();
+        await setWidestCaptureCameraZoom();
+        startRecordBtn.disabled = false;
+        if (captureCameraStatus) captureCameraStatus.textContent = "카메라 연결됨 · 녹화 버튼을 눌러 저장하세요.";
+        startCapturePoseLoop();
+      }
+      function releaseCaptureCamera() {
+        if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+        if (captureComposeRaf) cancelAnimationFrame(captureComposeRaf);
+        captureComposeRaf = 0;
+        if (captureStream) captureStream.getTracks().forEach((track) => track.stop());
+        captureStream = null;
+        if (capturePreview) capturePreview.srcObject = null;
+      }
+      function recordingMimeType() {
+        const types = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
+        return types.find((type) => window.MediaRecorder && MediaRecorder.isTypeSupported(type)) || "";
+      }
+      function renderRecordings() {
+        if (!recordingsList) return;
+        recordingsList.innerHTML = savedRecordings.length ? "" : "<p class=\"small\">저장된 촬영 영상이 없습니다.</p>";
+        savedRecordings.forEach((item, index) => {
+          if (!item.previewUrl) item.previewUrl = URL.createObjectURL(item.file);
+          const row = document.createElement("div");
+          row.className = "recording-item";
+          const savedLabel = item.autoSaveAttempted ? "폰 저장 시도됨" : "저장 준비됨";
+          row.innerHTML = `<video class="recording-preview" controls muted playsinline preload="metadata" src="${item.previewUrl}"></video><div><strong>${item.file.name}</strong><small>${formatClock(item.durationMs)} · ${Math.round(item.file.size / 1024)}KB · ${item.file.type || "video"} · ${savedLabel}</small></div>`;
+          recordingsList.appendChild(row);
+        });
+      }
+      async function saveRecordingFile(index) {
+        const item = savedRecordings[index];
+        if (!item?.file) return;
+        const url = URL.createObjectURL(item.file);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = item.file.name;
+        link.rel = "download";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        if (captureCameraStatus) captureCameraStatus.textContent = `영상 저장 완료 · ${item.file.name}`;
+      }
+      function useRecordingForAnalysis(index) {
+        const item = savedRecordings[index];
+        if (!item || !fileInput) return;
+        try {
+          const transfer = new DataTransfer();
+          transfer.items.add(item.file);
+          fileInput.files = transfer.files;
+          fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+          setAppTab("analysis");
+        } catch (error) {
+          selectedFile = item.file;
+          objectUrl = URL.createObjectURL(item.file);
+          video.src = objectUrl;
+          video.load();
+          setAppTab("analysis");
+        }
+      }
+      function useRecordingForCompare(index, slot) {
+        const item = savedRecordings[index];
+        const input = slot === "after" ? compareAfterInput : compareBeforeInput;
+        if (!item || !input) return;
+        try {
+          const transfer = new DataTransfer();
+          transfer.items.add(item.file);
+          input.files = transfer.files;
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+          setAppTab("compare");
+        } catch (error) {
+          const videoEl = slot === "after" ? compareAfterVideo : compareBeforeVideo;
+          if (videoEl) {
+            if (videoEl.dataset.url) URL.revokeObjectURL(videoEl.dataset.url);
+            const url = URL.createObjectURL(item.file);
+            videoEl.dataset.url = url;
+            videoEl.src = url;
+            videoEl.load();
+            setAppTab("compare");
+          } else if (compareEmptyState) {
+            compareEmptyState.textContent = "저장된 영상을 비교 입력에 연결하지 못했습니다.";
+          }
+        }
+      }
+      function startRecording() {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+          mediaRecorder.stop();
+          return;
+        }
+        if (!window.MediaRecorder) {
+          alert("이 브라우저에서는 녹화 기능을 사용할 수 없습니다.");
+          return;
+        }
+        if (!captureStream) {
+          startCamera().then(startRecording).catch((error) => alert(`카메라를 열지 못했습니다: ${error.message || error}`));
+          return;
+        }
+        recordingChunks = [];
+        const mimeType = recordingMimeType();
+        recordingStartedAt = Date.now();
+        const recordingStream = createCaptureRecordingStream();
+        mediaRecorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : undefined);
+        mediaRecorder.addEventListener("dataavailable", (event) => { if (event.data && event.data.size) recordingChunks.push(event.data); });
+        mediaRecorder.addEventListener("stop", () => {
+          clearInterval(recordingTimerId);
+          if (captureComposeRaf) cancelAnimationFrame(captureComposeRaf);
+          captureComposeRaf = 0;
+          const durationMs = Math.min(Date.now() - recordingStartedAt, MAX_RECORDING_MS);
+          const type = mediaRecorder?.mimeType || mimeType || "video/webm";
+          const ext = type.includes("mp4") ? "mp4" : "webm";
+          const blob = new Blob(recordingChunks, { type });
+          if (!blob.size) {
+            alert("저장된 영상 데이터가 없습니다. 다시 녹화해 주세요.");
+            startRecordBtn.disabled = false;
+            startRecordBtn.textContent = "녹화";
+            startRecordBtn.setAttribute("aria-label", "녹화");
+            if (captureRecordingTime) captureRecordingTime.textContent = "00:00";
+            if (captureRecordDot) captureRecordDot.classList.remove("on");
+            return;
+          }
+          const file = new File([blob], `poomsae-recording-${new Date().toISOString().replace(/[:.]/g, "-")}.${ext}`, { type });
+          savedRecordings.unshift({ file, durationMs, autoSaveAttempted: false });
+          saveRecordingFile(0);
+          savedRecordings[0].autoSaveAttempted = true;
+          renderRecordings();
+          startRecordBtn.disabled = false;
+          startRecordBtn.textContent = "녹화";
+          startRecordBtn.setAttribute("aria-label", "녹화");
+          if (captureRecordingTime) captureRecordingTime.textContent = formatClock(durationMs);
+          if (captureRecordDot) captureRecordDot.classList.remove("on");
+          mediaRecorder = null;
+          updateRecordingTimer();
+        });
+        mediaRecorder.start(250);
+        recordingTimerId = setInterval(updateRecordingTimer, 200);
+        updateRecordingTimer();
+        startRecordBtn.disabled = false;
+        startRecordBtn.textContent = "녹화 중 00:00";
+        startRecordBtn.setAttribute("aria-label", "녹화 중 00:00");
+        if (captureRecordDot) captureRecordDot.classList.add("on");
+      }
+      function applyVideoZoom(videoEl, value, labelEl) {
+        const scale = Number(value || 1);
+        if (videoEl) videoEl.style.transform = `scale(${scale})`;
+        if (labelEl) labelEl.textContent = `${scale.toFixed(2)}x`;
+      }
+      function captureZoomScale() {
+        return 1;
+      }
+      function captureVideoTrack() {
+        return captureStream?.getVideoTracks?.()[0] || null;
+      }
+      function captureCameraZoomBounds() {
+        const track = captureVideoTrack();
+        const caps = track?.getCapabilities?.();
+        if (!caps || typeof caps.zoom !== "object") return null;
+        const min = Number(caps.zoom.min);
+        const max = Number(caps.zoom.max);
+        const step = Number(caps.zoom.step) || 0.1;
+        if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return null;
+        return { min, max, step };
+      }
+      async function applyCaptureCameraZoom(value) {
+        const track = captureVideoTrack();
+        const bounds = captureCameraZoomBounds();
+        if (!track || !bounds || !track.applyConstraints) return false;
+        const target = Math.max(bounds.min, Math.min(bounds.max, Number(value) || bounds.min));
+        try {
+          await track.applyConstraints({ advanced: [{ zoom: target }] });
+          if (captureStage) captureStage.dataset.cameraZoom = target.toFixed(2);
+          return true;
+        } catch (error) {
+          console.warn("Camera zoom unavailable.", error);
+          return false;
+        }
+      }
+      async function setWidestCaptureCameraZoom() {
+        const bounds = captureCameraZoomBounds();
+        if (!bounds) return false;
+        return applyCaptureCameraZoom(bounds.min);
+      }
+      function bindCaptureCameraPinchZoom(stage) {
+        if (!stage) return;
+        let startDistance = 0;
+        let startZoom = 1;
+        const distance = (touches) => Math.hypot(
+          touches[0].clientX - touches[1].clientX,
+          touches[0].clientY - touches[1].clientY
+        );
+        stage.addEventListener("touchstart", (event) => {
+          if (event.touches.length !== 2) return;
+          startDistance = distance(event.touches);
+          const bounds = captureCameraZoomBounds();
+          const current = Number(captureStage?.dataset.cameraZoom);
+          startZoom = Number.isFinite(current) ? current : (bounds ? bounds.min : 1);
+        }, { passive: true });
+        stage.addEventListener("touchmove", (event) => {
+          if (event.touches.length !== 2 || !startDistance) return;
+          event.preventDefault();
+          const bounds = captureCameraZoomBounds();
+          if (!bounds) return;
+          const nextZoom = startZoom * (distance(event.touches) / startDistance);
+          applyCaptureCameraZoom(nextZoom);
+        }, { passive: false });
+        stage.addEventListener("touchend", (event) => {
+          if (event.touches.length < 2) startDistance = 0;
+        }, { passive: true });
+      }
+      function captureRotationDeg() {
+        return 0;
+      }
+      function captureIsLandscapeMode() {
+        const stageRect = captureStage?.getBoundingClientRect?.();
+        const stageLandscape = Boolean(stageRect?.width && stageRect?.height && stageRect.width >= stageRect.height);
+        const videoLandscape = Boolean(capturePreview?.videoWidth && capturePreview.videoWidth >= capturePreview.videoHeight);
+        const screenLandscape = Boolean(window.matchMedia?.("(orientation: landscape)").matches);
+        return stageLandscape || videoLandscape || screenLandscape;
+      }
+      function syncCaptureOrientationState() {
+        if (!captureStage) return;
+        captureStage.classList.toggle("landscape-capture", captureIsLandscapeMode());
+        if (captureCanvas) {
+          captureCanvas.width = 0;
+          captureCanvas.height = 0;
+        }
+      }
+      function bindPinchZoom(stage, videos, input, label) {
+        if (!stage || !videos.length) return;
+        let startDistance = 0;
+        let startScale = Number(stage.dataset.zoomScale || 1);
+        const distance = (touches) => Math.hypot(
+          touches[0].clientX - touches[1].clientX,
+          touches[0].clientY - touches[1].clientY
+        );
+        stage.addEventListener("touchstart", (event) => {
+          if (event.touches.length !== 2) return;
+          startDistance = distance(event.touches);
+          startScale = Number(stage.dataset.zoomScale || input?.value || 1);
+        }, { passive: true });
+        stage.addEventListener("touchmove", (event) => {
+          if (event.touches.length !== 2 || !startDistance) return;
+          event.preventDefault();
+          const scale = Math.max(.5, Math.min(2, startScale * distance(event.touches) / startDistance));
+          stage.dataset.zoomScale = scale.toFixed(3);
+          videos.forEach((videoEl) => applyVideoZoom(videoEl, scale, null));
+          if (input) input.value = scale.toFixed(2);
+          if (label) label.textContent = `${scale.toFixed(2)}x`;
+        }, { passive: false });
+        stage.addEventListener("touchend", (event) => {
+          if (event.touches.length < 2) startDistance = 0;
+        }, { passive: true });
+      }
+      function videoDrawRect(video, boxWidth, boxHeight, fit = "cover") {
+        const vw = video.videoWidth, vh = video.videoHeight;
+        if (!vw || !vh || !boxWidth || !boxHeight) return null;
+        const sourceRatio = vw / vh, targetRatio = boxWidth / boxHeight;
+        let drawW;
+        let drawH;
+        let offX;
+        let offY;
+        if (fit === "contain") {
+          if (sourceRatio > targetRatio) { drawW = boxWidth; drawH = boxWidth / sourceRatio; offX = 0; offY = (boxHeight - drawH) / 2; }
+          else { drawH = boxHeight; drawW = boxHeight * sourceRatio; offY = 0; offX = (boxWidth - drawW) / 2; }
+        } else if (sourceRatio > targetRatio) {
+          drawH = boxHeight; drawW = boxHeight * sourceRatio; offY = 0; offX = (boxWidth - drawW) / 2;
+        } else {
+          drawW = boxWidth; drawH = boxWidth / sourceRatio; offX = 0; offY = (boxHeight - drawH) / 2;
+        }
+        return { drawW, drawH, offX, offY };
+      }
+      function captureDrawRect(video, width, height, zoom = captureZoomScale(), rotation = captureRotationDeg()) {
+        const quarterTurn = rotation % 180 !== 0;
+        const sourceRatio = video.videoWidth / video.videoHeight;
+        const targetRatio = quarterTurn ? height / width : width / height;
+        let drawW, drawH;
+        if (sourceRatio > targetRatio) { drawH = height; drawW = height * sourceRatio; }
+        else { drawW = width; drawH = width / sourceRatio; }
+        drawW *= zoom; drawH *= zoom;
+        return { drawW, drawH, offX: (width - drawW) / 2, offY: (height - drawH) / 2 };
+      }
+      function rotateCanvasPoint(point, width, height, rotation) {
+        if (!point || !rotation) return point;
+        const cx = width / 2, cy = height / 2;
+        const x = point.x - cx, y = point.y - cy;
+        const rad = rotation * Math.PI / 180;
+        return { x: cx + x * Math.cos(rad) - y * Math.sin(rad), y: cy + x * Math.sin(rad) + y * Math.cos(rad) };
+      }
+      function drawContainVideo(ctx, video, width, height, zoom = captureZoomScale(), rotation = captureRotationDeg()) {
+        if (!video.videoWidth || !video.videoHeight) return;
+        const rect = captureDrawRect(video, width, height, zoom, rotation);
+        ctx.save();
+        ctx.translate(width / 2, height / 2);
+        ctx.rotate(rotation * Math.PI / 180);
+        ctx.translate(-width / 2, -height / 2);
+        if (!rect) { ctx.restore(); return; }
+        ctx.drawImage(video, rect.offX, rect.offY, rect.drawW, rect.drawH);
+        ctx.restore();
+      }
+      function recordingPoint(landmark, video, width, height, zoom = captureZoomScale(), rotation = captureRotationDeg()) {
+        if (!landmark || !video.videoWidth || !video.videoHeight) return null;
+        const rect = captureDrawRect(video, width, height, zoom, rotation);
+        if (!rect) return null;
+        return rotateCanvasPoint({ x: rect.offX + landmark.x * rect.drawW, y: rect.offY + landmark.y * rect.drawH }, width, height, rotation);
+      }
+      function drawRecordingSkeleton(ctx, video, landmarks, width, height) {
+        const poseList = Array.isArray(landmarks?.[0]) ? landmarks.slice(0, 3) : [landmarks];
+        const palette = ["#2ecc71", "#46c8be", "#f1c40f"];
+        poseList.forEach((pose, poseIndex) => {
+          if (!pose) return;
+          ctx.lineWidth = poseIndex === 0 ? Math.max(3, width / 240) : Math.max(2, width / 320);
+          for (const [ai, bi] of POSE_CONNECTIONS) {
+            const a = pose[ai], b = pose[bi];
+            if (!a || !b) continue;
+            const pa = recordingPoint(a, video, width, height), pb = recordingPoint(b, video, width, height);
+            if (!pa || !pb) continue;
+            const c = skeletonColorFor(Math.min(a.visibility ?? 1, b.visibility ?? 1));
+            ctx.strokeStyle = poseIndex === 0 ? c.stroke : palette[poseIndex];
+            ctx.globalAlpha = poseIndex === 0 ? 1 : .82;
+            ctx.setLineDash(c.dash);
+            ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+          }
+          ctx.setLineDash([]);
+          if (capturePoseMode === "single" && poseIndex === 0) {
+            drawCaptureAngleLabels(
+              ctx,
+              pose,
+              (landmark) => recordingPoint(landmark, video, width, height),
+              Math.max(.75, Math.min(1.4, width / 480))
+            );
+          }
+        });
+        ctx.globalAlpha = 1;
+      }
+      function drawRecordingTrails(ctx, video, width, height) {
+        const now = performance.now();
+        const colors = { leftHand: "#cd2e3a", rightHand: "#cd2e3a", leftFoot: "#0047a0", rightFoot: "#0047a0" };
+        captureTrails.forEach((poseTrail) => Object.entries(poseTrail).forEach(([key, points]) => {
+          const active = points.filter((point) => now - point.t <= 1500);
+          poseTrail[key] = active;
+          if (active.length < 2) return;
+          ctx.strokeStyle = colors[key]; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.lineWidth = Math.max(3, width / 180);
+          for (let i = 1; i < active.length; i += 1) {
+            ctx.globalAlpha = Math.max(0.08, 1 - (now - active[i].t) / 1500) * .85;
+            const a = recordingPoint(active[i - 1], video, width, height), b = recordingPoint(active[i], video, width, height);
+            if (!a || !b) continue;
+            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+          }
+        }));
+        ctx.globalAlpha = 1;
+      }
+      function captureRecordingSize() {
+        const high = captureQuality === "high";
+        const landscape = captureIsLandscapeMode();
+        const longSide = high ? 1440 : 960;
+        const shortSide = high ? 1080 : 720;
+        return landscape
+          ? { width: longSide, height: shortSide }
+          : { width: shortSide, height: longSide };
+      }
+      function createCaptureRecordingStream() {
+        if (!HTMLCanvasElement.prototype.captureStream) return captureStream;
+        const canvas = captureComposeCanvas || document.createElement("canvas");
+        const size = captureRecordingSize();
+        canvas.width = size.width;
+        canvas.height = size.height;
+        captureComposeCanvas = canvas;
+        const ctx = canvas.getContext("2d", { alpha: false });
+        const draw = () => {
+          ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+          drawContainVideo(ctx, capturePreview, canvas.width, canvas.height);
+          if (captureSkeletonEnabled) drawRecordingSkeleton(ctx, capturePreview, captureLatestLandmarks, canvas.width, canvas.height);
+          if (captureTrajectoryEnabled) drawRecordingTrails(ctx, capturePreview, canvas.width, canvas.height);
+          if (mediaRecorder && mediaRecorder.state === "recording") drawRecordingTimecode(ctx, canvas.width, canvas.height);
+          captureComposeRaf = requestAnimationFrame(draw);
+        };
+        if (captureComposeRaf) cancelAnimationFrame(captureComposeRaf);
+        draw();
+        return canvas.captureStream(30);
+      }
+      function drawRecordingTimecode(ctx, width, height) {
+        const elapsed = Math.max(0, Date.now() - recordingStartedAt);
+        const text = `REC ${formatClock(elapsed)}`;
+        const fontSize = Math.max(18, Math.round(width / 28));
+        ctx.save();
+        ctx.font = `900 ${fontSize}px system-ui, sans-serif`;
+        ctx.textBaseline = "middle";
+        const padX = Math.round(fontSize * .65);
+        const padY = Math.round(fontSize * .42);
+        const textW = ctx.measureText(text).width;
+        const boxW = textW + padX * 2;
+        const boxH = fontSize + padY * 2;
+        const x = Math.round(width * .04);
+        const y = Math.round(height * .035);
+        ctx.fillStyle = "rgba(0,0,0,.68)";
+        ctx.fillRect(x, y, boxW, boxH);
+        ctx.fillStyle = "#ff3b30";
+        ctx.beginPath();
+        ctx.arc(x + padX * .55, y + boxH / 2, fontSize * .22, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.fillText(text, x + padX, y + boxH / 2);
+        ctx.restore();
+      }
+      function drawCaptureTrails(ctx, videoEl, allLandmarks) {
+        if (!captureCanvas || !videoEl || !Array.isArray(allLandmarks)) return;
+        const rect = videoEl.getBoundingClientRect();
+        const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
+        if (!rect.width || !rect.height || !vw || !vh) return;
+        const drawRect = captureDrawRect(videoEl, rect.width, rect.height);
+        if (!drawRect) return;
+        const { drawW, drawH, offX, offY } = drawRect;
+        const now = performance.now();
+        const indices = { leftHand: 15, rightHand: 16, leftFoot: 27, rightFoot: 28 };
+        allLandmarks.slice(0, 3).forEach((pose, poseIndex) => {
+          const poseTrail = captureTrails[poseIndex];
+          Object.entries(indices).forEach(([key, index]) => {
+            const point = pose && pose[index];
+            if (!point || (point.visibility != null && point.visibility < .35)) return;
+            poseTrail[key].push({ x: point.x, y: point.y, t: now });
+            poseTrail[key] = poseTrail[key].filter((item) => now - item.t <= 1000).slice(-36);
+            const points = poseTrail[key];
+            if (points.length < 2) return;
+            const color = key.includes("Foot") ? "#0047a0" : "#cd2e3a";
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            for (let i = 1; i < points.length; i += 1) {
+              const prev = points[i - 1];
+              const item = points[i];
+              const age = Math.max(0, Math.min(1, (now - item.t) / 1000));
+              const alpha = 0.10 + (1 - age) * 0.70;
+              const p1 = rotateCanvasPoint({ x: offX + prev.x * drawW, y: offY + prev.y * drawH }, rect.width, rect.height, captureRotationDeg());
+              const p2 = rotateCanvasPoint({ x: offX + item.x * drawW, y: offY + item.y * drawH }, rect.width, rect.height, captureRotationDeg());
+              ctx.strokeStyle = color;
+              ctx.globalAlpha = alpha;
+              ctx.lineWidth = 2 + (1 - age) * 2.2;
+              ctx.beginPath();
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+              ctx.stroke();
+            }
+          });
+        });
+        ctx.globalAlpha = 1;
+      }
+      function clearCaptureCanvas() {
+        if (!captureCanvas) return;
+        const ctx = captureCanvas.getContext("2d");
+        if (captureCanvas.width && captureCanvas.height) ctx.clearRect(0, 0, captureCanvas.width, captureCanvas.height);
+      }
+      async function renderCapturePoseFrame() {
+        if (!captureCanvas || !capturePreview || capturePreview.readyState < 2) {
+          clearCaptureCanvas();
+          return;
+        }
+        if (!captureSkeletonEnabled && !captureTrajectoryEnabled) {
+          clearCaptureCanvas();
+          return;
+        }
+        const landmarker = await loadCaptureModel();
+        if (!landmarker) {
+          if (captureCameraStatus) captureCameraStatus.textContent = "스켈레톤 모델을 불러오지 못했습니다.";
+          return;
+        }
+        if (captureCameraStatus) captureCameraStatus.textContent = "카메라 연결됨 · 스켈레톤 모델 준비 완료";
+        let result = null;
+        try {
+          result = landmarker.detectForVideo(capturePreview, nextCaptureDetectTimestamp());
+        } catch (error) {
+          console.warn("Capture pose detection skipped.", error);
+          captureLatestLandmarks = [];
+          capturePoseState.detectionCount = 0;
+          updateCapturePoseStatus();
+          drawSkeletonFrame(captureCanvas, capturePreview, null);
+          return;
+        }
+        const rawLandmarks = await collectCaptureLandmarks(landmarker, result);
+        const trackedLandmarks = alignCapturePosesToPrevious(rawLandmarks);
+        const allLandmarks = smoothCapturePoses(trackedLandmarks);
+        captureSmoothedLandmarks = allLandmarks;
+        if (!rawLandmarks.length) {
+          captureTrails.forEach((trail) => Object.keys(trail).forEach((key) => { trail[key] = []; }));
+        }
+        const displayedLandmarks = capturePoseMode === "single" ? allLandmarks.slice(0, 1) : allLandmarks;
+        captureLatestLandmarks = displayedLandmarks;
+        capturePoseState.detectionCount = displayedLandmarks.length;
+        if (displayedLandmarks.length) {
+          capturePoseState.lastSuccessMs = Date.now();
+          capturePoseState.samples += 1;
+          if (capturePoseMode === "single") updateCaptureRom(displayedLandmarks);
+        }
+        updateCapturePoseStatus();
+        drawSkeletonFrame(captureCanvas, capturePreview, captureSkeletonEnabled ? displayedLandmarks : null);
+        if (captureTrajectoryEnabled) {
+          const ctx = captureCanvas.getContext("2d");
+          drawCaptureTrails(ctx, capturePreview, displayedLandmarks);
+        }
+      }
+      function startCapturePoseLoop() {
+        if (capturePoseLoopStarted) return;
+        capturePoseLoopStarted = true;
+        const loop = async () => {
+          try {
+            await renderCapturePoseFrame();
+          } catch (error) {
+            console.warn("Capture pose frame skipped.", error);
+          } finally {
+            requestAnimationFrame(loop);
+          }
+        };
+        requestAnimationFrame(loop);
+      }
+      function setCaptureChip(button, enabled, label) {
+        if (!button) return;
+        button.classList.toggle("active", enabled);
+        button.textContent = `${label} ${enabled ? "ON" : "OFF"}`;
+      }
+      function nextCaptureDetectTimestamp() {
+        let ts = Math.round(performance.now());
+        if (ts <= captureLastDetectMs) ts = captureLastDetectMs + 1;
+        captureLastDetectMs = ts;
+        return ts;
+      }
+      function visibleLandmarkScore(landmarks) {
+        if (!Array.isArray(landmarks)) return 0;
+        let score = 0;
+        landmarks.forEach((point) => {
+          if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
+          const inFrame = point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1;
+          const visibility = point.visibility == null ? 0.6 : point.visibility;
+          if (inFrame && visibility >= 0.25) score += visibility;
+        });
+        return score;
+      }
+      function capturePoseCenterX(landmarks) {
+        if (!Array.isArray(landmarks)) return 0.5;
+        let sum = 0;
+        let count = 0;
+        landmarks.forEach((point) => {
+          if (!point || !Number.isFinite(point.x)) return;
+          const visibility = point.visibility == null ? 0.6 : point.visibility;
+          if (visibility < 0.18) return;
+          sum += point.x;
+          count += 1;
+        });
+        return count ? sum / count : 0.5;
+      }
+      function orderCapturePoses(poses) {
+        const list = Array.isArray(poses) ? poses.slice() : [];
+        if (capturePoseMode === "single") {
+          return list.sort((a, b) => visibleLandmarkScore(b) - visibleLandmarkScore(a));
+        }
+        return list
+          .filter((pose) => visibleLandmarkScore(pose) >= 0.55)
+          .sort((a, b) => capturePoseCenterX(a) - capturePoseCenterX(b));
+      }
+      function capturePoseCenterY(landmarks) {
+        if (!Array.isArray(landmarks)) return 0.5;
+        let sum = 0;
+        let count = 0;
+        landmarks.forEach((point) => {
+          if (!point || !Number.isFinite(point.y)) return;
+          const visibility = point.visibility == null ? 0.6 : point.visibility;
+          if (visibility < 0.18) return;
+          sum += point.y;
+          count += 1;
+        });
+        return count ? sum / count : 0.5;
+      }
+      function mergeCapturePoseCandidates(candidates) {
+        const sorted = orderCapturePoses(candidates).sort((a, b) => visibleLandmarkScore(b) - visibleLandmarkScore(a));
+        const unique = [];
+        for (const pose of sorted) {
+          const cx = capturePoseCenterX(pose);
+          const cy = capturePoseCenterY(pose);
+          const duplicate = unique.some((old) => {
+            const dx = capturePoseCenterX(old) - cx;
+            const dy = capturePoseCenterY(old) - cy;
+            return Math.hypot(dx, dy) < 0.10;
+          });
+          if (!duplicate) unique.push(pose);
+          if (unique.length >= 3) break;
+        }
+        return unique.sort((a, b) => capturePoseCenterX(a) - capturePoseCenterX(b));
+      }
+      function remapCropPose(pose, crop) {
+        return (pose || []).map((point) => point ? ({
+          ...point,
+          x: crop.x + point.x * crop.w,
+          y: crop.y + point.y * crop.h
+        }) : point);
+      }
+      async function detectCaptureCropPose(landmarker, crop) {
+        if (!capturePreview?.videoWidth || !capturePreview?.videoHeight) return [];
+        const sourceW = capturePreview.videoWidth;
+        const sourceH = capturePreview.videoHeight;
+        const sx = Math.max(0, Math.round(crop.x * sourceW));
+        const sy = Math.max(0, Math.round(crop.y * sourceH));
+        const sw = Math.min(sourceW - sx, Math.round(crop.w * sourceW));
+        const sh = Math.min(sourceH - sy, Math.round(crop.h * sourceH));
+        if (sw <= 0 || sh <= 0) return [];
+        const canvas = captureCropCanvas || document.createElement("canvas");
+        const targetW = 320;
+        canvas.width = targetW;
+        canvas.height = Math.max(360, Math.round(targetW * sh / sw));
+        captureCropCanvas = canvas;
+        const ctx = canvas.getContext("2d", { alpha: false });
+        ctx.drawImage(capturePreview, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        try {
+          const result = landmarker.detectForVideo(canvas, nextCaptureDetectTimestamp());
+          return Array.isArray(result?.landmarks)
+            ? result.landmarks.map((pose) => remapCropPose(pose, crop))
+            : [];
+        } catch (error) {
+          console.warn("Capture crop pose detection skipped.", error);
+          return [];
+        }
+      }
+      async function collectCaptureLandmarks(landmarker, initialResult) {
+        const base = Array.isArray(initialResult?.landmarks) ? initialResult.landmarks : [];
+        if (capturePoseMode === "single") return orderCapturePoses(base).slice(0, 1);
+        return mergeCapturePoseCandidates(base);
+      }
+      function capturePoseDistance(a, b) {
+        const dx = capturePoseCenterX(a) - capturePoseCenterX(b);
+        const dy = capturePoseCenterY(a) - capturePoseCenterY(b);
+        return Math.hypot(dx, dy);
+      }
+      function alignCapturePosesToPrevious(poses) {
+        const ordered = orderCapturePoses(poses).slice(0, 3);
+        if (capturePoseMode === "single" || !captureSmoothedLandmarks.length || ordered.length < 2) return ordered;
+        const remaining = ordered.slice();
+        const aligned = [];
+        captureSmoothedLandmarks.slice(0, 3).forEach((previousPose) => {
+          if (!previousPose || !remaining.length) return;
+          let bestIndex = -1;
+          let bestDistance = Infinity;
+          remaining.forEach((pose, index) => {
+            const distance = capturePoseDistance(previousPose, pose);
+            if (distance < bestDistance) {
+              bestDistance = distance;
+              bestIndex = index;
+            }
+          });
+          if (bestIndex >= 0 && bestDistance <= 0.28) aligned.push(remaining.splice(bestIndex, 1)[0]);
+        });
+        aligned.push(...remaining.sort((a, b) => capturePoseCenterX(a) - capturePoseCenterX(b)));
+        return aligned.slice(0, 3);
+      }
+      function smoothCapturePoses(poses) {
+        return poses.map((pose, poseIndex) => {
+          const previous = captureSmoothedLandmarks[poseIndex];
+          return (pose || []).map((point, pointIndex) => {
+            if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return previous?.[pointIndex] || point;
+            const old = previous?.[pointIndex];
+            if (!old || !Number.isFinite(old.x) || !Number.isFinite(old.y)) return { ...point };
+            const visibility = point.visibility == null ? 1 : point.visibility;
+            const alpha = capturePoseMode === "multi"
+              ? (visibility >= .65 ? .92 : .78)
+              : (visibility >= .65 ? .48 : .28);
+            return { ...point, x: old.x + (point.x - old.x) * alpha, y: old.y + (point.y - old.y) * alpha, z: (old.z || 0) + ((point.z || 0) - (old.z || 0)) * alpha };
+          });
+        });
+      }
+      function setCapturePoseMode(mode) {
+        capturePoseMode = mode === "single" ? "single" : "multi";
+        captureSinglePose?.classList.toggle("active", capturePoseMode === "single");
+        captureMultiPose?.classList.toggle("active", capturePoseMode === "multi");
+      }
+      async function requestLandscape() {
+        if (!window.matchMedia?.("(max-width: 768px)").matches) return;
+        try { await screen.orientation?.lock?.("landscape"); } catch (error) { /* 브라우저 정책상 잠금이 거부될 수 있음 */ }
+      }
+      function releaseOrientation() {
+        try { screen.orientation?.unlock?.(); } catch (error) { /* noop */ }
+      }
+      startRecordBtn?.addEventListener("click", startRecording);
+      bindCaptureCameraPinchZoom(captureStage);
+      captureSkeletonToggle?.addEventListener("click", () => {
+        captureSkeletonEnabled = !captureSkeletonEnabled;
+        setCaptureChip(captureSkeletonToggle, captureSkeletonEnabled, "스켈레톤");
+        startCapturePoseLoop();
+      });
+      captureTrajectoryToggle?.addEventListener("click", () => {
+        captureTrajectoryEnabled = !captureTrajectoryEnabled;
+        if (!captureTrajectoryEnabled) captureTrails.forEach((trail) => Object.keys(trail).forEach((key) => { trail[key] = []; }));
+        setCaptureChip(captureTrajectoryToggle, captureTrajectoryEnabled, "궤적");
+        startCapturePoseLoop();
+      });
+      captureSinglePose?.addEventListener("click", () => setCapturePoseMode("single"));
+      captureMultiPose?.addEventListener("click", () => setCapturePoseMode("multi"));
+      captureQualityStandard?.addEventListener("click", () => {
+        captureQuality = "standard";
+        captureQualityStandard.classList.add("active");
+        captureQualityHigh?.classList.remove("active");
+        if (captureStream) startCamera().catch((error) => alert(`카메라를 다시 열지 못했습니다: ${error.message || error}`));
+      });
+      captureQualityHigh?.addEventListener("click", () => {
+        captureQuality = "high";
+        captureQualityHigh.classList.add("active");
+        captureQualityStandard?.classList.remove("active");
+        if (captureStream) startCamera().catch((error) => alert(`카메라를 다시 열지 못했습니다: ${error.message || error}`));
+      });
+      captureBackBtn?.addEventListener("click", () => { releaseOrientation(); setAppTab("home"); });
+      capturePreview?.addEventListener("loadedmetadata", syncCaptureOrientationState);
+      capturePreview?.addEventListener("playing", () => {
+        syncCaptureOrientationState();
+        captureStage?.classList.add("camera-ready");
+      });
+      capturePreview?.addEventListener("pause", () => captureStage?.classList.remove("camera-ready"));
+      window.addEventListener("resize", syncCaptureOrientationState);
+      window.screen?.orientation?.addEventListener?.("change", syncCaptureOrientationState);
+      let metroTimer = null;
+      metronomeBtn?.addEventListener("click", () => {
+        if (metroTimer) { clearInterval(metroTimer); metroTimer = null; metronomeBtn.textContent = "메트로놈 60"; return; }
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const tick = () => {
+          const osc = ctx.createOscillator(), gain = ctx.createGain();
+          osc.frequency.value = 880; gain.gain.value = .08;
+          osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + .05);
+        };
+        tick(); metroTimer = setInterval(tick, 1000); metronomeBtn.textContent = "메트로놈 끄기";
+      });
+      analysisZoom?.addEventListener("input", () => applyVideoZoom(video, analysisZoom.value, analysisZoomText));
+      analysisZoomIn?.addEventListener("click", () => { analysisZoom.value = Math.min(2, Number(analysisZoom.value) + .1); applyVideoZoom(video, analysisZoom.value, analysisZoomText); });
+      analysisZoomOut?.addEventListener("click", () => { analysisZoom.value = Math.max(.75, Number(analysisZoom.value) - .1); applyVideoZoom(video, analysisZoom.value, analysisZoomText); });
+      function bindCompareInput(input, videoEl) {
+        input?.addEventListener("change", () => {
+          const file = input.files && input.files[0];
+          if (!file || !videoEl) return;
+          if (videoEl.dataset.url) URL.revokeObjectURL(videoEl.dataset.url);
+          const url = URL.createObjectURL(file);
+          videoEl.dataset.url = url;
+          videoEl.src = url;
+          videoEl.load();
+          videoEl.addEventListener("loadedmetadata", updateCompareStageAspect, { once: true });
+          if (compareEmptyState) {
+            const ready = Boolean(compareBeforeVideo?.src && compareAfterVideo?.src);
+            compareEmptyState.textContent = ready ? "" : "전 영상과 후 영상을 모두 선택하면 비교할 수 있습니다.";
+            compareEmptyState.classList.toggle("hidden", ready);
+          }
+        });
+      }
+      function updateCompareStageAspect() {
+        if (!compareStage) return;
+        const source = compareBeforeVideo?.videoWidth ? compareBeforeVideo : compareAfterVideo;
+        if (!source?.videoWidth || !source?.videoHeight) return;
+        compareStage.style.aspectRatio = `${source.videoWidth} / ${source.videoHeight}`;
+      }
+      bindCompareInput(compareBeforeInput, compareBeforeVideo);
+      bindCompareInput(compareAfterInput, compareAfterVideo);
+      compareOpacity?.addEventListener("input", () => { compareAfterVideo.style.opacity = compareOpacity.value; });
+      function compareVideosReady() {
+        return Boolean(compareBeforeVideo?.src && compareAfterVideo?.src && compareBeforeVideo.videoWidth && compareAfterVideo.videoWidth);
+      }
+      function renderCompareResult(html) {
+        if (!compareResult) return;
+        compareResult.hidden = false;
+        compareResult.innerHTML = html;
+      }
+      function drawCompareFrame(ctx, width, height) {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, width, height);
+        const beforeRect = videoDrawRect(compareBeforeVideo, width, height, "contain");
+        const afterRect = videoDrawRect(compareAfterVideo, width, height, "contain");
+        if (beforeRect) ctx.drawImage(compareBeforeVideo, beforeRect.offX, beforeRect.offY, beforeRect.drawW, beforeRect.drawH);
+        if (afterRect) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0.15, Math.min(1, Number(compareOpacity?.value || 0.52)));
+          ctx.drawImage(compareAfterVideo, afterRect.offX, afterRect.offY, afterRect.drawW, afterRect.drawH);
+          ctx.restore();
+        }
+      }
+      function safeMediaDuration(videoEl) {
+        const duration = Number(videoEl?.duration);
+        if (Number.isFinite(duration) && duration > 0) return duration;
+        const seekable = videoEl?.seekable;
+        if (seekable?.length) {
+          const end = Number(seekable.end(seekable.length - 1));
+          if (Number.isFinite(end) && end > 0) return end;
+        }
+        return 0;
+      }
+      async function saveCompareVideo() {
+        if (!compareVideosReady()) {
+          renderCompareResult("전 영상과 후 영상을 모두 선택한 뒤 저장하세요.");
+          return;
+        }
+        if (!HTMLCanvasElement.prototype.captureStream || !window.MediaRecorder) {
+          renderCompareResult("이 브라우저에서는 비교 영상 저장을 지원하지 않습니다.");
+          return;
+        }
+        const width = Math.min(1280, Math.max(compareBeforeVideo.videoWidth, compareAfterVideo.videoWidth, 640));
+        const baseRatio = compareBeforeVideo.videoWidth && compareBeforeVideo.videoHeight
+          ? compareBeforeVideo.videoWidth / compareBeforeVideo.videoHeight
+          : 16 / 9;
+        const height = Math.max(360, Math.round(width / baseRatio));
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d", { alpha: false });
+        const stream = canvas.captureStream(30);
+        const mimeType = recordingMimeType();
+        const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+        const chunks = [];
+        recorder.addEventListener("dataavailable", (event) => { if (event.data?.size) chunks.push(event.data); });
+        const done = new Promise((resolve) => recorder.addEventListener("stop", resolve, { once: true }));
+        const beforeDuration = safeMediaDuration(compareBeforeVideo);
+        const afterDuration = safeMediaDuration(compareAfterVideo);
+        const duration = Math.min(beforeDuration || 10, afterDuration || 10, MAX_RECORDING_MS / 1000);
+        compareBeforeVideo.currentTime = 0;
+        compareAfterVideo.currentTime = 0;
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        recorder.start(250);
+        let raf = 0;
+        const draw = () => {
+          drawCompareFrame(ctx, width, height);
+          if (duration && Math.max(compareBeforeVideo.currentTime, compareAfterVideo.currentTime) >= duration - 0.03) {
+            recorder.stop();
+            return;
+          }
+          raf = requestAnimationFrame(draw);
+        };
+        draw();
+        await Promise.all([compareBeforeVideo.play(), compareAfterVideo.play()]).catch(() => {});
+        setTimeout(() => {
+          if (recorder.state === "recording") recorder.stop();
+        }, Math.max(1000, (duration || 10) * 1000 + 500));
+        await done;
+        if (raf) cancelAnimationFrame(raf);
+        compareBeforeVideo.pause();
+        compareAfterVideo.pause();
+        const type = recorder.mimeType || mimeType || "video/webm";
+        const ext = type.includes("mp4") ? "mp4" : "webm";
+        saveBlob(new Blob(chunks, { type }), `poomsae-compare-overlay.${ext}`);
+        renderCompareResult("비교 오버레이 영상을 저장했습니다.");
+      }
+      function analyzeCompareVideos() {
+        if (!compareVideosReady()) {
+          renderCompareResult("전 영상과 후 영상을 모두 선택한 뒤 비교 분석을 누르세요.");
+          return;
+        }
+        const beforeDuration = safeMediaDuration(compareBeforeVideo);
+        const afterDuration = safeMediaDuration(compareAfterVideo);
+        const beforeRes = `${compareBeforeVideo.videoWidth}x${compareBeforeVideo.videoHeight}`;
+        const afterRes = `${compareAfterVideo.videoWidth}x${compareAfterVideo.videoHeight}`;
+        if (!beforeDuration || !afterDuration) {
+          renderCompareResult(`시간 변화: 영상 길이 정보를 확인할 수 없습니다.<br>전 영상: ${beforeRes}<br>후 영상: ${afterRes}`);
+          return;
+        }
+        const delta = afterDuration - beforeDuration;
+        const pct = (delta / beforeDuration) * 100;
+        renderCompareResult(`시간 변화: ${delta >= 0 ? "+" : ""}${delta.toFixed(2)}초 (${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%)<br>전 영상: ${beforeDuration.toFixed(2)}초 · ${beforeRes}<br>후 영상: ${afterDuration.toFixed(2)}초 · ${afterRes}`);
+      }
+      compareSaveBtn?.addEventListener("click", () => saveCompareVideo().catch((error) => {
+        console.warn("Compare video save failed.", error);
+        renderCompareResult("비교 영상 저장 중 오류가 발생했습니다.");
+      }));
+      compareAnalyzeBtn?.addEventListener("click", analyzeCompareVideos);
+      renderRecordings();
       const PRESET_VIDEO_LIBRARY = {}; /*
         taegeuk_1: { label: "태극 1장", fileName: "품새_태극1장.mp4", url: "./videos/품새_태극1장.mp4" },
         taegeuk_2: { label: "태극 2장", fileName: "품새_태극2장.mp4", url: "./videos/품새_태극2장.mp4" },
@@ -5773,6 +7320,7 @@ function applyBannerToDom(config) {
       const detectRateText = document.getElementById("detectRateText");
       const powerScoreText = document.getElementById("powerScoreText");
       const modeHelp = document.getElementById("modeHelp");
+      const competitionEventWrap = document.getElementById("competitionEventWrap");
       const progress = document.getElementById("progress");
       const progressText = document.getElementById("progressText");
       const modelStatus = document.getElementById("modelStatus");
@@ -5801,6 +7349,7 @@ function applyBannerToDom(config) {
       let replayObjectUrl = null;
       let selectedFile = null;
       let poseLandmarker = null;
+      let capturePoseLandmarker = null;
       let actionQualityModel = null;
       const textbookPoseReferences = {};
       const videoMotionReferences = {};
@@ -5815,17 +7364,7 @@ function applyBannerToDom(config) {
         ["taegeuk_4", "./models/taegeuk-4-textbook-reference.json"],
         ["taegeuk_5", "./models/taegeuk-5-textbook-reference.json"],
         ["taegeuk_6", "./models/taegeuk-6-textbook-reference.json"],
-        ["taegeuk_7", "./models/taegeuk-7-textbook-reference.json"],
-        ["taegeuk_8", "./models/taegeuk-8-textbook-reference.json"],
-        ["koryo", "./models/koryo-textbook-reference.json"],
-        ["keumgang", "./models/keumgang-textbook-reference.json"],
-        ["taebaek", "./models/taebaek-textbook-reference.json"],
-        ["pyongwon", "./models/pyongwon-textbook-reference.json"],
-        ["sipjin", "./models/sipjin-textbook-reference.json"],
-        ["jitae", "./models/jitae-textbook-reference.json"],
-        ["cheonkwon", "./models/cheonkwon-textbook-reference.json"],
-        ["hansu", "./models/hansu-textbook-reference.json"],
-        ["ilyeo", "./models/ilyeo-textbook-reference.json"]
+        ["koryo", "./models/koryo-textbook-reference.json"]
       ].forEach(([poomsaeKey, referenceUrl]) => {
         fetch(referenceUrl, { cache: "no-store" })
           .then((response) => response.ok ? response.json() : null)
@@ -5837,23 +7376,9 @@ function applyBannerToDom(config) {
           });
       });
       [
-        ["taegeuk_1", "./models/taegeuk-1-video-reference.json"],
-        ["taegeuk_2", "./models/taegeuk-2-video-reference.json"],
-        ["taegeuk_3", "./models/taegeuk-3-video-reference.json"],
-        ["taegeuk_4", "./models/taegeuk-4-video-reference.json"],
         ["taegeuk_5", "./models/taegeuk-5-video-reference.json"],
         ["taegeuk_6", "./models/taegeuk-6-video-reference.json"],
-        ["taegeuk_7", "./models/taegeuk-7-video-reference.json"],
-        ["taegeuk_8", "./models/taegeuk-8-video-reference.json"],
-        ["koryo", "./models/koryo-video-reference.json"],
-        ["keumgang", "./models/keumgang-video-reference.json"],
-        ["taebaek", "./models/taebaek-video-reference.json"],
-        ["pyongwon", "./models/pyongwon-video-reference.json"],
-        ["sipjin", "./models/sipjin-video-reference.json"],
-        ["jitae", "./models/jitae-video-reference.json"],
-        ["cheonkwon", "./models/cheonkwon-video-reference.json"],
-        ["hansu", "./models/hansu-video-reference.json"],
-        ["ilyeo", "./models/ilyeo-video-reference.json"]
+        ["koryo", "./models/koryo-video-reference.json"]
       ].forEach(([poomsaeKey, referenceUrl]) => {
         fetch(referenceUrl, { cache: "no-store" })
           .then((response) => response.ok ? response.json() : null)
@@ -5913,6 +7438,9 @@ function applyBannerToDom(config) {
       function videoFingerprint(file) {
         return file ? `${file.name}|${file.size}` : "";
       }
+      function fileFingerprint(file) {
+        return file ? `${file.name}|${file.size}|${file.lastModified || 0}` : "";
+      }
       function loadVideoCorrections() {
         try {
           const raw = localStorage.getItem(VIDEO_CORRECTIONS_KEY);
@@ -5967,6 +7495,7 @@ function applyBannerToDom(config) {
             review_session_id: correctionSessionId,
             correction_revision: ++correctionRevision,
             action,
+            trusted_provenance: false,
             ...details
           };
           const log = loadCorrectionLog();
@@ -5977,26 +7506,19 @@ function applyBannerToDom(config) {
           sendCorrectionToCloud(record);
         } catch (e) { /* 무시 */ }
       }
-      // 자동 감지 결과를 고치지 않은 채 다음 영상으로 넘어가면, 그 자체를 "정확했다"는 신호로
-      // 자동 기록한다(버튼 없음). 배경(2026-07-22 사용자 확인): 처음엔 "정확해요" 버튼을 눌러야
-      // 기록되게 했는데, 초등학생도 쓸 만큼 단순해야 한다는 원칙에 맞지 않았다 — 확인차 버튼을
-      // 누르게 하는 것 자체가 번거로움이다. 그래서 "아무것도 안 고치고 다음 영상으로 넘어감"이라는
-      // 행동 자체를 신호로 쓴다. 위치별 진짜 정확도(정확했던 비율)를 계산하려면 '고침'뿐 아니라
-      // '안 고쳐도 됐음'도 데이터가 필요하다 — 경계 개수만큼 펼쳐질 요약 1건만 보낸다(레코드 하나로
-      // N개 위치를 다 확인했다는 의미 — 분석 시점에 confirm_all → confirm N건으로 펼침).
-      function autoConfirmIfUnedited() {
-        if (confirmedThisSession || !lastBoundaryCache || !Array.isArray(lastBoundaryCache.boundaries) || !lastBoundaryCache.autoBoundaries) return;
-        const unchanged = JSON.stringify(lastBoundaryCache.boundaries) === JSON.stringify(lastBoundaryCache.autoBoundaries);
-        if (!unchanged) return; // 뭔가 고쳤으면 그 자체가 이미 (반대) 신호이므로 확인 기록은 안 남긴다.
-        recordCorrection("confirm_all", { boundary_count: lastBoundaryCache.boundaries.length });
+      // 사용자가 직접 "구간 확인 완료"를 누른 경우에만 정확 신호를 남긴다.
+      // 화면 이탈·무수정 상태를 자동으로 정확하다고 기록하면 검수 데이터가 오염될 수 있다.
+      function confirmBoundariesExplicitly() {
+        if (confirmedThisSession || !lastBoundaryCache || !Array.isArray(lastBoundaryCache.boundaries)) return;
+        recordCorrection("confirm_all", {
+          boundary_count: lastBoundaryCache.boundaries.length,
+          explicit_review: true
+        });
         confirmedThisSession = true;
+        const status = document.getElementById("correctionLogStatus");
+        if (status) status.textContent = "구간 확인을 기록했습니다.";
+        renderManualEditPanel();
       }
-      // 새 영상을 고르지 않고 그냥 탭을 닫거나 다른 앱으로 전환해도(모바일에서 흔한 패턴)
-      // 자동 확인이 누락되지 않도록 안전망을 둔다. beforeunload는 모바일에서 신뢰도가 낮아
-      // visibilitychange(hidden)를 쓴다 — idempotent라 여러 번 걸려도 무해하다.
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "hidden") autoConfirmIfUnedited();
-      });
       // 분석 완료 후 수동 조정 바를 보이게 하고, 토글 버튼을 연결한다.
       function renderManualEditPanel() {
         const bar = document.getElementById("manualEditBar");
@@ -6010,6 +7532,7 @@ function applyBannerToDom(config) {
         // 보정 기록 현황 표시 + 내보내기 버튼.
         const status = document.getElementById("correctionLogStatus");
         const exportBtn = document.getElementById("exportCorrectionBtn");
+        const confirmBtn = document.getElementById("confirmBoundariesBtn");
         const sum = correctionLogSummary();
         if (status) {
           status.textContent = sum.total > 0
@@ -6017,6 +7540,7 @@ function applyBannerToDom(config) {
             : "";
         }
         if (exportBtn) exportBtn.style.display = sum.total > 0 ? "inline-block" : "none";
+        if (confirmBtn) confirmBtn.style.display = canManualEdit() && !confirmedThisSession ? "inline-block" : "none";
         // 수동 조정이 자동과 달라졌으면 '되돌리기' 버튼 노출.
         const restoreBtn = document.getElementById("restoreAutoBtn");
         const unchanged = lastBoundaryCache && lastBoundaryCache.autoBoundaries
@@ -6166,10 +7690,46 @@ function applyBannerToDom(config) {
         return suggestions;
       }
       // 인증된 관리자만 호출 가능(그 외엔 Firestore 규칙이 자체적으로 거부).
+      async function importCalibrationReviewJson(file) {
+        const statusEl = document.getElementById("reportStatus");
+        if (!_fbCurrentAdminUser || !_fbDB || !_fbAddDoc || !_fbCollection) {
+          if (statusEl) statusEl.textContent = "정답 검수 JSON을 가져오려면 관리자 로그인과 Firebase 연결이 필요합니다.";
+          return;
+        }
+        try {
+          const parsed = JSON.parse(await file.text());
+          const previewRecord = parsed?.calibration_record;
+          const normalized = normalizeCalibrationImport(previewRecord ? { calibration_record: previewRecord } : parsed);
+          if (!normalized.accepted_count) {
+            if (statusEl) statusEl.textContent = `가져오기 실패: 유효한 정답 검수 기록이 없습니다(거절 ${normalized.rejected_count}건).`;
+            return;
+          }
+          for (const record of normalized.accepted) {
+            await _fbAddDoc(_fbCollection(_fbDB, "calibration_reviews"), {
+              ...record,
+              imported_at: new Date().toISOString(),
+              imported_by: _fbCurrentAdminUser.email || ""
+            });
+          }
+          const trustedProfiles = buildTrustedCollectiveProfiles(normalized.accepted);
+          if (statusEl) statusEl.textContent = `정답 검수 ${normalized.accepted_count}건을 가져왔습니다. 신뢰 프로필 후보 ${Object.keys(trustedProfiles).length}개를 확인했습니다.`;
+          await loadAndRenderCorrectionReport();
+        } catch (error) {
+          console.warn("Calibration import failed", error);
+          if (statusEl) statusEl.textContent = "정답 검수 JSON을 읽거나 저장하지 못했습니다.";
+        }
+      }
       async function loadAndRenderCorrectionReport() {
         const statusEl = document.getElementById("reportStatus");
         const bodyEl = document.getElementById("reportBody");
-        if (!_fbCurrentAdminUser || !_fbDB || !_fbGetDocs) return;
+        if (!_fbCurrentAdminUser) {
+          if (statusEl) statusEl.textContent = "학습 리포트를 보려면 관리자 이메일·비밀번호로 로그인하세요.";
+          return;
+        }
+        if (!_fbDB || !_fbGetDocs) {
+          if (statusEl) statusEl.textContent = "Firebase가 아직 준비되지 않았습니다. 잠시 후 새로고침하세요.";
+          return;
+        }
         if (statusEl) statusEl.textContent = "불러오는 중...";
         if (bodyEl) bodyEl.innerHTML = "";
         try {
@@ -6194,7 +7754,7 @@ function applyBannerToDom(config) {
           }
           if (bodyEl) {
             const accBadge = (l) => l.accuracy_rate != null
-              ? `<span class="small" style="margin-left:6px;color:var(--muted)">정확도 ${(l.accuracy_rate * 100).toFixed(0)}%(확인 ${l.counts?.confirm ?? Math.round(l.accuracy_rate * (l.total_reviews ?? l.total ?? 0))}/전체 ${l.total_reviews ?? l.total ?? 0})</span>` : "";
+              ? `<span class="small" style="margin-left:6px;color:var(--muted)">정확도 ${(l.accuracy_rate * 100).toFixed(0)}%(확인 ${l.counts.confirm}/전체 ${l.total})</span>` : "";
             const suggestionHtml = suggestions.length
               ? suggestions.map((s) => {
                   const isBoundaryShift = s.type === "boundary_shift";
@@ -6271,8 +7831,8 @@ function applyBannerToDom(config) {
             });
           }
         } catch (e) {
-          const detail = e && (e.code || e.message) ? ` (${e.code || e.message})` : "";
-          if (statusEl) statusEl.textContent = `불러오기 실패: 권한이 없거나 네트워크 문제일 수 있습니다.${detail}`;
+          console.error("Correction report load failed", e);
+          if (statusEl) statusEl.textContent = describeReportLoadError(e);
         }
       }
       // 로그인 상태에 따라 로그인 폼 ↔ 리포트 패널을 전환하고, 로그인 시 리포트를 불러온다.
@@ -6303,6 +7863,7 @@ function applyBannerToDom(config) {
       const stableAnalysisCache = new Map();
       let isAnalyzing = false;
       let loadModelPromise = null;
+      let loadCaptureModelPromise = null;
       let mainReplayRange = null;
       let modalReplayRange = null;
       let analysisTimestampOffsetMs = 0;
@@ -6538,7 +8099,7 @@ function applyBannerToDom(config) {
         // 위저드 설정 section(grid의 첫 자식, 위저드 단계 포함)을 grid 밖으로 빼 전체 폭으로 둔다.
         // 이렇게 해야 setupLayout의 sticky(video-dock) 처리가 위저드를 가두지 않는다.
         const wizardSection = grid ? Array.from(grid.children).find((c) => c.querySelector && c.querySelector(".wizard-step")) : null;
-        if (trainingPage && grid && wizardSection) {
+        if (trainingPage && grid && wizardSection && grid.parentElement === trainingPage && wizardSection.parentElement === grid) {
           trainingPage.insertBefore(wizardSection, grid);
           // 안전장치: 위저드 영역은 어떤 경우에도 sticky/overflow에 갇히지 않게 한다.
           wizardSection.classList.remove("video-dock");
@@ -6771,6 +8332,26 @@ function applyBannerToDom(config) {
         items.sort((a, b) => a.score - b.score);
         return items[0];
       }
+      function competitionEventExtraMarkup(segment) {
+        if (trainingMode !== "competition") return "";
+        const profile = activeCompetitionEventProfile();
+        if (profile.id === "team") {
+          const timing = Number.isFinite(segment.snapScore) && Number.isFinite(segment.stillnessScore)
+            ? Math.round((segment.snapScore + segment.stillnessScore) / 2)
+            : null;
+          return `
+            <div class="scene-keyfix">
+              <p><b>단체전 평가 적용:</b> ${escapeHtml(profile.card_hint)}</p>
+              <p><b>팀 싱크 체크:</b> 시작 타이밍 · 맺음 타이밍 · 높낮이 · 방향 · 선수 간 간격 · 대형 유지</p>
+              ${timing != null ? `<p class="small"><b>동시성 참고 지표:</b> 맺음/정지 평균 ${timing}점 · 여러 선수가 같은 순간에 멈췄는지는 영상으로 지도자 확인이 필요합니다.</p>` : ""}
+            </div>`;
+        }
+        return `
+          <div class="scene-keyfix">
+            <p><b>개인전 평가 적용:</b> ${escapeHtml(profile.card_hint)}</p>
+            <p class="small">개인 실수, 흔들림, 동작 오류, 연결 완성도를 중심으로 보완점을 표시합니다.</p>
+          </div>`;
+      }
       function renderSceneCard(segment, isPriority = false) {
         const shot = segment.snapshot
           ? `<img class="scene-shot" src="${segment.snapshot}" alt="${escapeHtml(segment.order)}번 구간 장면" loading="lazy" />`
@@ -6813,6 +8394,7 @@ function applyBannerToDom(config) {
           ? `<span class="status ${deduction.amount === 0.3 ? "bad" : deduction.amount === 0.1 ? "caution" : "good"}">${escapeHtml(deduction.label)}</span>`
           : "";
         const keyFix = trainingMode === "competition" ? keyFixPoint(segment) : null;
+        const eventExtra = competitionEventExtraMarkup(segment);
         const competitionExtra = trainingMode === "competition"
           ? `
             <div class="scene-keyfix">
@@ -6820,7 +8402,7 @@ function applyBannerToDom(config) {
               ${keyFix ? `<p><b>핵심 수정:</b> [${escapeHtml(keyFix.label)}] ${escapeHtml(keyFix.fix)}</p>` : ""}
               ${merged ? `<p class="small"><b>참고:</b> 이 구간에는 ${escapeHtml(segment.mergedMovementNumbers || "")} 동작이 함께 들어가 있어, 감점은 각 동작별로 따로 적용됩니다. 지도자 확인을 권장합니다.</p>` : ""}
               ${(merged && typeof segment.allocConfidence === "number" && segment.allocConfidence < 0.45) ? `<p class="small" style="color:var(--warn,#b45309)"><b>주의:</b> 이 구간은 동작 경계가 흐릿해 어떤 동작이 묶였는지 추정이 불확실합니다. 동작 끝마다 잠깐 멈춰 다시 촬영하면 정확도가 올라갑니다.</p>` : ""}
-            </div>`
+            </div>${eventExtra}`
           : "";
 
         // 수련품새: 동작 확실성 + 쉬운 말 문제·수정.
@@ -6958,7 +8540,7 @@ function applyBannerToDom(config) {
         return `확인할 문제: ${segment.label || "지도자 확인 필요"}.`;
       }
       function modeLabel() {
-        return trainingMode === "exam" ? "수련 동작 분석" : "경기 참고";
+        return trainingMode === "exam" ? "수련 동작 분석" : `경기 참고 · ${activeCompetitionEventProfile().label}`;
       }
       const DEVICE_MODE_COPY = {
         front: {
@@ -7249,12 +8831,18 @@ function applyBannerToDom(config) {
           tab.classList.toggle("active", tab.dataset.mode === trainingMode);
           tab.setAttribute("aria-selected", tab.dataset.mode === trainingMode ? "true" : "false");
         });
+        document.querySelectorAll("[data-event]").forEach((tab) => {
+          tab.classList.toggle("active", tab.dataset.event === competitionEvent);
+          tab.setAttribute("aria-selected", tab.dataset.event === competitionEvent ? "true" : "false");
+        });
+        if (competitionEventWrap) competitionEventWrap.hidden = trainingMode !== "competition";
         if (modeHelp) {
+          const eventProfile = activeCompetitionEventProfile();
           modeHelp.textContent = trainingMode === "exam"
             ? "수련 동작 분석: 첫 동작 시작점과 동작별 구간을 먼저 보여주고, 점수 없이 수련생과 지도자가 함께 확인할 고칠 점을 알려드립니다."
-            : "경기 참고: 동일한 동작별 분석에 2026 국내 경기규칙과 WT 2024 구조를 참고한 훈련용 점수와 수정 우선순위를 추가합니다.";
+            : `경기 참고 · ${eventProfile.label}: ${eventProfile.summary} 2026 국내 경기규칙과 WT 2024 구조를 참고한 훈련용 점수와 수정 우선순위를 추가합니다.`;
         }
-        powerScoreText.closest(".metric").querySelector("strong").textContent = trainingMode === "exam" ? "동작별 확인" : "경기 참고점수";
+        powerScoreText.closest(".metric").querySelector("strong").textContent = trainingMode === "exam" ? "동작별 확인" : activeCompetitionEventProfile().score_label;
         if (!latestReport) powerScoreText.textContent = trainingMode === "exam" ? "시작점·구간" : "-";
       }
       function renderResultPage() {
@@ -7269,15 +8857,17 @@ function applyBannerToDom(config) {
           .slice(0, 4);
         const summaryItems = latestReport.summary.items || [];
         const ruleProfile = latestReport.rule_reference_profile || activeRuleReferenceProfile();
+        const eventProfile = latestReport.competition_event || activeCompetitionEventProfile();
         const rulePrimaryTitle = ruleProfile.primary?.title || ruleProfile.primary?.source || "-";
         const ruleCrossTitle = ruleProfile.cross_check?.title || "";
         const scoreMetric = trainingMode === "exam"
           ? `<div class="metric"><strong>분석 중심</strong><span>동작별 확인</span></div>`
-          : `<div class="metric"><strong>경기 참고점수</strong><span>${escapeHtml(latestReport.summary.competition_score_10)} / 10.0</span></div>`;
+          : `<div class="metric"><strong>${escapeHtml(eventProfile.score_label)}</strong><span>${escapeHtml(latestReport.summary.competition_score_10)} / 10.0</span></div>`;
         resultPageContent.innerHTML = `
           <div class="result-grid">
             <div class="metric"><strong>품새</strong><span>${escapeHtml(latestReport.poomsae?.name || currentPoomsae().name)}</span></div>
             ${scoreMetric}
+            ${trainingMode === "competition" ? `<div class="metric"><strong>경기 구분</strong><span>${escapeHtml(eventProfile.label)}</span></div>` : ""}
             <div class="metric"><strong>Pose 감지율</strong><span>${Math.round(latestReport.summary.detection_rate * 100)}%</span></div>
             <div class="metric"><strong>동작별 장면</strong><span>${latestReport.segments.length}개</span></div>
           </div>
@@ -7292,6 +8882,7 @@ function applyBannerToDom(config) {
             <ul class="list">
               <li class="good"><b>주 기준:</b> ${escapeHtml(rulePrimaryTitle)}</li>
               ${ruleCrossTitle ? `<li class="good"><b>교차검증:</b> ${escapeHtml(ruleCrossTitle)} (${escapeHtml(ruleProfile.cross_check.revision || "")})</li>` : ""}
+              ${trainingMode === "competition" ? `<li class="good"><b>분석 적용:</b> ${escapeHtml(eventProfile.analysis_focus)} · ${escapeHtml(eventProfile.summary)}</li>` : ""}
               ${ruleProfile.axes.map((axis) => `<li class="caution">${escapeHtml(axis)}</li>`).join("")}
               <li class="caution">${trainingMode === "exam"
                 ? "공식 심사 결과는 심사위원 평가로만 결정됩니다. 앱은 심사 대비 보완점만 제공합니다."
@@ -7388,11 +8979,16 @@ function applyBannerToDom(config) {
         lines.push(`태권도 품새수련 Beta · ${modeLabel()} 리포트`);
         lines.push(`생성일: ${new Date(latestReport.created_at).toLocaleString()}`);
         lines.push(`모드: ${modeLabel()}`);
+        if (trainingMode === "competition") {
+          const eventProfile = latestReport.competition_event || activeCompetitionEventProfile();
+          lines.push(`경기 구분: ${eventProfile.label}`);
+          lines.push(`분석 적용: ${eventProfile.summary}`);
+        }
         lines.push(`품새: ${latestReport.poomsae?.name || currentPoomsae().name}`);
         lines.push(`영상: ${latestReport.file?.name || "-"}`);
         lines.push(`해상도: ${latestReport.video.width} x ${latestReport.video.height}`);
         lines.push(`길이: ${latestReport.video.duration_seconds}초`);
-        if (trainingMode !== "exam") lines.push(`경기 참고점수: ${latestReport.summary.competition_score_10} / 10.0`);
+        if (trainingMode !== "exam") lines.push(`${(latestReport.competition_event || activeCompetitionEventProfile()).score_label}: ${latestReport.summary.competition_score_10} / 10.0`);
         else lines.push("분석 중심: 첫 동작 시작점과 동작별 구간 확인 및 수정");
         lines.push(`Pose 감지율: ${Math.round(latestReport.summary.detection_rate * 100)}%`);
         if (latestReport.summary.needed_training?.length) {
@@ -7417,8 +9013,10 @@ function applyBannerToDom(config) {
             const issue = segmentIssueDetails(segment, 1)[0];
             if (issue) lines.push(`  - 무엇이 아쉬운지: ${issue.kidProblem} / 이렇게 고쳐요: ${issue.kidFix}`);
           } else {
+            const ep = latestReport.competition_event || activeCompetitionEventProfile();
             const amt = segment.referenceDeduction?.amount;
             const dedText = amt === 0 ? "큰 감점 징후 적음" : amt == null ? "판정 보류(촬영/지도자 확인)" : `약 -${amt.toFixed(1)}점 가능성`;
+            lines.push(`  - ${ep.label} 평가 적용: ${ep.card_hint}`);
             lines.push(`  - 가감점(참고): ${dedText}`);
             const kf = keyFixPoint(segment);
             if (kf) lines.push(`  - 핵심 수정: [${kf.label}] ${kf.fix}`);
@@ -7569,12 +9167,12 @@ function applyBannerToDom(config) {
         rr(70, 305, 1260, 245, 18, "#ffffff", "#d9dee8");
         text("분석 대상", 110, 342, 30, "#111827", "800");
         metric("품새", poomsaeName, 110, 395, 270);
-        metric(trainingMode === "exam" ? "분석 중심" : "경기 참고점수", trainingMode === "exam" ? "동작별 확인" : `${avg} / 10.0`, 410, 395, 270);
+        metric(trainingMode === "exam" ? "분석 중심" : activeCompetitionEventProfile().score_label, trainingMode === "exam" ? "동작별 확인" : `${avg} / 10.0`, 410, 395, 270);
         metric("Pose 감지율", `${detectRate}%`, 710, 395, 270);
         metric("구간 수", latestReport.segments.length, 1010, 395, 270);
 
         rr(70, 590, 1260, 340, 18, "#ffffff", "#d9dee8");
-        text(trainingMode === "exam" ? "주요 수정 포인트" : "평가 항목", 110, 630, 30, "#111827", "800");
+        text(trainingMode === "exam" ? "주요 수정 포인트" : `${activeCompetitionEventProfile().label} 평가 항목`, 110, 630, 30, "#111827", "800");
         const speedAvg = Math.round(latestReport.segments.reduce((s, r) => s + r.velocityScore, 0) / latestReport.segments.length);
         const snapAvg = Math.round(latestReport.segments.reduce((s, r) => s + r.snapScore, 0) / latestReport.segments.length);
         const stillAvg = Math.round(latestReport.segments.reduce((s, r) => s + r.stillnessScore, 0) / latestReport.segments.length);
@@ -7684,11 +9282,49 @@ function applyBannerToDom(config) {
         }
         return out;
       }
+      function findNearestFrame(frames, t) {
+        if (!Array.isArray(frames) || !frames.length) return null;
+        let best = frames[0];
+        let bestGap = Math.abs((best.time || 0) - t);
+        for (const frame of frames) {
+          const gap = Math.abs((frame.time || 0) - t);
+          if (gap < bestGap) { best = frame; bestGap = gap; }
+        }
+        return best;
+      }
       function skeletonColorFor(visibility) {
         if (visibility == null) return { stroke: "#e74c3c", dash: [5, 4] };
         if (visibility >= 0.7) return { stroke: "#2ecc71", dash: [] };
         if (visibility >= 0.4) return { stroke: "#f1c40f", dash: [] };
         return { stroke: "#e74c3c", dash: [5, 4] };
+      }
+      const CAPTURE_ANGLE_JOINTS = [
+        [11, 13, 15], [12, 14, 16], [13, 11, 23], [14, 12, 24],
+        [11, 23, 25], [12, 24, 26], [23, 25, 27], [24, 26, 28]
+      ];
+      function drawCaptureAngleLabels(ctx, pose, toXY, scale) {
+        if (!pose) return;
+        ctx.save();
+        ctx.font = `800 ${Math.max(10, Math.round(12 * scale))}px system-ui, sans-serif`;
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "center";
+        for (const [ia, ib, ic] of CAPTURE_ANGLE_JOINTS) {
+          const a = pose[ia], b = pose[ib], c = pose[ic];
+          if (!a || !b || !c) continue;
+          if ([a, b, c].some((p) => (p.visibility ?? 1) < .35)) continue;
+          const angle = jointAngleDeg(a, b, c);
+          if (!Number.isFinite(angle)) continue;
+          const p = toXY(b);
+          const text = `${Math.round(angle)}°`;
+          const pad = 4 * scale;
+          const w = ctx.measureText(text).width + pad * 2;
+          const h = Math.max(17, 16 * scale);
+          ctx.fillStyle = "rgba(0,0,0,.72)";
+          ctx.fillRect(p.x - w / 2, p.y - h - 7 * scale, w, h);
+          ctx.fillStyle = "#fff";
+          ctx.fillText(text, p.x, p.y - h / 2 - 7 * scale);
+        }
+        ctx.restore();
       }
       // video의 실제 화면 표시 영역(object-fit:contain 레터박스 보정)에 맞춰 관절을 그린다.
       function drawSkeletonFrame(canvas, videoEl, landmarks) {
@@ -7702,33 +9338,49 @@ function applyBannerToDom(config) {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, rect.width, rect.height);
         if (!landmarks) return;
+        const poseList = Array.isArray(landmarks?.[0]) ? landmarks.slice(0, 3) : [landmarks];
         const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
         if (!vw || !vh) return;
-        const boxRatio = rect.width / rect.height;
-        const videoRatio = vw / vh;
-        let drawW, drawH, offX, offY;
-        if (videoRatio > boxRatio) { drawW = rect.width; drawH = rect.width / videoRatio; offX = 0; offY = (rect.height - drawH) / 2; }
-        else { drawH = rect.height; drawW = rect.height * videoRatio; offY = 0; offX = (rect.width - drawW) / 2; }
-        const toXY = (lm) => ({ x: offX + lm.x * drawW, y: offY + lm.y * drawH });
-        ctx.lineWidth = 3;
-        for (const [ai, bi] of POSE_CONNECTIONS) {
-          const a = landmarks[ai], b = landmarks[bi];
-          if (!a || !b) continue;
-          const c = skeletonColorFor(Math.min(a.visibility ?? 1, b.visibility ?? 1));
-          ctx.strokeStyle = c.stroke;
-          ctx.setLineDash(c.dash);
-          const pa = toXY(a), pb = toXY(b);
-          ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
-        }
-        ctx.setLineDash([]);
-        for (const idx of SKELETON_JOINTS) {
-          const lm = landmarks[idx];
-          if (!lm) continue;
-          const c = skeletonColorFor(lm.visibility);
-          const p = toXY(lm);
-          ctx.fillStyle = c.stroke;
-          ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
-        }
+        const isCapture = canvas === captureCanvas;
+        const fit = getComputedStyle(videoEl).objectFit || "contain";
+        const drawRect = isCapture
+          ? captureDrawRect(videoEl, rect.width, rect.height)
+          : videoDrawRect(videoEl, rect.width, rect.height, fit);
+        if (!drawRect) return;
+        const { drawW, drawH, offX, offY } = drawRect;
+        const toXY = (lm) => {
+          const point = { x: offX + lm.x * drawW, y: offY + lm.y * drawH };
+          return isCapture ? rotateCanvasPoint(point, rect.width, rect.height, captureRotationDeg()) : point;
+        };
+        const palette = ["#2ecc71", "#46c8be", "#f1c40f"];
+        poseList.forEach((pose, poseIndex) => {
+          if (!pose) return;
+          ctx.lineWidth = poseIndex === 0 ? 3 : 2;
+          for (const [ai, bi] of POSE_CONNECTIONS) {
+            const a = pose[ai], b = pose[bi];
+            if (!a || !b) continue;
+            const c = skeletonColorFor(Math.min(a.visibility ?? 1, b.visibility ?? 1));
+            ctx.strokeStyle = poseIndex === 0 ? c.stroke : palette[poseIndex] || c.stroke;
+            ctx.globalAlpha = poseIndex === 0 ? 1 : .82;
+            ctx.setLineDash(c.dash);
+            const pa = toXY(a), pb = toXY(b);
+            ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+          }
+          ctx.setLineDash([]);
+          for (const idx of SKELETON_JOINTS) {
+            const lm = pose[idx];
+            if (!lm) continue;
+            const c = skeletonColorFor(lm.visibility);
+            const p = toXY(lm);
+            ctx.fillStyle = poseIndex === 0 ? c.stroke : palette[poseIndex] || c.stroke;
+            ctx.globalAlpha = poseIndex === 0 ? 1 : .82;
+            ctx.beginPath(); ctx.arc(p.x, p.y, poseIndex === 0 ? 4 : 3, 0, Math.PI * 2); ctx.fill();
+          }
+          if (!isCapture || capturePoseMode === "single") {
+            if (poseIndex === 0) drawCaptureAngleLabels(ctx, pose, toXY, Math.max(.75, Math.min(1.4, rect.width / 480)));
+          }
+        });
+        ctx.globalAlpha = 1;
       }
       // 메인/리플레이 팝업 두 영상 모두를 매 프레임 갱신(구간 반복 재생에도 끊김 없이 이어짐).
       function skeletonRenderLoop() {
@@ -7744,7 +9396,10 @@ function applyBannerToDom(config) {
             if (cEl.width && cEl.height) ctx.clearRect(0, 0, cEl.width, cEl.height);
             continue;
           }
-          const lm = interpolateLandmarksAt(lastBoundaryCache.frames, vEl.currentTime);
+          const frame = findNearestFrame(lastBoundaryCache.frames, vEl.currentTime);
+          const lm = frame && Array.isArray(frame.allLandmarks) && frame.allLandmarks.length
+            ? frame.allLandmarks
+            : interpolateLandmarksAt(lastBoundaryCache.frames, vEl.currentTime);
           drawSkeletonFrame(cEl, vEl, lm);
         }
       }
@@ -7987,23 +9642,49 @@ function applyBannerToDom(config) {
         }
         throw lastError || new Error("MediaPipe import failed");
       }
-      async function createPoseLandmarker(PoseLandmarker, vision, modelUrl, delegate) {
+      async function createPoseLandmarker(PoseLandmarker, vision, modelUrl, delegate, options = {}) {
         return PoseLandmarker.createFromOptions(vision, {
           baseOptions: { modelAssetPath: modelUrl, delegate },
           runningMode: "VIDEO",
-          numPoses: 1,
-          minPoseDetectionConfidence: 0.45,
-          minPosePresenceConfidence: 0.45,
-          minTrackingConfidence: 0.45
+          numPoses: options.numPoses ?? 3,
+          minPoseDetectionConfidence: options.minPoseDetectionConfidence ?? 0.5,
+          minPosePresenceConfidence: options.minPosePresenceConfidence ?? 0.5,
+          minTrackingConfidence: options.minTrackingConfidence ?? 0.5
         });
       }
-      async function createPoseLandmarkerWithFallback(PoseLandmarker, vision, modelUrl) {
+      async function createPoseLandmarkerWithFallback(PoseLandmarker, vision, modelUrl, options = {}) {
         try {
-          return await createPoseLandmarker(PoseLandmarker, vision, modelUrl, "GPU");
+          return await createPoseLandmarker(PoseLandmarker, vision, modelUrl, "GPU", options);
         } catch (gpuError) {
           console.warn("GPU delegate failed; retrying PoseLandmarker with CPU delegate.", gpuError);
           setProgress(45, "GPU delegate failed. Retrying with CPU delegate for device compatibility.");
-          return createPoseLandmarker(PoseLandmarker, vision, modelUrl, "CPU");
+          return createPoseLandmarker(PoseLandmarker, vision, modelUrl, "CPU", options);
+        }
+      }
+      const STANDARD_ANALYSIS_POSE_OPTIONS = Object.freeze({
+        numPoses: 3,
+        minPoseDetectionConfidence: 0.5,
+        minPosePresenceConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
+      const TEAM_ANALYSIS_POSE_OPTIONS = Object.freeze({
+        numPoses: 3,
+        // 뒤쪽 선수처럼 화면에서 작게 보이는 인물의 후보를 먼저 살리고,
+        // 아래 집단 동시 검증에서 여러 프레임에 걸쳐 반복 검출되는 경우만 인정한다.
+        minPoseDetectionConfidence: 0.3,
+        minPosePresenceConfidence: 0.25,
+        minTrackingConfidence: 0.25
+      });
+      async function configureAnalysisPoseLandmarker() {
+        if (!poseLandmarker || typeof poseLandmarker.setOptions !== "function") return;
+        const options = trainingMode === "competition" && competitionEvent === "team"
+          ? TEAM_ANALYSIS_POSE_OPTIONS
+          : STANDARD_ANALYSIS_POSE_OPTIONS;
+        try {
+          await poseLandmarker.setOptions(options);
+        } catch (error) {
+          // 일부 구형 WebView는 런타임 setOptions를 지원하지 않아 기본 설정으로 계속 분석한다.
+          console.warn("Analysis pose options could not be updated.", error);
         }
       }
       async function loadModel() {
@@ -8018,11 +9699,11 @@ function applyBannerToDom(config) {
           setProgress(38, "WASM과 Pose Landmarker를 준비하는 중입니다.");
           try {
             const vision = await FilesetResolver.forVisionTasks(LOCAL_WASM_URL);
-            poseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, LOCAL_MODEL_URL);
+            poseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, LOCAL_MODEL_URL, STANDARD_ANALYSIS_POSE_OPTIONS);
           } catch (localError) {
             console.warn("Local MediaPipe assets unavailable, trying online fallback.", localError);
             const vision = await FilesetResolver.forVisionTasks(REMOTE_WASM_URL);
-            poseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, REMOTE_MODEL_URL);
+            poseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, REMOTE_MODEL_URL, STANDARD_ANALYSIS_POSE_OPTIONS);
           }
           setPill(modelStatus, "good", "모델 준비 완료");
           setProgress(100, "모델 준비 완료. 품새와 영상을 확인한 뒤 분석 시작을 누르세요.");
@@ -8043,6 +9724,31 @@ function applyBannerToDom(config) {
         }
         })();
         return loadModelPromise;
+      }
+      async function loadCaptureModel() {
+        if (capturePoseLandmarker) return capturePoseLandmarker;
+        if (loadCaptureModelPromise) return loadCaptureModelPromise;
+        loadCaptureModelPromise = (async () => {
+          const captureOptions = {
+            numPoses: 3,
+            minPoseDetectionConfidence: 0.15,
+            minPosePresenceConfidence: 0.15,
+            minTrackingConfidence: 0.12
+          };
+          const { FilesetResolver, PoseLandmarker } = await importMediaPipe();
+          try {
+            const vision = await FilesetResolver.forVisionTasks(LOCAL_WASM_URL);
+            capturePoseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, LOCAL_MODEL_URL, captureOptions);
+          } catch (localError) {
+            console.warn("Local capture MediaPipe assets unavailable, trying online fallback.", localError);
+            const vision = await FilesetResolver.forVisionTasks(REMOTE_WASM_URL);
+            capturePoseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, REMOTE_MODEL_URL, captureOptions);
+          } finally {
+            loadCaptureModelPromise = null;
+          }
+          return capturePoseLandmarker;
+        })();
+        return loadCaptureModelPromise;
       }
       function getPoint(landmarks, index) {
         const p = landmarks && landmarks[index];
@@ -8731,7 +10437,8 @@ function applyBannerToDom(config) {
           const result = detectPoseAt(timestampBaseMs + Math.round(actualTime * 1000));
           frames.push({
             time: actualTime,
-            landmarks: result.landmarks && result.landmarks[0] ? result.landmarks[0] : null
+            landmarks: result.landmarks && result.landmarks[0] ? result.landmarks[0] : null,
+            allLandmarks: Array.isArray(result.landmarks) ? result.landmarks.slice(0, 3) : []
           });
           if (index % 8 === 0) {
             setProgress(progressBase + Math.round((index / sampleCount) * progressSpan), `동작 전환점 탐색 중... ${index + 1}/${sampleCount}`);
@@ -8807,7 +10514,16 @@ function applyBannerToDom(config) {
         const recovery = recoveryCandidates.length
           ? recoveryCandidates.reduce((best, s) => s.motion < best.motion ? s : best, recoveryCandidates[0])
           : { time: start + span * 0.70, motion: 0 };
-        const rawTimes = [start + span * 0.14, peak.time, recovery.time, end - span * 0.08];
+        const stageCount = Math.max(Array.isArray(rule.stages) ? rule.stages.length : 0, 1);
+        const rawTimes = Array.from({ length: stageCount }, (_, index) => {
+          if (stageCount === 1) return start + span * 0.50;
+          const ratio = index / (stageCount - 1);
+          if (index === 0) return start + span * 0.14;
+          if (index === stageCount - 1) return end - span * 0.08;
+          if (Math.abs(ratio - 0.42) < 0.14) return peak.time;
+          if (Math.abs(ratio - 0.70) < 0.14) return recovery.time;
+          return start + span * (0.14 + ratio * 0.78);
+        });
         const stageTimes = [];
         for (let i = 0; i < rawTimes.length; i += 1) {
           const min = i === 0 ? start : stageTimes[i - 1] + span * 0.03;
@@ -9151,7 +10867,7 @@ function applyBannerToDom(config) {
         // 기존에 정의만 되고 쓰이지 않던 detectActionOnset을 실제 경로에 연결한다.
         const coarseOnset = activeRange.start;
         const onsetCandidate = detectActionOnset(motionSamples, activeRange, duration);
-        const maxOnsetRefine = Math.max(1.5, duration * 0.08);
+        const maxOnsetRefine = Math.min(3, Math.max(1.5, duration * 0.04));
         const onsetAccepted = Number.isFinite(onsetCandidate)
           && onsetCandidate >= coarseOnset - 0.1
           && onsetCandidate <= coarseOnset + maxOnsetRefine;
@@ -9189,15 +10905,18 @@ function applyBannerToDom(config) {
         // 유지된 준비자세 구간'을 선택하는 것은 findJunbiPoseStart에서 보장한다.
         const junbiSearchEnd = clamp(Math.max(12, duration * 0.38, activeRange.start + 6), 0, duration);
         const junbiMatch = findJunbiPoseStart(frames, junbiSearchEnd);
-        activeRange.junbiMatch = junbiMatch;
-        if (junbiMatch && Number.isFinite(junbiMatch.time) && Number.isFinite(junbiMatch.endTime)) {
+        const trustedJunbiMatch = junbiMatch && Number.isFinite(junbiMatch.time) && junbiMatch.time <= coarseOnset + maxOnsetRefine
+          ? junbiMatch
+          : null;
+        activeRange.junbiMatch = trustedJunbiMatch;
+        if (trustedJunbiMatch && Number.isFinite(trustedJunbiMatch.time) && Number.isFinite(trustedJunbiMatch.endTime)) {
           // 첫 동작은 준비자세 이후의 움직임이어야 한다. 준비자세 마지막 일치 프레임 직전부터
           // 다시 온셋을 찾되, 경계가 마지막 준비자세보다 앞으로 가지 못하게 제한한다.
-          const anchoredStart = clamp(Math.max(junbiMatch.time + 0.6, junbiMatch.endTime - 0.55), 0, activeRange.end);
+          const anchoredStart = clamp(Math.max(trustedJunbiMatch.time + 0.6, trustedJunbiMatch.endTime - 0.55), 0, activeRange.end);
           const anchoredCandidate = detectActionOnset(motionSamples, { start: anchoredStart, end: activeRange.end }, duration);
-          const anchoredOnset = Math.max(junbiMatch.endTime, anchoredCandidate);
-          if (Number.isFinite(anchoredOnset) && anchoredOnset <= junbiMatch.endTime + 3.2) {
-            activeRange.start = clamp(anchoredOnset, junbiMatch.time, activeRange.end);
+          const anchoredOnset = Math.max(trustedJunbiMatch.endTime, anchoredCandidate);
+          if (Number.isFinite(anchoredOnset) && anchoredOnset <= trustedJunbiMatch.endTime + 3.2) {
+            activeRange.start = clamp(anchoredOnset, trustedJunbiMatch.time, activeRange.end);
             activeRange.onsetMethod = "sustained_junbi_then_motion";
             activeRange.onsetDelta = Number((activeRange.start - coarseOnset).toFixed(3));
           }
@@ -9216,8 +10935,8 @@ function applyBannerToDom(config) {
           const onset = activeRange.start;
           // '준비' 구간 시작 = 준비자세 포즈 매칭 성공 지점(이미지1과 80%↑ 일치하는 가장
           // 이른 지점). 매칭 실패 시(포즈 신뢰도 낮음 등) 영상 맨 앞(0초)으로 안전 폴백한다.
-          const prepStart = (junbiMatch && Number.isFinite(junbiMatch.time))
-            ? clamp(junbiMatch.time, 0, onset)
+          const prepStart = trustedJunbiMatch
+            ? clamp(trustedJunbiMatch.time, 0, onset)
             : 0;
           const moveCount = count - 1;
           const moveBoundaries = refineSegmentBoundaries(duration, moveCount, motionSamples, sensitivity, onset, activeRange.end);
@@ -9786,7 +11505,8 @@ function applyBannerToDom(config) {
       }
       // 한 동작 구간에서 주요 관절 각도를 측정한다(정점 부근 프레임들의 중앙값).
       // 2D 한계: 카메라가 잘 보는 관절만 신뢰. 가시성이 낮으면 null(점수 반영 제외).
-      // 반환: { straightArm, frontStanceKnee, confidence } — 각도(도)와 신뢰도(0~1).
+      // 반환: 좌우 관절별 ROM을 포함한다. 양쪽을 하나로 평균내면 편측 제한이 사라지므로
+      // CMS ROM 기준처럼 좌/우를 별도 시계열로 누적한다.
       function measureJointAngles(frames, movementType) {
         const detected = frames.filter((f) => f.landmarks);
         if (detected.length < 3) return { straightArm: null, frontStanceKnee: null, confidence: 0 };
@@ -9796,6 +11516,10 @@ function applyBannerToDom(config) {
         const core = detected.slice(lo, hi);
         const armAngles = [];
         const kneeAngles = [];
+        const leftElbowAngles = [], rightElbowAngles = [];
+        const leftKneeAngles = [], rightKneeAngles = [];
+        const leftShoulderAngles = [], rightShoulderAngles = [];
+        const leftHipAngles = [], rightHipAngles = [];
         let armVis = 0, kneeVis = 0;
         for (const f of core) {
           const lm = f.landmarks;
@@ -9803,6 +11527,12 @@ function applyBannerToDom(config) {
           if (movementType === "punch" || movementType === "strike" || movementType === "kick_punch") {
             const rArm = jointAngleDeg(getPoint(lm, 12), getPoint(lm, 14), getPoint(lm, 16));
             const lArm = jointAngleDeg(getPoint(lm, 11), getPoint(lm, 13), getPoint(lm, 15));
+            if (lArm != null) leftElbowAngles.push(lArm);
+            if (rArm != null) rightElbowAngles.push(rArm);
+            const lShoulder = jointAngleDeg(getPoint(lm, 13), getPoint(lm, 11), getPoint(lm, 23));
+            const rShoulder = jointAngleDeg(getPoint(lm, 14), getPoint(lm, 12), getPoint(lm, 24));
+            if (lShoulder != null) leftShoulderAngles.push(lShoulder);
+            if (rShoulder != null) rightShoulderAngles.push(rShoulder);
             const pick = rArm != null && lArm != null ? Math.max(rArm, lArm) : (rArm ?? lArm);
             if (pick != null) { armAngles.push(pick); armVis += 1; }
           }
@@ -9810,15 +11540,33 @@ function applyBannerToDom(config) {
           if (movementType === "block" || movementType === "punch" || movementType === "strike") {
             const rKnee = jointAngleDeg(getPoint(lm, 24), getPoint(lm, 26), getPoint(lm, 28));
             const lKnee = jointAngleDeg(getPoint(lm, 23), getPoint(lm, 25), getPoint(lm, 27));
+            if (lKnee != null) leftKneeAngles.push(lKnee);
+            if (rKnee != null) rightKneeAngles.push(rKnee);
+            const lHip = jointAngleDeg(getPoint(lm, 11), getPoint(lm, 23), getPoint(lm, 25));
+            const rHip = jointAngleDeg(getPoint(lm, 12), getPoint(lm, 24), getPoint(lm, 26));
+            if (lHip != null) leftHipAngles.push(lHip);
+            if (rHip != null) rightHipAngles.push(rHip);
             const pick = rKnee != null && lKnee != null ? Math.min(rKnee, lKnee) : (rKnee ?? lKnee);
             if (pick != null) { kneeAngles.push(pick); kneeVis += 1; }
           }
         }
         const straightArm = armAngles.length >= 2 ? median(armAngles) : null;
         const frontStanceKnee = kneeAngles.length >= 2 ? median(kneeAngles) : null;
+        const range = (values) => values.length >= 2 ? Math.max(...values) - Math.min(...values) : null;
+        const armRom = range(armAngles);
+        const kneeRom = range(kneeAngles);
+        const leftElbowRom = range(leftElbowAngles), rightElbowRom = range(rightElbowAngles);
+        const leftKneeRom = range(leftKneeAngles), rightKneeRom = range(rightKneeAngles);
+        const leftShoulderRom = range(leftShoulderAngles), rightShoulderRom = range(rightShoulderAngles);
+        const leftHipRom = range(leftHipAngles), rightHipRom = range(rightHipAngles);
         // 신뢰도: 측정 가능한 프레임 비율(둘 중 더 많이 잡힌 쪽 기준).
         const confidence = Math.min(1, Math.max(armVis, kneeVis) / Math.max(core.length, 1));
-        return { straightArm, frontStanceKnee, confidence };
+        return {
+          straightArm, frontStanceKnee, armRom, kneeRom,
+          leftElbowRom, rightElbowRom, leftKneeRom, rightKneeRom,
+          leftShoulderRom, rightShoulderRom, leftHipRom, rightHipRom,
+          confidence
+        };
       }
       // 손발 궤적의 '곧기'(straightness): 정점 손목이 지나간 경로가 직선에 가까운가.
       // 경로 길이 대비 시작-끝 직선거리 비율(1에 가까울수록 곧음). 노이즈가 커서 참고용.
@@ -10080,6 +11828,9 @@ function applyBannerToDom(config) {
           const connTag = result.connectionTag
             ? `<span class="conn-tag" style="display:inline-block;margin-top:6px;font-size:11px;color:#1d6fa5;background:#e7f2fb;border-radius:10px;padding:2px 8px">↔ ${result.connectionTag} · 앞 동작과 한 자리에서 이어집니다</span>`
             : "";
+          const teamConcurrentTag = (trainingMode === "competition" && competitionEvent === "team" && result.teamConcurrent && result.teamConcurrent.three_pose_ratio != null)
+            ? `<span class="conn-tag" style="display:inline-block;margin-top:6px;font-size:11px;color:${result.teamConcurrent.three_pose_ratio >= 0.7 ? "#176b45" : "#9a3412"};background:${result.teamConcurrent.three_pose_ratio >= 0.7 ? "#e8f7ef" : "#fff1e8"};border-radius:10px;padding:2px 8px">👥 단체전 3명 동시 인식 ${(result.teamConcurrent.three_pose_ratio * 100).toFixed(0)}% · ${result.teamConcurrent.three_pose_ratio >= 0.7 ? "안정" : "확인 필요"}</span>`
+            : "";
           const orientationTag = (result.orientationCheck && result.orientationCheck.mismatch && result.orientationCheck.confidence >= 0.5)
             ? `<span class="conn-tag" style="display:inline-block;margin-top:6px;font-size:11px;color:var(--caution);background:var(--caution-soft);border-radius:10px;padding:2px 8px">⚠ 방향 전환 확인 필요 · ${result.orientationCheck.expectedTurn.hasTurn ? "이 동작은 돌아서야 하는데 회전이 작게 보여요" : "이 동작은 방향을 유지해야 하는데 회전이 크게 보여요"} · 경계 확인 필요</span>`
             : "";
@@ -10108,6 +11859,7 @@ function applyBannerToDom(config) {
               ${stanceFindTag}
               ${kihapFindTag}
               ${connTag}
+              ${teamConcurrentTag}
               ${scoreBars}
               ${editControls}
             </div>
@@ -10236,6 +11988,56 @@ function applyBannerToDom(config) {
         });
         return Array.from(issueMap.values()).sort((a, b) => b.count - a.count || a.score - b.score);
       }
+      // 단체전 전체 동시 인식: 한 프레임에서 최대 3명의 포즈가 함께 검출되는 비율을 집계한다.
+      // 선수별 시간을 따로 나누거나 시작 시각 차이를 계산하지 않고, 같은 프레임의 3명 상태를
+      // 한 번에 평가한다. 검출 인원은 Pose Landmarker의 최대 3명 설정을 따른다.
+      function buildTeamConcurrentProfile(boundaryDetection) {
+        const frames = Array.isArray(boundaryDetection?.frames) ? boundaryDetection.frames : [];
+        const boundaries = Array.isArray(boundaryDetection?.boundaries) ? boundaryDetection.boundaries : [];
+        const sortPoses = (all) => (Array.isArray(all) ? all : [])
+          .filter((pose) => Array.isArray(pose) && pose.length >= 25)
+          .sort((a, b) => poseCenterX(a) - poseCenterX(b));
+        const poseCenterX = (pose) => {
+          const points = [getPoint(pose, 11), getPoint(pose, 12), getPoint(pose, 23), getPoint(pose, 24)].filter(Boolean);
+          return points.length ? points.reduce((sum, p) => sum + p.x, 0) / points.length : 0;
+        };
+        const poseFrames = frames.map((frame) => ({
+          time: Number(frame.time),
+          poses: sortPoses(frame.allLandmarks && frame.allLandmarks.length ? frame.allLandmarks : (frame.landmarks ? [frame.landmarks] : []))
+        })).filter((frame) => Number.isFinite(frame.time));
+        const detectedCounts = poseFrames.map((frame) => frame.poses.length).filter((n) => n > 0);
+        const athleteCount = detectedCounts.length ? Math.max(...detectedCounts) : 0;
+        if (athleteCount < 3 || boundaries.length < 3) {
+          return { enabled: false, detection_mode: "all_three_same_frame", athlete_count: athleteCount, segments: [] };
+        }
+        const segments = [];
+        for (let index = 0; index < boundaries.length - 1; index += 1) {
+          const start = Number(boundaries[index]);
+          const end = Number(boundaries[index + 1]);
+          const within = poseFrames.filter((frame) => frame.time >= start && frame.time <= end);
+          const framesWithThree = within.filter((frame) => frame.poses.length >= 3).length;
+          const framesWithTwo = within.filter((frame) => frame.poses.length >= 2).length;
+          const threePoseRatio = within.length ? framesWithThree / within.length : 0;
+          segments.push({
+            segment: index + 1,
+            sampled_frames: within.length,
+            frames_with_two: framesWithTwo,
+            frames_with_three: framesWithThree,
+            three_pose_ratio: Number(threePoseRatio.toFixed(3)),
+            all_three_same_frame: within.length >= 3 ? threePoseRatio >= 0.7 : null
+          });
+        }
+        const judged = segments.filter((segment) => segment.sampled_frames >= 3);
+        return {
+          enabled: judged.length > 0,
+          detection_mode: "all_three_same_frame",
+          athlete_count: athleteCount,
+          judged_segments: judged.length,
+          concurrent_segments: judged.filter((segment) => segment.all_three_same_frame).length,
+          segments,
+          average_three_pose_ratio: judged.length ? Number((judged.reduce((sum, segment) => sum + segment.three_pose_ratio, 0) / judged.length).toFixed(3)) : 0
+        };
+      }
       function neededTrainingFromIssues(issueCounts) {
         const fallback = trainingMode === "exam"
           ? ["전체 동작 순서와 준비서기, 마무리 자세를 지도자와 함께 확인하세요."]
@@ -10243,6 +12045,7 @@ function applyBannerToDom(config) {
         if (!issueCounts.length) return fallback;
         // 경기품새: 반복 횟수보다 '어디를 어떻게 고치면 점수가 오르는지'를 우선순위 순으로 제시.
         if (trainingMode === "competition") {
+          const eventProfile = activeCompetitionEventProfile();
           const fixMap = {
             stance: "서기 정렬을 먼저 고치세요. 발끝·무릎 방향을 일치시키고 중심 높이를 일정하게 유지하면 자세 항목 감점이 줄어듭니다.",
             snap: "맺음을 고치세요. 동작 끝에서 힘을 한 점에 모아 0.5초 정지하고 반대손 회수를 맞추면 표현성 감점이 줄어듭니다.",
@@ -10250,7 +12053,10 @@ function applyBannerToDom(config) {
             stillness: "마무리 흔들림을 고치세요. 동작 후 발바닥 압력과 골반 높이를 고정해 정지 자세를 안정시키면 균형 감점이 줄어듭니다.",
             visibility: "촬영 구도를 고치세요. 전신이 항상 프레임에 들어오게 카메라를 멀리 고정하면 판정 정확도가 올라갑니다."
           };
-          return issueCounts.slice(0, 3).map((item, idx) => `${idx + 1}순위 — ${fixMap[item.key] || fixMap.visibility}`);
+          const base = issueCounts.slice(0, 3).map((item, idx) => `${idx + 1}순위 — ${fixMap[item.key] || fixMap.visibility}`);
+          if (eventProfile.id === "team") base.push("단체전 추가 — 같은 박자에 시작·맺음이 끝나는지, 선수 간 간격과 대형이 동작 전후에 유지되는지 영상으로 함께 확인하세요.");
+          else base.push("개인전 추가 — 개인의 시선, 기합, 연결 동작 완성도와 흔들림을 영상으로 세부 확인하세요.");
+          return base;
         }
         return issueCounts.slice(0, 3).map((item) => {
           if (item.key === "stance") return "서기 고정 훈련: 각 구간 끝에서 발끝 방향, 무릎 방향, 중심 높이를 2초간 유지하세요.";
@@ -10261,6 +12067,7 @@ function applyBannerToDom(config) {
         });
       }
       function summarize(results, view, rangeInfo) {
+        const eventProfile = activeCompetitionEventProfile();
         const avg = results.reduce((sum, r) => sum + r.powerScore, 0) / Math.max(results.length, 1);
         const baseCompetitionScore10 = results.reduce((sum, r) => sum + r.competitionScore10, 0) / Math.max(results.length, 1);
         const accuracyScore4 = results.reduce((sum, r) => sum + r.accuracyScore4, 0) / Math.max(results.length, 1);
@@ -10350,7 +12157,13 @@ function applyBannerToDom(config) {
             items.push({ type: "good", text: "큰 문제는 적어요. 준비서기, 기합, 마무리 자세만 지도 선생님과 함께 확인해요." });
           }
         } else {
+          items.push({ type: "good", text: `${eventProfile.label} 분석/평가 적용: ${eventProfile.summary}` });
           items.push({ type, text: `경기품새 참고점수 ${competitionScore10.toFixed(2)} / 10.0점입니다. 정확성 추정 ${adjAccuracy4.toFixed(2)} / 4.0, 표현력 추정 ${adjPresentation6.toFixed(2)} / 6.0입니다.` });
+          if (eventProfile.id === "team") {
+            items.push({ type: "caution", text: "단체전 추가 평가: 동작 타이밍 일치, 선수 간 간격, 대형 유지, 높낮이·속도·방향 통일을 함께 확인합니다. 현재 자동 점수는 영상에서 잡힌 관절 기준의 참고값이며 팀 전체 싱크 확정은 지도자 확인이 필요합니다." });
+          } else {
+            items.push({ type: "caution", text: "개인전 평가: 개인 실수, 흔들림, 동작 오류, 균형, 힘·속도 표현, 시선·기합·연결 동작 완성도를 중심으로 보완점을 적용합니다." });
+          }
           if (axisNotes.length) {
             items.push({ type: "caution", text: `추가 분석 축 반영(보수적): ${axisNotes.join(" · ")}. 박자·좌우대칭은 신뢰도가 높을 때만 점수에 약하게 반영되며, 관절 각도·궤적은 참고용입니다.` });
           }
@@ -10383,9 +12196,12 @@ function applyBannerToDom(config) {
         if (!selectedFile || !Number.isFinite(video.duration)) return "";
         return [
           selectedPoomsaeKey,
-          selectedFile.name,
-          selectedFile.size,
-          selectedFile.lastModified || 0,
+          trainingMode,
+          competitionEvent,
+          `camera-${cameraView || "front"}`,
+          fileFingerprint(selectedFile),
+          fileFingerprint(selectedFileB),
+          fileFingerprint(selectedFileC),
           video.duration.toFixed(3),
           video.videoWidth,
           video.videoHeight,
@@ -10418,6 +12234,10 @@ function applyBannerToDom(config) {
         const boundaryDetectionForRun = context.boundaryDetection || null;
         const movementsForRun = context.movements || lastMovementsCache || buildGenericMovements(selectedPoomsaeKey);
         const viewForRun = context.viewForRun || lastViewForRun || cameraView || "front";
+        const teamConcurrent = context.teamConcurrent || buildTeamConcurrentProfile(boundaryDetectionForRun);
+        if (teamConcurrent && Array.isArray(teamConcurrent.segments)) {
+          results.forEach((result, index) => { result.teamConcurrent = teamConcurrent.segments[index] || null; });
+        }
         renderSegments(results);
         // ── 기합(음성) 검출: 기합 구간이 있으면 영상 오디오에서 함성을 확인한다 ──
         try {
@@ -10491,6 +12311,21 @@ function applyBannerToDom(config) {
         }
         const fusedView = (analysisEfficiency && (analysisEfficiency.triple_view ? "triple" : analysisEfficiency.dual_view ? "dual" : null)) || cameraView;
         const summary = summarize(results, fusedView, boundaryDetectionForRun ? boundaryDetectionForRun.activeRange : null);
+        if (trainingMode === "competition" && competitionEvent === "team") {
+          if (teamConcurrent.enabled) {
+            const concurrent = teamConcurrent.concurrent_segments;
+            const judged = teamConcurrent.judged_segments;
+            summary.items.unshift({
+              type: teamConcurrent.average_three_pose_ratio >= 0.7 ? "good" : "caution",
+              text: `단체전 전체 동시 인식: 같은 프레임에서 최대 ${teamConcurrent.athlete_count}명 검출 · ${concurrent}/${judged}개 구간 안정 · 3명 동시 검출 평균 ${(teamConcurrent.average_three_pose_ratio * 100).toFixed(0)}%.`
+            });
+          } else {
+            summary.items.unshift({
+              type: "caution",
+              text: `단체전 전체 동시 인식 판정 보류: 같은 프레임에서 3명을 충분히 검출하지 못했습니다. 선수 전원이 겹치지 않게 보이도록 촬영해 주세요.`
+            });
+          }
+        }
         if (results._kihapNote) summary.items.unshift(results._kihapNote);
         if (results._videoCorrectionNote) summary.items.unshift(results._videoCorrectionNote);
         if (results._readyStanceNote) summary.items.unshift(results._readyStanceNote);
@@ -10559,8 +12394,18 @@ function applyBannerToDom(config) {
           const avgAngleScore = Math.round(angleSegs.reduce((s, r) => s + r.jointAngle.score, 0) / angleSegs.length);
           const armSegs = angleSegs.filter((r) => r.jointAngle.straightArm != null);
           const avgArm = armSegs.length ? Math.round(armSegs.reduce((s, r) => s + r.jointAngle.straightArm, 0) / armSegs.length) : null;
+          const romSegs = angleSegs.filter((r) => r.jointAngle.armRom != null || r.jointAngle.kneeRom != null);
+          const avgArmRom = romSegs.length ? Math.round(romSegs.reduce((s, r) => s + (r.jointAngle.armRom || 0), 0) / romSegs.length) : null;
+          const avgKneeRom = romSegs.length ? Math.round(romSegs.reduce((s, r) => s + (r.jointAngle.kneeRom || 0), 0) / romSegs.length) : null;
           const viewHint = (fusedView === "side" || fusedView === "triple" || fusedView === "dual") ? "" : " (정면 영상이라 깊이 방향 각도는 참고용입니다)";
-          extraAxisItems.push({ type: avgAngleScore >= 70 ? "good" : avgAngleScore >= 45 ? "caution" : "caution", text: `[관절 각도] 펴짐·굽힘 참고 ${avgAngleScore}점${avgArm != null ? ` (지르는 팔 평균 ${avgArm}°)` : ""}${viewHint}` });
+          const romDetail = romSegs.length ? (() => {
+            const avg = (key) => {
+              const values = romSegs.map((r) => r.jointAngle[key]).filter(Number.isFinite);
+              return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : null;
+            };
+            return ` · ROM 팔꿈치 L/R ${avg("leftElbowRom") ?? "-"}/${avg("rightElbowRom") ?? "-"}° · 무릎 L/R ${avg("leftKneeRom") ?? "-"}/${avg("rightKneeRom") ?? "-"}° · 어깨 L/R ${avg("leftShoulderRom") ?? "-"}/${avg("rightShoulderRom") ?? "-"}° · 고관절 L/R ${avg("leftHipRom") ?? "-"}/${avg("rightHipRom") ?? "-"}°`;
+          })() : "";
+          extraAxisItems.push({ type: avgAngleScore >= 70 ? "good" : avgAngleScore >= 45 ? "caution" : "caution", text: `[관절 각도·ROM] 참고 ${avgAngleScore}점${avgArm != null ? ` · 팔 평균 ${avgArm}°` : ""}${romDetail || (avgArmRom != null || avgKneeRom != null ? ` · 가동범위 팔 ${avgArmRom ?? "-"}° / 무릎 ${avgKneeRom ?? "-"}°` : "")}${viewHint}` });
         }
         // 손발 궤적: 노이즈가 커서 '참고용'으로만, 신뢰도 충분한 구간이 여럿일 때 평균 표시(점수 아님).
         const trajSegs = results.filter((r) => r.trajectory && r.trajectory.score != null && r.trajectory.confidence >= 0.6);
@@ -10585,10 +12430,11 @@ function applyBannerToDom(config) {
           created_at: new Date().toISOString(),
           training_mode: trainingMode,
           training_mode_label: modeLabel(),
+          competition_event: trainingMode === "competition" ? activeCompetitionEventProfile() : null,
           mode: "power_snap_stillness_estimation",
           note: trainingMode === "exam"
             ? "수련품새 리포트는 태권도심사규칙의 완성도·숙련도·품위를 참고하되 점수 및 공식 심사 결과를 자동 결정하지 않고 보완점만 표시한다."
-          : "경기품새 리포트는 2026 국내 경기규칙을 주 기준으로, WT 2024 공인품새의 정확성 4.0점과 연출성 6.0점 구조를 교차검증한 10점 만점 훈련용 참고점수를 표시한다. -0.1/-0.3은 가능성만 제시하며 공식 심판 판정이 아니다.",
+          : `${activeCompetitionEventProfile().label} 리포트는 ${activeCompetitionEventProfile().analysis_focus} 기준을 반영한다. 2026 국내 경기규칙을 주 기준으로, WT 2024 공인품새의 정확성 4.0점과 연출성 6.0점 구조를 교차검증한 10점 만점 훈련용 참고점수를 표시한다. -0.1/-0.3은 가능성만 제시하며 공식 심판 판정이 아니다.`,
           scoring_stability: {
             segment_sample_range: { min: 4, max: 8 },
             sampling_strategy: "adaptive_device_safe",
@@ -10638,16 +12484,31 @@ function applyBannerToDom(config) {
             extra_axes: {
               rhythm: { score: rhythm.score, regularity: rhythm.regularity, contrast: rhythm.contrast, confidence: rhythm.confidence },
               symmetry: { score: symmetry.score, confidence: symmetry.confidence },
-              joint_angle_segments: angleSegs.length
+              joint_angle_segments: angleSegs.length,
+              rom: {
+                arm_degrees: angleSegs.length ? Number((angleSegs.reduce((s, r) => s + (r.jointAngle.armRom || 0), 0) / angleSegs.length).toFixed(1)) : null,
+                knee_degrees: angleSegs.length ? Number((angleSegs.reduce((s, r) => s + (r.jointAngle.kneeRom || 0), 0) / angleSegs.length).toFixed(1)) : null,
+                elbow_left_rom: angleSegs.length ? Number((angleSegs.reduce((s, r) => s + (r.jointAngle.leftElbowRom || 0), 0) / angleSegs.length).toFixed(1)) : null,
+                elbow_right_rom: angleSegs.length ? Number((angleSegs.reduce((s, r) => s + (r.jointAngle.rightElbowRom || 0), 0) / angleSegs.length).toFixed(1)) : null,
+                knee_left_rom: angleSegs.length ? Number((angleSegs.reduce((s, r) => s + (r.jointAngle.leftKneeRom || 0), 0) / angleSegs.length).toFixed(1)) : null,
+                knee_right_rom: angleSegs.length ? Number((angleSegs.reduce((s, r) => s + (r.jointAngle.rightKneeRom || 0), 0) / angleSegs.length).toFixed(1)) : null,
+                shoulder_left_rom: angleSegs.length ? Number((angleSegs.reduce((s, r) => s + (r.jointAngle.leftShoulderRom || 0), 0) / angleSegs.length).toFixed(1)) : null,
+                shoulder_right_rom: angleSegs.length ? Number((angleSegs.reduce((s, r) => s + (r.jointAngle.rightShoulderRom || 0), 0) / angleSegs.length).toFixed(1)) : null,
+                hip_left_rom: angleSegs.length ? Number((angleSegs.reduce((s, r) => s + (r.jointAngle.leftHipRom || 0), 0) / angleSegs.length).toFixed(1)) : null,
+                hip_right_rom: angleSegs.length ? Number((angleSegs.reduce((s, r) => s + (r.jointAngle.rightHipRom || 0), 0) / angleSegs.length).toFixed(1)) : null
+              }
             }
           },
           segments: results,
           frame_samples: frameSamples,
           learning_dataset_candidate: learningDatasetCandidate,
           correction_log: correctionLogSummary(),
+          team_concurrent: teamConcurrent,
           analysis_efficiency: analysisEfficiency,
           next_step: "관절 속도 피크와 정지점으로 실제 동작 전환점을 자동 감지하고, 지르기/막기/차기별 궤적 정확도 규칙을 연결"
         };
+        // 원본 영상·파일명·프레임은 저장하지 않고, 전역 학습에 필요한 요약만 Firestore에 누적한다.
+        sendLearningReportToCloud(latestReport);
         // 수동 조정용 캐시 저장: 경계/모션/프레임을 보존해 재추출 없이 구간 재계산.
         if (boundaryDetectionForRun && Array.isArray(boundaryDetectionForRun.boundaries)) {
           lastBoundaryCache = {
@@ -10701,6 +12562,7 @@ function applyBannerToDom(config) {
           await loadModel();
         }
         if (poseLandmarker) {
+          await configureAnalysisPoseLandmarker();
           if (cameraView === "triple") {
             if (!selectedFileB || !selectedFileC) {
               setProgress(0, "정면+측면+대각선 융합은 측면(2번)·대각선(3번) 영상이 모두 필요합니다.");
@@ -11710,7 +13572,7 @@ function applyBannerToDom(config) {
               const actualTime = await waitForSeek(requestedTime, true);
               const result = detectPoseAt(segmentTimestampBaseMs + Math.round(actualTime * 1000));
               const landmarks = result.landmarks && result.landmarks[0] ? result.landmarks[0] : null;
-              frames.push({ time: actualTime, landmarks });
+              frames.push({ time: actualTime, landmarks, allLandmarks: Array.isArray(result.landmarks) ? result.landmarks.slice(0, 3) : [] });
               precisePoseFrames += 1;
             }
           }
@@ -11919,7 +13781,6 @@ function applyBannerToDom(config) {
       }
 
       fileInput.addEventListener("change", () => {
-        autoConfirmIfUnedited(); // 직전 영상이 안 고쳐진 채였다면, 다음 영상으로 넘어가기 전에 자동 기록.
         showTrainingPage();
         closeReplayModal();
         selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
@@ -12056,10 +13917,26 @@ function applyBannerToDom(config) {
           if (latestReport?.segments?.length) {
             await completeAnalysis(cloneStableData(latestReport.segments), cloneStableData(latestReport.frame_samples || []), true, cloneStableData(latestReport.analysis_efficiency || null), {
               movements: lastMovementsCache || movements,
-              viewForRun: lastViewForRun
+              viewForRun: lastViewForRun,
+              teamConcurrent: latestReport.team_concurrent || null
             });
           } else {
             renderReport([{ type: "caution", text: `${modeLabel()} 모드를 선택했습니다. 품새와 영상을 준비한 뒤 분석 시작을 누르세요.` }]);
+          }
+        });
+      });
+      document.querySelectorAll("[data-event]").forEach((tab) => {
+        tab.addEventListener("click", async () => {
+          showTrainingPage();
+          competitionEvent = tab.dataset.event || "individual";
+          updateTrainingModeUi();
+          if (latestReport?.segments?.length) {
+            await completeAnalysis(cloneStableData(latestReport.segments), cloneStableData(latestReport.frame_samples || []), true, cloneStableData(latestReport.analysis_efficiency || null), {
+              movements: lastMovementsCache || movements,
+              viewForRun: lastViewForRun
+            });
+          } else {
+            renderReport([{ type: "caution", text: `${activeCompetitionEventProfile().label} 기준을 선택했습니다. ${activeCompetitionEventProfile().summary}` }]);
           }
         });
       });
@@ -12114,6 +13991,8 @@ function applyBannerToDom(config) {
         });
         const exportBtn = document.getElementById("exportCorrectionBtn");
         if (exportBtn) exportBtn.addEventListener("click", exportCorrectionLog);
+        const confirmBtn = document.getElementById("confirmBoundariesBtn");
+        if (confirmBtn) confirmBtn.addEventListener("click", confirmBoundariesExplicitly);
         const restoreBtn = document.getElementById("restoreAutoBtn");
         if (restoreBtn) restoreBtn.addEventListener("click", restoreAutoBoundaries);
         const loadSavedBtn = document.getElementById("loadSavedCorrectionBtn");

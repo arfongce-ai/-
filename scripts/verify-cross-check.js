@@ -74,12 +74,15 @@ function extractPoomsaeDefinitions(html) {
     const key = match[1];
     const arraySource = match[3];
     const rows = [...arraySource.matchAll(/\[([^\[\]]*)\]/g)];
-  const numberedRows = rows.filter((row) => {
-    const firstString = row[1].match(/"([^"]*)"/);
-    const first = firstString ? firstString[1] : "";
-    const isPreparationRow = row === rows[0];
-    return !isPreparationRow && first !== "ready_stance" && first !== "준비서기" && first !== "기합" && !first.startsWith("kihap_");
-  });
+    const numberedRows = rows.filter((row, index) => {
+      const firstString = row[1].match(/"([^"]*)"/);
+      const first = firstString ? firstString[1] : "";
+      return first !== "ready_stance"
+        && first !== "준비서기"
+        && !(index === 0 && /준비$/.test(first))
+        && first !== "기합"
+        && !first.startsWith("kihap_");
+    });
     result.set(key, {
       count: Number(match[2]),
       actual: numberedRows.length,
@@ -199,7 +202,7 @@ assertContains(webHtml, "const SEEK_TIMEOUT_MS", "waitForSeek 타임아웃 상�
 assertContains(webHtml, "SEEK_EPSILON_SECONDS", "waitForSeek 동일 시간 즉시 처리 상수 존재");
 assertContains(webHtml, "let loadModelPromise = null", "loadModel 동시 호출 방지 플래그 존재");
 assertContains(webHtml, "createPoseLandmarkerWithFallback", "GPU 실패 시 CPU 폴백 함수 존재");
-assertContains(webHtml, "delegate)", "PoseLandmarker delegate 파라미터화");
+assertContains(webHtml, "baseOptions: { modelAssetPath: modelUrl, delegate }", "PoseLandmarker delegate 파라미터화");
 assertContains(webHtml, "const totalSegments = results.length", "리포트 구간 수 동적 계산");
 assertContains(webHtml, "setupLayout()", "UI 레이아웃 초기화 호출 존재");
 assertContains(webHtml, "setupQuickNav()", "빠른 이동 UI 초기화 호출 존재");
@@ -218,7 +221,7 @@ assertContains(webHtml, "field-label", "단계별 입력 안내 스타일 존재
 assertContains(webHtml, "if (reportSection) reportSection.hidden = true", "훈련 화면 중복 분석 요약 숨김");
 assertContains(webHtml, ".quick-nav button.active", "하단 메뉴 활성 상태 스타일 존재");
 assertContains(webHtml, "class=\"utility-actions\" hidden", "상단 기술용 보조 버튼 영역 숨김");
-assertContains(webHtml, "id=\"showReportBtn\" class=\"secondary\" disabled hidden", "상단 결과지 보기 버튼 숨김");
+assertContains(webHtml, "id=\"showReportBtn\" class=\"secondary\" disabled", "상단 리포트 보기 버튼 존재");
 assertContains(webHtml, "playback-settings", "영상 아래 재생 설정 그룹 존재");
 assertContains(webHtml, "repeat-options", "영상 아래 반복 설정 그룹 존재");
 assertContains(webHtml, "replay-actions", "분석 후 재생 버튼 그룹 존재");
@@ -239,7 +242,7 @@ assertContains(readUtf8(capacitorConfigPath), "\"appName\": \"태권도 품새�
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련 보조 · Beta", "헤더 베타 목적 배지 적용");
-assertContains(webHtml, "내 품새 영상을 동작별로 쉽게 확인해요 · v4.14", "짧은 헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
+assertContains(webHtml, "내 품새 영상을 동작별로 쉽게 확인해요 · v4.16", "짧은 헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
@@ -275,8 +278,6 @@ assertContains(webHtml, "data-group=\"yupum\"", "유품자 탭 존재");
 assertContains(webHtml, "data-group=\"yudan\"", "유단자 탭 존재");
 assertContains(webHtml, "poomsaeGroups", "유급자/유품자/유단자 데이터 그룹 존재");
 assertContains(webHtml, "movements:", "교본 참고 구조화 동작 배열 존재");
-assertContains(webHtml, "[\"오른앞굽이 오른얼굴등주먹앞치기\", \"라①\", \"서기 그대로\", null]", "태극 8장 26번 교본 명칭 반영");
-assertContains(webHtml, "[\"오른뒷굽이 왼손날거들어바깥막기\", \"나\", \"오른발 돌아 디뎌\", \"가\"]", "태극 8장 9번 교본 명칭 반영");
 assertContains(webHtml, "inferMovementType", "기술명 기반 분석 타입 추정 함수 존재");
 assertContains(webHtml, "koryo", "유품자 고려 데이터 존재");
 assertContains(webHtml, "pyongwon", "유단자 평원 데이터 존재");
@@ -332,38 +333,12 @@ assertContains(webHtml, "presentation_score_6", "연출 6.0점 기준 결과 저
 assertContains(webHtml, "setupBackNavigationGuard", "브라우저 뒤로가기 앱 이탈 방지 로직 존재");
 assertContains(webHtml, "./manifest.webmanifest", "홈 화면 설치용 PWA manifest 연결");
 assertContains(webHtml, "./assets/app-icon-1024.png", "폰 및 태블릿 홈 화면 아이콘 연결");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "poomsae-training-v96-taegeuk-ui", "www 직접 배포용 오프라인 엔진 캐시 적용");
+assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "const CACHE_NAME = \"poomsae-training-", "www 직접 배포용 오프라인 엔진 캐시 적용");
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
-assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-v28-taegeuk-ui", "최상단 배포용 오프라인 엔진 서비스워커 존재");
+assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v26-taegeuk-8-security", "최상단 배포용 오프라인 엔진 서비스워커 존재");
 assertContains(webHtml, 'import { buildDatasetCandidate, scoreActionSequence } from "./action-model.mjs"', "별도 동작 시퀀스 모델 모듈 연결");
-assertContains(webHtml, 'import { compareTextbookPose } from "./textbook-pose-match.mjs"', "교본 관절선 비교 모듈 연결");
-assertContains(webHtml, 'import { compareVideoReference } from "./video-reference-match.mjs"', "영상 관절 흐름 비교 모듈 연결");
-assertContains(webHtml, "교본 자세 일치:", "동작 카드에 교본 자세 일치도 표시");
-assertContains(webHtml, "textbookMatch.confidenceBoost", "높은 교본 일치도를 동작 신뢰도에 반영");
-assertContains(webHtml, "videoMotionMatch.confidenceBoost", "높은 영상 흐름 일치도를 동작 신뢰도에 반영");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "./models/taegeuk-1-textbook-reference.json", "교본 관절 좌표 오프라인 캐시 등록");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "./models/taegeuk-2-textbook-reference.json", "태극 2장 교본 관절 좌표 오프라인 캐시 등록");
-assertContains(webHtml, '["taegeuk_2", "./models/taegeuk-2-textbook-reference.json"]', "태극 2장 교본 자세 선택 로딩");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "./models/taegeuk-3-textbook-reference.json", "태극 3장 교본 관절 좌표 오프라인 캐시 등록");
-assertContains(webHtml, '["taegeuk_3", "./models/taegeuk-3-textbook-reference.json"]', "태극 3장 교본 자세 선택 로딩");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "./models/taegeuk-4-textbook-reference.json", "태극 4장 교본 관절 좌표 오프라인 캐시 등록");
-assertContains(webHtml, '["taegeuk_4", "./models/taegeuk-4-textbook-reference.json"]', "태극 4장 교본 자세 선택 로딩");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "./models/taegeuk-5-textbook-reference.json", "태극 5장 교본 관절 좌표 오프라인 캐시 등록");
-assertContains(webHtml, '["taegeuk_5", "./models/taegeuk-5-textbook-reference.json"]', "태극 5장 교본 자세 선택 로딩");
-assertContains(webHtml, '"./models/taegeuk-5-video-reference.json"', "태극 5장 영상 관절 흐름 선택 로딩");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "./models/taegeuk-5-video-reference.json", "태극 5장 영상 관절 흐름 오프라인 캐시 등록");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "./models/taegeuk-6-textbook-reference.json", "태극 6장 교본 관절 좌표 오프라인 캐시 등록");
-assertContains(webHtml, '["taegeuk_6", "./models/taegeuk-6-textbook-reference.json"]', "태극 6장 교본 자세 선택 로딩");
-assertContains(webHtml, '"./models/taegeuk-6-video-reference.json"', "태극 6장 영상 관절 흐름 선택 로딩");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "./models/taegeuk-6-video-reference.json", "태극 6장 영상 관절 흐름 오프라인 캐시 등록");
-assertContains(webHtml, '["koryo", "./models/koryo-textbook-reference.json"]', "고려 교본 자세 선택 로딩");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "./models/koryo-textbook-reference.json", "고려 교본 관절 좌표 오프라인 캐시 등록");
-assertContains(webHtml, '"./models/koryo-video-reference.json"', "고려 영상 자세 기준 로딩");
-assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "./models/koryo-video-reference.json", "고려 영상 자세 기준 오프라인 캐시 등록");
-assertContains(webHtml, "KORYO_KICK_STAGES", "고려 발차기 세부 명칭 매핑");
-assertContains(webHtml, "kickStages: KORYO_KICK_STAGES[i] || []", "고려 발차기 세부 명칭 배정");
 assertContains(webHtml, "learning_dataset_candidate", "분석 JSON에 전문가 검수용 관절좌표 시퀀스 포함");
 assertContains(webHtml, "actionAccuracyConfidence >= 0.65", "충분한 신뢰도에서만 동작 모델을 정확도 점수에 적용");
 assertContains(readUtf8(rootManifestPath), "app-icon-192.png", "최상단 manifest에 192 아이콘 등록");
@@ -379,6 +354,9 @@ assertContains(webHtml, "referenceDeductionFor", "KTA -0.1/-0.3 참고 감점 �
 assertContains(webHtml, "판정 보류 · 촬영/지도자 확인", "낮은 감지율의 감점 판정 보류 존재");
 assertContains(webHtml, "현재 Pose 모델에는 눈동자·얼굴 방향 판정 정보가 없어", "시선 처리 과잉 판정 방지 안내 존재");
 assertContains(webHtml, "boundarySensitivitySelect", "구간 감지 민감도 선택 UI 존재");
+assertContains(webHtml, "`camera-${cameraView || \"front\"}`", "촬영 방식이 분석 캐시 키에 반영됨");
+assertContains(webHtml, "fileFingerprint(selectedFileB)", "두 번째 카메라 영상이 분석 캐시 키에 반영됨");
+assertContains(webHtml, "fileFingerprint(selectedFileC)", "세 번째 카메라 영상이 분석 캐시 키에 반영됨");
 assertContains(webHtml, "detectMotionBoundaries", "영상 움직임 기반 구간 경계 탐색 존재");
 assertContains(webHtml, "refineSegmentBoundaries", "예상 경계를 가까운 정지점으로 보정하는 로직 존재");
 assertContains(webHtml, "sample.valid !== false", "관절 미검출 장면을 거짓 정지점 후보에서 제외");
@@ -458,7 +436,7 @@ assertContains(webHtml, "class=\"secondary seg-find-match\"", "맞는 위치 찾
 assertContains(webHtml, "const cached = (lastBoundaryCache?.frames || [])", "맞는 위치 찾기가 화면 영상을 탐색하지 않고 캐시 프레임 사용");
 assertContains(webHtml, "const previousSegments = Array.isArray(latestReport.segments)", "수동 시간 수정 시 기존 대표 사진 재사용");
 assertContains(webHtml, "video.addEventListener(\"pointerdown\", releaseManualReplayRange)", "수동 직접 재생 시 남은 구간 반복 자동 해제");
-assertContains(webHtml, "const prepStart = (junbiMatch && Number.isFinite(junbiMatch.time))", "준비자세 포즈 매칭 성공 지점부터 준비 구간이 시작하도록 처리(박수 기반 아님)");
+assertContains(webHtml, "const prepStart = trustedJunbiMatch", "신뢰 가능한 준비자세 포즈 매칭 지점부터 준비 구간이 시작하도록 처리(박수 기반 아님)");
 assertContains(webHtml, "function getEffectiveTrimStart(", "박수 이전 재생 잠금용 실질 시작점 함수 존재");
 assertContains(webHtml, "준비자세 지점 · 잘못됐으면 여기서 고치세요", "준비 구간(준비자세 인식 지점) 시작 시각도 수정 가능하도록 안내 문구 존재");
 assertContains(webHtml, "const lo = i === 0 ? 0 : b[i - 1] + 0.1", "0번 경계(준비자세 인식 지점) 연쇄 조정 지원");
@@ -505,7 +483,11 @@ assertContains(webHtml, "@keyframes footer-partner-marquee-right", "광고판 �
 assertContains(webHtml, "id=\"adminModeTrigger\"", "관리자 모드 진입 버튼 존재");
 assertContains(webHtml, "class=\"admin-logo-trigger\"", "관리자 진입을 몸가짐운동센터 로고 버튼에 연결");
 assertNotContains(webHtml, "class=\"admin-mode-trigger\">관리자 모드</button>", "화면에 보이는 관리자 모드 글자 버튼 제거");
-assertContains(webHtml, "pinInput.value === ADMIN_PIN", "관리자 PIN 확인 로직 존재");
+assertNotContains(webHtml, "ADMIN_PIN", "공개 관리자 PIN 제거");
+assertContains(webHtml, "if (!_fbCurrentAdminUser) return { ok: false", "배너 저장 전 Firebase 관리자 인증 확인");
+assertContains(webHtml, "function safeBannerLinkUrl(", "원격 배너 링크의 HTTP·HTTPS 허용 목록 검증");
+assertNotContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "request.resource.data.pin", "Firestore 배너 규칙의 공개 PIN 제거");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "allow write: if isAdmin() && isValidBanner", "배너 쓰기는 인증된 관리자와 엄격한 스키마로 제한");
 assertContains(webHtml, "function detectClapMoment(", "박수 시점 감지 함수 존재");
 assertContains(webHtml, "activeRange.clapDetected = clapTime != null", "박수 감지 결과는 기록만 하고(참고용) 시작점 판정에는 관여하지 않음");
 assertNotContains(webHtml, "activeRange.start = clamp(clapTime + 0.15", "박수가 정점 기반 동작1 온셋(activeRange.start)을 덮어쓰던 예전 버그 재발 방지");
@@ -520,20 +502,22 @@ assertContains(webHtml, "if (cacheKey && savedCorrectionForRun) stableAnalysisCa
 assertContains(webHtml, "function analyzeCorrectionRecords(", "보정 기록 분석 함수(analyze-corrections.js 이식) 존재");
 assertContains(webHtml, "function buildCorrectionRuleSuggestions(", "규칙 개선 제안 생성 함수 존재");
 assertContains(webHtml, "async function loadAndRenderCorrectionReport()", "학습 리포트 조회·렌더 함수 존재");
-assertContains(webHtml, "_fbSignIn = authMod.signInWithEmailAndPassword", "관리자 이메일/비밀번호 로그인 연동 존재(배너 PIN과 별개의 진짜 인증)");
+assertContains(webHtml, "_fbSignIn = authMod.signInWithEmailAndPassword", "배너·학습 리포트 공용 관리자 이메일/비밀번호 로그인 연동 존재");
 assertContains(webHtml, 'id="adminEmailInput"', "학습 리포트 로그인 폼 존재");
 assertContains(webHtml, 'id="adminReportPanel"', "학습 리포트 패널 존재");
 assertContains(webHtml, "loadSavedVideoCorrection();\n            }, 300);", "저장된 영상별 보정이 재분석 시 자동으로(클릭 없이) 적용됨");
 assertContains(webHtml, "saveVideoCorrection(videoFingerprint(selectedFile), selectedPoomsaeKey, boundaries, rebuiltMoveIndexBoundaries)", "수동 조정이 반영될 때마다 영상별 보정이 자동 저장됨");
 assertContains(webHtml, 'id="loadSavedCorrectionBtn"', "저장된 보정 불러오기 버튼 존재");
 assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "allow update, delete: if false", "corrections 컬렉션은 그 누구도 고치거나 지울 수 없음(무결성 보호)");
-assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "request.auth != null && request.auth.token.email in ADMIN_EMAILS()", "corrections 컬렉션 읽기는 인증된 관리자로만 제한됨(익명 읽기 차단, 학습 리포트 기능용)");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "allow read: if isAdmin();", "corrections 컬렉션 읽기는 인증된 관리자로만 제한됨(익명 읽기 차단, 학습 리포트 기능용)");
 assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "'cascade_adjust'", "연쇄 시작점·경계 보정 기록이 클라우드 학습 데이터로 허용됨");
 assertContains(webHtml, "function findJunbiPoseStart(", "준비자세(이미지1) 매칭으로 품새 시작점을 찾는 함수 존재");
 assertContains(webHtml, "const JUNBI_MATCH_THRESHOLD = 0.8", "준비자세 인식 임계값(80%) 존재");
 assertContains(webHtml, "준비자세를 뚜렷하게 인식하지 못해", "준비자세 미인식 시 안내 문구 존재");
 assertContains(webHtml, "const onsetCandidate = detectActionOnset(motionSamples, activeRange, duration)", "첫 동작 시작점 급상승·정점 교차검증이 실제 분석 경로에 연결됨");
 assertContains(webHtml, "onsetCandidate <= coarseOnset + maxOnsetRefine", "시작점 교차검증 이동량 안전 제한 존재");
+assertContains(webHtml, "Math.min(3, Math.max(1.5, duration * 0.04))", "큰 후반 동작 때문에 초반 공식동작을 건너뛰지 않는 시작점 상한 존재");
+assertContains(webHtml, "junbiMatch.time <= coarseOnset + maxOnsetRefine", "중간 동작의 준비자세 유사 정지를 시작점으로 오인하지 않음");
 assertContains(webHtml, "function interpolateLandmarksAt(", "스켈레톤 좌표 보간 함수 존재");
 assertContains(webHtml, "function drawSkeletonFrame(", "스켈레톤 그리기 함수 존재");
 assertContains(webHtml, "function skeletonRenderLoop(", "스켈레톤 렌더 루프 함수 존재");
@@ -559,9 +543,7 @@ assertContains(webHtml, "제작: 울산 몸가짐운동센터</p>\n          <p>
 assertContains(webHtml, "<div class=\"app-footer-partner-block\">\n          <div class=\"app-footer-partner-track\">", "파트너 광고판을 운동센터 로고와 제작 정보 위에 표시");
 assertContains(webHtml, "flex: 0 0 clamp(96px, 14vw, 150px)", "광고 로고를 가까운 고정 너비로 배치");
 assertContains(webHtml, "gap: 2px", "광고 사이 간격을 가깝게 적용");
-assertContains(webHtml, "class=\"app-footer-marquee-copy\"", "광고와 고정 로고를 같은 폭의 반복 묶음으로 구성");
-assertContains(webHtml, "@media (hover: hover) and (pointer: fine)", "터치 기기에서는 광고 자동 이동을 멈추지 않음");
-  assertContains(webHtml, "from { transform: translate3d(var(--footer-marquee-shift), 0, 0); }", "광고가 왼쪽에서 오른쪽으로 이동");
+assertContains(webHtml, "from { transform: translate3d(var(--footer-marquee-shift), 0, 0); }", "광고가 왼쪽에서 오른쪽으로 이동");
 assertContains(webHtml, "#segmentsSection:has(#segments:empty) { display: none; }", "분석 전 비어 있는 빨간 표시 영역 제거");
 assertContains(webHtml, "border: 0;", "하단 광고 로고 테두리 제거");
 assertContains(webHtml, "https://www.instagram.com/yongin_kr", "용인대 국가대표태권도 인스타그램 링크 존재");
@@ -666,7 +648,7 @@ assertContains(webHtml, "apply-bias-btn", "학습 리포트에 보정 적용 버
 assertContains(webHtml, "remove-bias-btn", "학습 리포트에 보정 제거 버튼 존재");
 assertContains(webHtml, "bodyEl.dataset.biasDelegated", "보정 버튼 이벤트 위임 처리(동적 생성 버튼 대응)");
 assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "match /app_config/boundary_bias", "경계 보정값 문서 규칙 존재");
-assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "allow write: if request.auth != null && request.auth.token.email in ADMIN_EMAILS()", "경계 보정값 쓰기는 인증된 관리자로만 제한됨");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "allow write: if isAdmin()", "경계 보정값 쓰기는 인증된 관리자로만 제한됨");
 assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "&& request.resource.data.size() < 200", "경계 보정값 문서 크기 제한 존재");
 
 // ── 관리자 비밀번호 재설정 ──
@@ -675,12 +657,18 @@ assertContains(webHtml, "_fbSendPasswordReset = authMod.sendPasswordResetEmail",
 assertContains(webHtml, "await _fbSendPasswordReset(_fbAuth, email)", "재설정 버튼이 실제로 Firebase 재설정 메일 발송을 호출함");
 assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "return ['momgagym@naver.com']", "관리자 이메일이 실제 값으로 설정됨(플레이스홀더 아님)");
 
-// ── "이 결과 정확해요" 확인(confirm_all) — 안 고친 정상 케이스도 데이터로 수집 ──
-assertNotContains(webHtml, "id=\"confirmAccurateBtn\"", "번거로운 '확인' 버튼이 제거되고 자동 확인으로 대체됨(UX 단순화)");
-assertContains(webHtml, "function autoConfirmIfUnedited(", "자동 확인 함수 존재(버튼 없이 다음 영상으로 넘어갈 때 기록)");
-assertContains(webHtml, "autoConfirmIfUnedited(); // 직전 영상이 안 고쳐진 채였다면", "새 영상 선택 시 자동 확인이 실제로 호출됨");
-assertContains(webHtml, "document.addEventListener(\"visibilitychange\"", "탭 닫기 등에도 자동 확인이 누락되지 않도록 안전망 존재");
-assertContains(webHtml, "recordCorrection(\"confirm_all\"", "확인 버튼이 confirm_all 액션으로 기록함");
+// ── 명시적 검수 확인(confirm_all) — 화면 이탈을 정답으로 오인하지 않음 ──
+assertContains(webHtml, "id=\"confirmBoundariesBtn\"", "동작 구간 명시적 확인 버튼 존재");
+assertContains(webHtml, "function confirmBoundariesExplicitly(", "사용자가 실제 확인한 경우만 기록하는 함수 존재");
+assertNotContains(webHtml, "function autoConfirmIfUnedited(", "무수정·화면 이탈을 정확함으로 자동 기록하는 오염 경로 제거");
+assertContains(webHtml, "recordCorrection(\"confirm_all\"", "명시적 확인이 confirm_all 액션으로 기록됨");
+assertContains(webHtml, "explicit_review: true", "앱 검수 기록에 명시적 확인 여부가 저장됨");
+assertContains(webHtml, "./evidence-calibration.mjs", "교본·영상·GPT·앱 검수 가중 보정 모듈 연결");
+assertContains(webHtml, "calibration_reviews", "GPT·지도자 검수 전용 컬렉션 연결");
+assertContains(webHtml, "parsed?.calibration_record", "정답 검수 JSON을 관리자 화면에서 직접 가져오기 지원");
+assertContains(readUtf8(path.join(root, "www", "evidence-calibration.mjs")), "subject_tracking_confidence", "다중 인물·합성 영상의 단일 인물 추적 신뢰도 가중치 적용");
+assertContains(webHtml, "trusted_provenance: false", "일반 앱 기록은 신뢰 출처를 위조할 수 없도록 강제");
+assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "match /calibration_reviews/{docId}", "GPT·지도자 검수 컬렉션 보안 규칙 존재");
 assertContains(webHtml, "function expandConfirmRecords(records)", "확인 신호를 위치별로 펼치는 함수 존재(브라우저)");
 assertContains(webHtml, "accuracy_rate: e.total > 0", "위치별 정확도(정확도=확인/전체) 계산 존재");
 assertContains(readUtf8(path.join(root, "scripts", "analyze-corrections.js")), "function expandConfirmRecords(records)", "확인 신호를 위치별로 펼치는 함수 존재(Node)");

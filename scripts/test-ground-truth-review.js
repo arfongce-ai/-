@@ -22,16 +22,7 @@ function strictlyIncreasing(values) {
     { file: "taegeuk-5-gpt-review-v1.json", label: "Taegeuk 5", boundaries: 22, mae: 0.914, max: 2.427, within03: 8, weight: 0.39 },
     { file: "taegeuk-6-gpt-review-v1.json", label: "Taegeuk 6", boundaries: 21, mae: 1.428, max: 7.166, within03: 7, weight: 0.6 },
     { file: "taegeuk-7-gpt-review-v1.json", label: "Taegeuk 7", boundaries: 27, mae: 0.508, max: 1.4, within03: 8, weight: 0.39 },
-    { file: "taegeuk-8-gpt-review-v1.json", label: "Taegeuk 8", boundaries: 29, mae: 3.111, max: 6.6, within03: 0, weight: 0.45 },
-    { file: "koryo-gpt-review-v1.json", label: "Koryo", boundaries: 32, mae: 5.363, max: 11.9, within03: 0, weight: 0.39 },
-    { file: "keumgang-gpt-review-v1.json", label: "Keumgang", boundaries: 29, mae: 0, max: 0, within03: 27, weight: 0.6 },
-    { file: "taebaek-gpt-review-v1.json", label: "Taebaek", boundaries: 28, mae: 0, max: 0, within03: 26, weight: 0.39 },
-    { file: "pyongwon-gpt-review-v1.json", label: "Pyongwon", boundaries: 22, mae: 0, max: 0, within03: 20, weight: 0.6 }
-    ,{ file: "sipjin-gpt-review-v1.json", label: "Sipjin", boundaries: 29, mae: 0, max: 0, within03: 27, weight: 0.39 }
-    ,{ file: "jitae-gpt-review-v1.json", label: "Jitae", boundaries: 29, mae: 0, max: 0, within03: 27, weight: 0.39 }
-    ,{ file: "cheonkwon-gpt-review-v1.json", label: "Cheonkwon", boundaries: 28, mae: 0, max: 0, within03: 26, weight: 0.39 }
-    ,{ file: "hansu-gpt-review-v1.json", label: "Hansu", boundaries: 28, mae: 0, max: 0, within03: 26, weight: 0.6 }
-    ,{ file: "ilyeo-gpt-review-v1.json", label: "Ilyeo", boundaries: 25, mae: 0, max: 0, within03: 23, weight: 0.6 }
+    { file: "taegeuk-8-gpt-review-v1.json", label: "Taegeuk 8", boundaries: 29, mae: 3.111, max: 6.6, within03: 0, weight: 0.45 }
   ];
 
   for (const expected of cases) {

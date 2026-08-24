@@ -3,6 +3,3 @@ tmp/
 .wrangler/
 node_modules/
 npm-cache/
-android/.gradle/
-android/build/
-android/app/build/

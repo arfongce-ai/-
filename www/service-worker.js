@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v96-taegeuk-ui";
+const CACHE_NAME = "poomsae-training-v94-capture-compare-validation";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",
@@ -26,26 +26,6 @@ const ENGINE_ASSETS = [
   "./models/taegeuk-6-video-reference.json",
   "./models/koryo-textbook-reference.json",
   "./models/koryo-video-reference.json",
-  "./models/taegeuk-7-textbook-reference.json",
-  "./models/taegeuk-7-video-reference.json",
-  "./models/taegeuk-8-textbook-reference.json",
-  "./models/taegeuk-8-video-reference.json",
-  "./models/keumgang-textbook-reference.json",
-  "./models/keumgang-video-reference.json",
-  "./models/taebaek-textbook-reference.json",
-  "./models/taebaek-video-reference.json",
-  "./models/pyongwon-textbook-reference.json",
-  "./models/pyongwon-video-reference.json",
-  "./models/sipjin-textbook-reference.json",
-  "./models/sipjin-video-reference.json",
-  "./models/jitae-textbook-reference.json",
-  "./models/jitae-video-reference.json",
-  "./models/cheonkwon-textbook-reference.json",
-  "./models/cheonkwon-video-reference.json",
-  "./models/hansu-textbook-reference.json",
-  "./models/hansu-video-reference.json",
-  "./models/ilyeo-textbook-reference.json",
-  "./models/ilyeo-video-reference.json",
   "./action-model.mjs",
   "./textbook-pose-match.mjs",
   "./video-reference-match.mjs",

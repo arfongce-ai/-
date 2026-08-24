@@ -11,7 +11,7 @@ service cloud.firestore {
     // - update/delete: 금지(그 누구도 기존 기록을 고치거나 지울 수 없음 — 데이터 무결성 보호).
     match /corrections/{docId} {
       allow create: if isValidCorrection(request.resource.data);
-      allow read: if request.auth != null && request.auth.token.email in ADMIN_EMAILS();
+      allow read: if isAdmin();
       allow update, delete: if false;
     }
 
@@ -47,7 +47,7 @@ service cloud.firestore {
     // - write: 인증된 관리자만(위 corrections read와 같은 ADMIN_EMAILS 기준).
     match /app_config/boundary_bias {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.email in ADMIN_EMAILS()
+      allow write: if isAdmin()
         && request.resource.data.size() < 200; // 문서 비대화 방지(스팸/실수 보호).
     }
 
