@@ -6162,7 +6162,6 @@ function applyBannerToDom(config) {
       let capturePoseMode = "multi";
       let capturePoseLoopStarted = false;
       let captureLastDetectMs = -1;
-      let captureNextCropDetectAt = 0;
       let captureLatestLandmarks = [];
       let captureSmoothedLandmarks = [];
       let capturePoseState = {
@@ -6200,7 +6199,6 @@ function applyBannerToDom(config) {
         captureSmoothedLandmarks = [];
         captureLatestLandmarks = [];
         captureLastDetectMs = -1;
-        captureNextCropDetectAt = 0;
         if (capturePoseStatus) capturePoseStatus.textContent = "검출 대기 · ROM 대기";
       }
       function captureRangeText(range) {
@@ -6788,7 +6786,8 @@ function applyBannerToDom(config) {
           return;
         }
         const rawLandmarks = await collectCaptureLandmarks(landmarker, result);
-        const allLandmarks = smoothCapturePoses(rawLandmarks);
+        const trackedLandmarks = alignCapturePosesToPrevious(rawLandmarks);
+        const allLandmarks = smoothCapturePoses(trackedLandmarks);
         captureSmoothedLandmarks = allLandmarks;
         if (!rawLandmarks.length) {
           captureTrails.forEach((trail) => Object.keys(trail).forEach((key) => { trail[key] = []; }));
@@ -6931,39 +6930,33 @@ function applyBannerToDom(config) {
       async function collectCaptureLandmarks(landmarker, initialResult) {
         const base = Array.isArray(initialResult?.landmarks) ? initialResult.landmarks : [];
         if (capturePoseMode === "single") return orderCapturePoses(base).slice(0, 1);
-        let candidates = base.slice();
-        const orderedBase = orderCapturePoses(candidates);
-        const now = performance.now();
-        if (orderedBase.length < 3 && captureLatestLandmarks.length && now - capturePoseState.lastSuccessMs < 260) {
-          candidates = candidates.concat(captureLatestLandmarks);
-        }
-        if (orderedBase.length < 3 && now >= captureNextCropDetectAt) {
-          captureNextCropDetectAt = now + 700;
-          const crops = [
-            { x: 0, y: 0, w: 0.50, h: 1 },
-            { x: 0.17, y: 0, w: 0.50, h: 1 },
-            { x: 0.34, y: 0, w: 0.50, h: 1 },
-            { x: 0.50, y: 0, w: 0.50, h: 1 },
-            { x: 0, y: 0.08, w: 0.62, h: 0.84 },
-            { x: 0.38, y: 0.08, w: 0.62, h: 0.84 }
-          ];
-          const detectedCenters = orderedBase.map(capturePoseCenterX);
-          const selectedCrops = crops
-            .sort((a, b) => {
-              const score = (crop) => {
-                const cx = crop.x + crop.w / 2;
-                return detectedCenters.length
-                  ? Math.min(...detectedCenters.map((detectedX) => Math.abs(detectedX - cx)))
-                  : 1 - Math.abs(cx - 0.5);
-              };
-              return score(b) - score(a);
-            })
-            .slice(0, orderedBase.length ? 1 : 2);
-          for (const crop of selectedCrops) {
-            candidates = candidates.concat(await detectCaptureCropPose(landmarker, crop));
-          }
-        }
-        return mergeCapturePoseCandidates(candidates);
+        return mergeCapturePoseCandidates(base);
+      }
+      function capturePoseDistance(a, b) {
+        const dx = capturePoseCenterX(a) - capturePoseCenterX(b);
+        const dy = capturePoseCenterY(a) - capturePoseCenterY(b);
+        return Math.hypot(dx, dy);
+      }
+      function alignCapturePosesToPrevious(poses) {
+        const ordered = orderCapturePoses(poses).slice(0, 3);
+        if (capturePoseMode === "single" || !captureSmoothedLandmarks.length || ordered.length < 2) return ordered;
+        const remaining = ordered.slice();
+        const aligned = [];
+        captureSmoothedLandmarks.slice(0, 3).forEach((previousPose) => {
+          if (!previousPose || !remaining.length) return;
+          let bestIndex = -1;
+          let bestDistance = Infinity;
+          remaining.forEach((pose, index) => {
+            const distance = capturePoseDistance(previousPose, pose);
+            if (distance < bestDistance) {
+              bestDistance = distance;
+              bestIndex = index;
+            }
+          });
+          if (bestIndex >= 0 && bestDistance <= 0.28) aligned.push(remaining.splice(bestIndex, 1)[0]);
+        });
+        aligned.push(...remaining.sort((a, b) => capturePoseCenterX(a) - capturePoseCenterX(b)));
+        return aligned.slice(0, 3);
       }
       function smoothCapturePoses(poses) {
         return poses.map((pose, poseIndex) => {
@@ -6974,7 +6967,7 @@ function applyBannerToDom(config) {
             if (!old || !Number.isFinite(old.x) || !Number.isFinite(old.y)) return { ...point };
             const visibility = point.visibility == null ? 1 : point.visibility;
             const alpha = capturePoseMode === "multi"
-              ? (visibility >= .65 ? .82 : .62)
+              ? (visibility >= .65 ? .92 : .78)
               : (visibility >= .65 ? .48 : .28);
             return { ...point, x: old.x + (point.x - old.x) * alpha, y: old.y + (point.y - old.y) * alpha, z: (old.z || 0) + ((point.z || 0) - (old.z || 0)) * alpha };
           });
@@ -9640,9 +9633,9 @@ function applyBannerToDom(config) {
         loadCaptureModelPromise = (async () => {
           const captureOptions = {
             numPoses: 3,
-            minPoseDetectionConfidence: 0.08,
-            minPosePresenceConfidence: 0.08,
-            minTrackingConfidence: 0.08
+            minPoseDetectionConfidence: 0.15,
+            minPosePresenceConfidence: 0.15,
+            minTrackingConfidence: 0.12
           };
           const { FilesetResolver, PoseLandmarker } = await importMediaPipe();
           try {
