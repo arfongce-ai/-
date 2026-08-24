@@ -6600,7 +6600,7 @@ function applyBannerToDom(config) {
       }
       function drawRecordingTrails(ctx, video, width, height) {
         const now = performance.now();
-        const colors = { leftHand: "#38c7bb", rightHand: "#38c7bb", leftFoot: "#38c7bb", rightFoot: "#38c7bb" };
+        const colors = { leftHand: "#cd2e3a", rightHand: "#cd2e3a", leftFoot: "#0047a0", rightFoot: "#0047a0" };
         captureTrails.forEach((poseTrail) => Object.entries(poseTrail).forEach(([key, points]) => {
           const active = points.filter((point) => now - point.t <= 1500);
           poseTrail[key] = active;
@@ -6687,7 +6687,7 @@ function applyBannerToDom(config) {
             poseTrail[key] = poseTrail[key].filter((item) => now - item.t <= 1500).slice(-60);
             const points = poseTrail[key];
             if (points.length < 2) return;
-            ctx.strokeStyle = "#38c7bb";
+            ctx.strokeStyle = key.includes("Foot") ? "#0047a0" : "#cd2e3a";
             ctx.lineWidth = 3; ctx.globalAlpha = .75; ctx.beginPath();
             points.forEach((item, index2) => {
               const point = rotateCanvasPoint({ x: offX + item.x * drawW, y: offY + item.y * drawH }, rect.width, rect.height, captureRotationDeg());
