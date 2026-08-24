@@ -2303,6 +2303,41 @@
         pointer-events: none;
         z-index: 4;
       }
+      .capture-person-guide {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: min(46vw, 230px);
+        height: min(58vh, 520px);
+        transform: translate(-50%, -48%);
+        border: 3px solid rgba(255, 216, 76, .78);
+        border-radius: 999px 999px 28px 28px;
+        box-shadow: 0 0 0 1px rgba(0,0,0,.24), 0 0 22px rgba(255,216,76,.22);
+        pointer-events: none;
+        z-index: 2;
+      }
+      .capture-person-guide::before,
+      .capture-person-guide::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 2px dashed rgba(255,255,255,.5);
+        border-left: 0;
+        border-right: 0;
+      }
+      .capture-person-guide::before {
+        top: 14%;
+        width: 38%;
+        height: 14%;
+        border-radius: 50%;
+      }
+      .capture-person-guide::after {
+        bottom: 16%;
+        width: 82%;
+        height: 52%;
+        border-radius: 40% 40% 18px 18px;
+      }
       .capture-overlay-toggles {
         position: absolute;
         left: min(48px, 5vw);
@@ -2383,8 +2418,9 @@
         white-space: nowrap;
       }
       #captureRecordingTime {
-        min-width: 52px;
+        min-width: 64px;
         text-align: center;
+        line-height: 1.2;
       }
       .record-dot {
         width: 10px;
@@ -2724,8 +2760,9 @@
         }
         .capture-status {
           right: 10px;
-          top: 62px;
+          top: 92px;
           bottom: auto;
+          z-index: 9;
           font-size: 12px;
         }
         .capture-control-card {
@@ -3288,6 +3325,7 @@
             </div>
           <div class="capture-stage">
             <video id="capturePreview" autoplay muted playsinline></video>
+            <div class="capture-person-guide" aria-hidden="true"></div>
             <canvas id="captureCanvas" class="capture-canvas"></canvas>
           <div class="capture-overlay-toggles" aria-label="촬영 보조 표시">
             <button type="button" id="captureSkeletonToggle" class="capture-chip">스켈레톤 OFF</button>
@@ -6107,6 +6145,7 @@ function applyBannerToDom(config) {
         }
       };
       let captureComposeCanvas = null;
+      let captureCropCanvas = null;
       let captureComposeRaf = 0;
       const captureTrails = Array.from({ length: 3 }, () => ({ leftHand: [], rightHand: [], leftFoot: [], rightFoot: [] }));
       const savedRecordings = [];
@@ -6677,12 +6716,9 @@ function applyBannerToDom(config) {
           return;
         }
         if (captureCameraStatus) captureCameraStatus.textContent = "카메라 연결됨 · 스켈레톤 모델 준비 완료";
-        let ts = Math.round(performance.now());
-        if (ts <= captureLastDetectMs) ts = captureLastDetectMs + 1;
-        captureLastDetectMs = ts;
         let result = null;
         try {
-          result = landmarker.detectForVideo(capturePreview, ts);
+          result = landmarker.detectForVideo(capturePreview, nextCaptureDetectTimestamp());
         } catch (error) {
           console.warn("Capture pose detection skipped.", error);
           captureLatestLandmarks = [];
@@ -6691,9 +6727,7 @@ function applyBannerToDom(config) {
           drawSkeletonFrame(captureCanvas, capturePreview, null);
           return;
         }
-        const rawLandmarks = Array.isArray(result?.landmarks)
-          ? orderCapturePoses(result.landmarks).slice(0, 3)
-          : [];
+        const rawLandmarks = await collectCaptureLandmarks(landmarker, result);
         const allLandmarks = smoothCapturePoses(rawLandmarks);
         captureSmoothedLandmarks = allLandmarks;
         if (!rawLandmarks.length) {
@@ -6732,6 +6766,12 @@ function applyBannerToDom(config) {
         button.classList.toggle("active", enabled);
         button.textContent = `${label} ${enabled ? "ON" : "OFF"}`;
       }
+      function nextCaptureDetectTimestamp() {
+        let ts = Math.round(performance.now());
+        if (ts <= captureLastDetectMs) ts = captureLastDetectMs + 1;
+        captureLastDetectMs = ts;
+        return ts;
+      }
       function visibleLandmarkScore(landmarks) {
         if (!Array.isArray(landmarks)) return 0;
         let score = 0;
@@ -6762,8 +6802,86 @@ function applyBannerToDom(config) {
           return list.sort((a, b) => visibleLandmarkScore(b) - visibleLandmarkScore(a));
         }
         return list
-          .filter((pose) => visibleLandmarkScore(pose) >= 2)
+          .filter((pose) => visibleLandmarkScore(pose) >= 0.9)
           .sort((a, b) => capturePoseCenterX(a) - capturePoseCenterX(b));
+      }
+      function capturePoseCenterY(landmarks) {
+        if (!Array.isArray(landmarks)) return 0.5;
+        let sum = 0;
+        let count = 0;
+        landmarks.forEach((point) => {
+          if (!point || !Number.isFinite(point.y)) return;
+          const visibility = point.visibility == null ? 0.6 : point.visibility;
+          if (visibility < 0.18) return;
+          sum += point.y;
+          count += 1;
+        });
+        return count ? sum / count : 0.5;
+      }
+      function mergeCapturePoseCandidates(candidates) {
+        const sorted = orderCapturePoses(candidates).sort((a, b) => visibleLandmarkScore(b) - visibleLandmarkScore(a));
+        const unique = [];
+        for (const pose of sorted) {
+          const cx = capturePoseCenterX(pose);
+          const cy = capturePoseCenterY(pose);
+          const duplicate = unique.some((old) => {
+            const dx = capturePoseCenterX(old) - cx;
+            const dy = capturePoseCenterY(old) - cy;
+            return Math.hypot(dx, dy) < 0.13;
+          });
+          if (!duplicate) unique.push(pose);
+          if (unique.length >= 3) break;
+        }
+        return unique.sort((a, b) => capturePoseCenterX(a) - capturePoseCenterX(b));
+      }
+      function remapCropPose(pose, crop) {
+        return (pose || []).map((point) => point ? ({
+          ...point,
+          x: crop.x + point.x * crop.w,
+          y: crop.y + point.y * crop.h
+        }) : point);
+      }
+      async function detectCaptureCropPose(landmarker, crop) {
+        if (!capturePreview?.videoWidth || !capturePreview?.videoHeight) return [];
+        const sourceW = capturePreview.videoWidth;
+        const sourceH = capturePreview.videoHeight;
+        const sx = Math.max(0, Math.round(crop.x * sourceW));
+        const sy = Math.max(0, Math.round(crop.y * sourceH));
+        const sw = Math.min(sourceW - sx, Math.round(crop.w * sourceW));
+        const sh = Math.min(sourceH - sy, Math.round(crop.h * sourceH));
+        if (sw <= 0 || sh <= 0) return [];
+        const canvas = captureCropCanvas || document.createElement("canvas");
+        const targetW = 360;
+        canvas.width = targetW;
+        canvas.height = Math.max(360, Math.round(targetW * sh / sw));
+        captureCropCanvas = canvas;
+        const ctx = canvas.getContext("2d", { alpha: false });
+        ctx.drawImage(capturePreview, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        try {
+          const result = landmarker.detectForVideo(canvas, nextCaptureDetectTimestamp());
+          return Array.isArray(result?.landmarks)
+            ? result.landmarks.map((pose) => remapCropPose(pose, crop))
+            : [];
+        } catch (error) {
+          console.warn("Capture crop pose detection skipped.", error);
+          return [];
+        }
+      }
+      async function collectCaptureLandmarks(landmarker, initialResult) {
+        const base = Array.isArray(initialResult?.landmarks) ? initialResult.landmarks : [];
+        if (capturePoseMode === "single") return orderCapturePoses(base).slice(0, 1);
+        let candidates = base.slice();
+        if (orderCapturePoses(candidates).length < 3) {
+          const crops = [
+            { x: 0, y: 0, w: 0.56, h: 1 },
+            { x: 0.22, y: 0, w: 0.56, h: 1 },
+            { x: 0.44, y: 0, w: 0.56, h: 1 }
+          ];
+          for (const crop of crops) {
+            candidates = candidates.concat(await detectCaptureCropPose(landmarker, crop));
+          }
+        }
+        return mergeCapturePoseCandidates(candidates);
       }
       function smoothCapturePoses(poses) {
         return poses.map((pose, poseIndex) => {
