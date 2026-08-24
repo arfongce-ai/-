@@ -2448,8 +2448,8 @@
         border-color: #d13042;
       }
       .capture-record-btn {
-        width: 96px;
-        height: 96px;
+        width: 66px;
+        height: 66px;
         min-height: 0;
         display: grid;
         place-items: center;
@@ -2460,13 +2460,13 @@
         color: transparent;
         font-size: 0;
         font-weight: 900;
-        box-shadow: 0 0 0 8px rgba(255,255,255,.14), 0 12px 26px rgba(243,66,69,.35);
+        box-shadow: 0 0 0 6px rgba(255,255,255,.16), 0 10px 22px rgba(243,66,69,.32);
       }
       .capture-record-btn::after {
         content: "";
         display: block;
-        width: 34px;
-        height: 34px;
+        width: 24px;
+        height: 24px;
         margin: 0;
         border-radius: 50%;
         background: rgba(255,255,255,.22);
@@ -2527,6 +2527,17 @@
         width: 100%;
         height: 100%;
         object-fit: contain;
+        transform: none !important;
+      }
+      .compare-result {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--panel-line);
+        border-radius: 8px;
+        background: var(--panel-2);
+        color: var(--text);
+        font-size: 13px;
+        line-height: 1.55;
       }
       .compare-empty-state {
         position: absolute;
@@ -2723,8 +2734,8 @@
           padding: 8px;
         }
         .capture-record-btn {
-          width: 88px;
-          height: 88px;
+          width: 64px;
+          height: 64px;
           min-height: 0;
           margin-top: 14px;
           font-size: 0;
@@ -3627,7 +3638,11 @@
               <label class="speed-control"><span>후 영상 투명도</span><input id="compareOpacity" type="range" min="0.15" max="1" step="0.05" value="0.52" /></label>
               <button type="button" id="comparePlayBtn" class="secondary">동시 재생</button>
               <button type="button" id="comparePauseBtn" class="secondary">정지</button>
+              <button type="button" id="compareSaveBtn" class="secondary">비교 영상 저장</button>
+              <button type="button" id="compareAnalyzeBtn" class="secondary">비교 분석</button>
+              <button type="button" id="compareUseAfterBtn" class="secondary">후 영상 분석으로 보내기</button>
             </div>
+            <div id="compareResult" class="compare-result" hidden></div>
           </div>
         </div>
       </section>
@@ -6062,6 +6077,10 @@ function applyBannerToDom(config) {
       const compareOpacity = document.getElementById("compareOpacity");
       const comparePlayBtn = document.getElementById("comparePlayBtn");
       const comparePauseBtn = document.getElementById("comparePauseBtn");
+      const compareSaveBtn = document.getElementById("compareSaveBtn");
+      const compareAnalyzeBtn = document.getElementById("compareAnalyzeBtn");
+      const compareUseAfterBtn = document.getElementById("compareUseAfterBtn");
+      const compareResult = document.getElementById("compareResult");
       const MAX_RECORDING_MS = 120000;
       let captureStream = null;
       let mediaRecorder = null;
@@ -6164,7 +6183,8 @@ function applyBannerToDom(config) {
               facingMode: { ideal: "environment" },
               width: { ideal: high ? 1920 : 1280 },
               height: { ideal: high ? 1440 : 960 },
-              aspectRatio: { ideal: aspectRatio }
+              aspectRatio: { ideal: aspectRatio },
+              zoom: { ideal: 0.5 }
             },
             audio: false
           },
@@ -6172,7 +6192,8 @@ function applyBannerToDom(config) {
             video: {
               facingMode: { ideal: "environment" },
               width: { ideal: high ? 1920 : 1280 },
-              height: { ideal: high ? 1080 : 720 }
+              height: { ideal: high ? 1080 : 720 },
+              zoom: { ideal: 0.5 }
             },
             audio: false
           },
@@ -6214,6 +6235,7 @@ function applyBannerToDom(config) {
         capturePreview.srcObject = captureStream;
         capturePreview.muted = true;
         await capturePreview.play().catch(() => {});
+        await setWidestCaptureCameraZoom();
         startRecordBtn.disabled = false;
         if (captureCameraStatus) captureCameraStatus.textContent = "카메라 연결됨 · 녹화 버튼을 눌러 저장하세요.";
         startCapturePoseLoop();
@@ -6358,8 +6380,66 @@ function applyBannerToDom(config) {
         if (labelEl) labelEl.textContent = `${scale.toFixed(2)}x`;
       }
       function captureZoomScale() {
-        const scale = Number(captureStage?.dataset.zoomScale || 1);
-        return Number.isFinite(scale) ? Math.max(.5, Math.min(2, scale)) : 1;
+        return 1;
+      }
+      function captureVideoTrack() {
+        return captureStream?.getVideoTracks?.()[0] || null;
+      }
+      function captureCameraZoomBounds() {
+        const track = captureVideoTrack();
+        const caps = track?.getCapabilities?.();
+        if (!caps || typeof caps.zoom !== "object") return null;
+        const min = Number(caps.zoom.min);
+        const max = Number(caps.zoom.max);
+        const step = Number(caps.zoom.step) || 0.1;
+        if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return null;
+        return { min, max, step };
+      }
+      async function applyCaptureCameraZoom(value) {
+        const track = captureVideoTrack();
+        const bounds = captureCameraZoomBounds();
+        if (!track || !bounds || !track.applyConstraints) return false;
+        const target = Math.max(bounds.min, Math.min(bounds.max, Number(value) || bounds.min));
+        try {
+          await track.applyConstraints({ advanced: [{ zoom: target }] });
+          if (captureStage) captureStage.dataset.cameraZoom = target.toFixed(2);
+          return true;
+        } catch (error) {
+          console.warn("Camera zoom unavailable.", error);
+          return false;
+        }
+      }
+      async function setWidestCaptureCameraZoom() {
+        const bounds = captureCameraZoomBounds();
+        if (!bounds) return false;
+        return applyCaptureCameraZoom(bounds.min);
+      }
+      function bindCaptureCameraPinchZoom(stage) {
+        if (!stage) return;
+        let startDistance = 0;
+        let startZoom = 1;
+        const distance = (touches) => Math.hypot(
+          touches[0].clientX - touches[1].clientX,
+          touches[0].clientY - touches[1].clientY
+        );
+        stage.addEventListener("touchstart", (event) => {
+          if (event.touches.length !== 2) return;
+          startDistance = distance(event.touches);
+          const bounds = captureCameraZoomBounds();
+          const current = Number(captureStage?.dataset.cameraZoom);
+          startZoom = Number.isFinite(current) ? current : (bounds ? bounds.min : 1);
+        }, { passive: true });
+        stage.addEventListener("touchmove", (event) => {
+          if (event.touches.length !== 2 || !startDistance) return;
+          event.preventDefault();
+          const bounds = captureCameraZoomBounds();
+          if (!bounds) return;
+          const nextZoom = startZoom * (distance(event.touches) / startDistance);
+          applyCaptureCameraZoom(nextZoom);
+        }, { passive: false });
+        stage.addEventListener("touchend", (event) => {
+          if (event.touches.length < 2) startDistance = 0;
+        }, { passive: true });
       }
       function captureRotationDeg() {
         const angle = Number(window.screen?.orientation?.angle ?? window.orientation ?? 0);
@@ -6612,7 +6692,7 @@ function applyBannerToDom(config) {
           return;
         }
         const rawLandmarks = Array.isArray(result?.landmarks)
-          ? result.landmarks.slice(0, 3).sort((a, b) => visibleLandmarkScore(b) - visibleLandmarkScore(a))
+          ? orderCapturePoses(result.landmarks).slice(0, 3)
           : [];
         const allLandmarks = smoothCapturePoses(rawLandmarks);
         captureSmoothedLandmarks = allLandmarks;
@@ -6663,6 +6743,28 @@ function applyBannerToDom(config) {
         });
         return score;
       }
+      function capturePoseCenterX(landmarks) {
+        if (!Array.isArray(landmarks)) return 0.5;
+        let sum = 0;
+        let count = 0;
+        landmarks.forEach((point) => {
+          if (!point || !Number.isFinite(point.x)) return;
+          const visibility = point.visibility == null ? 0.6 : point.visibility;
+          if (visibility < 0.18) return;
+          sum += point.x;
+          count += 1;
+        });
+        return count ? sum / count : 0.5;
+      }
+      function orderCapturePoses(poses) {
+        const list = Array.isArray(poses) ? poses.slice() : [];
+        if (capturePoseMode === "single") {
+          return list.sort((a, b) => visibleLandmarkScore(b) - visibleLandmarkScore(a));
+        }
+        return list
+          .filter((pose) => visibleLandmarkScore(pose) >= 2)
+          .sort((a, b) => capturePoseCenterX(a) - capturePoseCenterX(b));
+      }
       function smoothCapturePoses(poses) {
         return poses.map((pose, poseIndex) => {
           const previous = captureSmoothedLandmarks[poseIndex];
@@ -6689,7 +6791,7 @@ function applyBannerToDom(config) {
         try { screen.orientation?.unlock?.(); } catch (error) { /* noop */ }
       }
       startRecordBtn?.addEventListener("click", startRecording);
-      bindPinchZoom(captureStage, [capturePreview, captureCanvas], null, null);
+      bindCaptureCameraPinchZoom(captureStage);
       captureSkeletonToggle?.addEventListener("click", () => {
         captureSkeletonEnabled = !captureSkeletonEnabled;
         setCaptureChip(captureSkeletonToggle, captureSkeletonEnabled, "스켈레톤");
@@ -6741,6 +6843,7 @@ function applyBannerToDom(config) {
           videoEl.dataset.url = url;
           videoEl.src = url;
           videoEl.load();
+          videoEl.addEventListener("loadedmetadata", updateCompareStageAspect, { once: true });
           if (compareEmptyState) {
             const ready = Boolean(compareBeforeVideo?.src && compareAfterVideo?.src);
             compareEmptyState.textContent = ready ? "" : "전 영상과 후 영상을 모두 선택하면 비교할 수 있습니다.";
@@ -6748,9 +6851,14 @@ function applyBannerToDom(config) {
           }
         });
       }
+      function updateCompareStageAspect() {
+        if (!compareStage) return;
+        const source = compareBeforeVideo?.videoWidth ? compareBeforeVideo : compareAfterVideo;
+        if (!source?.videoWidth || !source?.videoHeight) return;
+        compareStage.style.aspectRatio = `${source.videoWidth} / ${source.videoHeight}`;
+      }
       bindCompareInput(compareBeforeInput, compareBeforeVideo);
       bindCompareInput(compareAfterInput, compareAfterVideo);
-      bindPinchZoom(compareStage, [compareBeforeVideo, compareAfterVideo], null, null);
       compareOpacity?.addEventListener("input", () => { compareAfterVideo.style.opacity = compareOpacity.value; });
       comparePlayBtn?.addEventListener("click", () => {
         if (!compareBeforeVideo?.src || !compareAfterVideo?.src) {
@@ -6765,6 +6873,118 @@ function applyBannerToDom(config) {
         Promise.all([compareBeforeVideo.play(), compareAfterVideo.play()]).catch(() => {});
       });
       comparePauseBtn?.addEventListener("click", () => { compareBeforeVideo.pause(); compareAfterVideo.pause(); });
+      function compareVideosReady() {
+        return Boolean(compareBeforeVideo?.src && compareAfterVideo?.src && compareBeforeVideo.videoWidth && compareAfterVideo.videoWidth);
+      }
+      function renderCompareResult(html) {
+        if (!compareResult) return;
+        compareResult.hidden = false;
+        compareResult.innerHTML = html;
+      }
+      function drawCompareFrame(ctx, width, height) {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, width, height);
+        const beforeRect = videoDrawRect(compareBeforeVideo, width, height, "contain");
+        const afterRect = videoDrawRect(compareAfterVideo, width, height, "contain");
+        if (beforeRect) ctx.drawImage(compareBeforeVideo, beforeRect.offX, beforeRect.offY, beforeRect.drawW, beforeRect.drawH);
+        if (afterRect) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0.15, Math.min(1, Number(compareOpacity?.value || 0.52)));
+          ctx.drawImage(compareAfterVideo, afterRect.offX, afterRect.offY, afterRect.drawW, afterRect.drawH);
+          ctx.restore();
+        }
+      }
+      async function saveCompareVideo() {
+        if (!compareVideosReady()) {
+          renderCompareResult("전 영상과 후 영상을 모두 선택한 뒤 저장하세요.");
+          return;
+        }
+        if (!HTMLCanvasElement.prototype.captureStream || !window.MediaRecorder) {
+          renderCompareResult("이 브라우저에서는 비교 영상 저장을 지원하지 않습니다.");
+          return;
+        }
+        const width = Math.min(1280, Math.max(compareBeforeVideo.videoWidth, compareAfterVideo.videoWidth, 640));
+        const baseRatio = compareBeforeVideo.videoWidth && compareBeforeVideo.videoHeight
+          ? compareBeforeVideo.videoWidth / compareBeforeVideo.videoHeight
+          : 16 / 9;
+        const height = Math.max(360, Math.round(width / baseRatio));
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d", { alpha: false });
+        const stream = canvas.captureStream(30);
+        const mimeType = recordingMimeType();
+        const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+        const chunks = [];
+        recorder.addEventListener("dataavailable", (event) => { if (event.data?.size) chunks.push(event.data); });
+        const done = new Promise((resolve) => recorder.addEventListener("stop", resolve, { once: true }));
+        const duration = Math.min(
+          Number(compareBeforeVideo.duration) || 0,
+          Number(compareAfterVideo.duration) || 0,
+          MAX_RECORDING_MS / 1000
+        );
+        compareBeforeVideo.currentTime = 0;
+        compareAfterVideo.currentTime = 0;
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        recorder.start(250);
+        let raf = 0;
+        const draw = () => {
+          drawCompareFrame(ctx, width, height);
+          if (duration && Math.max(compareBeforeVideo.currentTime, compareAfterVideo.currentTime) >= duration - 0.03) {
+            recorder.stop();
+            return;
+          }
+          raf = requestAnimationFrame(draw);
+        };
+        draw();
+        await Promise.all([compareBeforeVideo.play(), compareAfterVideo.play()]).catch(() => {});
+        setTimeout(() => {
+          if (recorder.state === "recording") recorder.stop();
+        }, Math.max(1000, (duration || 10) * 1000 + 500));
+        await done;
+        if (raf) cancelAnimationFrame(raf);
+        compareBeforeVideo.pause();
+        compareAfterVideo.pause();
+        const type = recorder.mimeType || mimeType || "video/webm";
+        const ext = type.includes("mp4") ? "mp4" : "webm";
+        saveBlob(new Blob(chunks, { type }), `poomsae-compare-overlay.${ext}`);
+        renderCompareResult("비교 오버레이 영상을 저장했습니다.");
+      }
+      function analyzeCompareVideos() {
+        if (!compareVideosReady()) {
+          renderCompareResult("전 영상과 후 영상을 모두 선택한 뒤 비교 분석을 누르세요.");
+          return;
+        }
+        const beforeDuration = Number(compareBeforeVideo.duration) || 0;
+        const afterDuration = Number(compareAfterVideo.duration) || 0;
+        const delta = afterDuration - beforeDuration;
+        const pct = beforeDuration ? (delta / beforeDuration) * 100 : 0;
+        const beforeRes = `${compareBeforeVideo.videoWidth}x${compareBeforeVideo.videoHeight}`;
+        const afterRes = `${compareAfterVideo.videoWidth}x${compareAfterVideo.videoHeight}`;
+        renderCompareResult(`시간 변화: ${delta >= 0 ? "+" : ""}${delta.toFixed(2)}초 (${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%)<br>전 영상: ${beforeDuration.toFixed(2)}초 · ${beforeRes}<br>후 영상: ${afterDuration.toFixed(2)}초 · ${afterRes}`);
+      }
+      function useAfterCompareForAnalysis() {
+        const file = compareAfterInput?.files?.[0];
+        if (!file || !fileInput) {
+          renderCompareResult("후 영상을 먼저 선택하세요.");
+          return;
+        }
+        try {
+          const transfer = new DataTransfer();
+          transfer.items.add(file);
+          fileInput.files = transfer.files;
+          fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+          setAppTab("analysis");
+        } catch (error) {
+          renderCompareResult("후 영상을 분석 탭으로 보내지 못했습니다. 분석 탭에서 직접 선택해 주세요.");
+        }
+      }
+      compareSaveBtn?.addEventListener("click", () => saveCompareVideo().catch((error) => {
+        console.warn("Compare video save failed.", error);
+        renderCompareResult("비교 영상 저장 중 오류가 발생했습니다.");
+      }));
+      compareAnalyzeBtn?.addEventListener("click", analyzeCompareVideos);
+      compareUseAfterBtn?.addEventListener("click", useAfterCompareForAnalysis);
       renderRecordings();
       const PRESET_VIDEO_LIBRARY = {}; /*
         taegeuk_1: { label: "태극 1장", fileName: "품새_태극1장.mp4", url: "./videos/품새_태극1장.mp4" },
@@ -9185,10 +9405,10 @@ function applyBannerToDom(config) {
         if (loadCaptureModelPromise) return loadCaptureModelPromise;
         loadCaptureModelPromise = (async () => {
           const captureOptions = {
-            numPoses: 6,
-            minPoseDetectionConfidence: 0.25,
-            minPosePresenceConfidence: 0.25,
-            minTrackingConfidence: 0.25
+            numPoses: 3,
+            minPoseDetectionConfidence: 0.15,
+            minPosePresenceConfidence: 0.15,
+            minTrackingConfidence: 0.15
           };
           const { FilesetResolver, PoseLandmarker } = await importMediaPipe();
           try {
