@@ -13709,7 +13709,20 @@ function applyBannerToDom(config) {
       safeInit("setupQuickNav", () => setupQuickNav());
       safeInit("setupBackNavigationGuard", () => setupBackNavigationGuard());
       if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => navigator.serviceWorker.register("/service-worker.js", { scope: "/" }).catch(() => {}));
+        window.addEventListener("load", async () => {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(
+              registrations
+                .filter((registration) => registration.scope !== `${window.location.origin}/`)
+                .map((registration) => registration.unregister())
+            );
+            const registration = await navigator.serviceWorker.register(`/service-worker.js?v=${encodeURIComponent("aaf-recording-fix-v2")}`, { scope: "/" });
+            await registration.update();
+          } catch (error) {
+            console.warn("서비스워커 갱신 실패:", error);
+          }
+        });
       }
 
       // 파일의 앞·뒤 일부를 읽어 HEVC 박스(hvc1/hev1/hvcC)가 있는지 확인한다(이름 의존 없이).

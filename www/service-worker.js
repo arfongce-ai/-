@@ -52,14 +52,28 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))));
+  event.waitUntil(
+    Promise.all([
+      caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))),
+      self.registration.navigationPreload && self.registration.navigationPreload.enable
+        ? self.registration.navigationPreload.enable().catch(() => {})
+        : Promise.resolve()
+    ])
+  );
   self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   if (event.request.mode === "navigate") {
-    event.respondWith(fetch(event.request).catch(() => caches.match(new URL(APP_URL, self.location).href)));
+    event.respondWith((async () => {
+      try {
+        const preloaded = await event.preloadResponse;
+        return preloaded || await fetch(event.request);
+      } catch (error) {
+        return caches.match(new URL(APP_URL, self.location).href);
+      }
+    })());
     return;
   }
   event.respondWith(
