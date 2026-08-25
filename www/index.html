@@ -6476,6 +6476,7 @@ function applyBannerToDom(config) {
       }
       function startRecording() {
         if (mediaRecorder && mediaRecorder.state === "recording") {
+          try { mediaRecorder.requestData?.(); } catch (error) { /* noop */ }
           mediaRecorder.stop();
           return;
         }
@@ -6493,13 +6494,14 @@ function applyBannerToDom(config) {
         recordingLandscape = captureIsLandscapeMode();
         const recordingStream = createCaptureRecordingStream(recordingLandscape);
         mediaRecorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : undefined);
-        mediaRecorder.addEventListener("dataavailable", (event) => { if (event.data && event.data.size) recordingChunks.push(event.data); });
-        mediaRecorder.addEventListener("stop", () => {
+        const recorder = mediaRecorder;
+        recorder.addEventListener("dataavailable", (event) => { if (event.data && event.data.size) recordingChunks.push(event.data); });
+        recorder.addEventListener("stop", () => {
           clearInterval(recordingTimerId);
           if (captureComposeRaf) cancelAnimationFrame(captureComposeRaf);
           captureComposeRaf = 0;
           const durationMs = Math.min(Date.now() - recordingStartedAt, MAX_RECORDING_MS);
-          const type = mediaRecorder?.mimeType || mimeType || "video/webm";
+          const type = recorder.mimeType || mimeType || "video/webm";
           const ext = type.includes("mp4") ? "mp4" : "webm";
           const blob = new Blob(recordingChunks, { type });
           if (!blob.size) {
@@ -6602,7 +6604,10 @@ function applyBannerToDom(config) {
       }
       function captureRotationDeg(targetLandscape = captureIsLandscapeMode()) {
         const sourceLandscape = Boolean(capturePreview?.videoWidth && capturePreview.videoWidth > capturePreview.videoHeight);
-        return sourceLandscape === targetLandscape ? 0 : 90;
+        const angle = Number(window.screen?.orientation?.angle ?? window.orientation ?? 0);
+        if (sourceLandscape === targetLandscape) return angle === 180 ? 180 : 0;
+        if (targetLandscape) return angle === 270 ? 270 : 90;
+        return angle === 270 ? 90 : 270;
       }
       function captureIsLandscapeMode() {
         const stageRect = captureStage?.getBoundingClientRect?.();
