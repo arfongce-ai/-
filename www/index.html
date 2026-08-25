@@ -3795,7 +3795,7 @@
       // Firebase 관리자 인증으로 저장 전 확인한다.
       let _fbAuth = null, _fbSignIn = null, _fbSignOut = null, _fbSendPasswordReset = null;
       let _fbCurrentAdminUser = null;
-      const FIREBASE_READ_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+      const FIREBASE_READ_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
       const BANNER_CACHE_KEY = "poomsae_banner_cache_v1";
       (async function initFirebase() {
         try {
@@ -3822,12 +3822,10 @@
           authMod.onAuthStateChanged(_fbAuth, (user) => {
             _fbCurrentAdminUser = user;
             safeInit("updateAdminReportUi", () => updateAdminReportUi());
-            autoPublishHighConfidenceSuggestions(); // 관리자로 인식되면(이 기기에 로그인 이력) 조용히 확인·반영.
           });
           _fbReady = true;
           flushPendingCloudCorrections(); // 오프라인 때 쌓인 기록을 연결 즉시 재전송.
           initPartnerBanner(); // Firebase 준비된 뒤 배너 설정을 불러온다.
-          loadBoundaryBias(); // 학습된 경계 타이밍 보정도 함께 불러온다(실패해도 무해).
         } catch (e) {
           _fbReady = false; // 조용히 실패. 로컬 기록은 계속 동작.
           loadBoundaryBias(); // 오프라인이어도 이전에 캐시된 보정값(localStorage)은 적용.
@@ -6652,14 +6650,19 @@ function applyBannerToDom(config) {
       }
       function captureRotationDeg(targetLandscape = captureIsLandscapeMode()) {
         const sourceLandscape = Boolean(capturePreview?.videoWidth && capturePreview.videoWidth > capturePreview.videoHeight);
+        const angle = Math.abs(Number(window.screen?.orientation?.angle ?? window.orientation ?? 0)) % 360;
         if (sourceLandscape === targetLandscape) return 0;
-        return targetLandscape ? 90 : 270;
+        if (targetLandscape) return angle === 270 ? 270 : 90;
+        return angle === 270 ? 90 : 270;
       }
       function captureIsLandscapeMode() {
         const stageRect = captureStage?.getBoundingClientRect?.();
         const stageLandscape = Boolean(stageRect?.width && stageRect?.height && stageRect.width >= stageRect.height);
+        const visualLandscape = Boolean(window.visualViewport?.width && window.visualViewport.width >= window.visualViewport.height);
         const screenLandscape = Boolean(window.matchMedia?.("(orientation: landscape)").matches);
-        return stageLandscape || screenLandscape;
+        const angle = Math.abs(Number(window.screen?.orientation?.angle ?? window.orientation ?? 0)) % 180;
+        const angleLandscape = angle === 90;
+        return angleLandscape || screenLandscape || visualLandscape || stageLandscape;
       }
       function syncCaptureOrientationState() {
         if (!captureStage) return;
@@ -12637,6 +12640,7 @@ function applyBannerToDom(config) {
           return;
         }
         warnIfFilenamePoomsaeMismatch();
+        await loadBoundaryBias();
         if (!poseLandmarker) {
           await loadModel();
         }
