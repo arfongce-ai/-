@@ -2265,6 +2265,19 @@
         gap: 16px;
         align-items: start;
       }
+      .compare-layer-view[hidden] {
+        display: none !important;
+      }
+      .compare-layer-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .compare-layer-head h3 {
+        margin: 0;
+      }
       .capture-stage {
         position: relative;
         width: min(100vw, 560px);
@@ -2569,6 +2582,10 @@
       }
       .compare-select {
         min-width: 140px;
+      }
+      .compare-upload-panel {
+        width: min(680px, 100%);
+        margin: 0 auto;
       }
       .compare-layer {
         position: absolute;
@@ -3688,33 +3705,54 @@
       </section>
       <section id="comparePanel" class="app-panel">
         <h2>전/후 비교</h2>
-        <div class="compare-grid">
-          <div id="compareStage" class="compare-stage">
-            <video id="compareBeforeVideo" class="compare-layer" muted playsinline></video>
-            <video id="compareAfterVideo" class="compare-layer" muted playsinline></video>
-            <div id="compareEmptyState" class="compare-empty-state">전 영상과 후 영상을 선택하면 여기에서 비교할 수 있습니다.</div>
-          </div>
-          <div class="tool-panel">
-            <h3>오버레이 비교</h3>
-            <p class="small">촬영 전/후 영상을 겹쳐 자세 변화와 위치 차이를 확인합니다.</p>
+        <div id="compareUploadLayer" class="compare-layer-view">
+          <div class="tool-panel compare-upload-panel">
+            <div class="compare-layer-head">
+              <h3>영상 파일 넣기</h3>
+            </div>
             <div class="control-grid">
               <label class="field-label">전 영상<input id="compareBeforeInput" type="file" accept="video/mp4,video/*" /></label>
               <label class="field-label">후 영상<input id="compareAfterInput" type="file" accept="video/mp4,video/*" /></label>
             </div>
-            <div class="compare-controlbar" aria-label="오버레이 비교 컨트롤">
-              <div class="compare-seek">
-                <span id="compareCurrentTime">00:00</span>
-                <input id="compareSeek" type="range" min="0" max="1000" step="1" value="0" aria-label="비교 영상 탐색" />
-                <span id="compareDuration">00:00</span>
+            <div class="tool-row">
+              <button type="button" id="compareToEvalBtn" class="secondary">분석/평가로 이동</button>
+            </div>
+          </div>
+        </div>
+        <div id="compareEvalLayer" class="compare-layer-view" hidden>
+          <div class="compare-layer-head">
+            <h3>분석/평가</h3>
+            <button type="button" id="compareBackToUploadBtn" class="secondary">영상 다시 넣기</button>
+          </div>
+          <div class="compare-grid">
+            <div>
+              <div id="compareStage" class="compare-stage">
+                <video id="compareBeforeVideo" class="compare-layer" muted playsinline></video>
+                <video id="compareAfterVideo" class="compare-layer" muted playsinline></video>
+                <div id="compareEmptyState" class="compare-empty-state">전 영상과 후 영상을 선택하면 여기에서 비교할 수 있습니다.</div>
               </div>
-              <div class="tool-row">
-                <button type="button" id="comparePlayPauseBtn" class="secondary">재생</button>
-                <button type="button" id="compareStopBtn" class="secondary">정지</button>
-                <label class="skeleton-toggle"><input id="compareLoopToggle" type="checkbox" /> 반복재생</label>
-                <button type="button" id="compareSaveBtn" class="secondary">저장</button>
+              <div class="compare-controlbar" aria-label="오버레이 비교 컨트롤">
+                <div class="compare-seek">
+                  <span id="compareCurrentTime">00:00</span>
+                  <input id="compareSeek" type="range" min="0" max="1000" step="1" value="0" aria-label="비교 영상 탐색" />
+                  <span id="compareDuration">00:00</span>
+                </div>
+                <div class="tool-row">
+                  <button type="button" id="comparePlayPauseBtn" class="secondary">재생</button>
+                  <button type="button" id="compareStopBtn" class="secondary">정지</button>
+                  <label class="skeleton-toggle"><input id="compareLoopToggle" type="checkbox" /> 반복재생</label>
+                  <button type="button" id="compareSaveBtn" class="secondary">저장</button>
+                </div>
               </div>
+              <div id="compareResult" class="compare-result" hidden></div>
+            </div>
+            <div class="tool-panel">
+              <h3>겹침 조정</h3>
+              <p class="small">전 영상은 흑백, 후 영상은 컬러로 표시됩니다.</p>
               <div class="tool-row">
                 <label class="speed-control"><span>전-후 영상 투명도</span><input id="compareOpacity" type="range" min="0.15" max="1" step="0.05" value="0.52" /></label>
+              </div>
+              <div class="tool-row">
                 <label class="speed-control"><span>겹침 기준</span><select id="compareAlignMode" class="compare-select">
                   <option value="none">자동 수정 OFF</option>
                   <option value="ankle">발목 기준</option>
@@ -3723,11 +3761,10 @@
                   <option value="hip">골반 기준</option>
                 </select></label>
               </div>
+              <div class="tool-row">
+                <button type="button" id="compareAnalyzeBtn" class="secondary">비교 분석</button>
+              </div>
             </div>
-            <div class="tool-row">
-              <button type="button" id="compareAnalyzeBtn" class="secondary">비교 분석</button>
-            </div>
-            <div id="compareResult" class="compare-result" hidden></div>
           </div>
         </div>
       </section>
@@ -6278,6 +6315,10 @@ function applyBannerToDom(config) {
       const analysisZoomOut = document.getElementById("analysisZoomOut");
       const compareBeforeInput = document.getElementById("compareBeforeInput");
       const compareAfterInput = document.getElementById("compareAfterInput");
+      const compareUploadLayer = document.getElementById("compareUploadLayer");
+      const compareEvalLayer = document.getElementById("compareEvalLayer");
+      const compareToEvalBtn = document.getElementById("compareToEvalBtn");
+      const compareBackToUploadBtn = document.getElementById("compareBackToUploadBtn");
       const compareBeforeVideo = document.getElementById("compareBeforeVideo");
       const compareAfterVideo = document.getElementById("compareAfterVideo");
       const compareStage = document.getElementById("compareStage");
@@ -6565,6 +6606,8 @@ function applyBannerToDom(config) {
             videoEl.src = url;
             videoEl.load();
             setAppTab("compare");
+            updateCompareReadyState();
+            if (compareBeforeVideo?.src && compareAfterVideo?.src) setCompareLayer("eval");
           } else if (compareEmptyState) {
             compareEmptyState.textContent = "저장된 영상을 비교 입력에 연결하지 못했습니다.";
           }
@@ -7259,6 +7302,28 @@ function applyBannerToDom(config) {
           comparePlayPauseBtn.textContent = playing ? "일시정지" : "재생";
         }
       }
+      function setCompareLayer(name) {
+        const evalMode = name === "eval";
+        if (compareUploadLayer) compareUploadLayer.hidden = evalMode;
+        if (compareEvalLayer) compareEvalLayer.hidden = !evalMode;
+        if (evalMode) {
+          updateCompareStageAspect();
+          updateCompareControls();
+          updateCompareAlignment();
+        } else {
+          compareBeforeVideo?.pause();
+          compareAfterVideo?.pause();
+          updateCompareControls();
+        }
+      }
+      function updateCompareReadyState() {
+        const ready = compareVideosSelected();
+        if (compareToEvalBtn) compareToEvalBtn.disabled = !ready;
+        if (compareEmptyState) {
+          compareEmptyState.textContent = ready ? "" : "전 영상과 후 영상을 선택하면 여기에서 비교할 수 있습니다.";
+          compareEmptyState.classList.toggle("hidden", ready);
+        }
+      }
       function applyCompareAlignmentOffset() {
         if (!compareAfterVideo) return;
         const rect = compareStage?.getBoundingClientRect?.();
@@ -7341,11 +7406,7 @@ function applyBannerToDom(config) {
           videoEl.load();
           videoEl.addEventListener("loadedmetadata", updateCompareStageAspect, { once: true });
           videoEl.addEventListener("loadedmetadata", updateCompareControls, { once: true });
-          if (compareEmptyState) {
-            const ready = Boolean(compareBeforeVideo?.src && compareAfterVideo?.src);
-            compareEmptyState.textContent = ready ? "" : "전 영상과 후 영상을 모두 선택하면 비교할 수 있습니다.";
-            compareEmptyState.classList.toggle("hidden", ready);
-          }
+          updateCompareReadyState();
           resetCompareAlignment();
         });
       }
@@ -7357,6 +7418,16 @@ function applyBannerToDom(config) {
       }
       bindCompareInput(compareBeforeInput, compareBeforeVideo);
       bindCompareInput(compareAfterInput, compareAfterVideo);
+      updateCompareReadyState();
+      compareToEvalBtn?.addEventListener("click", () => {
+        if (!compareVideosSelected()) {
+          updateCompareReadyState();
+          renderCompareResult("전 영상과 후 영상을 모두 선택한 뒤 분석/평가로 이동하세요.");
+          return;
+        }
+        setCompareLayer("eval");
+      });
+      compareBackToUploadBtn?.addEventListener("click", () => setCompareLayer("upload"));
       compareOpacity?.addEventListener("input", () => { compareAfterVideo.style.opacity = compareOpacity.value; });
       compareAlignMode?.addEventListener("change", () => updateCompareAlignment());
       compareSeek?.addEventListener("input", () => {
@@ -7397,6 +7468,9 @@ function applyBannerToDom(config) {
       });
       function compareVideosReady() {
         return Boolean(compareBeforeVideo?.src && compareAfterVideo?.src && compareBeforeVideo.videoWidth && compareAfterVideo.videoWidth);
+      }
+      function compareVideosSelected() {
+        return Boolean(compareBeforeVideo?.src && compareAfterVideo?.src);
       }
       function renderCompareResult(html) {
         if (!compareResult) return;
