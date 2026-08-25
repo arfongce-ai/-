@@ -6185,7 +6185,6 @@ function applyBannerToDom(config) {
         if (name === "capture" && window.matchMedia && window.matchMedia("(min-width: 769px)").matches) name = "analysis";
         setAppTab(name);
         if (name === "capture") {
-          requestLandscape();
           startCamera().catch((error) => {
             if (captureCameraStatus) captureCameraStatus.textContent = `카메라를 열 수 없습니다: ${error.message || error}`;
           });
@@ -6608,6 +6607,12 @@ function applyBannerToDom(config) {
           captureCanvas.height = 0;
         }
       }
+      window.addEventListener("orientationchange", () => {
+        if (document.body.dataset.appPage !== "capture") return;
+        syncCaptureOrientationState();
+        if (mediaRecorder && mediaRecorder.state === "recording") return;
+        window.setTimeout(() => startCamera().catch(() => {}), 180);
+      });
       function bindPinchZoom(stage, videos, input, label) {
         if (!stage || !videos.length) return;
         let startDistance = 0;
