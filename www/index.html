@@ -6226,6 +6226,7 @@ function applyBannerToDom(config) {
       let mediaRecorder = null;
       let recordingChunks = [];
       let recordingStartedAt = 0;
+      let recordingLandscape = null;
       let recordingTimerId = null;
       let captureSkeletonEnabled = false;
       let captureTrajectoryEnabled = false;
@@ -6405,24 +6406,32 @@ function applyBannerToDom(config) {
           if (!item.previewUrl) item.previewUrl = URL.createObjectURL(item.file);
           const row = document.createElement("div");
           row.className = "recording-item";
-          const savedLabel = item.autoSaveAttempted ? "폰 저장 시도됨" : "저장 준비됨";
-          row.innerHTML = `<video class="recording-preview" controls muted playsinline preload="metadata" src="${item.previewUrl}"></video><div><strong>${item.file.name}</strong><small>${formatClock(item.durationMs)} · ${Math.round(item.file.size / 1024)}KB · ${item.file.type || "video"} · ${savedLabel}</small></div>`;
+          row.innerHTML = `<video class="recording-preview" controls muted playsinline preload="metadata" src="${item.previewUrl}"></video><div><strong>${item.file.name}</strong><small>${formatClock(item.durationMs)} · ${Math.round(item.file.size / 1024)}KB · ${item.file.type || "video"}</small></div>`;
           recordingsList.appendChild(row);
         });
       }
-      async function saveRecordingFile(index) {
+      let captureSaveMessageTimer = 0;
+      function showCaptureSaveMessage(message) {
+        if (!captureCameraStatus) return;
+        window.clearTimeout(captureSaveMessageTimer);
+        captureCameraStatus.textContent = message;
+        captureSaveMessageTimer = window.setTimeout(() => {
+          if (captureCameraStatus.textContent === message) captureCameraStatus.textContent = "";
+        }, 2200);
+      }
+      function saveRecordingFile(index) {
         const item = savedRecordings[index];
         if (!item?.file) return;
         const url = URL.createObjectURL(item.file);
         const link = document.createElement("a");
         link.href = url;
         link.download = item.file.name;
-        link.rel = "download";
+        link.rel = "noopener";
         document.body.appendChild(link);
         link.click();
         link.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-        if (captureCameraStatus) captureCameraStatus.textContent = `영상 저장 완료 · ${item.file.name}`;
+        showCaptureSaveMessage("저장되었습니다.");
       }
       function useRecordingForAnalysis(index) {
         const item = savedRecordings[index];
@@ -6481,7 +6490,8 @@ function applyBannerToDom(config) {
         recordingChunks = [];
         const mimeType = recordingMimeType();
         recordingStartedAt = Date.now();
-        const recordingStream = createCaptureRecordingStream();
+        recordingLandscape = captureIsLandscapeMode();
+        const recordingStream = createCaptureRecordingStream(recordingLandscape);
         mediaRecorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : undefined);
         mediaRecorder.addEventListener("dataavailable", (event) => { if (event.data && event.data.size) recordingChunks.push(event.data); });
         mediaRecorder.addEventListener("stop", () => {
@@ -6499,12 +6509,12 @@ function applyBannerToDom(config) {
             startRecordBtn.setAttribute("aria-label", "녹화");
             if (captureRecordingTime) captureRecordingTime.textContent = "00:00";
             if (captureRecordDot) captureRecordDot.classList.remove("on");
+            recordingLandscape = null;
             return;
           }
           const file = new File([blob], `poomsae-recording-${new Date().toISOString().replace(/[:.]/g, "-")}.${ext}`, { type });
-          savedRecordings.unshift({ file, durationMs, autoSaveAttempted: false });
+          savedRecordings.unshift({ file, durationMs });
           saveRecordingFile(0);
-          savedRecordings[0].autoSaveAttempted = true;
           renderRecordings();
           startRecordBtn.disabled = false;
           startRecordBtn.textContent = "녹화";
@@ -6512,6 +6522,7 @@ function applyBannerToDom(config) {
           if (captureRecordingTime) captureRecordingTime.textContent = formatClock(durationMs);
           if (captureRecordDot) captureRecordDot.classList.remove("on");
           mediaRecorder = null;
+          recordingLandscape = null;
           updateRecordingTimer();
         });
         mediaRecorder.start(250);
@@ -6589,15 +6600,15 @@ function applyBannerToDom(config) {
           if (event.touches.length < 2) startDistance = 0;
         }, { passive: true });
       }
-      function captureRotationDeg() {
-        return 0;
+      function captureRotationDeg(targetLandscape = captureIsLandscapeMode()) {
+        const sourceLandscape = Boolean(capturePreview?.videoWidth && capturePreview.videoWidth > capturePreview.videoHeight);
+        return sourceLandscape === targetLandscape ? 0 : 90;
       }
       function captureIsLandscapeMode() {
         const stageRect = captureStage?.getBoundingClientRect?.();
         const stageLandscape = Boolean(stageRect?.width && stageRect?.height && stageRect.width >= stageRect.height);
-        const videoLandscape = Boolean(capturePreview?.videoWidth && capturePreview.videoWidth >= capturePreview.videoHeight);
         const screenLandscape = Boolean(window.matchMedia?.("(orientation: landscape)").matches);
-        return stageLandscape || videoLandscape || screenLandscape;
+        return stageLandscape || screenLandscape;
       }
       function syncCaptureOrientationState() {
         if (!captureStage) return;
@@ -6691,7 +6702,7 @@ function applyBannerToDom(config) {
         if (!rect) return null;
         return rotateCanvasPoint({ x: rect.offX + landmark.x * rect.drawW, y: rect.offY + landmark.y * rect.drawH }, width, height, rotation);
       }
-      function drawRecordingSkeleton(ctx, video, landmarks, width, height) {
+      function drawRecordingSkeleton(ctx, video, landmarks, width, height, rotation = captureRotationDeg()) {
         const poseList = Array.isArray(landmarks?.[0]) ? landmarks.slice(0, 3) : [landmarks];
         const palette = ["#2ecc71", "#46c8be", "#f1c40f"];
         poseList.forEach((pose, poseIndex) => {
@@ -6700,7 +6711,7 @@ function applyBannerToDom(config) {
           for (const [ai, bi] of POSE_CONNECTIONS) {
             const a = pose[ai], b = pose[bi];
             if (!a || !b) continue;
-            const pa = recordingPoint(a, video, width, height), pb = recordingPoint(b, video, width, height);
+            const pa = recordingPoint(a, video, width, height, captureZoomScale(), rotation), pb = recordingPoint(b, video, width, height, captureZoomScale(), rotation);
             if (!pa || !pb) continue;
             const c = skeletonColorFor(Math.min(a.visibility ?? 1, b.visibility ?? 1));
             ctx.strokeStyle = poseIndex === 0 ? c.stroke : palette[poseIndex];
@@ -6713,14 +6724,14 @@ function applyBannerToDom(config) {
             drawCaptureAngleLabels(
               ctx,
               pose,
-              (landmark) => recordingPoint(landmark, video, width, height),
+              (landmark) => recordingPoint(landmark, video, width, height, captureZoomScale(), rotation),
               Math.max(.75, Math.min(1.4, width / 480))
             );
           }
         });
         ctx.globalAlpha = 1;
       }
-      function drawRecordingTrails(ctx, video, width, height) {
+      function drawRecordingTrails(ctx, video, width, height, rotation = captureRotationDeg()) {
         const now = performance.now();
         const colors = { leftHand: "#cd2e3a", rightHand: "#cd2e3a", leftFoot: "#0047a0", rightFoot: "#0047a0" };
         captureTrails.forEach((poseTrail) => Object.entries(poseTrail).forEach(([key, points]) => {
@@ -6730,35 +6741,35 @@ function applyBannerToDom(config) {
           ctx.strokeStyle = colors[key]; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.lineWidth = Math.max(3, width / 180);
           for (let i = 1; i < active.length; i += 1) {
             ctx.globalAlpha = Math.max(0.08, 1 - (now - active[i].t) / 1500) * .85;
-            const a = recordingPoint(active[i - 1], video, width, height), b = recordingPoint(active[i], video, width, height);
+            const a = recordingPoint(active[i - 1], video, width, height, captureZoomScale(), rotation), b = recordingPoint(active[i], video, width, height, captureZoomScale(), rotation);
             if (!a || !b) continue;
             ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
           }
         }));
         ctx.globalAlpha = 1;
       }
-      function captureRecordingSize() {
+      function captureRecordingSize(landscape = captureIsLandscapeMode()) {
         const high = captureQuality === "high";
-        const landscape = captureIsLandscapeMode();
         const longSide = high ? 1440 : 960;
         const shortSide = high ? 1080 : 720;
         return landscape
           ? { width: longSide, height: shortSide }
           : { width: shortSide, height: longSide };
       }
-      function createCaptureRecordingStream() {
+      function createCaptureRecordingStream(landscape = captureIsLandscapeMode()) {
         if (!HTMLCanvasElement.prototype.captureStream) return captureStream;
         const canvas = captureComposeCanvas || document.createElement("canvas");
-        const size = captureRecordingSize();
+        const size = captureRecordingSize(landscape);
+        const rotation = captureRotationDeg(landscape);
         canvas.width = size.width;
         canvas.height = size.height;
         captureComposeCanvas = canvas;
         const ctx = canvas.getContext("2d", { alpha: false });
         const draw = () => {
           ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-          drawContainVideo(ctx, capturePreview, canvas.width, canvas.height);
-          if (captureSkeletonEnabled) drawRecordingSkeleton(ctx, capturePreview, captureLatestLandmarks, canvas.width, canvas.height);
-          if (captureTrajectoryEnabled) drawRecordingTrails(ctx, capturePreview, canvas.width, canvas.height);
+          drawContainVideo(ctx, capturePreview, canvas.width, canvas.height, captureZoomScale(), rotation);
+          if (captureSkeletonEnabled) drawRecordingSkeleton(ctx, capturePreview, captureLatestLandmarks, canvas.width, canvas.height, rotation);
+          if (captureTrajectoryEnabled) drawRecordingTrails(ctx, capturePreview, canvas.width, canvas.height, rotation);
           if (mediaRecorder && mediaRecorder.state === "recording") drawRecordingTimecode(ctx, canvas.width, canvas.height);
           captureComposeRaf = requestAnimationFrame(draw);
         };
