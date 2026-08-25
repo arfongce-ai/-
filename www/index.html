@@ -2602,7 +2602,7 @@
         pointer-events: none;
       }
       .compare-empty-state.hidden { display: none; }
-      #compareBeforeVideo { z-index: 1; }
+      #compareBeforeVideo { z-index: 1; filter: grayscale(1); }
       #compareAfterVideo { z-index: 2; opacity: .52; mix-blend-mode: normal; }
       .analysis-zoom {
         display: flex;
@@ -7408,7 +7408,12 @@ function applyBannerToDom(config) {
         ctx.fillRect(0, 0, width, height);
         const beforeRect = videoDrawRect(compareBeforeVideo, width, height, "contain");
         const afterRect = videoDrawRect(compareAfterVideo, width, height, "contain");
-        if (beforeRect) ctx.drawImage(compareBeforeVideo, beforeRect.offX, beforeRect.offY, beforeRect.drawW, beforeRect.drawH);
+        if (beforeRect) {
+          ctx.save();
+          ctx.filter = "grayscale(1)";
+          ctx.drawImage(compareBeforeVideo, beforeRect.offX, beforeRect.offY, beforeRect.drawW, beforeRect.drawH);
+          ctx.restore();
+        }
         if (afterRect) {
           ctx.save();
           ctx.globalAlpha = Math.max(0.15, Math.min(1, Number(compareOpacity?.value || 0.52)));
