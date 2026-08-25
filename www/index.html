@@ -2496,9 +2496,30 @@
       }
       .tool-row input[type="range"] { min-width: 150px; flex: 1; }
       .recordings-list {
-        display: grid;
+        display: none;
         gap: 8px;
         margin-top: 12px;
+      }
+      .capture-save-hud {
+        position: fixed;
+        left: 50%;
+        bottom: calc(92px + env(safe-area-inset-bottom));
+        transform: translate(-50%, 10px);
+        z-index: 80;
+        padding: 10px 16px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, .78);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 900;
+        line-height: 1.2;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .18s ease, transform .18s ease;
+      }
+      .capture-save-hud.show {
+        opacity: 1;
+        transform: translate(-50%, 0);
       }
       .recording-item {
         display: grid;
@@ -3317,6 +3338,7 @@
           <div class="capture-controls">
             <button type="button" id="startRecordBtn" class="capture-record-btn" aria-label="녹화">녹화</button>
             <p class="capture-helper">표준 화질 · 카메라 4:3 비율로 저장됩니다. 녹화는 최대 2분까지 가능하며, 종료하면 바로 폰에 저장을 시도합니다.</p>
+            <div id="captureSaveHud" class="capture-save-hud" role="status" aria-live="polite">저장되었습니다.</div>
             <div id="recordingsList" class="recordings-list"></div>
           </div>
         </div>
@@ -6195,6 +6217,7 @@ function applyBannerToDom(config) {
       const captureStage = document.querySelector(".capture-stage");
       const startRecordBtn = document.getElementById("startRecordBtn");
       const recordingsList = document.getElementById("recordingsList");
+      const captureSaveHud = document.getElementById("captureSaveHud");
       const captureCameraStatus = document.getElementById("captureCameraStatus");
       const capturePoseStatus = document.getElementById("capturePoseStatus");
       const captureRecordDot = document.getElementById("captureRecordDot");
@@ -6396,19 +6419,25 @@ function applyBannerToDom(config) {
         if (capturePreview) capturePreview.srcObject = null;
       }
       function recordingMimeType() {
-        const types = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
+        const types = [
+          "video/mp4;codecs=avc1.42E01E",
+          "video/mp4",
+          "video/webm;codecs=vp9",
+          "video/webm;codecs=vp8",
+          "video/webm"
+        ];
         return types.find((type) => window.MediaRecorder && MediaRecorder.isTypeSupported(type)) || "";
+      }
+      function showCaptureSaveHud(message = "저장되었습니다.") {
+        if (!captureSaveHud) return;
+        captureSaveHud.textContent = message;
+        captureSaveHud.classList.add("show");
+        clearTimeout(captureSaveHud._hideTimer);
+        captureSaveHud._hideTimer = setTimeout(() => captureSaveHud.classList.remove("show"), 1400);
       }
       function renderRecordings() {
         if (!recordingsList) return;
-        recordingsList.innerHTML = savedRecordings.length ? "" : "<p class=\"small\">저장된 촬영 영상이 없습니다.</p>";
-        savedRecordings.forEach((item, index) => {
-          if (!item.previewUrl) item.previewUrl = URL.createObjectURL(item.file);
-          const row = document.createElement("div");
-          row.className = "recording-item";
-          row.innerHTML = `<video class="recording-preview" controls muted playsinline preload="metadata" src="${item.previewUrl}"></video><div><strong>${item.file.name}</strong><small>${formatClock(item.durationMs)} · ${Math.round(item.file.size / 1024)}KB · ${item.file.type || "video"}</small></div>`;
-          recordingsList.appendChild(row);
-        });
+        recordingsList.innerHTML = "";
       }
       let captureSaveMessageTimer = 0;
       function showCaptureSaveMessage(message) {
@@ -6431,7 +6460,8 @@ function applyBannerToDom(config) {
         link.click();
         link.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-        showCaptureSaveMessage("저장되었습니다.");
+        if (captureCameraStatus) captureCameraStatus.textContent = "영상 저장 완료";
+        showCaptureSaveHud("저장되었습니다.");
       }
       function useRecordingForAnalysis(index) {
         const item = savedRecordings[index];
@@ -6757,9 +6787,7 @@ function applyBannerToDom(config) {
         const high = captureQuality === "high";
         const longSide = high ? 1440 : 960;
         const shortSide = high ? 1080 : 720;
-        return landscape
-          ? { width: longSide, height: shortSide }
-          : { width: shortSide, height: longSide };
+        return { width: longSide, height: shortSide };
       }
       function createCaptureRecordingStream(landscape = captureIsLandscapeMode()) {
         if (!HTMLCanvasElement.prototype.captureStream) return captureStream;
