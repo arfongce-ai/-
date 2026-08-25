@@ -7395,6 +7395,35 @@ function applyBannerToDom(config) {
         updateCompareControls();
         await updateCompareAlignment();
       }
+      function waitCompareMetadata(videoEl) {
+        if (!videoEl?.src) return Promise.resolve(false);
+        if (videoEl.videoWidth && videoEl.videoHeight) return Promise.resolve(true);
+        return new Promise((resolve) => {
+          const done = (ok) => {
+            videoEl.removeEventListener("loadedmetadata", onMeta);
+            videoEl.removeEventListener("error", onError);
+            clearTimeout(timer);
+            resolve(ok);
+          };
+          const onMeta = () => done(Boolean(videoEl.videoWidth && videoEl.videoHeight));
+          const onError = () => done(false);
+          const timer = setTimeout(() => done(Boolean(videoEl.videoWidth && videoEl.videoHeight)), 2500);
+          videoEl.addEventListener("loadedmetadata", onMeta, { once: true });
+          videoEl.addEventListener("error", onError, { once: true });
+          try { videoEl.load(); } catch (error) { /* noop */ }
+        });
+      }
+      async function waitCompareVideosReady() {
+        if (!compareVideosSelected()) return false;
+        const [beforeReady, afterReady] = await Promise.all([
+          waitCompareMetadata(compareBeforeVideo),
+          waitCompareMetadata(compareAfterVideo)
+        ]);
+        updateCompareStageAspect();
+        updateCompareControls();
+        updateCompareReadyState();
+        return beforeReady && afterReady;
+      }
       function bindCompareInput(input, videoEl) {
         input?.addEventListener("change", () => {
           const file = input.files && input.files[0];
@@ -7426,6 +7455,7 @@ function applyBannerToDom(config) {
           return;
         }
         setCompareLayer("eval");
+        waitCompareVideosReady();
       });
       compareBackToUploadBtn?.addEventListener("click", () => setCompareLayer("upload"));
       compareOpacity?.addEventListener("input", () => { compareAfterVideo.style.opacity = compareOpacity.value; });
@@ -7436,7 +7466,7 @@ function applyBannerToDom(config) {
         seekCompareVideos((Number(compareSeek.value) / 1000) * duration);
       });
       comparePlayPauseBtn?.addEventListener("click", async () => {
-        if (!compareVideosReady()) {
+        if (!compareVideosReady() && !(await waitCompareVideosReady())) {
           renderCompareResult("전 영상과 후 영상을 모두 선택한 뒤 재생하세요.");
           return;
         }
@@ -7506,7 +7536,7 @@ function applyBannerToDom(config) {
         return 0;
       }
       async function saveCompareVideo() {
-        if (!compareVideosReady()) {
+        if (!compareVideosReady() && !(await waitCompareVideosReady())) {
           renderCompareResult("전 영상과 후 영상을 모두 선택한 뒤 저장하세요.");
           return;
         }
@@ -7563,7 +7593,10 @@ function applyBannerToDom(config) {
       }
       function analyzeCompareVideos() {
         if (!compareVideosReady()) {
-          renderCompareResult("전 영상과 후 영상을 모두 선택한 뒤 비교 분석을 누르세요.");
+          waitCompareVideosReady().then((ready) => {
+            if (ready) analyzeCompareVideos();
+            else renderCompareResult("전 영상과 후 영상을 모두 선택한 뒤 비교 분석을 누르세요.");
+          });
           return;
         }
         const beforeDuration = safeMediaDuration(compareBeforeVideo);
