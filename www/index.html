@@ -2547,29 +2547,28 @@
         justify-content: flex-end;
         gap: 6px;
       }
-      .compare-media-grid {
+      .compare-controlbar {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
+        gap: 8px;
         margin-top: 10px;
       }
-      .compare-media-card {
-        min-width: 0;
+      .compare-controlbar .tool-row {
+        margin-top: 0;
       }
-      .compare-media-card strong {
-        display: block;
-        margin: 0 0 6px;
-        color: var(--text);
-        font-size: 13px;
+      .compare-seek {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
       }
-      .compare-media-card video {
+      .compare-seek input {
         width: 100%;
-        aspect-ratio: 16 / 9;
-        max-height: 240px;
-        border: 1px solid var(--panel-line);
-        border-radius: 8px;
-        background: #000;
-        object-fit: contain;
+      }
+      .compare-select {
+        min-width: 140px;
       }
       .compare-layer {
         position: absolute;
@@ -2577,7 +2576,7 @@
         width: 100%;
         height: 100%;
         object-fit: contain;
-        transform: none !important;
+        transform: none;
       }
       .compare-result {
         margin-top: 10px;
@@ -2821,9 +2820,6 @@
           min-height: 0;
           max-height: 31dvh;
           aspect-ratio: 16 / 9;
-        }
-        .compare-media-grid {
-          grid-template-columns: 1fr;
         }
         body[data-app-page="compare"] main.wrap {
           min-height: 100dvh;
@@ -3694,23 +3690,9 @@
         <h2>전/후 비교</h2>
         <div class="compare-grid">
           <div id="compareStage" class="compare-stage">
-            <video id="compareBeforeVideo" class="compare-layer" controls muted playsinline></video>
-            <video id="compareAfterVideo" class="compare-layer" controls muted playsinline></video>
+            <video id="compareBeforeVideo" class="compare-layer" muted playsinline></video>
+            <video id="compareAfterVideo" class="compare-layer" muted playsinline></video>
             <div id="compareEmptyState" class="compare-empty-state">전 영상과 후 영상을 선택하면 여기에서 비교할 수 있습니다.</div>
-          </div>
-          <div class="compare-media-grid" aria-label="비교 영상 미디어 컨트롤">
-            <div class="compare-media-card">
-              <strong>A 영상</strong>
-              <video id="compareBeforePlayer" controls muted playsinline preload="metadata"></video>
-            </div>
-            <div class="compare-media-card">
-              <strong>B 영상</strong>
-              <video id="compareAfterPlayer" controls muted playsinline preload="metadata"></video>
-            </div>
-            <div class="compare-media-card">
-              <strong>A-B 영상</strong>
-              <video id="compareOverlayPlayer" controls muted playsinline preload="metadata"></video>
-            </div>
           </div>
           <div class="tool-panel">
             <h3>오버레이 비교</h3>
@@ -3719,9 +3701,30 @@
               <label class="field-label">전 영상<input id="compareBeforeInput" type="file" accept="video/mp4,video/*" /></label>
               <label class="field-label">후 영상<input id="compareAfterInput" type="file" accept="video/mp4,video/*" /></label>
             </div>
+            <div class="compare-controlbar" aria-label="오버레이 비교 컨트롤">
+              <div class="compare-seek">
+                <span id="compareCurrentTime">00:00</span>
+                <input id="compareSeek" type="range" min="0" max="1000" step="1" value="0" aria-label="비교 영상 탐색" />
+                <span id="compareDuration">00:00</span>
+              </div>
+              <div class="tool-row">
+                <button type="button" id="comparePlayPauseBtn" class="secondary">재생</button>
+                <button type="button" id="compareStopBtn" class="secondary">정지</button>
+                <label class="skeleton-toggle"><input id="compareLoopToggle" type="checkbox" /> 반복재생</label>
+                <button type="button" id="compareSaveBtn" class="secondary">저장</button>
+              </div>
+              <div class="tool-row">
+                <label class="speed-control"><span>전-후 영상 투명도</span><input id="compareOpacity" type="range" min="0.15" max="1" step="0.05" value="0.52" /></label>
+                <label class="speed-control"><span>겹침 기준</span><select id="compareAlignMode" class="compare-select">
+                  <option value="none">자동 수정 OFF</option>
+                  <option value="ankle">발목 기준</option>
+                  <option value="shoulder">어깨 기준</option>
+                  <option value="head">머리 기준</option>
+                  <option value="hip">골반 기준</option>
+                </select></label>
+              </div>
+            </div>
             <div class="tool-row">
-              <label class="speed-control"><span>후 영상 투명도</span><input id="compareOpacity" type="range" min="0.15" max="1" step="0.05" value="0.52" /></label>
-              <button type="button" id="compareSaveBtn" class="secondary">비교 영상 저장</button>
               <button type="button" id="compareAnalyzeBtn" class="secondary">비교 분석</button>
             </div>
             <div id="compareResult" class="compare-result" hidden></div>
@@ -6277,12 +6280,16 @@ function applyBannerToDom(config) {
       const compareAfterInput = document.getElementById("compareAfterInput");
       const compareBeforeVideo = document.getElementById("compareBeforeVideo");
       const compareAfterVideo = document.getElementById("compareAfterVideo");
-      const compareBeforePlayer = document.getElementById("compareBeforePlayer");
-      const compareAfterPlayer = document.getElementById("compareAfterPlayer");
-      const compareOverlayPlayer = document.getElementById("compareOverlayPlayer");
       const compareStage = document.getElementById("compareStage");
       const compareEmptyState = document.getElementById("compareEmptyState");
+      const comparePlayPauseBtn = document.getElementById("comparePlayPauseBtn");
+      const compareStopBtn = document.getElementById("compareStopBtn");
+      const compareLoopToggle = document.getElementById("compareLoopToggle");
+      const compareSeek = document.getElementById("compareSeek");
+      const compareCurrentTime = document.getElementById("compareCurrentTime");
+      const compareDuration = document.getElementById("compareDuration");
       const compareOpacity = document.getElementById("compareOpacity");
+      const compareAlignMode = document.getElementById("compareAlignMode");
       const compareSaveBtn = document.getElementById("compareSaveBtn");
       const compareAnalyzeBtn = document.getElementById("compareAnalyzeBtn");
       const compareResult = document.getElementById("compareResult");
@@ -6557,11 +6564,6 @@ function applyBannerToDom(config) {
             videoEl.dataset.url = url;
             videoEl.src = url;
             videoEl.load();
-            const playerEl = slot === "after" ? compareAfterPlayer : compareBeforePlayer;
-            if (playerEl) {
-              playerEl.src = url;
-              playerEl.load();
-            }
             setAppTab("compare");
           } else if (compareEmptyState) {
             compareEmptyState.textContent = "저장된 영상을 비교 입력에 연결하지 못했습니다.";
@@ -7238,7 +7240,97 @@ function applyBannerToDom(config) {
       analysisZoom?.addEventListener("input", () => applyVideoZoom(video, analysisZoom.value, analysisZoomText));
       analysisZoomIn?.addEventListener("click", () => { analysisZoom.value = Math.min(2, Number(analysisZoom.value) + .1); applyVideoZoom(video, analysisZoom.value, analysisZoomText); });
       analysisZoomOut?.addEventListener("click", () => { analysisZoom.value = Math.max(.75, Number(analysisZoom.value) - .1); applyVideoZoom(video, analysisZoom.value, analysisZoomText); });
-      function bindCompareInput(input, videoEl, playerEl) {
+      let compareAlignOffset = { x: 0, y: 0 };
+      function compareDurationSeconds() {
+        const beforeDuration = safeMediaDuration(compareBeforeVideo);
+        const afterDuration = safeMediaDuration(compareAfterVideo);
+        return Math.min(beforeDuration || 0, afterDuration || 0);
+      }
+      function updateCompareControls() {
+        const duration = compareDurationSeconds();
+        const current = Math.min(Number(compareBeforeVideo?.currentTime) || 0, duration || 0);
+        if (compareCurrentTime) compareCurrentTime.textContent = formatClock(current * 1000);
+        if (compareDuration) compareDuration.textContent = formatClock(duration * 1000);
+        if (compareSeek && duration > 0 && document.activeElement !== compareSeek) {
+          compareSeek.value = String(Math.round((current / duration) * 1000));
+        }
+        if (comparePlayPauseBtn) {
+          const playing = Boolean(compareBeforeVideo && !compareBeforeVideo.paused && !compareBeforeVideo.ended);
+          comparePlayPauseBtn.textContent = playing ? "일시정지" : "재생";
+        }
+      }
+      function applyCompareAlignmentOffset() {
+        if (!compareAfterVideo) return;
+        const rect = compareStage?.getBoundingClientRect?.();
+        const x = Math.round((compareAlignOffset.x || 0) * (rect?.width || 0));
+        const y = Math.round((compareAlignOffset.y || 0) * (rect?.height || 0));
+        compareAfterVideo.style.transform = `translate(${x}px, ${y}px)`;
+      }
+      function resetCompareAlignment() {
+        compareAlignOffset = { x: 0, y: 0 };
+        applyCompareAlignmentOffset();
+      }
+      function compareLandmarkCenter(landmarks, mode) {
+        const groups = {
+          ankle: [27, 28],
+          shoulder: [11, 12],
+          head: [0, 7, 8],
+          hip: [23, 24]
+        };
+        const indexes = groups[mode] || [];
+        const points = indexes.map((i) => landmarks?.[i]).filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y) && (p.visibility == null || p.visibility >= 0.2));
+        if (!points.length) return null;
+        return {
+          x: points.reduce((sum, p) => sum + p.x, 0) / points.length,
+          y: points.reduce((sum, p) => sum + p.y, 0) / points.length
+        };
+      }
+      async function detectComparePose(videoEl) {
+        if (!videoEl || videoEl.readyState < 2) return null;
+        if (!poseLandmarker) await loadModel();
+        if (!poseLandmarker) return null;
+        let ts = Math.round(performance.now());
+        if (ts <= lastDetectTimestampMs) ts = lastDetectTimestampMs + 1;
+        lastDetectTimestampMs = ts;
+        try {
+          const result = poseLandmarker.detectForVideo(videoEl, ts);
+          const poses = Array.isArray(result?.landmarks) ? result.landmarks : [];
+          return poses.sort((a, b) => visibleLandmarkScore(b) - visibleLandmarkScore(a))[0] || null;
+        } catch (error) {
+          console.warn("Compare pose alignment skipped.", error);
+          return null;
+        }
+      }
+      async function updateCompareAlignment() {
+        const mode = compareAlignMode?.value || "none";
+        if (mode === "none" || !compareVideosReady()) {
+          resetCompareAlignment();
+          return;
+        }
+        const [beforePose, afterPose] = await Promise.all([detectComparePose(compareBeforeVideo), detectComparePose(compareAfterVideo)]);
+        const beforeCenter = compareLandmarkCenter(beforePose, mode);
+        const afterCenter = compareLandmarkCenter(afterPose, mode);
+        if (!beforeCenter || !afterCenter) {
+          renderCompareResult("겹침 기준점을 찾지 못했습니다. 다른 기준을 선택하거나 영상의 자세가 잘 보이는 지점으로 이동하세요.");
+          resetCompareAlignment();
+          return;
+        }
+        compareAlignOffset = {
+          x: beforeCenter.x - afterCenter.x,
+          y: beforeCenter.y - afterCenter.y
+        };
+        applyCompareAlignmentOffset();
+      }
+      async function seekCompareVideos(seconds) {
+        [compareBeforeVideo, compareAfterVideo].forEach((videoEl) => {
+          if (!videoEl || !Number.isFinite(seconds)) return;
+          videoEl.currentTime = Math.max(0, Math.min(seconds, safeMediaDuration(videoEl) || seconds));
+        });
+        await new Promise((resolve) => setTimeout(resolve, 80));
+        updateCompareControls();
+        await updateCompareAlignment();
+      }
+      function bindCompareInput(input, videoEl) {
         input?.addEventListener("change", () => {
           const file = input.files && input.files[0];
           if (!file || !videoEl) return;
@@ -7247,16 +7339,14 @@ function applyBannerToDom(config) {
           videoEl.dataset.url = url;
           videoEl.src = url;
           videoEl.load();
-          if (playerEl) {
-            playerEl.src = url;
-            playerEl.load();
-          }
           videoEl.addEventListener("loadedmetadata", updateCompareStageAspect, { once: true });
+          videoEl.addEventListener("loadedmetadata", updateCompareControls, { once: true });
           if (compareEmptyState) {
             const ready = Boolean(compareBeforeVideo?.src && compareAfterVideo?.src);
             compareEmptyState.textContent = ready ? "" : "전 영상과 후 영상을 모두 선택하면 비교할 수 있습니다.";
             compareEmptyState.classList.toggle("hidden", ready);
           }
+          resetCompareAlignment();
         });
       }
       function updateCompareStageAspect() {
@@ -7265,9 +7355,46 @@ function applyBannerToDom(config) {
         if (!source?.videoWidth || !source?.videoHeight) return;
         compareStage.style.aspectRatio = `${source.videoWidth} / ${source.videoHeight}`;
       }
-      bindCompareInput(compareBeforeInput, compareBeforeVideo, compareBeforePlayer);
-      bindCompareInput(compareAfterInput, compareAfterVideo, compareAfterPlayer);
+      bindCompareInput(compareBeforeInput, compareBeforeVideo);
+      bindCompareInput(compareAfterInput, compareAfterVideo);
       compareOpacity?.addEventListener("input", () => { compareAfterVideo.style.opacity = compareOpacity.value; });
+      compareAlignMode?.addEventListener("change", () => updateCompareAlignment());
+      compareSeek?.addEventListener("input", () => {
+        const duration = compareDurationSeconds();
+        if (!duration) return;
+        seekCompareVideos((Number(compareSeek.value) / 1000) * duration);
+      });
+      comparePlayPauseBtn?.addEventListener("click", async () => {
+        if (!compareVideosReady()) {
+          renderCompareResult("전 영상과 후 영상을 모두 선택한 뒤 재생하세요.");
+          return;
+        }
+        if (compareBeforeVideo.paused || compareAfterVideo.paused) {
+          await updateCompareAlignment();
+          await Promise.all([compareBeforeVideo.play(), compareAfterVideo.play()]).catch(() => {});
+        } else {
+          compareBeforeVideo.pause();
+          compareAfterVideo.pause();
+        }
+        updateCompareControls();
+      });
+      compareStopBtn?.addEventListener("click", () => {
+        compareBeforeVideo?.pause();
+        compareAfterVideo?.pause();
+        seekCompareVideos(0);
+      });
+      [compareBeforeVideo, compareAfterVideo].forEach((videoEl) => {
+        videoEl?.addEventListener("timeupdate", () => {
+          const duration = compareDurationSeconds();
+          if (duration && compareLoopToggle?.checked && videoEl.currentTime >= duration - 0.05) {
+            seekCompareVideos(0).then(() => Promise.all([compareBeforeVideo.play(), compareAfterVideo.play()]).catch(() => {}));
+            return;
+          }
+          updateCompareControls();
+        });
+        videoEl?.addEventListener("pause", updateCompareControls);
+        videoEl?.addEventListener("play", updateCompareControls);
+      });
       function compareVideosReady() {
         return Boolean(compareBeforeVideo?.src && compareAfterVideo?.src && compareBeforeVideo.videoWidth && compareAfterVideo.videoWidth);
       }
@@ -7285,7 +7412,7 @@ function applyBannerToDom(config) {
         if (afterRect) {
           ctx.save();
           ctx.globalAlpha = Math.max(0.15, Math.min(1, Number(compareOpacity?.value || 0.52)));
-          ctx.drawImage(compareAfterVideo, afterRect.offX, afterRect.offY, afterRect.drawW, afterRect.drawH);
+          ctx.drawImage(compareAfterVideo, afterRect.offX + compareAlignOffset.x * width, afterRect.offY + compareAlignOffset.y * height, afterRect.drawW, afterRect.drawH);
           ctx.restore();
         }
       }
@@ -7308,6 +7435,7 @@ function applyBannerToDom(config) {
           renderCompareResult("이 브라우저에서는 비교 영상 저장을 지원하지 않습니다.");
           return;
         }
+        await updateCompareAlignment();
         const width = Math.min(1280, Math.max(compareBeforeVideo.videoWidth, compareAfterVideo.videoWidth, 640));
         const baseRatio = compareBeforeVideo.videoWidth && compareBeforeVideo.videoHeight
           ? compareBeforeVideo.videoWidth / compareBeforeVideo.videoHeight
@@ -7351,13 +7479,6 @@ function applyBannerToDom(config) {
         const type = recorder.mimeType || mimeType || "video/webm";
         const ext = type.includes("mp4") ? "mp4" : "webm";
         const blob = new Blob(chunks, { type });
-        if (compareOverlayPlayer) {
-          if (compareOverlayPlayer.dataset.url) URL.revokeObjectURL(compareOverlayPlayer.dataset.url);
-          const previewUrl = URL.createObjectURL(blob);
-          compareOverlayPlayer.dataset.url = previewUrl;
-          compareOverlayPlayer.src = previewUrl;
-          compareOverlayPlayer.load();
-        }
         saveBlob(blob, `poomsae-compare-overlay.${ext}`);
         renderCompareResult("비교 오버레이 영상을 저장했습니다.");
       }
