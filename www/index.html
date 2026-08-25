@@ -6538,7 +6538,7 @@ function applyBannerToDom(config) {
         recordingChunks = [];
         const mimeType = recordingMimeType();
         recordingStartedAt = Date.now();
-        recordingLandscape = true;
+        recordingLandscape = captureIsLandscapeMode();
         const recordingStream = createCaptureRecordingStream(recordingLandscape);
         mediaRecorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : undefined);
         const recorder = mediaRecorder;
@@ -6652,10 +6652,8 @@ function applyBannerToDom(config) {
       }
       function captureRotationDeg(targetLandscape = captureIsLandscapeMode()) {
         const sourceLandscape = Boolean(capturePreview?.videoWidth && capturePreview.videoWidth > capturePreview.videoHeight);
-        const angle = Number(window.screen?.orientation?.angle ?? window.orientation ?? 0);
-        if (sourceLandscape === targetLandscape) return angle === 180 ? 180 : 0;
-        if (targetLandscape) return angle === 270 ? 270 : 90;
-        return angle === 270 ? 90 : 270;
+        if (sourceLandscape === targetLandscape) return 0;
+        return targetLandscape ? 90 : 270;
       }
       function captureIsLandscapeMode() {
         const stageRect = captureStage?.getBoundingClientRect?.();
@@ -6805,7 +6803,9 @@ function applyBannerToDom(config) {
         const high = captureQuality === "high";
         const longSide = high ? 1440 : 960;
         const shortSide = high ? 1080 : 720;
-        return { width: longSide, height: shortSide };
+        return landscape
+          ? { width: longSide, height: shortSide }
+          : { width: shortSide, height: longSide };
       }
       function createCaptureRecordingStream(landscape = captureIsLandscapeMode()) {
         if (!HTMLCanvasElement.prototype.captureStream) return captureStream;
@@ -7001,7 +7001,7 @@ function applyBannerToDom(config) {
           return list.sort((a, b) => visibleLandmarkScore(b) - visibleLandmarkScore(a));
         }
         return list
-          .filter((pose) => visibleLandmarkScore(pose) >= 0.55)
+          .filter((pose) => visibleLandmarkScore(pose) >= 0.35)
           .sort((a, b) => capturePoseCenterX(a) - capturePoseCenterX(b));
       }
       function capturePoseCenterY(landmarks) {
@@ -7069,7 +7069,19 @@ function applyBannerToDom(config) {
       async function collectCaptureLandmarks(landmarker, initialResult) {
         const base = Array.isArray(initialResult?.landmarks) ? initialResult.landmarks : [];
         if (capturePoseMode === "single") return orderCapturePoses(base).slice(0, 1);
-        return mergeCapturePoseCandidates(base);
+        const mergedBase = mergeCapturePoseCandidates(base);
+        if (mergedBase.length >= 3) return mergedBase;
+        const crops = [
+          { x: 0, y: 0, w: 0.42, h: 1 },
+          { x: 0.29, y: 0, w: 0.42, h: 1 },
+          { x: 0.58, y: 0, w: 0.42, h: 1 }
+        ];
+        const cropCandidates = [];
+        for (const crop of crops) {
+          const detected = await detectCaptureCropPose(landmarker, crop);
+          cropCandidates.push(...detected);
+        }
+        return mergeCapturePoseCandidates([...mergedBase, ...cropCandidates]);
       }
       function capturePoseDistance(a, b) {
         const dx = capturePoseCenterX(a) - capturePoseCenterX(b);
