@@ -3877,7 +3877,7 @@
       // Firebase 관리자 인증으로 저장 전 확인한다.
       let _fbAuth = null, _fbSignIn = null, _fbSignOut = null, _fbSendPasswordReset = null;
       let _fbCurrentAdminUser = null;
-      const FIREBASE_READ_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+      const FIREBASE_READ_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
       const BANNER_CACHE_KEY = "poomsae_banner_cache_v1";
       (async function initFirebase() {
         try {
@@ -3903,11 +3903,12 @@
           _fbSignOut = authMod.signOut;
           authMod.onAuthStateChanged(_fbAuth, (user) => {
             _fbCurrentAdminUser = user;
+            if (user) initPartnerBanner({ allowRemoteRead: true });
             safeInit("updateAdminReportUi", () => updateAdminReportUi());
           });
           _fbReady = true;
           flushPendingCloudCorrections(); // 오프라인 때 쌓인 기록을 연결 즉시 재전송.
-          initPartnerBanner(); // Firebase 준비된 뒤 배너 설정을 불러온다.
+          initPartnerBanner(); // 공개 화면에서는 캐시만 적용해 불필요한 Firestore 읽기를 막는다.
         } catch (e) {
           _fbReady = false; // 조용히 실패. 로컬 기록은 계속 동작.
           loadBoundaryBias(); // 오프라인이어도 이전에 캐시된 보정값(localStorage)은 적용.
@@ -4613,7 +4614,8 @@ function applyBannerToDom(config) {
   _bannerRenderSignature = signature;
   requestAnimationFrame(() => syncFooterPartnerMarquee(true));
 }
-      async function initPartnerBanner() {
+      async function initPartnerBanner(options = {}) {
+        const allowRemoteRead = Boolean(options.allowRemoteRead);
         let cacheIsFresh = false;
         try {
           const cachedRaw = localStorage.getItem(BANNER_CACHE_KEY);
@@ -4627,7 +4629,7 @@ function applyBannerToDom(config) {
         } catch (e) {
           /* 손상된 캐시는 무시하고 원격 값을 시도한다. */
         }
-        if (!cacheIsFresh) {
+        if (allowRemoteRead && !cacheIsFresh) {
           try {
             const snap = await _fbGetDoc(_fbDoc(_fbDB, "app_config", "banner"));
             _bannerConfigCache = snap.exists() ? snap.data() : null;
