@@ -3742,6 +3742,7 @@
                   <button type="button" id="compareStopBtn" class="secondary">정지</button>
                   <label class="skeleton-toggle"><input id="compareLoopToggle" type="checkbox" /> 반복재생</label>
                   <button type="button" id="compareSaveBtn" class="secondary">저장</button>
+                  <button type="button" id="compareJpgBtn" class="secondary">카드 JPG</button>
                 </div>
               </div>
               <div id="compareResult" class="compare-result" hidden></div>
@@ -3958,8 +3959,11 @@
       const CLOUD_CORRECTION_QUEUE_MAX = 300;
       const CLOUD_REPORT_QUEUE_KEY = "poomsae_cloud_learning_report_queue_v1";
       const CLOUD_REPORT_QUEUE_MAX = 40;
+      const CLOUD_COMPARE_REPORT_QUEUE_KEY = "poomsae_cloud_compare_report_queue_v1";
+      const CLOUD_COMPARE_REPORT_QUEUE_MAX = 80;
       let _cloudCorrectionFlushPromise = null;
       let _cloudReportFlushPromise = null;
+      let _cloudCompareReportFlushPromise = null;
       function loadPendingCloudCorrections() {
         try {
           const rows = JSON.parse(localStorage.getItem(CLOUD_CORRECTION_QUEUE_KEY) || "[]");
@@ -4066,9 +4070,65 @@
         const sent = await flushPendingCloudReports();
         return sent > 0;
       }
+      function loadPendingCompareReports() {
+        try {
+          const rows = JSON.parse(localStorage.getItem(CLOUD_COMPARE_REPORT_QUEUE_KEY) || "[]");
+          return Array.isArray(rows) ? rows : [];
+        } catch (e) { return []; }
+      }
+      function savePendingCompareReports(rows) {
+        try { localStorage.setItem(CLOUD_COMPARE_REPORT_QUEUE_KEY, JSON.stringify(rows.slice(-CLOUD_COMPARE_REPORT_QUEUE_MAX))); }
+        catch (e) { /* 비교 리포트 전송 대기 저장 실패는 앱 동작에 영향을 주지 않음 */ }
+      }
+      function queueCompareReportForCloud(report) {
+        const queue = loadPendingCompareReports();
+        queue.push(report);
+        savePendingCompareReports(queue);
+      }
+      async function flushPendingCompareReports() {
+        if (_cloudCompareReportFlushPromise) return _cloudCompareReportFlushPromise;
+        _cloudCompareReportFlushPromise = (async () => {
+          if (!_fbReady || !_fbDB || !_fbAddDoc || !_fbCollection) return 0;
+          const queue = loadPendingCompareReports();
+          let sent = 0;
+          while (queue.length) {
+            try {
+              await _fbAddDoc(_fbCollection(_fbDB, "compare_reports"), { ...queue[0], created: _fbServerTs() });
+              queue.shift();
+              sent += 1;
+              savePendingCompareReports(queue);
+            } catch (e) { break; }
+          }
+          return sent;
+        })();
+        try { return await _cloudCompareReportFlushPromise; }
+        finally { _cloudCompareReportFlushPromise = null; }
+      }
+      async function sendCompareReportToCloud(report) {
+        if (!report || typeof report !== "object") return false;
+        queueCompareReportForCloud(report);
+        const sent = await flushPendingCompareReports();
+        return sent > 0;
+      }
+      function compareReportCloudKey(report) {
+        if (!report || typeof report !== "object") return "";
+        return [
+          report.schema,
+          report.before_file,
+          report.after_file,
+          report.before_duration,
+          report.after_duration,
+          report.opacity,
+          report.align_mode,
+          report.align_offset_x,
+          report.align_offset_y,
+          report.overlap_score
+        ].join("|");
+      }
       window.addEventListener("online", () => {
         flushPendingCloudCorrections();
         flushPendingCloudReports();
+        flushPendingCompareReports();
       });
 
       // ── 학습된 경계 타이밍 보정(원격, 공개 읽기) ──
@@ -6332,6 +6392,7 @@ function applyBannerToDom(config) {
       const compareOpacity = document.getElementById("compareOpacity");
       const compareAlignMode = document.getElementById("compareAlignMode");
       const compareSaveBtn = document.getElementById("compareSaveBtn");
+      const compareJpgBtn = document.getElementById("compareJpgBtn");
       const compareAnalyzeBtn = document.getElementById("compareAnalyzeBtn");
       const compareResult = document.getElementById("compareResult");
       const MAX_RECORDING_MS = 120000;
@@ -7284,6 +7345,8 @@ function applyBannerToDom(config) {
       analysisZoomIn?.addEventListener("click", () => { analysisZoom.value = Math.min(2, Number(analysisZoom.value) + .1); applyVideoZoom(video, analysisZoom.value, analysisZoomText); });
       analysisZoomOut?.addEventListener("click", () => { analysisZoom.value = Math.max(.75, Number(analysisZoom.value) - .1); applyVideoZoom(video, analysisZoom.value, analysisZoomText); });
       let compareAlignOffset = { x: 0, y: 0 };
+      let latestCompareReport = null;
+      let latestCompareReportCloudKey = "";
       function compareDurationSeconds() {
         const beforeDuration = safeMediaDuration(compareBeforeVideo);
         const afterDuration = safeMediaDuration(compareAfterVideo);
@@ -7507,6 +7570,66 @@ function applyBannerToDom(config) {
         compareResult.hidden = false;
         compareResult.innerHTML = html;
       }
+      function buildCompareReport() {
+        const beforeDuration = safeMediaDuration(compareBeforeVideo);
+        const afterDuration = safeMediaDuration(compareAfterVideo);
+        const delta = afterDuration - beforeDuration;
+        const pct = beforeDuration ? (delta / beforeDuration) * 100 : 0;
+        const absPct = Math.abs(pct);
+        const durationText = Math.abs(delta) < 0.15
+          ? "시간이 거의 같아요."
+          : delta < 0
+          ? `${Math.abs(delta).toFixed(1)}초 빨라졌어요.`
+          : `${delta.toFixed(1)}초 느려졌어요.`;
+        const alignMode = compareAlignMode?.value || "none";
+        const alignLabel = compareAlignMode?.selectedOptions?.[0]?.textContent || "자동 수정 OFF";
+        const offsetSize = Math.hypot(compareAlignOffset.x || 0, compareAlignOffset.y || 0);
+        const overlapScore = Math.max(40, Math.min(100, Math.round(100 - offsetSize * 180 - absPct * 0.8)));
+        const summary = overlapScore >= 85
+          ? "두 영상이 아주 비슷하게 겹쳐요."
+          : overlapScore >= 70
+          ? "전보다 자세가 꽤 잘 맞아요."
+          : "아직 위치를 조금 더 맞추면 좋아요.";
+        const tip = alignMode === "none"
+          ? "발목이나 어깨 기준을 선택하면 더 정확히 겹쳐볼 수 있어요."
+          : `${alignLabel}으로 맞췄어요. 다음에는 같은 위치에서 시작해 보세요.`;
+        return {
+          schema: "poomsae-compare-report-v1",
+          created_at: new Date().toISOString(),
+          before_file: String(compareBeforeInput?.files?.[0]?.name || "").slice(0, 160),
+          after_file: String(compareAfterInput?.files?.[0]?.name || "").slice(0, 160),
+          before_duration: Number(beforeDuration.toFixed(3)),
+          after_duration: Number(afterDuration.toFixed(3)),
+          delta_seconds: Number(delta.toFixed(3)),
+          delta_percent: Number(pct.toFixed(2)),
+          before_resolution: `${compareBeforeVideo.videoWidth || 0}x${compareBeforeVideo.videoHeight || 0}`,
+          after_resolution: `${compareAfterVideo.videoWidth || 0}x${compareAfterVideo.videoHeight || 0}`,
+          opacity: Number(compareOpacity?.value || 0.52),
+          align_mode: alignMode,
+          align_label: alignLabel,
+          align_offset_x: Number((compareAlignOffset.x || 0).toFixed(4)),
+          align_offset_y: Number((compareAlignOffset.y || 0).toFixed(4)),
+          overlap_score: overlapScore,
+          child_summary: summary,
+          child_time_text: durationText,
+          child_tip: tip
+        };
+      }
+      function renderCompareReport(report) {
+        renderCompareResult(`
+          <strong>비교 결과</strong><br>
+          ${escapeHtml(report.child_summary)}<br>
+          시간: ${escapeHtml(report.child_time_text)}<br>
+          겹침 점수: ${report.overlap_score}점<br>
+          다음 연습: ${escapeHtml(report.child_tip)}
+        `);
+      }
+      function sendLatestCompareReportToCloud(report) {
+        const cloudKey = compareReportCloudKey(report);
+        if (!cloudKey || cloudKey === latestCompareReportCloudKey) return;
+        latestCompareReportCloudKey = cloudKey;
+        sendCompareReportToCloud(report);
+      }
       function drawCompareFrame(ctx, width, height) {
         ctx.fillStyle = "#000";
         ctx.fillRect(0, 0, width, height);
@@ -7591,6 +7714,89 @@ function applyBannerToDom(config) {
         saveBlob(blob, `poomsae-compare-overlay.${ext}`);
         renderCompareResult("비교 오버레이 영상을 저장했습니다.");
       }
+      async function saveCompareJpgReport() {
+        if (!compareVideosReady() && !(await waitCompareVideosReady())) {
+          renderCompareResult("전 영상과 후 영상을 모두 선택한 뒤 카드 JPG를 저장하세요.");
+          return;
+        }
+        await updateCompareAlignment();
+        latestCompareReport = buildCompareReport();
+        const report = latestCompareReport;
+        const canvas = document.createElement("canvas");
+        canvas.width = 1080;
+        canvas.height = 1350;
+        const ctx = canvas.getContext("2d", { alpha: false });
+        const rr = (x, y, w, h, r, fill, stroke) => {
+          ctx.beginPath();
+          ctx.moveTo(x + r, y);
+          ctx.arcTo(x + w, y, x + w, y + h, r);
+          ctx.arcTo(x + w, y + h, x, y + h, r);
+          ctx.arcTo(x, y + h, x, y, r);
+          ctx.arcTo(x, y, x + w, y, r);
+          ctx.closePath();
+          ctx.fillStyle = fill;
+          ctx.fill();
+          if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 3; ctx.stroke(); }
+        };
+        const text = (value, x, y, size, color = "#111827", weight = "800") => {
+          ctx.fillStyle = color;
+          ctx.font = `${weight} ${size}px system-ui, sans-serif`;
+          ctx.fillText(value, x, y);
+        };
+        const wrap = (value, x, y, maxWidth, lineHeight, size, color = "#374151", weight = "700") => {
+          ctx.fillStyle = color;
+          ctx.font = `${weight} ${size}px system-ui, sans-serif`;
+          const words = String(value || "").split(/\s+/);
+          let line = "";
+          words.forEach((word) => {
+            const test = line ? `${line} ${word}` : word;
+            if (ctx.measureText(test).width > maxWidth && line) {
+              ctx.fillText(line, x, y);
+              y += lineHeight;
+              line = word;
+            } else line = test;
+          });
+          if (line) ctx.fillText(line, x, y);
+          return y + lineHeight;
+        };
+        ctx.fillStyle = "#f8fafc";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        rr(50, 50, 980, 1250, 24, "#ffffff", "#dbe3ef");
+        text("전후 비교 결과", 90, 125, 44);
+        text("초등학생도 이해하기 쉬운 카드", 90, 170, 24, "#64748b", "700");
+        rr(90, 215, 900, 506, 18, "#000000", "#111827");
+        ctx.save();
+        ctx.translate(90, 215);
+        drawCompareFrame(ctx, 900, 506);
+        ctx.restore();
+        rr(90, 755, 250, 120, 18, "#e0f2fe", "#7dd3fc");
+        rr(365, 755, 250, 120, 18, "#dcfce7", "#86efac");
+        rr(640, 755, 250, 120, 18, "#fef3c7", "#facc15");
+        text("겹침 점수", 120, 800, 24, "#0369a1");
+        text(`${report.overlap_score}점`, 120, 848, 42, "#0f172a");
+        text("시간 변화", 395, 800, 24, "#15803d");
+        text(`${report.delta_seconds >= 0 ? "+" : ""}${report.delta_seconds.toFixed(1)}초`, 395, 848, 42, "#0f172a");
+        text("겹침 기준", 670, 800, 24, "#a16207");
+        text(report.align_label.replace(" 기준", ""), 670, 848, 34, "#0f172a");
+        let y = 940;
+        text("한줄 결과", 90, y, 30);
+        y = wrap(report.child_summary, 90, y + 48, 880, 38, 30);
+        text("쉬운 설명", 90, y + 34, 30);
+        y = wrap(`시간은 ${report.child_time_text} 전 영상은 흑백, 후 영상은 컬러라서 차이를 쉽게 볼 수 있어요.`, 90, y + 82, 880, 34, 25);
+        text("다음 연습", 90, y + 38, 30);
+        wrap(report.child_tip, 90, y + 86, 880, 34, 25);
+        text(new Date(report.created_at).toLocaleString(), 90, 1245, 22, "#94a3b8", "700");
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+        const a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = `poomsae-compare-card-${new Date().toISOString().slice(0, 10)}.jpg`;
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        renderCompareReport(report);
+        sendLatestCompareReportToCloud(report);
+      }
       function analyzeCompareVideos() {
         if (!compareVideosReady()) {
           waitCompareVideosReady().then((ready) => {
@@ -7601,19 +7807,21 @@ function applyBannerToDom(config) {
         }
         const beforeDuration = safeMediaDuration(compareBeforeVideo);
         const afterDuration = safeMediaDuration(compareAfterVideo);
-        const beforeRes = `${compareBeforeVideo.videoWidth}x${compareBeforeVideo.videoHeight}`;
-        const afterRes = `${compareAfterVideo.videoWidth}x${compareAfterVideo.videoHeight}`;
         if (!beforeDuration || !afterDuration) {
-          renderCompareResult(`시간 변화: 영상 길이 정보를 확인할 수 없습니다.<br>전 영상: ${beforeRes}<br>후 영상: ${afterRes}`);
+          renderCompareResult(`시간 변화: 영상 길이 정보를 확인할 수 없습니다.<br>전 영상: ${compareBeforeVideo.videoWidth}x${compareBeforeVideo.videoHeight}<br>후 영상: ${compareAfterVideo.videoWidth}x${compareAfterVideo.videoHeight}`);
           return;
         }
-        const delta = afterDuration - beforeDuration;
-        const pct = (delta / beforeDuration) * 100;
-        renderCompareResult(`시간 변화: ${delta >= 0 ? "+" : ""}${delta.toFixed(2)}초 (${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%)<br>전 영상: ${beforeDuration.toFixed(2)}초 · ${beforeRes}<br>후 영상: ${afterDuration.toFixed(2)}초 · ${afterRes}`);
+        latestCompareReport = buildCompareReport();
+        renderCompareReport(latestCompareReport);
+        sendLatestCompareReportToCloud(latestCompareReport);
       }
       compareSaveBtn?.addEventListener("click", () => saveCompareVideo().catch((error) => {
         console.warn("Compare video save failed.", error);
         renderCompareResult("비교 영상 저장 중 오류가 발생했습니다.");
+      }));
+      compareJpgBtn?.addEventListener("click", () => saveCompareJpgReport().catch((error) => {
+        console.warn("Compare JPG report failed.", error);
+        renderCompareResult("카드 JPG 저장 중 오류가 발생했습니다.");
       }));
       compareAnalyzeBtn?.addEventListener("click", analyzeCompareVideos);
       renderRecordings();

@@ -22,6 +22,13 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // 전후 비교 카드 리포트. 원본 영상은 저장하지 않고 요약 수치와 쉬운 설명만 저장한다.
+    match /compare_reports/{docId} {
+      allow create: if isValidCompareReport(request.resource.data);
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
     // GPT·지도자 검수 원본: 일반 사용자 보정과 분리해 출처 위조를 막는다.
     // 관리자 화면에서 가져온 명시적 검수 JSON만 이 컬렉션에 저장한다.
     match /calibration_reviews/{docId} {
@@ -68,6 +75,19 @@ service cloud.firestore {
         && d.issue_counts is list
         && d.needed_training is list
         && d.size() < 20;
+    }
+    function isValidCompareReport(d) {
+      return d.schema == 'poomsae-compare-report-v1'
+        && d.before_duration is number
+        && d.after_duration is number
+        && d.delta_seconds is number
+        && d.delta_percent is number
+        && d.overlap_score is number
+        && d.align_mode in ['none', 'ankle', 'shoulder', 'head', 'hip']
+        && d.child_summary is string
+        && d.child_time_text is string
+        && d.child_tip is string
+        && d.size() < 30;
     }
     function isValidCalibrationReview(d) {
       return d.action in ['merge', 'split', 'adjust', 'cascade_adjust', 'confirm_all']
