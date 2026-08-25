@@ -2547,6 +2547,30 @@
         justify-content: flex-end;
         gap: 6px;
       }
+      .compare-media-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .compare-media-card {
+        min-width: 0;
+      }
+      .compare-media-card strong {
+        display: block;
+        margin: 0 0 6px;
+        color: var(--text);
+        font-size: 13px;
+      }
+      .compare-media-card video {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        max-height: 240px;
+        border: 1px solid var(--panel-line);
+        border-radius: 8px;
+        background: #000;
+        object-fit: contain;
+      }
       .compare-layer {
         position: absolute;
         inset: 0;
@@ -2797,6 +2821,9 @@
           min-height: 0;
           max-height: 31dvh;
           aspect-ratio: 16 / 9;
+        }
+        .compare-media-grid {
+          grid-template-columns: 1fr;
         }
         body[data-app-page="compare"] main.wrap {
           min-height: 100dvh;
@@ -3670,6 +3697,20 @@
             <video id="compareBeforeVideo" class="compare-layer" controls muted playsinline></video>
             <video id="compareAfterVideo" class="compare-layer" controls muted playsinline></video>
             <div id="compareEmptyState" class="compare-empty-state">전 영상과 후 영상을 선택하면 여기에서 비교할 수 있습니다.</div>
+          </div>
+          <div class="compare-media-grid" aria-label="비교 영상 미디어 컨트롤">
+            <div class="compare-media-card">
+              <strong>A 영상</strong>
+              <video id="compareBeforePlayer" controls muted playsinline preload="metadata"></video>
+            </div>
+            <div class="compare-media-card">
+              <strong>B 영상</strong>
+              <video id="compareAfterPlayer" controls muted playsinline preload="metadata"></video>
+            </div>
+            <div class="compare-media-card">
+              <strong>A-B 영상</strong>
+              <video id="compareOverlayPlayer" controls muted playsinline preload="metadata"></video>
+            </div>
           </div>
           <div class="tool-panel">
             <h3>오버레이 비교</h3>
@@ -6236,6 +6277,9 @@ function applyBannerToDom(config) {
       const compareAfterInput = document.getElementById("compareAfterInput");
       const compareBeforeVideo = document.getElementById("compareBeforeVideo");
       const compareAfterVideo = document.getElementById("compareAfterVideo");
+      const compareBeforePlayer = document.getElementById("compareBeforePlayer");
+      const compareAfterPlayer = document.getElementById("compareAfterPlayer");
+      const compareOverlayPlayer = document.getElementById("compareOverlayPlayer");
       const compareStage = document.getElementById("compareStage");
       const compareEmptyState = document.getElementById("compareEmptyState");
       const compareOpacity = document.getElementById("compareOpacity");
@@ -6513,6 +6557,11 @@ function applyBannerToDom(config) {
             videoEl.dataset.url = url;
             videoEl.src = url;
             videoEl.load();
+            const playerEl = slot === "after" ? compareAfterPlayer : compareBeforePlayer;
+            if (playerEl) {
+              playerEl.src = url;
+              playerEl.load();
+            }
             setAppTab("compare");
           } else if (compareEmptyState) {
             compareEmptyState.textContent = "저장된 영상을 비교 입력에 연결하지 못했습니다.";
@@ -7189,7 +7238,7 @@ function applyBannerToDom(config) {
       analysisZoom?.addEventListener("input", () => applyVideoZoom(video, analysisZoom.value, analysisZoomText));
       analysisZoomIn?.addEventListener("click", () => { analysisZoom.value = Math.min(2, Number(analysisZoom.value) + .1); applyVideoZoom(video, analysisZoom.value, analysisZoomText); });
       analysisZoomOut?.addEventListener("click", () => { analysisZoom.value = Math.max(.75, Number(analysisZoom.value) - .1); applyVideoZoom(video, analysisZoom.value, analysisZoomText); });
-      function bindCompareInput(input, videoEl) {
+      function bindCompareInput(input, videoEl, playerEl) {
         input?.addEventListener("change", () => {
           const file = input.files && input.files[0];
           if (!file || !videoEl) return;
@@ -7198,6 +7247,10 @@ function applyBannerToDom(config) {
           videoEl.dataset.url = url;
           videoEl.src = url;
           videoEl.load();
+          if (playerEl) {
+            playerEl.src = url;
+            playerEl.load();
+          }
           videoEl.addEventListener("loadedmetadata", updateCompareStageAspect, { once: true });
           if (compareEmptyState) {
             const ready = Boolean(compareBeforeVideo?.src && compareAfterVideo?.src);
@@ -7212,8 +7265,8 @@ function applyBannerToDom(config) {
         if (!source?.videoWidth || !source?.videoHeight) return;
         compareStage.style.aspectRatio = `${source.videoWidth} / ${source.videoHeight}`;
       }
-      bindCompareInput(compareBeforeInput, compareBeforeVideo);
-      bindCompareInput(compareAfterInput, compareAfterVideo);
+      bindCompareInput(compareBeforeInput, compareBeforeVideo, compareBeforePlayer);
+      bindCompareInput(compareAfterInput, compareAfterVideo, compareAfterPlayer);
       compareOpacity?.addEventListener("input", () => { compareAfterVideo.style.opacity = compareOpacity.value; });
       function compareVideosReady() {
         return Boolean(compareBeforeVideo?.src && compareAfterVideo?.src && compareBeforeVideo.videoWidth && compareAfterVideo.videoWidth);
@@ -7297,7 +7350,15 @@ function applyBannerToDom(config) {
         compareAfterVideo.pause();
         const type = recorder.mimeType || mimeType || "video/webm";
         const ext = type.includes("mp4") ? "mp4" : "webm";
-        saveBlob(new Blob(chunks, { type }), `poomsae-compare-overlay.${ext}`);
+        const blob = new Blob(chunks, { type });
+        if (compareOverlayPlayer) {
+          if (compareOverlayPlayer.dataset.url) URL.revokeObjectURL(compareOverlayPlayer.dataset.url);
+          const previewUrl = URL.createObjectURL(blob);
+          compareOverlayPlayer.dataset.url = previewUrl;
+          compareOverlayPlayer.src = previewUrl;
+          compareOverlayPlayer.load();
+        }
+        saveBlob(blob, `poomsae-compare-overlay.${ext}`);
         renderCompareResult("비교 오버레이 영상을 저장했습니다.");
       }
       function analyzeCompareVideos() {
