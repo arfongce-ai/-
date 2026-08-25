@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-v94-capture-compare-validation";
+const CACHE_NAME = "poomsae-training-aaf-recording-fix-v1";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",
@@ -59,7 +59,7 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   if (event.request.mode === "navigate") {
-    event.respondWith(fetch(event.request).catch(() => caches.match(APP_URL)));
+    event.respondWith(fetch(event.request).catch(() => caches.match(new URL(APP_URL, self.location).href)));
     return;
   }
   event.respondWith(

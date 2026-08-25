@@ -13709,7 +13709,7 @@ function applyBannerToDom(config) {
       safeInit("setupQuickNav", () => setupQuickNav());
       safeInit("setupBackNavigationGuard", () => setupBackNavigationGuard());
       if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js").catch(() => {}));
+        window.addEventListener("load", () => navigator.serviceWorker.register("/service-worker.js", { scope: "/" }).catch(() => {}));
       }
 
       // 파일의 앞·뒤 일부를 읽어 HEVC 박스(hvc1/hev1/hvcC)가 있는지 확인한다(이름 의존 없이).
