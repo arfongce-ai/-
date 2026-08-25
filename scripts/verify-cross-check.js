@@ -676,7 +676,7 @@ assertContains(readUtf8(path.join(root, "firebase", "firestore.rules")), "'merge
 
 // ── 고신뢰 경계 타이밍 제안 자동 반영(버튼 없이) ──
 assertContains(webHtml, "async function autoPublishHighConfidenceSuggestions(", "자동 반영 함수 존재");
-assertContains(webHtml, "autoPublishHighConfidenceSuggestions(); // 관리자로 인식되면", "관리자 인증 확인 시 자동 반영이 실제로 호출됨");
+assertNotContains(webHtml, "autoPublishHighConfidenceSuggestions(); // 관리자로 인식되면", "관리자 인증 확인만으로 corrections 전체 읽기를 자동 실행하지 않음");
 assertContains(webHtml, "const AUTO_PUBLISH_MIN_INTERVAL_MS = 12 * 3600 * 1000", "자동 반영 확인 주기(12시간) 제한 존재(과도한 읽기 방지)");
 assertContains(webHtml, ".filter((s) => s.type === \"boundary_shift\")", "자동 반영은 안전한 타이밍 보정 제안으로만 한정됨(분류·명칭 변경 제안 제외)");
 assertContains(webHtml, "e.counts.adjust >= 5", "전 사용자 보정은 실제 수정 5건 이상일 때만 허용");

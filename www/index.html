@@ -109,6 +109,13 @@
         --font-body: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
       }
       * { box-sizing: border-box; }
+      :where(button, select, input, textarea, .metric, .segment, .scene-card, .result-card, .compare-result, .list li) {
+        min-width: 0;
+      }
+      :where(button, select, .badge, .status, .metric span, .segment-feedback, .scene-card, .result-card, .compare-result, .list li) {
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+      }
       body {
         margin: 0;
         background:
@@ -533,6 +540,13 @@
         border-radius: 6px;
         line-height: 1.45;
       }
+      .report-easy {
+        display: block;
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
       .good-border { border-color: var(--good) !important; }
       .caution-border { border-color: var(--caution) !important; }
       .bad-border { border-color: var(--bad) !important; }
@@ -605,6 +619,11 @@
       .segment-feedback-summary {
         color: var(--text);
         font-weight: 800;
+      }
+      .segment-feedback-easy {
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.55;
       }
       .segment-feedback-details {
         color: var(--muted);
@@ -852,7 +871,7 @@
         border-radius: 10px;
         background: var(--brand);
         color: #fff;
-        font-size: 10px;
+        font-size: 11.5px;
         font-style: normal;
         font-weight: 800;
         vertical-align: middle;
@@ -1314,10 +1333,11 @@
         .segment-head .status { padding: 4px 7px; font-size: 10px; }
         .segment-feedback,
         .segment-feedback-details,
-        .segment-feedback-full { font-size: 11px; }
+        .segment-feedback-full,
+        .segment-feedback-easy { font-size: 13px; }
         .segment .bars { display: none; }
         .segment-score { font-size: 16px; }
-        .segment-hint { font-size: 9px; }
+        .segment-hint { font-size: 11px; }
         section { padding: 14px; }
         section > h2 { font-size: 18px; }
         .setup-copy { font-size: 13px; line-height: 1.45; }
@@ -2602,7 +2622,7 @@
         border-radius: 8px;
         background: var(--panel-2);
         color: var(--text);
-        font-size: 13px;
+        font-size: 14px;
         line-height: 1.55;
       }
       .compare-empty-state {
@@ -8660,14 +8680,56 @@ function applyBannerToDom(config) {
         ];
         return { gangCount, yuCount, transCount, avgRatio, checklist };
       }
+      function easyExplainReportText(text) {
+        const value = String(text || "");
+        if (!value) return "";
+        if (/경기규칙|공식 점수|심판|참고값|판정/.test(value)) {
+          return "쉽게 말하면, 이 결과는 연습을 돕는 참고 설명이고 최종 판정은 지도자나 심판이 확인해야 해요.";
+        }
+        if (/관절 데이터|감지|촬영|화면 안|프레임/.test(value)) {
+          return "쉽게 말하면, 머리부터 발끝까지 화면에 잘 보여야 앱이 자세를 더 정확히 볼 수 있어요.";
+        }
+        if (/감점|정확성|표현력|점수/.test(value)) {
+          return "쉽게 말하면, 자세가 정확한지와 힘·속도·리듬이 잘 보이는지를 나눠서 본 거예요.";
+        }
+        if (/맺음|정지|흔들림|마무리/.test(value)) {
+          return "쉽게 말하면, 동작 끝에서 잠깐 멈춰야 자세가 또렷하게 보여요.";
+        }
+        if (/서기|발끝|무릎|중심/.test(value)) {
+          return "쉽게 말하면, 발끝과 무릎 방향을 맞추고 몸 중심을 흔들리지 않게 잡아야 해요.";
+        }
+        if (/기합|함성/.test(value)) {
+          return "쉽게 말하면, 기합은 짧고 크게 내야 영상에서도 잘 확인돼요.";
+        }
+        if (/준비자세|첫 동작 시작점|구간/.test(value)) {
+          return "쉽게 말하면, 처음 서는 자세와 첫 움직임이 또렷해야 동작 구간이 덜 밀려요.";
+        }
+        if (/필요 훈련|먼저 고칠 점|연습포인트|우선 보완/.test(value)) {
+          return "쉽게 말하면, 한꺼번에 다 고치지 말고 첫 번째 약점부터 연습하면 돼요.";
+        }
+        return "";
+      }
+      function easyExplainFeedbackText(text) {
+        const value = String(text || "");
+        if (/서기|발끝|무릎|중심/.test(value)) return "발과 무릎 방향을 먼저 맞추고, 몸이 흔들리지 않게 서 보세요.";
+        if (/맺음|정지|마무리|흔들림/.test(value)) return "동작 끝에서 하나, 둘 세듯이 잠깐 멈추면 더 또렷해져요.";
+        if (/속도|리듬|완급|강약/.test(value)) return "천천히 준비하고, 마지막은 짧고 분명하게 끝내 보세요.";
+        if (/촬영|화면|프레임|관절/.test(value)) return "손과 발이 화면 밖으로 나가지 않게 카메라를 조금 더 멀리 두세요.";
+        if (/시선|고개|방향/.test(value)) return "눈과 몸이 같은 방향을 보도록 천천히 확인해 보세요.";
+        return "가장 낮게 나온 부분 하나만 먼저 고치면 다음 영상에서 더 좋아져요.";
+      }
       function renderReport(items) {
         reportList.innerHTML = "";
         for (const item of items) {
           const li = document.createElement("li");
           li.className = borderClass(item.type);
-          li.textContent = item.text;
+          li.innerHTML = reportItemHtml(item.text);
           reportList.appendChild(li);
         }
+      }
+      function reportItemHtml(text) {
+        const easy = easyExplainReportText(text);
+        return `${escapeHtml(text)}${easy ? `<span class="report-easy">쉽게 말하면: ${escapeHtml(easy.replace(/^쉽게 말하면,?\\s*/, ""))}</span>` : ""}`;
       }
       function escapeHtml(value) {
         return String(value ?? "")
@@ -9460,7 +9522,7 @@ function applyBannerToDom(config) {
           <div class="result-card" style="margin-top:14px;">
             <h3>${trainingMode === "exam" ? "이 결과에서 알 수 있는 것" : "판정 범위 및 교차검증 안내"}</h3>
             <ul class="list">
-              ${summaryItems.map((item) => `<li class="${borderClass(item.type)}">${escapeHtml(item.text)}</li>`).join("")}
+              ${summaryItems.map((item) => `<li class="${borderClass(item.type)}">${reportItemHtml(item.text)}</li>`).join("")}
             </ul>
           </div>
           <div class="result-card" style="margin-top:14px;">
@@ -12351,6 +12413,7 @@ function applyBannerToDom(config) {
       }
       function segmentFeedbackMarkup(value) {
         const feedback = compactFeedback(value);
+        const easy = easyExplainFeedbackText(feedback.full || feedback.summary);
         const details = feedback.expandable
           ? `
             <details class="segment-feedback-details">
@@ -12361,6 +12424,7 @@ function applyBannerToDom(config) {
         return `
           <div class="segment-feedback">
             <span class="segment-feedback-summary"><b>핵심</b> ${escapeHtml(feedback.summary)}</span>
+            <span class="segment-feedback-easy"><b>쉽게 말하면</b> ${escapeHtml(easy)}</span>
             ${details}
           </div>
         `;
