@@ -221,7 +221,8 @@ assertContains(webHtml, "field-label", "단계별 입력 안내 스타일 존재
 assertContains(webHtml, "if (reportSection) reportSection.hidden = true", "훈련 화면 중복 분석 요약 숨김");
 assertContains(webHtml, ".quick-nav button.active", "하단 메뉴 활성 상태 스타일 존재");
 assertContains(webHtml, "class=\"utility-actions\" hidden", "상단 기술용 보조 버튼 영역 숨김");
-assertContains(webHtml, "id=\"showReportBtn\" class=\"secondary\" disabled", "상단 리포트 보기 버튼 존재");
+assertContains(webHtml, "id=\"showReportBtn\"", "상단 리포트 보기 버튼 존재");
+assertContains(webHtml, "aria-label=\"리포트 보기\"", "리포트 보기 버튼 접근성 이름 존재");
 assertContains(webHtml, "playback-settings", "영상 아래 재생 설정 그룹 존재");
 assertContains(webHtml, "repeat-options", "영상 아래 반복 설정 그룹 존재");
 assertContains(webHtml, "replay-actions", "분석 후 재생 버튼 그룹 존재");
@@ -559,7 +560,9 @@ assertContains(webHtml, "초기화했습니다. 같은 영상으로 다시 분�
 assertContains(webHtml, "startAnalysis", "분석 시작 시 모델 자동 준비 로직 존재");
 assertContains(webHtml, "hidden>모델 준비", "모델 준비 버튼은 사용자 화면에서 숨김");
 assertContains(webHtml, "showReportBtn.addEventListener(\"click\", showResultPage)", "결과지 보기 버튼은 결과지 페이지로 이동");
-assertContains(webHtml, "id=\"jpgBtn\" class=\"secondary\" disabled hidden", "훈련 화면 JPG 저장 버튼은 숨김");
+assertContains(webHtml, "id=\"jpgBtn\"", "훈련 화면 JPG 저장 버튼 존재");
+assertContains(webHtml, "aria-label=\"A4 카드 JPG 저장\"", "훈련 화면 JPG 저장 버튼 접근성 이름 존재");
+assertContains(webHtml, "jpgBtn\" class=\"secondary icon-action\" disabled hidden", "훈련 화면 JPG 저장 버튼은 숨김");
 assertContains(webHtml, "JPG 저장", "결과지 내부 JPG 저장 버튼 존재");
 assertContains(webHtml, "movementCue", "동작명 기반 구체 피드백 규칙 존재");
 assertContains(webHtml, "weakestMetric", "가장 약한 지표 1개만 보조 피드백으로 표시");

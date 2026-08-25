@@ -116,6 +116,42 @@
         word-break: keep-all;
         overflow-wrap: anywhere;
       }
+      .icon-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+      }
+      .icon-action .ui-icon {
+        flex: 0 0 auto;
+        display: inline-grid;
+        place-items: center;
+        min-width: 1.25em;
+        font-size: 1.18em;
+        line-height: 1;
+      }
+      .icon-action.icon-only {
+        width: 52px;
+        min-width: 52px;
+        padding-inline: 0;
+      }
+      .icon-action.icon-only .button-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+      .app-tab.icon-action,
+      .quick-nav button.icon-action {
+        flex-direction: column;
+        gap: 4px;
+      }
+      .app-tab.icon-action .ui-icon,
+      .quick-nav button.icon-action .ui-icon {
+        font-size: 1.45em;
+      }
       body {
         margin: 0;
         background:
@@ -3351,19 +3387,19 @@
       </div>
     </header>
     <nav class="quick-nav wrap" aria-label="빠른 이동">
-      <button type="button" data-jump="setup" class="active">시작</button>
-      <button type="button" data-jump="video">영상</button>
-      <button type="button" data-jump="segments">동작</button>
-      <button type="button" data-jump="result">리포트</button>
+      <button type="button" data-jump="setup" class="active icon-action" aria-label="시작 설정으로 이동" title="시작"><span class="ui-icon" aria-hidden="true">⌂</span><span class="button-label">시작</span></button>
+      <button type="button" data-jump="video" class="icon-action" aria-label="영상 화면으로 이동" title="영상"><span class="ui-icon" aria-hidden="true">▣</span><span class="button-label">영상</span></button>
+      <button type="button" data-jump="segments" class="icon-action" aria-label="동작 카드로 이동" title="동작"><span class="ui-icon" aria-hidden="true">☷</span><span class="button-label">동작</span></button>
+      <button type="button" data-jump="result" class="icon-action" aria-label="리포트로 이동" title="리포트"><span class="ui-icon" aria-hidden="true">▤</span><span class="button-label">리포트</span></button>
     </nav>
 
     <main class="wrap">
       <section id="homePanel" class="app-panel active start-panel" aria-label="시작 화면">
       </section>
       <nav class="app-tabs" aria-label="주요 기능">
-        <button type="button" class="app-tab" data-app-tab="capture">촬영</button>
-        <button type="button" class="app-tab" data-app-tab="analysis">분석</button>
-        <button type="button" class="app-tab" data-app-tab="compare">비교</button>
+        <button type="button" class="app-tab icon-action" data-app-tab="capture" aria-label="촬영 화면" title="촬영"><span class="ui-icon" aria-hidden="true">◉</span><span class="button-label">촬영</span></button>
+        <button type="button" class="app-tab icon-action" data-app-tab="analysis" aria-label="분석 화면" title="분석"><span class="ui-icon" aria-hidden="true">◎</span><span class="button-label">분석</span></button>
+        <button type="button" class="app-tab icon-action" data-app-tab="compare" aria-label="전후 비교 화면" title="비교"><span class="ui-icon" aria-hidden="true">◫</span><span class="button-label">비교</span></button>
       </nav>
       <section id="capturePanel" class="app-panel">
         <div class="capture-shell">
@@ -3599,14 +3635,14 @@
             </details>
             <div class="field-label analyze-label">준비됐어요!</div>
             <div class="primary-actions">
-              <button id="analyzeBtn" disabled>분석 시작 ▶</button>
-              <button id="showReportBtn" class="secondary" disabled>리포트 보기</button>
+              <button id="analyzeBtn" class="icon-action" disabled aria-label="분석 시작" title="분석 시작"><span class="ui-icon" aria-hidden="true">▶</span><span class="button-label">분석 시작</span></button>
+              <button id="showReportBtn" class="secondary icon-action" disabled aria-label="리포트 보기" title="리포트"><span class="ui-icon" aria-hidden="true">▤</span><span class="button-label">리포트</span></button>
               <button id="reanalyzeBtn" class="secondary" disabled hidden>재분석(초기화)</button>
               <button id="loadModelBtn" type="button" hidden>모델 준비</button>
             </div>
             <div class="utility-actions" hidden>
-              <button id="downloadBtn" class="secondary" disabled>JSON 저장</button>
-              <button id="jpgBtn" class="secondary" disabled hidden>A4 카드 JPG 저장</button>
+              <button id="downloadBtn" class="secondary icon-action" disabled aria-label="JSON 저장" title="JSON 저장"><span class="ui-icon" aria-hidden="true">⇩</span><span class="button-label">JSON</span></button>
+              <button id="jpgBtn" class="secondary icon-action" disabled hidden aria-label="A4 카드 JPG 저장" title="A4 카드 JPG 저장"><span class="ui-icon" aria-hidden="true">▧</span><span class="button-label">JPG</span></button>
             </div>
             <div class="code" style="margin-top: 12px;">
               잘 찍는 법: 가로 영상 · 온몸이 다 나오게 · 폰 고정 · 밝은 곳
@@ -3639,9 +3675,9 @@
             <div class="player-controls">
               <div class="analysis-zoom">
                 <span class="small">분석 화면 배율</span>
-                <button type="button" id="analysisZoomOut" class="secondary">축소</button>
+                <button type="button" id="analysisZoomOut" class="secondary icon-action icon-only" aria-label="분석 화면 축소" title="축소"><span class="ui-icon" aria-hidden="true">−</span><span class="button-label">축소</span></button>
                 <input id="analysisZoom" type="range" min="0.75" max="2" step="0.05" value="1" />
-                <button type="button" id="analysisZoomIn" class="secondary">확대</button>
+                <button type="button" id="analysisZoomIn" class="secondary icon-action icon-only" aria-label="분석 화면 확대" title="확대"><span class="ui-icon" aria-hidden="true">＋</span><span class="button-label">확대</span></button>
                 <span id="analysisZoomText" class="status">1.00x</span>
               </div>
               <div class="playback-settings">
@@ -3661,8 +3697,8 @@
                 </div>
               </div>
               <div class="replay-actions">
-                <button id="replayAllBtn" class="secondary" type="button" disabled>전체 영상 재생</button>
-                <button id="replayWeakBtn" class="secondary" type="button" disabled>우선 구간 재생</button>
+                <button id="replayAllBtn" class="secondary icon-action" type="button" disabled aria-label="전체 영상 재생" title="전체 영상 재생"><span class="ui-icon" aria-hidden="true">▶</span><span class="button-label">전체</span></button>
+                <button id="replayWeakBtn" class="secondary icon-action" type="button" disabled aria-label="우선 구간 재생" title="우선 구간 재생"><span class="ui-icon" aria-hidden="true">◈</span><span class="button-label">우선</span></button>
               </div>
             </div>
           </div>
@@ -3735,14 +3771,14 @@
               <label class="field-label">후 영상<input id="compareAfterInput" type="file" accept="video/mp4,video/*" /></label>
             </div>
             <div class="tool-row">
-              <button type="button" id="compareToEvalBtn" class="secondary">분석/평가로 이동</button>
+              <button type="button" id="compareToEvalBtn" class="secondary icon-action" aria-label="분석 평가 화면으로 이동" title="분석/평가"><span class="ui-icon" aria-hidden="true">◎</span><span class="button-label">분석/평가</span></button>
             </div>
           </div>
         </div>
         <div id="compareEvalLayer" class="compare-layer-view" hidden>
           <div class="compare-layer-head">
             <h3>분석/평가</h3>
-            <button type="button" id="compareBackToUploadBtn" class="secondary">영상 다시 넣기</button>
+            <button type="button" id="compareBackToUploadBtn" class="secondary icon-action" aria-label="영상 다시 넣기" title="영상 다시 넣기"><span class="ui-icon" aria-hidden="true">↺</span><span class="button-label">영상</span></button>
           </div>
           <div class="compare-grid">
             <div>
@@ -3758,11 +3794,11 @@
                   <span id="compareDuration">00:00</span>
                 </div>
                 <div class="tool-row">
-                  <button type="button" id="comparePlayPauseBtn" class="secondary">재생</button>
-                  <button type="button" id="compareStopBtn" class="secondary">정지</button>
+                  <button type="button" id="comparePlayPauseBtn" class="secondary icon-action" aria-label="재생" title="재생"><span class="ui-icon" aria-hidden="true">▶</span><span class="button-label">재생</span></button>
+                  <button type="button" id="compareStopBtn" class="secondary icon-action icon-only" aria-label="정지" title="정지"><span class="ui-icon" aria-hidden="true">■</span><span class="button-label">정지</span></button>
                   <label class="skeleton-toggle"><input id="compareLoopToggle" type="checkbox" /> 반복재생</label>
-                  <button type="button" id="compareSaveBtn" class="secondary">저장</button>
-                  <button type="button" id="compareJpgBtn" class="secondary">카드 JPG</button>
+                  <button type="button" id="compareSaveBtn" class="secondary icon-action" aria-label="비교 영상 저장" title="비교 영상 저장"><span class="ui-icon" aria-hidden="true">⇩</span><span class="button-label">영상</span></button>
+                  <button type="button" id="compareJpgBtn" class="secondary icon-action" aria-label="카드 JPG 저장" title="카드 JPG 저장"><span class="ui-icon" aria-hidden="true">▧</span><span class="button-label">카드</span></button>
                 </div>
               </div>
               <div id="compareResult" class="compare-result" hidden></div>
@@ -3783,7 +3819,7 @@
                 </select></label>
               </div>
               <div class="tool-row">
-                <button type="button" id="compareAnalyzeBtn" class="secondary">비교 분석</button>
+                <button type="button" id="compareAnalyzeBtn" class="secondary icon-action" aria-label="비교 분석" title="비교 분석"><span class="ui-icon" aria-hidden="true">◎</span><span class="button-label">비교 분석</span></button>
               </div>
             </div>
           </div>
@@ -7369,6 +7405,15 @@ function applyBannerToDom(config) {
       let compareAlignOffset = { x: 0, y: 0 };
       let latestCompareReport = null;
       let latestCompareReportCloudKey = "";
+      function setIconButton(button, icon, label, options = {}) {
+        if (!button) return;
+        button.classList.add("icon-action");
+        button.innerHTML = `<span class="ui-icon" aria-hidden="true">${escapeHtml(icon)}</span><span class="button-label">${escapeHtml(label)}</span>`;
+        const accessible = options.ariaLabel || label;
+        button.setAttribute("aria-label", accessible);
+        button.title = options.title || accessible;
+        button.classList.toggle("icon-only", Boolean(options.iconOnly));
+      }
       function compareDurationSeconds() {
         const beforeDuration = safeMediaDuration(compareBeforeVideo);
         const afterDuration = safeMediaDuration(compareAfterVideo);
@@ -7384,7 +7429,10 @@ function applyBannerToDom(config) {
         }
         if (comparePlayPauseBtn) {
           const playing = Boolean(compareBeforeVideo && !compareBeforeVideo.paused && !compareBeforeVideo.ended);
-          comparePlayPauseBtn.textContent = playing ? "일시정지" : "재생";
+          setIconButton(comparePlayPauseBtn, playing ? "Ⅱ" : "▶", playing ? "일시" : "재생", {
+            ariaLabel: playing ? "일시정지" : "재생",
+            title: playing ? "일시정지" : "재생"
+          });
         }
       }
       function setCompareLayer(name) {
@@ -8784,7 +8832,7 @@ function applyBannerToDom(config) {
           sidePanel.appendChild(reportSection);
           sidePanel.appendChild(segmentsSection);
         }
-        if (showReportBtn) showReportBtn.textContent = "리포트";
+        setIconButton(showReportBtn, "▤", "리포트", { ariaLabel: "리포트 보기", title: "리포트 보기" });
         if (reportSection) reportSection.hidden = true;
         if (outputSection) outputSection.hidden = true;
 
