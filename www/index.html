@@ -6480,6 +6480,23 @@ function applyBannerToDom(config) {
           setAppTab("analysis");
         }
       }
+      function prepareRecordingForAnalysis(index) {
+        const item = savedRecordings[index];
+        if (!item?.file || !fileInput) return;
+        try {
+          const transfer = new DataTransfer();
+          transfer.items.add(item.file);
+          fileInput.files = transfer.files;
+          fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+        } catch (error) {
+          selectedFile = item.file;
+          if (objectUrl) URL.revokeObjectURL(objectUrl);
+          objectUrl = URL.createObjectURL(item.file);
+          video.src = objectUrl;
+          video.load();
+          setProgress(0, "녹화 영상이 분석 입력에 연결되었습니다. 준비되면 분석 시작을 눌러 주세요.");
+        }
+      }
       function useRecordingForCompare(index, slot) {
         const item = savedRecordings[index];
         const input = slot === "after" ? compareAfterInput : compareBeforeInput;
@@ -6521,7 +6538,7 @@ function applyBannerToDom(config) {
         recordingChunks = [];
         const mimeType = recordingMimeType();
         recordingStartedAt = Date.now();
-        recordingLandscape = captureIsLandscapeMode();
+        recordingLandscape = true;
         const recordingStream = createCaptureRecordingStream(recordingLandscape);
         mediaRecorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : undefined);
         const recorder = mediaRecorder;
@@ -6546,6 +6563,7 @@ function applyBannerToDom(config) {
           }
           const file = new File([blob], `poomsae-recording-${new Date().toISOString().replace(/[:.]/g, "-")}.${ext}`, { type });
           savedRecordings.unshift({ file, durationMs });
+          prepareRecordingForAnalysis(0);
           saveRecordingFile(0);
           renderRecordings();
           startRecordBtn.disabled = false;
