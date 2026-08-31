@@ -3984,20 +3984,26 @@
       }
       function describeReportLoadError(error) {
         const code = error && error.code ? String(error.code) : "";
+        const detail = [
+          code ? `코드: ${code}` : "",
+          error && error.message ? `메시지: ${String(error.message).slice(0, 180)}` : "",
+          _fbCurrentAdminUser?.email ? `로그인: ${_fbCurrentAdminUser.email}` : ""
+        ].filter(Boolean).join(" · ");
+        const suffix = detail ? ` (${detail})` : "";
         if (code === "permission-denied" || code === "firestore/permission-denied") {
           const email = _fbCurrentAdminUser?.email || "현재 로그인 계정";
-          return `불러오기 실패: ${email}은(는) 학습 리포트 관리자 권한이 없습니다. Firebase 규칙의 ADMIN_EMAILS에 이 이메일을 등록하세요.`;
+          return `불러오기 실패: ${email}은(는) 학습 리포트 관리자 권한이 없습니다. Firebase 규칙의 ADMIN_EMAILS에 이 이메일을 등록하세요.${suffix}`;
         }
         if (code === "unauthenticated" || code === "firestore/unauthenticated") {
-          return "불러오기 실패: 관리자 이메일·비밀번호로 먼저 로그인해야 합니다.";
+          return `불러오기 실패: 관리자 이메일·비밀번호로 먼저 로그인해야 합니다.${suffix}`;
         }
         if (code === "failed-precondition" || code === "firestore/failed-precondition") {
-          return "불러오기 실패: Firebase Firestore 데이터베이스가 아직 생성되지 않았거나 설정이 완료되지 않았습니다.";
+          return `불러오기 실패: Firebase Firestore 데이터베이스가 아직 생성되지 않았거나 설정이 완료되지 않았습니다.${suffix}`;
         }
         if (code === "unavailable" || code === "deadline-exceeded" || code === "network-request-failed") {
-          return "불러오기 실패: 네트워크가 끊겼거나 Firebase에 연결할 수 없습니다. 연결 후 새로고침하세요.";
+          return `불러오기 실패: 네트워크가 끊겼거나 Firebase에 연결할 수 없습니다. 연결 후 새로고침하세요.${suffix}`;
         }
-        return code ? `불러오기 실패: Firebase 오류(${code})` : "불러오기 실패: Firebase 초기화 또는 보안 규칙을 확인하세요.";
+        return code ? `불러오기 실패: Firebase 오류(${code})${suffix}` : `불러오기 실패: Firebase 초기화 또는 보안 규칙을 확인하세요.${suffix}`;
       }
       function describeAdminPasswordResetError(error) {
         const code = error && error.code ? String(error.code) : "";
@@ -8380,6 +8386,7 @@ function applyBannerToDom(config) {
           if (statusEl) statusEl.textContent = "학습 리포트를 보려면 관리자 이메일·비밀번호로 로그인하세요.";
           return;
         }
+        if (statusEl) statusEl.textContent = `관리자 로그인 확인: ${_fbCurrentAdminUser.email || "이메일 없음"} · 리포트 준비 중...`;
         if (!_fbDB || !_fbGetDocs) {
           if (statusEl) statusEl.textContent = "Firebase가 아직 준비되지 않았습니다. 잠시 후 새로고침하세요.";
           return;
