@@ -8257,6 +8257,14 @@ function applyBannerToDom(config) {
         else if (r.action === "merge") idx = r.merged_segment_index;
         return `${p}#${idx}`;
       }
+      function normalizedCorrectionCounts(counts) {
+        return {
+          merge: Number(counts?.merge) || 0,
+          split: Number(counts?.split) || 0,
+          adjust: Number(counts?.adjust) || 0,
+          confirm: Number(counts?.confirm) || 0
+        };
+      }
       function analyzeCorrectionRecords(rawRecords) {
         const records = expandConfirmRecords(rawRecords);
         const byLocation = new Map();
@@ -8289,6 +8297,8 @@ function applyBannerToDom(config) {
         }
         const locations = [];
         for (const e of byLocation.values()) {
+          const counts = normalizedCorrectionCounts(e.counts);
+          e.counts = counts;
           const d = e.adjust_deltas;
           const mean = d.length ? d.reduce((a, b) => a + b, 0) / d.length : 0;
           const variance = d.length ? d.reduce((a, b) => a + (b - mean) ** 2, 0) / d.length : 0;
@@ -8316,33 +8326,35 @@ function applyBannerToDom(config) {
       function buildCorrectionRuleSuggestions(locations) {
         const suggestions = [];
         for (const loc of locations) {
+          const counts = normalizedCorrectionCounts(loc.counts);
+          loc.counts = counts;
           if (loc.confidence === "insufficient") continue;
           if (loc.systematic_bias) {
             suggestions.push({
               location: loc.location, poomsae: loc.poomsae, segment_index: loc.segment_index,
               type: "boundary_shift", recommend_shift_seconds: loc.adjust_mean_delta,
-              reason: `${loc.counts.adjust}건이 이 경계를 평균 ${loc.adjust_mean_delta}s ${loc.adjust_mean_delta > 0 ? "뒤로" : "앞으로"} 옮김(방향 일치율 ${(loc.direction_agreement * 100).toFixed(0)}%). 자동 기본 경계를 그만큼 옮기는 것을 권장.`,
-              confidence: loc.confidence, sample_size: loc.counts.adjust,
+              reason: `${counts.adjust}건이 이 경계를 평균 ${loc.adjust_mean_delta}s ${loc.adjust_mean_delta > 0 ? "뒤로" : "앞으로"} 옮김(방향 일치율 ${(loc.direction_agreement * 100).toFixed(0)}%). 자동 기본 경계를 그만큼 옮기는 것을 권장.`,
+              confidence: loc.confidence, sample_size: counts.adjust,
               accuracy_rate: loc.accuracy_rate, total_reviews: loc.total
             });
           }
-          if (loc.counts.merge >= REPORT_MIN_SAMPLES_RULE && loc.counts.merge > loc.counts.split * 2) {
+          if (counts.merge >= REPORT_MIN_SAMPLES_RULE && counts.merge > counts.split * 2) {
             suggestions.push({
               location: loc.location, poomsae: loc.poomsae, segment_index: loc.segment_index,
               type: "over_segmentation",
-              reason: `합치기 ${loc.counts.merge}건(나누기 ${loc.counts.split}건) — 자동 분석이 한 동작을 둘로 쪼개는 경향. 이 구간 경계 민감도를 낮추거나 최소 구간 길이를 늘리는 것을 권장.`,
-              confidence: loc.confidence, sample_size: loc.counts.merge,
+              reason: `합치기 ${counts.merge}건(나누기 ${counts.split}건) — 자동 분석이 한 동작을 둘로 쪼개는 경향. 이 구간 경계 민감도를 낮추거나 최소 구간 길이를 늘리는 것을 권장.`,
+              confidence: loc.confidence, sample_size: counts.merge,
               accuracy_rate: loc.accuracy_rate, total_reviews: loc.total
             });
           }
-          if (loc.counts.split >= REPORT_MIN_SAMPLES_RULE && loc.counts.split > loc.counts.merge * 2) {
+          if (counts.split >= REPORT_MIN_SAMPLES_RULE && counts.split > counts.merge * 2) {
             const ratios = loc.split_ratios;
             const meanRatio = ratios.length ? Number((ratios.reduce((a, b) => a + b, 0) / ratios.length).toFixed(3)) : null;
             suggestions.push({
               location: loc.location, poomsae: loc.poomsae, segment_index: loc.segment_index,
               type: "under_segmentation", recommend_split_ratio: meanRatio,
-              reason: `나누기 ${loc.counts.split}건(합치기 ${loc.counts.merge}건) — 자동 분석이 두 동작을 하나로 묶는 경향. 경계 민감도를 높이거나 ${meanRatio != null ? `구간의 ${Math.round(meanRatio * 100)}% 지점에 경계를 추가` : "추가 경계 삽입"}을 권장.`,
-              confidence: loc.confidence, sample_size: loc.counts.split,
+              reason: `나누기 ${counts.split}건(합치기 ${counts.merge}건) — 자동 분석이 두 동작을 하나로 묶는 경향. 경계 민감도를 높이거나 ${meanRatio != null ? `구간의 ${Math.round(meanRatio * 100)}% 지점에 경계를 추가` : "추가 경계 삽입"}을 권장.`,
+              confidence: loc.confidence, sample_size: counts.split,
               accuracy_rate: loc.accuracy_rate, total_reviews: loc.total
             });
           }
@@ -8407,15 +8419,18 @@ function applyBannerToDom(config) {
           const { locations, byPoomsae } = analyzeCorrectionRecords(records);
           const suggestions = buildCorrectionRuleSuggestions(locations);
           const activeBias = _remoteBoundaryBias || {};
-          const confirmTotal = locations.reduce((n, l) => n + l.counts.confirm, 0);
+          const confirmTotal = locations.reduce((n, l) => n + normalizedCorrectionCounts(l.counts).confirm, 0);
           const reviewedTotal = locations.reduce((n, l) => n + l.total, 0);
           const overallAccuracy = reviewedTotal > 0 ? Math.round((confirmTotal / reviewedTotal) * 100) : null;
           if (statusEl) {
             statusEl.textContent = `총 ${records.length}건(확인 ${confirmTotal}·수정 ${reviewedTotal - confirmTotal}) · 전체 정확도 ${overallAccuracy != null ? overallAccuracy + "%" : "-"} · 품새 ${Object.keys(byPoomsae).length}개 · 제안 ${suggestions.length}건 · 적용 중 ${Object.keys(activeBias).length}건`;
           }
           if (bodyEl) {
-            const accBadge = (l) => l.accuracy_rate != null
-              ? `<span class="small" style="margin-left:6px;color:var(--muted)">정확도 ${(l.accuracy_rate * 100).toFixed(0)}%(확인 ${l.counts.confirm}/전체 ${l.total})</span>` : "";
+            const accBadge = (l) => {
+              const counts = normalizedCorrectionCounts(l.counts);
+              return l.accuracy_rate != null
+                ? `<span class="small" style="margin-left:6px;color:var(--muted)">정확도 ${(l.accuracy_rate * 100).toFixed(0)}%(확인 ${counts.confirm}/전체 ${l.total})</span>` : "";
+            };
             const suggestionHtml = suggestions.length
               ? suggestions.map((s) => {
                   const isBoundaryShift = s.type === "boundary_shift";
