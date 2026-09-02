@@ -16,13 +16,19 @@ if (/id="captureZoomRange"|id="captureZoomText"|capture-zoom-controls/.test(html
 }
 assertContains(/setWidestCaptureCameraZoom/, "카메라 전체 화각 적용 로직이 없습니다.");
 assertContains(/function captureNativeZoomForFactor\(/, "표시 배율을 실제 카메라 줌으로 변환하는 로직이 없습니다.");
+assertContains(/captureZoomFactor\s*=\s*Math\.max\(0\.5, Math\.min\(1,/, "카메라 배율이 0.5x~1.0x로 제한되지 않았습니다.");
 assertContains(/track\.applyConstraints\(\{ advanced: \[\{ zoom: target \}\] \}\)/, "실제 카메라 트랙에 줌 배율을 적용하지 않습니다.");
 assertContains(/bindCaptureCameraPinchZoom\(captureStage\)/, "HUD 없이 카메라 배율을 조절하는 핀치 줌이 없습니다.");
 assertContains(/function captureZoomScale\(\)\s*\{[\s\S]*?return 1;/, "카메라 줌을 화면 요소 크기로 다시 적용하고 있습니다.");
 if (/capturePreview\.style\.transform\s*=\s*`[^`]*scale\(/.test(html)) {
   throw new Error("카메라 미리보기에 CSS 확대/축소가 남아 있습니다.");
 }
-assertContains(/object-fit:\s*contain/, "촬영 미리보기가 센서 전체 화각을 사용하지 않습니다.");
+assertContains(/body\[data-app-page="capture"\][\s\S]*?\.capture-stage video[\s\S]*?object-fit:\s*cover/, "촬영 미리보기가 3:4 프레임을 가득 채우지 않습니다.");
+assertContains(/--capture-top-letterbox:\s*clamp\(/, "촬영 화면의 좁은 위쪽 레터박스가 없습니다.");
+assertContains(/--capture-preview-height:\s*calc\(100vw \* 4 \/ 3\)/, "세로 촬영 화면이 3:4 비율이 아닙니다.");
+assertContains(/top:\s*var\(--capture-preview-bottom\)[\s\S]*?background:\s*#000/, "카메라 아래쪽의 넓은 조작 레터박스가 분리되지 않았습니다.");
+assertContains(/--capture-overlay-row-1:[\s\S]*?--capture-overlay-row-2:[\s\S]*?--capture-overlay-row-3:/, "촬영 오버레이가 겹치지 않도록 행이 분리되지 않았습니다.");
+assertContains(/\.capture-focus-ring\s*\{\s*display:\s*none;/, "녹화 버튼과 겹치는 장식 오버레이가 남아 있습니다.");
 assertContains(/numPoses:\s*3/, "Pose Landmarker가 3인 검출로 설정되지 않았습니다.");
 assertContains(/collectCaptureLandmarks/, "분할 화면 3인 보강 검출이 없습니다.");
 assertContains(/3\/3명 · 동시 인식 안정/, "3인 동시 인식 상태 표시가 없습니다.");

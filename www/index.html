@@ -2812,8 +2812,8 @@
         display: none;
       }
       body[data-app-page="capture"] .capture-stage video {
-        /* 기본값부터 센서의 전체 화각을 보여 줘 세 명의 머리·발이 잘리지 않게 한다. */
-        object-fit: contain;
+        /* 카메라 앱처럼 표준 3:4/4:3 프레임을 검은 내부 여백 없이 채운다. */
+        object-fit: cover;
       }
       /* 모바일 미디어 쿼리의 기본 위치보다 우선해 보조 버튼을 영상 위에 고정한다. */
       body[data-app-page="capture"] .capture-overlay-toggles {
@@ -2977,6 +2977,146 @@
         body[data-app-page="compare"] main.wrap {
           min-height: 100dvh;
           overflow-x: hidden;
+        }
+      }
+      @media (max-width: 768px) and (orientation: portrait) {
+        body[data-app-page="capture"] .capture-shell {
+          --capture-top-letterbox: clamp(54px, 7.5dvh, 64px);
+          --capture-preview-height: calc(100vw * 4 / 3);
+          --capture-preview-bottom: calc(var(--capture-top-letterbox) + var(--capture-preview-height));
+          --capture-overlay-row-1: calc(var(--capture-top-letterbox) + 10px);
+          --capture-overlay-row-2: calc(var(--capture-top-letterbox) + 54px);
+          --capture-overlay-row-3: calc(var(--capture-top-letterbox) + 98px);
+          background: #000;
+        }
+        body[data-app-page="capture"] .capture-topbar {
+          height: var(--capture-top-letterbox);
+          min-height: 0;
+          padding: 7px 10px;
+          gap: 6px;
+          z-index: 20;
+        }
+        body[data-app-page="capture"] .capture-menu-btn {
+          min-height: 38px;
+          padding: 0 8px;
+          font-size: 16px;
+        }
+        body[data-app-page="capture"] .capture-mode-group {
+          gap: 4px;
+        }
+        body[data-app-page="capture"] .capture-mode {
+          min-width: 70px;
+          min-height: 38px;
+          padding: 0 8px;
+          font-size: 14px;
+        }
+        body[data-app-page="capture"] .capture-media-frame,
+        body[data-app-page="capture"] .capture-stage.landscape-capture .capture-media-frame {
+          left: 0;
+          top: var(--capture-top-letterbox);
+          width: 100vw;
+          height: var(--capture-preview-height);
+          aspect-ratio: 3 / 4;
+          transform: none;
+          box-shadow: none;
+          z-index: 1;
+        }
+        body[data-app-page="capture"] .capture-stage video {
+          object-fit: cover;
+        }
+        body[data-app-page="capture"] .capture-stage::after {
+          top: calc(var(--capture-top-letterbox) + var(--capture-preview-height) / 2);
+        }
+        body[data-app-page="capture"] .capture-overlay-toggles {
+          top: var(--capture-overlay-row-1) !important;
+          left: 10px !important;
+          right: 94px !important;
+          flex-wrap: nowrap;
+          gap: 5px;
+          z-index: 12;
+        }
+        body[data-app-page="capture"] .capture-overlay-toggles .capture-chip {
+          min-width: 0;
+          min-height: 34px;
+          padding: 0 10px;
+          font-size: 12px;
+          white-space: nowrap;
+        }
+        body[data-app-page="capture"] .capture-status {
+          top: var(--capture-overlay-row-1);
+          right: 10px;
+          left: auto;
+          min-width: 74px;
+          min-height: 34px;
+          padding: 7px 9px;
+          z-index: 13;
+        }
+        body[data-app-page="capture"] .capture-pose-mode {
+          top: var(--capture-overlay-row-2);
+          left: 10px;
+          right: auto;
+          max-width: calc(100% - 20px);
+          flex-wrap: nowrap;
+          z-index: 12;
+        }
+        body[data-app-page="capture"] .capture-pose-mode .capture-chip {
+          min-height: 34px;
+          padding: 0 12px;
+          font-size: 12px;
+        }
+        body[data-app-page="capture"] .capture-team-status {
+          top: var(--capture-overlay-row-3);
+          left: 10px;
+          right: auto;
+          max-width: calc(100% - 20px);
+          min-height: 34px;
+          z-index: 12;
+        }
+        body[data-app-page="capture"] .capture-focus-ring {
+          display: none;
+        }
+        body[data-app-page="capture"] .capture-controls {
+          top: var(--capture-preview-bottom);
+          bottom: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
+          gap: 0;
+          padding: clamp(26px, 4dvh, 42px) 12px calc(14px + env(safe-area-inset-bottom));
+          background: #000;
+          box-sizing: border-box;
+          overflow: hidden;
+          z-index: 10;
+        }
+        body[data-app-page="capture"] .capture-record-btn {
+          flex: 0 0 auto;
+          width: 76px;
+          height: 76px;
+          margin: 0 0 20px;
+        }
+        body[data-app-page="capture"] .capture-helper {
+          flex: 0 0 auto;
+          width: min(calc(100% - 24px), 440px);
+          margin: 0;
+          font-size: 12px;
+          line-height: 1.45;
+        }
+        body[data-app-page="capture"] .capture-save-hud {
+          bottom: calc(18px + env(safe-area-inset-bottom));
+        }
+      }
+      @media (max-width: 768px) and (orientation: portrait) and (max-height: 680px) {
+        body[data-app-page="capture"] .capture-controls {
+          padding-top: 16px;
+        }
+        body[data-app-page="capture"] .capture-record-btn {
+          width: 64px;
+          height: 64px;
+          margin-bottom: 0;
+        }
+        body[data-app-page="capture"] .capture-helper {
+          display: none;
         }
       }
       .app-footer-campaign {
@@ -7259,7 +7399,7 @@ function applyBannerToDom(config) {
       async function setWidestCaptureCameraZoom() {
         captureFullFrame = true;
         captureZoomFactor = 0.5;
-        if (capturePreview) capturePreview.style.objectFit = "contain";
+        if (capturePreview) capturePreview.style.objectFit = "cover";
         if (captureStage) captureStage.dataset.cameraZoom = captureZoomFactor.toFixed(2);
         const bounds = captureCameraZoomBounds();
         if (!bounds) {
@@ -7402,20 +7542,7 @@ function applyBannerToDom(config) {
         return { drawW, drawH, offX, offY };
       }
       function captureDrawRect(video, width, height, zoom = captureZoomScale()) {
-        const sourceRatio = video.videoWidth / video.videoHeight;
-        const boxWidth = width;
-        const boxHeight = height;
-        const targetRatio = boxWidth / boxHeight;
-        let drawW, drawH;
-        if (captureFullFrame) {
-          if (sourceRatio > targetRatio) { drawW = boxWidth; drawH = boxWidth / sourceRatio; }
-          else { drawH = boxHeight; drawW = boxHeight * sourceRatio; }
-        } else if (sourceRatio > targetRatio) {
-          drawH = boxHeight; drawW = boxHeight * sourceRatio;
-        } else {
-          drawW = boxWidth; drawH = boxWidth / sourceRatio;
-        }
-        return { drawW, drawH, offX: (width - drawW) / 2, offY: (height - drawH) / 2 };
+        return videoDrawRect(video, width, height, "cover");
       }
       function rotateCanvasPoint(point, width, height, rotation) {
         return point;
