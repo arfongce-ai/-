@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-aaf-recording-fix-v1";
+const CACHE_NAME = "poomsae-training-camera-fix-v2";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",

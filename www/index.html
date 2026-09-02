@@ -476,8 +476,24 @@
       }
       .video-stage {
         position: relative;
-        width: 100%;
+        width: min(100%, calc(42dvh * 4 / 3));
+        aspect-ratio: 4 / 3;
+        margin-inline: auto;
         line-height: 0;
+      }
+      .video-stage[data-media-orientation="portrait"] {
+        width: min(100%, calc(42dvh * 3 / 4));
+        aspect-ratio: 3 / 4;
+      }
+      .video-stage[data-media-orientation="landscape"] {
+        width: min(100%, calc(42dvh * 4 / 3));
+        aspect-ratio: 4 / 3;
+      }
+      .video-stage > video {
+        width: 100%;
+        height: 100%;
+        max-height: none;
+        object-fit: contain;
       }
       .skeleton-canvas {
         position: absolute;
@@ -2345,16 +2361,33 @@
         background: #050505;
         touch-action: none;
       }
+      .capture-media-frame {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: min(100%, calc(100dvh * 3 / 4));
+        aspect-ratio: 3 / 4;
+        transform: translate(-50%, -50%);
+        overflow: hidden;
+        background: #050505;
+        box-shadow: 0 0 0 1px rgba(255,255,255,.18);
+      }
+      .capture-stage.landscape-capture .capture-media-frame {
+        width: min(100%, calc(100dvh * 4 / 3));
+        aspect-ratio: 4 / 3;
+      }
       .compare-stage {
         position: relative;
         overflow: hidden;
         border: 1px solid var(--panel-line);
         border-radius: 8px;
         background: #000;
-        aspect-ratio: 16 / 9;
+        aspect-ratio: 4 / 3;
         min-width: 0;
         touch-action: none;
       }
+      .compare-stage[data-media-orientation="portrait"] { aspect-ratio: 3 / 4; }
+      .compare-stage[data-media-orientation="landscape"] { aspect-ratio: 4 / 3; }
       .capture-stage video {
         position: absolute;
         inset: 0;
@@ -2405,6 +2438,89 @@
         flex-wrap: wrap;
         justify-content: flex-end;
         z-index: 2;
+      }
+      .capture-team-status {
+        position: absolute;
+        top: 132px;
+        right: min(48px, 5vw);
+        z-index: 8;
+        min-height: 34px;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 12px;
+        border: 1px solid rgba(255, 255, 255, .22);
+        border-radius: 999px;
+        background: rgba(0, 0, 0, .62);
+        color: #ffd37a;
+        font-size: 13px;
+        font-weight: 900;
+        box-sizing: border-box;
+      }
+      .capture-team-status::before {
+        content: "";
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #f5a511;
+        box-shadow: 0 0 0 4px rgba(245, 165, 17, .18);
+      }
+      .capture-team-status.stable {
+        color: #a9fff8;
+        border-color: rgba(56, 199, 187, .76);
+        background: rgba(6, 70, 67, .78);
+      }
+      .capture-team-status.stable::before {
+        background: #38c7bb;
+        box-shadow: 0 0 0 4px rgba(56, 199, 187, .2);
+      }
+      .capture-team-status[hidden] { display: none !important; }
+      .capture-zoom-controls {
+        position: absolute;
+        left: 50%;
+        bottom: 118px;
+        z-index: 9;
+        transform: translateX(-50%);
+        width: min(88vw, 430px);
+        min-height: 44px;
+        display: grid;
+        grid-template-columns: auto minmax(100px, 1fr) auto;
+        align-items: center;
+        gap: 9px;
+        padding: 6px 9px;
+        border: 1px solid rgba(255, 255, 255, .2);
+        border-radius: 999px;
+        background: rgba(0, 0, 0, .62);
+        box-sizing: border-box;
+        backdrop-filter: blur(8px);
+      }
+      .capture-zoom-controls button {
+        min-height: 34px;
+        padding: 0 11px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, .24);
+        background: rgba(255, 255, 255, .1);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .capture-zoom-controls button.active {
+        border-color: rgba(56, 199, 187, .86);
+        background: rgba(6, 70, 67, .86);
+        color: #a9fff8;
+      }
+      .capture-zoom-controls input[type="range"] {
+        width: 100%;
+        min-width: 0;
+        accent-color: #38c7bb;
+      }
+      .capture-zoom-text {
+        min-width: 43px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 900;
+        text-align: center;
+        white-space: nowrap;
       }
       .capture-focus-ring {
         position: absolute;
@@ -2743,7 +2859,8 @@
         display: none;
       }
       body[data-app-page="capture"] .capture-stage video {
-        object-fit: cover;
+        /* 기본값부터 센서의 전체 화각을 보여 줘 세 명의 머리·발이 잘리지 않게 한다. */
+        object-fit: contain;
       }
       /* 모바일 미디어 쿼리의 기본 위치보다 우선해 보조 버튼을 영상 위에 고정한다. */
       body[data-app-page="capture"] .capture-overlay-toggles {
@@ -2759,6 +2876,11 @@
         justify-content: flex-start;
         max-width: calc(100% - 24px);
         z-index: 8;
+      }
+      body[data-app-page="capture"] .capture-team-status {
+        top: 184px;
+        left: 12px;
+        right: auto;
       }
       body[data-app-page="capture"] .capture-controls {
         position: absolute;
@@ -2853,6 +2975,10 @@
           padding: 8px 12px;
           min-width: 94px;
         }
+        .capture-zoom-controls {
+          bottom: calc(104px + env(safe-area-inset-bottom));
+          width: min(calc(100vw - 28px), 430px);
+        }
         .capture-control-card {
           width: min(100% - 40px, 440px);
           margin-top: -36px;
@@ -2889,10 +3015,15 @@
           gap: 12px;
         }
         .compare-stage {
-          width: 100%;
+          width: min(100%, calc(42dvh * 4 / 3));
           min-height: 0;
-          max-height: 31dvh;
-          aspect-ratio: 16 / 9;
+          max-height: 42dvh;
+          aspect-ratio: 4 / 3;
+          margin-inline: auto;
+        }
+        .compare-stage[data-media-orientation="portrait"] {
+          width: min(100%, calc(42dvh * 3 / 4));
+          aspect-ratio: 3 / 4;
         }
         body[data-app-page="compare"] main.wrap {
           min-height: 100dvh;
@@ -3380,7 +3511,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새수련 <span class="header-beta">Beta</span></h1>
-          <p class="small">내 품새 영상을 동작별로 쉽게 확인해요 · v4.16</p>
+          <p class="small">내 품새 영상을 동작별로 쉽게 확인해요 · v4.20</p>
         </div>
         <span class="badge">수련 보조 · Beta</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -3410,10 +3541,12 @@
                 <button type="button" class="capture-mode active" id="captureQualityStandard">표준</button>
                 <button type="button" class="capture-mode" id="captureQualityHigh">고화질</button>
               </div>
-            </div>
+          </div>
           <div class="capture-stage">
-            <video id="capturePreview" autoplay muted playsinline></video>
-            <canvas id="captureCanvas" class="capture-canvas"></canvas>
+            <div id="captureMediaFrame" class="capture-media-frame" data-media-orientation="portrait">
+              <video id="capturePreview" autoplay muted playsinline></video>
+              <canvas id="captureCanvas" class="capture-canvas"></canvas>
+            </div>
           <div class="capture-overlay-toggles" aria-label="촬영 보조 표시">
             <button type="button" id="captureSkeletonToggle" class="capture-chip">스켈레톤 OFF</button>
             <button type="button" id="captureTrajectoryToggle" class="capture-chip">궤적 OFF</button>
@@ -3422,6 +3555,7 @@
             <button type="button" id="captureSinglePose" class="capture-chip">개인</button>
             <button type="button" id="captureMultiPose" class="capture-chip active">단체</button>
           </div>
+          <div id="captureTeamStatus" class="capture-team-status" role="status" aria-live="polite">0/3명 · 세 명을 화면에 맞추세요</div>
           <div class="capture-status" id="captureStatus">
             <span class="record-dot" id="captureRecordDot"></span>
             <span id="captureRecordingTime">00:00</span>
@@ -3433,7 +3567,12 @@
           </div>
           <div class="capture-controls">
             <button type="button" id="startRecordBtn" class="capture-record-btn" aria-label="녹화">녹화</button>
-            <p class="capture-helper">표준 화질 · 카메라 4:3 비율로 저장됩니다. 녹화는 최대 2분까지 가능하며, 종료하면 바로 폰에 저장을 시도합니다.</p>
+            <label class="capture-zoom-controls" aria-label="카메라 배율">
+              <span class="small">카메라 배율</span>
+              <input id="captureZoomRange" type="range" min="0.5" max="1" step="0.1" value="0.5" aria-label="카메라 배율" />
+              <output id="captureZoomText" class="capture-zoom-text" for="captureZoomRange">0.5×</output>
+            </label>
+            <p class="capture-helper">표준 화질 · 가로 4:3 / 세로 3:4 비율로 저장됩니다. 녹화는 최대 2분까지 가능하며, 종료하면 바로 폰에 저장을 시도합니다.</p>
             <div id="captureSaveHud" class="capture-save-hud" role="status" aria-live="polite">저장되었습니다.</div>
             <div id="recordingsList" class="recordings-list"></div>
           </div>
@@ -3986,6 +4125,7 @@
         const code = error && error.code ? String(error.code) : "";
         const detail = [
           code ? `코드: ${code}` : "",
+          error && error.reportStep ? `단계: ${error.reportStep}` : "",
           error && error.message ? `메시지: ${String(error.message).slice(0, 180)}` : "",
           _fbCurrentAdminUser?.email ? `로그인: ${_fbCurrentAdminUser.email}` : ""
         ].filter(Boolean).join(" · ");
@@ -4003,7 +4143,8 @@
         if (code === "unavailable" || code === "deadline-exceeded" || code === "network-request-failed") {
           return `불러오기 실패: 네트워크가 끊겼거나 Firebase에 연결할 수 없습니다. 연결 후 새로고침하세요.${suffix}`;
         }
-        return code ? `불러오기 실패: Firebase 오류(${code})${suffix}` : `불러오기 실패: Firebase 초기화 또는 보안 규칙을 확인하세요.${suffix}`;
+        if (code) return `불러오기 실패: Firebase 오류(${code})${suffix}`;
+        return `불러오기 실패: 앱 내부 진단 필요${suffix || " (오류 코드가 없는 예외입니다.)"}`;
       }
       function describeAdminPasswordResetError(error) {
         const code = error && error.code ? String(error.code) : "";
@@ -4022,6 +4163,10 @@
       const CLOUD_CORRECTION_QUEUE_MAX = 300;
       const CLOUD_REPORT_QUEUE_KEY = "poomsae_cloud_learning_report_queue_v1";
       const CLOUD_REPORT_QUEUE_MAX = 40;
+      const LOCAL_TEAM_REPORT_HISTORY_KEY = "poomsae_team_report_history_v1";
+      const LOCAL_TEAM_REPORT_HISTORY_MAX = 50;
+      const LOCAL_INDIVIDUAL_REPORT_HISTORY_KEY = "poomsae_individual_report_history_v1";
+      const LOCAL_INDIVIDUAL_REPORT_HISTORY_MAX = 50;
       const CLOUD_COMPARE_REPORT_QUEUE_KEY = "poomsae_cloud_compare_report_queue_v1";
       const CLOUD_COMPARE_REPORT_QUEUE_MAX = 80;
       let _cloudCorrectionFlushPromise = null;
@@ -4104,16 +4249,35 @@
       function compactLearningReport(report) {
         if (!report || typeof report !== "object") return null;
         const event = report.competition_event || null;
+        const eventKey = event ? String(event.id || event.key || event.label || "").slice(0, 40) : "";
+        const team = report.team_concurrent && typeof report.team_concurrent === "object" ? report.team_concurrent : null;
+        const captureSession = report.capture_session && typeof report.capture_session === "object" ? report.capture_session : null;
+        const captureSessionSummary = captureSession ? {
+          session_id: String(captureSession.session_id || "").slice(0, 100),
+          capture_mode: String(captureSession.capture_mode || "").slice(0, 20),
+          expected_athletes: Math.max(1, Math.min(3, Math.round(Number(captureSession.expected_athletes) || 1))),
+          duration_ms: Math.max(0, Math.round(Number(captureSession.duration_ms) || 0)),
+          sampled_frames: Math.max(0, Math.round(Number(captureSession.sampled_frames) || 0)),
+          max_detected_athletes: Math.max(0, Math.min(3, Math.round(Number(captureSession.max_detected_athletes) || 0))),
+          three_pose_frames: Math.max(0, Math.round(Number(captureSession.three_pose_frames) || 0)),
+          three_pose_ratio: Number(captureSession.three_pose_ratio) || 0,
+          camera_zoom: Number(captureSession.camera_zoom) || null,
+          full_frame: captureSession.full_frame !== false,
+          orientation: String(captureSession.orientation || "").slice(0, 20),
+          aspect_ratio: String(captureSession.aspect_ratio || "").slice(0, 10)
+        } : null;
         return {
-          schema: "poomsae-learning-report-v1",
+          schema: "poomsae-learning-report-v2",
           created_at: report.created_at || new Date().toISOString(),
           poomsae: String(report.poomsae?.id || "").slice(0, 80),
           poomsae_name: String(report.poomsae?.name || "").slice(0, 120),
           training_mode: String(report.training_mode || "").slice(0, 40),
-          competition_event: event ? String(event.key || event.label || "").slice(0, 40) : "",
+          competition_event: eventKey,
           score_100: Number(report.summary?.score_100) || 0,
           competition_score_10: Number(report.summary?.competition_score_10) || 0,
           detection_rate: Number(report.summary?.detection_rate) || 0,
+          camera_count: Math.max(1, Math.min(3, Math.round(Number(report.analysis_reliability?.camera_count) || 1))),
+          analysis_confidence: Number(report.analysis_reliability?.analysis_confidence) || 0,
           segment_count: Array.isArray(report.segments) ? report.segments.length : 0,
           issue_counts: (Array.isArray(report.summary?.issue_counts) ? report.summary.issue_counts : []).slice(0, 20).map((item) => ({
             key: String(item.key || "").slice(0, 80),
@@ -4122,9 +4286,85 @@
           })),
           needed_training: (Array.isArray(report.summary?.needed_training) ? report.summary.needed_training : []).slice(0, 20).map((item) => String(item).slice(0, 240)),
           correction_count: Math.max(0, Math.round(Number(report.correction_log?.total) || 0)),
-          team_concurrent_ratio: report.team_concurrent ? Number(report.team_concurrent.average_three_pose_ratio) || 0 : null,
-          team_concurrent_segments: report.team_concurrent ? Math.max(0, Math.round(Number(report.team_concurrent.concurrent_segments) || 0)) : null
+          team_concurrent_ratio: team ? Number(team.average_three_pose_ratio) || 0 : null,
+          team_concurrent_segments: team ? Math.max(0, Math.round(Number(team.concurrent_segments) || 0)) : null,
+          team_data: eventKey === "team" ? {
+            schema: "poomsae-team-analysis-v1",
+            expected_athletes: 3,
+            athlete_count: Math.max(0, Math.min(3, Math.round(Number(team?.athlete_count) || 0))),
+            judged_segments: Math.max(0, Math.round(Number(team?.judged_segments) || 0)),
+            concurrent_segments: Math.max(0, Math.round(Number(team?.concurrent_segments) || 0)),
+            average_three_pose_ratio: Number(team?.average_three_pose_ratio) || 0,
+            athlete_profiles: (Array.isArray(team?.athlete_profiles) ? team.athlete_profiles : []).slice(0, 3).map((athlete) => ({
+              athlete: Math.max(1, Math.min(3, Math.round(Number(athlete.athlete) || 1))),
+              detection_ratio: Number(athlete.detection_ratio) || 0,
+              average_visibility: Number(athlete.average_visibility) || 0,
+              average_center_x: Number(athlete.average_center_x) || 0
+            })),
+            segments: (Array.isArray(team?.segments) ? team.segments : []).slice(0, 80).map((segment) => ({
+              segment: Math.max(1, Math.round(Number(segment.segment) || 1)),
+              sampled_frames: Math.max(0, Math.round(Number(segment.sampled_frames) || 0)),
+              frames_with_three: Math.max(0, Math.round(Number(segment.frames_with_three) || 0)),
+              three_pose_ratio: Number(segment.three_pose_ratio) || 0,
+              athlete_detection_ratios: (Array.isArray(segment.athlete_detection_ratios) ? segment.athlete_detection_ratios : []).slice(0, 3).map((value) => Number(value) || 0),
+              spacing_consistency: segment.spacing_consistency == null ? null : Number(segment.spacing_consistency) || 0
+            })),
+            capture_session: captureSessionSummary
+          } : null,
+          individual_data: eventKey === "individual" ? {
+            schema: "poomsae-individual-analysis-v1",
+            expected_athletes: 1,
+            accuracy_score_4: Number(report.summary?.accuracy_score_4) || 0,
+            presentation_score_6: Number(report.summary?.presentation_score_6) || 0,
+            capture_session: captureSessionSummary,
+            segments: (Array.isArray(report.segments) ? report.segments : []).slice(0, 80).map((segment) => ({
+              segment: Math.max(1, Math.round(Number(segment.order) || 1)),
+              movement: String(segment.name || "").slice(0, 120),
+              power_score: Number(segment.powerScore) || 0,
+              visibility_score: Number(segment.visibilityScore) || 0,
+              velocity_score: Number(segment.velocityScore) || 0,
+              snap_score: Number(segment.snapScore) || 0,
+              stillness_score: Number(segment.stillnessScore) || 0,
+              stance_score: Number(segment.stanceScore) || 0
+            }))
+          } : null
         };
+      }
+      function loadLocalTeamReportHistory() {
+        try {
+          const rows = JSON.parse(localStorage.getItem(LOCAL_TEAM_REPORT_HISTORY_KEY) || "[]");
+          return Array.isArray(rows) ? rows : [];
+        } catch (e) { return []; }
+      }
+      function saveTeamReportLocally(report) {
+        const compact = compactLearningReport(report);
+        if (!compact || compact.competition_event !== "team") return false;
+        const rows = loadLocalTeamReportHistory();
+        const recordId = `${compact.created_at}|${compact.poomsae}|${compact.segment_count}`;
+        const next = [{ ...compact, record_id: recordId }, ...rows.filter((row) => row && row.record_id !== recordId)]
+          .slice(0, LOCAL_TEAM_REPORT_HISTORY_MAX);
+        try {
+          localStorage.setItem(LOCAL_TEAM_REPORT_HISTORY_KEY, JSON.stringify(next));
+          return true;
+        } catch (e) { return false; }
+      }
+      function loadLocalIndividualReportHistory() {
+        try {
+          const rows = JSON.parse(localStorage.getItem(LOCAL_INDIVIDUAL_REPORT_HISTORY_KEY) || "[]");
+          return Array.isArray(rows) ? rows : [];
+        } catch (e) { return []; }
+      }
+      function saveIndividualReportLocally(report) {
+        const compact = compactLearningReport(report);
+        if (!compact || compact.competition_event !== "individual") return false;
+        const rows = loadLocalIndividualReportHistory();
+        const recordId = `${compact.created_at}|${compact.poomsae}|${compact.segment_count}`;
+        const next = [{ ...compact, record_id: recordId }, ...rows.filter((row) => row && row.record_id !== recordId)]
+          .slice(0, LOCAL_INDIVIDUAL_REPORT_HISTORY_MAX);
+        try {
+          localStorage.setItem(LOCAL_INDIVIDUAL_REPORT_HISTORY_KEY, JSON.stringify(next));
+          return true;
+        } catch (e) { return false; }
       }
       async function sendLearningReportToCloud(report) {
         const compact = compactLearningReport(report);
@@ -4185,7 +4425,9 @@
           report.align_mode,
           report.align_offset_x,
           report.align_offset_y,
-          report.overlap_score
+          report.overlap_score,
+          report.before_analysis?.analysis_id || "",
+          report.after_analysis?.analysis_id || ""
         ].join("|");
       }
       window.addEventListener("online", () => {
@@ -6418,6 +6660,7 @@ function applyBannerToDom(config) {
       const capturePreview = document.getElementById("capturePreview");
       const captureCanvas = document.getElementById("captureCanvas");
       const captureStage = document.querySelector(".capture-stage");
+      const captureMediaFrame = document.getElementById("captureMediaFrame");
       const startRecordBtn = document.getElementById("startRecordBtn");
       const recordingsList = document.getElementById("recordingsList");
       const captureSaveHud = document.getElementById("captureSaveHud");
@@ -6429,6 +6672,10 @@ function applyBannerToDom(config) {
       const captureTrajectoryToggle = document.getElementById("captureTrajectoryToggle");
       const captureSinglePose = document.getElementById("captureSinglePose");
       const captureMultiPose = document.getElementById("captureMultiPose");
+      const captureTeamStatus = document.getElementById("captureTeamStatus");
+      const captureZoomWide = document.getElementById("captureZoomWide");
+      const captureZoomRange = document.getElementById("captureZoomRange");
+      const captureZoomText = document.getElementById("captureZoomText");
       const captureQualityStandard = document.getElementById("captureQualityStandard");
       const captureQualityHigh = document.getElementById("captureQualityHigh");
       const captureBackBtn = document.getElementById("captureBackBtn");
@@ -6460,6 +6707,10 @@ function applyBannerToDom(config) {
       const compareAnalyzeBtn = document.getElementById("compareAnalyzeBtn");
       const compareResult = document.getElementById("compareResult");
       const MAX_RECORDING_MS = 120000;
+      const STANDARD_LANDSCAPE_ASPECT = 4 / 3;
+      const STANDARD_PORTRAIT_ASPECT = 3 / 4;
+      const CAPTURE_TRAIL_DURATION_MS = 2400;
+      const CAPTURE_TRAIL_MAX_POINTS = 90;
       let captureStream = null;
       let mediaRecorder = null;
       let recordingChunks = [];
@@ -6474,10 +6725,22 @@ function applyBannerToDom(config) {
       let captureLastDetectMs = -1;
       let captureLatestLandmarks = [];
       let captureSmoothedLandmarks = [];
+      let captureFullFrame = true;
+      let captureZoomFactor = 0.5;
+      let captureWideCameraId = "";
+      let captureCurrentCameraLabel = "";
+      let captureStreamLandscape = null;
+      let captureOrientationRestartTimer = 0;
+      let captureActiveRecordingStats = null;
+      let selectedCaptureSessionMeta = null;
+      let currentAnalysisLinkId = "";
       let capturePoseState = {
         detectionCount: 0,
         lastSuccessMs: 0,
         samples: 0,
+        teamSamples: 0,
+        threePoseSamples: 0,
+        maxDetected: 0,
         rom: {
           leftElbow: { min: null, max: null }, rightElbow: { min: null, max: null },
           leftKnee: { min: null, max: null }, rightKnee: { min: null, max: null },
@@ -6490,6 +6753,40 @@ function applyBannerToDom(config) {
       let captureComposeRaf = 0;
       const captureTrails = Array.from({ length: 3 }, () => ({ leftHand: [], rightHand: [], leftFoot: [], rightFoot: [] }));
       const savedRecordings = [];
+      const captureSessionMetaByFileKey = new Map();
+      const analysisReportByFileKey = new Map();
+      const analysisComparisonHistory = [];
+      const compareLinkedAnalysis = { before: null, after: null };
+      function standardMediaOrientation(width, height, fallback = "portrait") {
+        const w = Number(width) || 0;
+        const h = Number(height) || 0;
+        if (w > h) return "landscape";
+        if (h > w) return "portrait";
+        return fallback === "landscape" ? "landscape" : "portrait";
+      }
+      function standardMediaAspect(width, height, fallback = "portrait") {
+        const orientation = standardMediaOrientation(width, height, fallback);
+        return {
+          orientation,
+          ratio: orientation === "landscape" ? STANDARD_LANDSCAPE_ASPECT : STANDARD_PORTRAIT_ASPECT,
+          label: orientation === "landscape" ? "4:3" : "3:4"
+        };
+      }
+      function standardMediaSize(width, height, longSide = 1280, fallback = "portrait") {
+        const standard = standardMediaAspect(width, height, fallback);
+        const long = Math.max(4, Math.round(Number(longSide) || 1280));
+        return standard.orientation === "landscape"
+          ? { width: long, height: Math.round(long / STANDARD_LANDSCAPE_ASPECT), ...standard }
+          : { width: Math.round(long * STANDARD_PORTRAIT_ASPECT), height: long, ...standard };
+      }
+      function applyStandardMediaAspect(videoEl, stageEl = videoEl?.closest?.(".video-stage, .compare-stage"), fallback = "portrait") {
+        if (!stageEl) return standardMediaAspect(videoEl?.videoWidth, videoEl?.videoHeight, fallback);
+        const standard = standardMediaAspect(videoEl?.videoWidth, videoEl?.videoHeight, fallback);
+        stageEl.dataset.mediaOrientation = standard.orientation;
+        stageEl.dataset.mediaAspect = standard.label;
+        stageEl.style.aspectRatio = standard.orientation === "landscape" ? "4 / 3" : "3 / 4";
+        return standard;
+      }
       function formatClock(ms) {
         const total = Math.max(0, Math.floor(ms / 1000));
         return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
@@ -6499,6 +6796,9 @@ function applyBannerToDom(config) {
           detectionCount: 0,
           lastSuccessMs: 0,
           samples: 0,
+          teamSamples: 0,
+          threePoseSamples: 0,
+          maxDetected: 0,
           rom: {
             leftElbow: { min: null, max: null }, rightElbow: { min: null, max: null },
             leftKnee: { min: null, max: null }, rightKnee: { min: null, max: null },
@@ -6510,6 +6810,124 @@ function applyBannerToDom(config) {
         captureLatestLandmarks = [];
         captureLastDetectMs = -1;
         if (capturePoseStatus) capturePoseStatus.textContent = "검출 대기 · ROM 대기";
+        updateCaptureTeamStatus();
+      }
+      function captureFileKey(file) {
+        if (!file) return "";
+        return [file.name, file.size, file.type, file.lastModified].join("|");
+      }
+      function newFlowLinkId(prefix = "flow") {
+        const randomPart = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        return `${prefix}-${randomPart}`;
+      }
+      function compactAnalysisLink(report, file) {
+        if (!report || !file) return null;
+        const reliability = report.analysis_reliability || {};
+        return {
+          analysis_id: String(report.analysis_link_id || "").slice(0, 100),
+          source_file: String(file.name || "").slice(0, 160),
+          poomsae: String(report.poomsae?.id || "").slice(0, 80),
+          poomsae_name: String(report.poomsae?.name || "").slice(0, 120),
+          score_10: Number(report.summary?.competition_score_10) || 0,
+          score_100: Number(report.summary?.score_100) || 0,
+          detection_rate: Number(report.summary?.detection_rate) || 0,
+          analysis_confidence: Number(reliability.analysis_confidence) || 0,
+          camera_count: Math.max(1, Math.min(3, Math.round(Number(reliability.camera_count) || 1))),
+          capture_session_id: String(report.capture_session?.session_id || "").slice(0, 100),
+          created_at: String(report.created_at || "").slice(0, 40)
+        };
+      }
+      function registerAnalysisForComparison(report, file) {
+        const key = captureFileKey(file);
+        const link = compactAnalysisLink(report, file);
+        if (!key || !link) return;
+        analysisReportByFileKey.set(key, link);
+        const existingIndex = analysisComparisonHistory.findIndex((item) => item.key === key);
+        if (existingIndex >= 0) analysisComparisonHistory.splice(existingIndex, 1);
+        analysisComparisonHistory.push({ key, file, link });
+        if (analysisComparisonHistory.length > 4) analysisComparisonHistory.splice(0, analysisComparisonHistory.length - 4);
+      }
+      function setCompareFileSlot(slot, file, linkedAnalysis = null) {
+        if (!file) return false;
+        const isAfter = slot === "after";
+        const input = isAfter ? compareAfterInput : compareBeforeInput;
+        const videoEl = isAfter ? compareAfterVideo : compareBeforeVideo;
+        if (!input || !videoEl) return false;
+        compareLinkedAnalysis[slot] = linkedAnalysis || analysisReportByFileKey.get(captureFileKey(file)) || null;
+        try {
+          const transfer = new DataTransfer();
+          transfer.items.add(file);
+          input.files = transfer.files;
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+        } catch (error) {
+          if (videoEl.dataset.url) URL.revokeObjectURL(videoEl.dataset.url);
+          const url = URL.createObjectURL(file);
+          videoEl.dataset.url = url;
+          videoEl.src = url;
+          videoEl.load();
+          updateCompareReadyState();
+        }
+        return true;
+      }
+      function connectLatestAnalysisToCompare() {
+        const current = analysisComparisonHistory[analysisComparisonHistory.length - 1];
+        if (!current?.file) return false;
+        const previous = analysisComparisonHistory.length > 1
+          ? analysisComparisonHistory[analysisComparisonHistory.length - 2]
+          : null;
+        if (previous?.file) setCompareFileSlot("before", previous.file, previous.link);
+        setCompareFileSlot("after", current.file, current.link);
+        showTrainingPage();
+        setAppTab("compare");
+        const ready = Boolean(previous?.file || compareBeforeInput?.files?.[0]) && Boolean(compareAfterInput?.files?.[0] || compareAfterVideo?.src);
+        setCompareLayer(ready ? "eval" : "upload");
+        renderCompareResult(ready
+          ? `이전 분석과 현재 분석을 연결했습니다.<br>${escapeHtml(previous?.link?.poomsae_name || "이전 영상")} → ${escapeHtml(current.link?.poomsae_name || "현재 영상")}`
+          : "현재 분석을 ‘후 영상’에 연결했습니다. 비교할 이전 영상을 ‘전 영상’에 넣어 주세요.");
+        return true;
+      }
+      function beginCaptureRecordingStats() {
+        const landscape = recordingLandscape == null ? captureIsLandscapeMode() : recordingLandscape;
+        const standard = standardMediaAspect(landscape ? 4 : 3, landscape ? 3 : 4, landscape ? "landscape" : "portrait");
+        captureActiveRecordingStats = {
+          schema: "poomsae-capture-session-v1",
+          session_id: newFlowLinkId("capture"),
+          capture_mode: capturePoseMode === "multi" ? "team" : "individual",
+          expected_athletes: capturePoseMode === "multi" ? 3 : 1,
+          started_at: new Date().toISOString(),
+          sampled_frames: 0,
+          detection_histogram: [0, 0, 0, 0],
+          max_detected_athletes: 0,
+          three_pose_frames: 0,
+          camera_label: String(captureCurrentCameraLabel || "").slice(0, 120),
+          camera_zoom: Number(captureStage?.dataset.cameraZoom) || null,
+          full_frame: captureFullFrame,
+          orientation: standard.orientation,
+          aspect_ratio: standard.label
+        };
+      }
+      function recordCapturePoseSample(count) {
+        const detected = Math.max(0, Math.min(3, Math.round(Number(count) || 0)));
+        capturePoseState.teamSamples += 1;
+        capturePoseState.threePoseSamples += detected >= 3 ? 1 : 0;
+        capturePoseState.maxDetected = Math.max(capturePoseState.maxDetected, detected);
+        if (!captureActiveRecordingStats || !mediaRecorder || mediaRecorder.state !== "recording") return;
+        captureActiveRecordingStats.sampled_frames += 1;
+        captureActiveRecordingStats.detection_histogram[detected] += 1;
+        captureActiveRecordingStats.max_detected_athletes = Math.max(captureActiveRecordingStats.max_detected_athletes, detected);
+        if (detected >= 3) captureActiveRecordingStats.three_pose_frames += 1;
+      }
+      function finishCaptureRecordingStats(durationMs) {
+        const stats = captureActiveRecordingStats;
+        captureActiveRecordingStats = null;
+        if (!stats) return null;
+        const sampled = Math.max(0, Number(stats.sampled_frames) || 0);
+        return {
+          ...stats,
+          duration_ms: Math.max(0, Math.round(Number(durationMs) || 0)),
+          finished_at: new Date().toISOString(),
+          three_pose_ratio: sampled ? Number((stats.three_pose_frames / sampled).toFixed(4)) : 0
+        };
       }
       function captureRangeText(range) {
         if (!range || range.min == null || range.max == null) return "-";
@@ -6548,6 +6966,19 @@ function applyBannerToDom(config) {
         const rom = capturePoseState.rom;
         capturePoseStatus.textContent = `검출 ${capturePoseState.detectionCount}명 · ROM 팔 L/R ${captureRangeText(rom.leftElbow)}/${captureRangeText(rom.rightElbow)} · 무릎 L/R ${captureRangeText(rom.leftKnee)}/${captureRangeText(rom.rightKnee)}`;
       }
+      function updateCaptureTeamStatus() {
+        if (!captureTeamStatus) return;
+        const isTeam = capturePoseMode === "multi";
+        captureTeamStatus.hidden = !isTeam;
+        if (!isTeam) return;
+        const age = capturePoseState.lastSuccessMs ? Date.now() - capturePoseState.lastSuccessMs : Infinity;
+        const count = age <= 1200 ? Math.max(0, Math.min(3, capturePoseState.detectionCount)) : 0;
+        const stable = count >= 3;
+        captureTeamStatus.classList.toggle("stable", stable);
+        captureTeamStatus.textContent = stable
+          ? "3/3명 · 동시 인식 안정"
+          : `${count}/3명 · ${count ? "서로 겹치지 않게 서세요" : "세 명을 화면에 맞추세요"}`;
+      }
       function updateRecordingTimer() {
         const elapsed = Date.now() - recordingStartedAt;
         if (captureRecordingTime) captureRecordingTime.textContent = formatClock(elapsed);
@@ -6558,42 +6989,28 @@ function applyBannerToDom(config) {
         }
         if (elapsed >= MAX_RECORDING_MS && mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
       }
-      async function requestCaptureStream() {
+      function captureVideoConstraints(deviceId, dimensions = "full", landscape = captureIsLandscapeMode()) {
         const high = captureQuality === "high";
-        const aspectRatio = 4 / 3;
+        const standard = standardMediaSize(landscape ? 4 : 3, landscape ? 3 : 4, high ? 1920 : 1280, landscape ? "landscape" : "portrait");
+        const base = {
+          width: { ideal: standard.width },
+          height: { ideal: standard.height }
+        };
+        if (deviceId) base.deviceId = { exact: deviceId };
+        else base.facingMode = { ideal: "environment" };
+        if (dimensions === "full") base.aspectRatio = { ideal: standard.ratio };
+        return base;
+      }
+      async function openCaptureStreamForDevice(deviceId = "", landscape = captureIsLandscapeMode()) {
         const attempts = [
-          {
-            video: {
-              facingMode: { ideal: "environment" },
-              width: { ideal: high ? 1920 : 1280 },
-              height: { ideal: high ? 1440 : 960 },
-              aspectRatio: { ideal: aspectRatio },
-              zoom: { ideal: 0.5 }
-            },
-            audio: false
-          },
-          {
-            video: {
-              facingMode: { ideal: "environment" },
-              width: { ideal: high ? 1920 : 1280 },
-              height: { ideal: high ? 1080 : 720 },
-              zoom: { ideal: 0.5 }
-            },
-            audio: false
-          },
-          {
-              video: { facingMode: { ideal: "environment" } },
-              audio: false
-          },
-          {
-            video: true,
-            audio: false
-          },
-          {
-            video: { facingMode: { ideal: "environment" } },
-            audio: true
-          }
+          { video: captureVideoConstraints(deviceId, "full", landscape), audio: false },
+          { video: captureVideoConstraints(deviceId, "loose", landscape), audio: false },
+          { video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: { ideal: "environment" } }, audio: false }
         ];
+        if (!deviceId) {
+          attempts.push({ video: true, audio: false });
+          attempts.push({ video: { facingMode: { ideal: "environment" } }, audio: true });
+        }
         let lastError = null;
         for (const constraints of attempts) {
           try {
@@ -6603,6 +7020,60 @@ function applyBannerToDom(config) {
           }
         }
         throw lastError || new Error("camera unavailable");
+      }
+      function captureWideCameraScore(device) {
+        const label = String(device?.label || "").toLowerCase();
+        if (!label) return -1000;
+        if (/front|user|전면|selfie/.test(label)) return -1000;
+        let score = /back|rear|environment|후면/.test(label) ? 20 : 0;
+        if (/ultra[\s_-]*wide|ultrawide|초광각|0[.,][4567]\s*x|wide[\s_-]*angle/.test(label)) score += 220;
+        else if (/wide|광각/.test(label)) score += 70;
+        if (/tele|망원|macro|접사|2\s*x|3\s*x|5\s*x/.test(label)) score -= 260;
+        return score;
+      }
+      async function findWidestCaptureCamera() {
+        if (!navigator.mediaDevices?.enumerateDevices) return null;
+        try {
+          const devices = (await navigator.mediaDevices.enumerateDevices()).filter((device) => device.kind === "videoinput");
+          const ranked = devices.map((device) => ({ device, score: captureWideCameraScore(device) })).sort((a, b) => b.score - a.score);
+          // 이름만으로 확실히 초광각/광각임을 알 수 있을 때만 자동 전환한다.
+          return ranked[0] && ranked[0].score >= 70 ? ranked[0].device : null;
+        } catch (error) {
+          console.warn("Camera list unavailable.", error);
+          return null;
+        }
+      }
+      async function requestCaptureStream(landscape = captureIsLandscapeMode()) {
+        let stream = null;
+        if (captureWideCameraId) {
+          try { stream = await openCaptureStreamForDevice(captureWideCameraId, landscape); }
+          catch (error) { captureWideCameraId = ""; }
+        }
+        if (!stream) stream = await openCaptureStreamForDevice("", landscape);
+        const wideCamera = await findWidestCaptureCamera();
+        const currentTrack = stream.getVideoTracks?.()[0];
+        const currentDeviceId = String(currentTrack?.getSettings?.().deviceId || "");
+        const currentLabel = String(currentTrack?.label || "").trim().toLowerCase();
+        const alreadyWide = Boolean(wideCamera) && (
+          (currentDeviceId && currentDeviceId === wideCamera.deviceId)
+          || (currentLabel && currentLabel === String(wideCamera.label || "").trim().toLowerCase())
+        );
+        if (wideCamera?.deviceId) captureWideCameraId = wideCamera.deviceId;
+        if (wideCamera?.deviceId && !alreadyWide) {
+          try {
+            const wideStream = await openCaptureStreamForDevice(wideCamera.deviceId, landscape);
+            stream.getTracks().forEach((track) => track.stop());
+            stream = wideStream;
+          } catch (error) {
+            console.warn("Ultra-wide camera switch unavailable; keeping current rear camera.", error);
+          }
+        }
+        const activeTrack = stream.getVideoTracks?.()[0];
+        const activeId = String(activeTrack?.getSettings?.().deviceId || "");
+        captureCurrentCameraLabel = String(
+          (wideCamera && activeId === wideCamera.deviceId ? wideCamera.label : "") || activeTrack?.label || "후면 카메라"
+        );
+        return stream;
       }
       async function startCamera() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -6614,7 +7085,9 @@ function applyBannerToDom(config) {
           captureStream.getTracks().forEach((track) => track.stop());
           captureStream = null;
         }
-        captureStream = await requestCaptureStream();
+        const requestedLandscape = captureIsLandscapeMode();
+        captureStream = await requestCaptureStream(requestedLandscape);
+        captureStreamLandscape = requestedLandscape;
         resetCapturePoseState();
         capturePreview.srcObject = captureStream;
         capturePreview.muted = true;
@@ -6622,7 +7095,7 @@ function applyBannerToDom(config) {
         syncCaptureOrientationState();
         await setWidestCaptureCameraZoom();
         startRecordBtn.disabled = false;
-        if (captureCameraStatus) captureCameraStatus.textContent = "카메라 연결됨 · 녹화 버튼을 눌러 저장하세요.";
+        if (captureCameraStatus) captureCameraStatus.textContent = `카메라 연결됨 · ${captureCurrentCameraLabel || "후면 카메라"} · 최대 화각`;
         startCapturePoseLoop();
       }
       function releaseCaptureCamera() {
@@ -6631,6 +7104,7 @@ function applyBannerToDom(config) {
         captureComposeRaf = 0;
         if (captureStream) captureStream.getTracks().forEach((track) => track.stop());
         captureStream = null;
+        captureStreamLandscape = null;
         if (capturePreview) capturePreview.srcObject = null;
       }
       function recordingMimeType() {
@@ -6681,6 +7155,7 @@ function applyBannerToDom(config) {
       function useRecordingForAnalysis(index) {
         const item = savedRecordings[index];
         if (!item || !fileInput) return;
+        if (item.captureSession) captureSessionMetaByFileKey.set(captureFileKey(item.file), item.captureSession);
         try {
           const transfer = new DataTransfer();
           transfer.items.add(item.file);
@@ -6698,6 +7173,7 @@ function applyBannerToDom(config) {
       function prepareRecordingForAnalysis(index) {
         const item = savedRecordings[index];
         if (!item?.file || !fileInput) return;
+        if (item.captureSession) captureSessionMetaByFileKey.set(captureFileKey(item.file), item.captureSession);
         try {
           const transfer = new DataTransfer();
           transfer.items.add(item.file);
@@ -6714,29 +7190,10 @@ function applyBannerToDom(config) {
       }
       function useRecordingForCompare(index, slot) {
         const item = savedRecordings[index];
-        const input = slot === "after" ? compareAfterInput : compareBeforeInput;
-        if (!item || !input) return;
-        try {
-          const transfer = new DataTransfer();
-          transfer.items.add(item.file);
-          input.files = transfer.files;
-          input.dispatchEvent(new Event("change", { bubbles: true }));
-          setAppTab("compare");
-        } catch (error) {
-          const videoEl = slot === "after" ? compareAfterVideo : compareBeforeVideo;
-          if (videoEl) {
-            if (videoEl.dataset.url) URL.revokeObjectURL(videoEl.dataset.url);
-            const url = URL.createObjectURL(item.file);
-            videoEl.dataset.url = url;
-            videoEl.src = url;
-            videoEl.load();
-            setAppTab("compare");
-            updateCompareReadyState();
-            if (compareBeforeVideo?.src && compareAfterVideo?.src) setCompareLayer("eval");
-          } else if (compareEmptyState) {
-            compareEmptyState.textContent = "저장된 영상을 비교 입력에 연결하지 못했습니다.";
-          }
-        }
+        if (!item?.file) return;
+        setCompareFileSlot(slot, item.file);
+        setAppTab("compare");
+        if (compareBeforeVideo?.src && compareAfterVideo?.src) setCompareLayer("eval");
       }
       function startRecording() {
         if (mediaRecorder && mediaRecorder.state === "recording") {
@@ -6756,6 +7213,7 @@ function applyBannerToDom(config) {
         const mimeType = recordingMimeType();
         recordingStartedAt = Date.now();
         recordingLandscape = captureIsLandscapeMode();
+        beginCaptureRecordingStats();
         const recordingStream = createCaptureRecordingStream(recordingLandscape);
         mediaRecorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : undefined);
         const recorder = mediaRecorder;
@@ -6765,6 +7223,7 @@ function applyBannerToDom(config) {
           if (captureComposeRaf) cancelAnimationFrame(captureComposeRaf);
           captureComposeRaf = 0;
           const durationMs = Math.min(Date.now() - recordingStartedAt, MAX_RECORDING_MS);
+          const captureSession = finishCaptureRecordingStats(durationMs);
           const type = recorder.mimeType || mimeType || "video/webm";
           const ext = type.includes("mp4") ? "mp4" : "webm";
           const blob = new Blob(recordingChunks, { type });
@@ -6778,10 +7237,13 @@ function applyBannerToDom(config) {
             recordingLandscape = null;
             return;
           }
-          const file = new File([blob], `poomsae-recording-${new Date().toISOString().replace(/[:.]/g, "-")}.${ext}`, { type });
-          savedRecordings.unshift({ file, durationMs });
+          const eventSlug = captureSession?.capture_mode === "team" ? "team" : "individual";
+          const file = new File([blob], `poomsae-${eventSlug}-recording-${new Date().toISOString().replace(/[:.]/g, "-")}.${ext}`, { type });
+          savedRecordings.unshift({ file, durationMs, captureSession });
+          if (captureSession) captureSessionMetaByFileKey.set(captureFileKey(file), captureSession);
           prepareRecordingForAnalysis(0);
           saveRecordingFile(0);
+          showCaptureSaveMessage("촬영 저장 완료 · 분석 입력에 자동 연결됨");
           renderRecordings();
           startRecordBtn.disabled = false;
           startRecordBtn.textContent = "녹화";
@@ -6791,6 +7253,7 @@ function applyBannerToDom(config) {
           mediaRecorder = null;
           recordingLandscape = null;
           updateRecordingTimer();
+          handleCaptureOrientationChange();
         });
         mediaRecorder.start(250);
         recordingTimerId = setInterval(updateRecordingTimer, 200);
@@ -6806,6 +7269,8 @@ function applyBannerToDom(config) {
         if (labelEl) labelEl.textContent = `${scale.toFixed(2)}x`;
       }
       function captureZoomScale() {
+        // 카메라 배율은 MediaStreamTrack에 적용한다. 미리보기와 녹화 캔버스는
+        // 다시 축소/확대하지 않아야 화면 크기와 스켈레톤 좌표가 어긋나지 않는다.
         return 1;
       }
       function captureVideoTrack() {
@@ -6821,14 +7286,54 @@ function applyBannerToDom(config) {
         if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return null;
         return { min, max, step };
       }
+      function captureNativeZoomForFactor(value, bounds = captureCameraZoomBounds()) {
+        if (!bounds) return null;
+        const factor = Math.max(0.5, Math.min(1, Number(value) || 0.5));
+        const progress = (factor - 0.5) / 0.5;
+        const nativeMax = bounds.min <= 0.5 && bounds.max >= 1
+          ? 1
+          : Math.min(bounds.max, bounds.min * 2);
+        const raw = bounds.min + (nativeMax - bounds.min) * progress;
+        const stepped = bounds.step > 0
+          ? bounds.min + Math.round((raw - bounds.min) / bounds.step) * bounds.step
+          : raw;
+        return Math.max(bounds.min, Math.min(bounds.max, Number(stepped.toFixed(6))));
+      }
+      function updateCaptureZoomUi(value = null) {
+        const bounds = captureCameraZoomBounds();
+        const track = captureVideoTrack();
+        const hasValue = value !== null && value !== undefined && Number.isFinite(Number(value));
+        const current = hasValue ? Number(value) : captureZoomFactor;
+        const nativeSetting = Number(track?.getSettings?.().zoom);
+        if (captureZoomRange) {
+          captureZoomRange.min = "0.5";
+          captureZoomRange.max = "1";
+          captureZoomRange.step = "0.1";
+          captureZoomRange.value = String(Math.max(0.5, Math.min(1, current)));
+          captureZoomRange.disabled = !bounds;
+        }
+        if (captureZoomText) {
+          const factor = Number.isFinite(current) ? `${Number(current.toFixed(2))}×` : "0.5×";
+          captureZoomText.textContent = bounds ? factor : "고정";
+          captureZoomText.title = [
+            captureCurrentCameraLabel || "후면 카메라",
+            Number.isFinite(nativeSetting) ? `카메라 실제 줌 ${Number(nativeSetting.toFixed(2))}×` : ""
+          ].filter(Boolean).join(" · ");
+        }
+        captureZoomWide?.classList.toggle("active", captureFullFrame && current <= 0.5);
+      }
       async function applyCaptureCameraZoom(value) {
+        captureZoomFactor = Math.max(0.5, Math.min(1, Number(value) || 0.5));
+        if (captureStage) captureStage.dataset.cameraZoom = captureZoomFactor.toFixed(2);
+        updateCaptureZoomUi(captureZoomFactor);
         const track = captureVideoTrack();
         const bounds = captureCameraZoomBounds();
         if (!track || !bounds || !track.applyConstraints) return false;
-        const target = Math.max(bounds.min, Math.min(bounds.max, Number(value) || bounds.min));
+        const target = captureNativeZoomForFactor(captureZoomFactor, bounds);
         try {
           await track.applyConstraints({ advanced: [{ zoom: target }] });
-          if (captureStage) captureStage.dataset.cameraZoom = target.toFixed(2);
+          if (captureStage) captureStage.dataset.cameraNativeZoom = target.toFixed(2);
+          updateCaptureZoomUi(captureZoomFactor);
           return true;
         } catch (error) {
           console.warn("Camera zoom unavailable.", error);
@@ -6836,9 +7341,18 @@ function applyBannerToDom(config) {
         }
       }
       async function setWidestCaptureCameraZoom() {
+        captureFullFrame = true;
+        captureZoomFactor = 0.5;
+        if (capturePreview) capturePreview.style.objectFit = "contain";
+        if (captureStage) captureStage.dataset.cameraZoom = captureZoomFactor.toFixed(2);
         const bounds = captureCameraZoomBounds();
-        if (!bounds) return false;
-        return applyCaptureCameraZoom(bounds.min);
+        if (!bounds) {
+          updateCaptureZoomUi(captureZoomFactor);
+          return false;
+        }
+        const applied = await applyCaptureCameraZoom(captureZoomFactor);
+        syncCapturePreviewOrientation();
+        return applied;
       }
       function bindCaptureCameraPinchZoom(stage) {
         if (!stage) return;
@@ -6851,9 +7365,7 @@ function applyBannerToDom(config) {
         stage.addEventListener("touchstart", (event) => {
           if (event.touches.length !== 2) return;
           startDistance = distance(event.touches);
-          const bounds = captureCameraZoomBounds();
-          const current = Number(captureStage?.dataset.cameraZoom);
-          startZoom = Number.isFinite(current) ? current : (bounds ? bounds.min : 1);
+          startZoom = captureZoomFactor;
         }, { passive: true });
         stage.addEventListener("touchmove", (event) => {
           if (event.touches.length !== 2 || !startDistance) return;
@@ -6861,6 +7373,7 @@ function applyBannerToDom(config) {
           const bounds = captureCameraZoomBounds();
           if (!bounds) return;
           const nextZoom = startZoom * (distance(event.touches) / startDistance);
+          captureFullFrame = true;
           applyCaptureCameraZoom(nextZoom);
         }, { passive: false });
         stage.addEventListener("touchend", (event) => {
@@ -6868,35 +7381,67 @@ function applyBannerToDom(config) {
         }, { passive: true });
       }
       function captureRotationDeg(targetLandscape = captureIsLandscapeMode()) {
-        const sourceLandscape = Boolean(capturePreview?.videoWidth && capturePreview.videoWidth > capturePreview.videoHeight);
-        const angle = Math.abs(Number(window.screen?.orientation?.angle ?? window.orientation ?? 0)) % 360;
-        if (sourceLandscape === targetLandscape) return 0;
-        if (targetLandscape) return angle === 270 ? 270 : 90;
-        return angle === 270 ? 90 : 270;
+        // 브라우저/Android WebView의 video 요소가 센서 회전 메타데이터를 이미
+        // 반영한다. 여기서 다시 90° 돌리면 폰 방향과 카메라 방향이 서로 뒤집힌다.
+        return 0;
       }
       function captureIsLandscapeMode() {
-        const stageRect = captureStage?.getBoundingClientRect?.();
-        const stageLandscape = Boolean(stageRect?.width && stageRect?.height && stageRect.width >= stageRect.height);
-        const visualLandscape = Boolean(window.visualViewport?.width && window.visualViewport.width >= window.visualViewport.height);
-        const screenLandscape = Boolean(window.matchMedia?.("(orientation: landscape)").matches);
-        const angle = Math.abs(Number(window.screen?.orientation?.angle ?? window.orientation ?? 0)) % 180;
-        const angleLandscape = angle === 90;
-        return angleLandscape || screenLandscape || visualLandscape || stageLandscape;
+        // Android WebView의 visualViewport는 회전 직후 이전 프레임의 폭·높이를
+        // 잠시 유지할 수 있어 먼저 읽으면 가로/세로가 반대로 판정된다.
+        const orientationType = String(window.screen?.orientation?.type || "");
+        if (orientationType.startsWith("landscape")) return true;
+        if (orientationType.startsWith("portrait")) return false;
+        const legacyAngle = Number(window.orientation);
+        if (Number.isFinite(legacyAngle) && Math.abs(legacyAngle) % 180 === 90) return true;
+        if (Number.isFinite(legacyAngle) && Math.abs(legacyAngle) % 180 === 0) return false;
+        const viewportWidth = Number(window.visualViewport?.width || window.innerWidth) || 0;
+        const viewportHeight = Number(window.visualViewport?.height || window.innerHeight) || 0;
+        if (viewportWidth && viewportHeight && Math.abs(viewportWidth - viewportHeight) > 2) return viewportWidth > viewportHeight;
+        return Boolean(window.matchMedia?.("(orientation: landscape)").matches);
+      }
+      function syncCapturePreviewOrientation(landscape = captureIsLandscapeMode()) {
+        if (!capturePreview || !captureMediaFrame) return;
+        capturePreview.style.transformOrigin = "center center";
+        capturePreview.style.inset = "0";
+        capturePreview.style.width = "100%";
+        capturePreview.style.height = "100%";
+        capturePreview.style.transform = "none";
       }
       function syncCaptureOrientationState() {
         if (!captureStage) return;
-        captureStage.classList.toggle("landscape-capture", captureIsLandscapeMode());
+        const landscape = mediaRecorder?.state === "recording" && recordingLandscape != null
+          ? recordingLandscape
+          : captureIsLandscapeMode();
+        const orientation = landscape ? "landscape" : "portrait";
+        captureStage.classList.toggle("landscape-capture", landscape);
+        captureStage.dataset.mediaOrientation = orientation;
+        captureStage.dataset.mediaAspect = landscape ? "4:3" : "3:4";
+        if (captureMediaFrame) {
+          captureMediaFrame.dataset.mediaOrientation = orientation;
+          captureMediaFrame.dataset.mediaAspect = landscape ? "4:3" : "3:4";
+        }
+        document.body.dataset.captureOrientation = orientation;
+        requestAnimationFrame(() => syncCapturePreviewOrientation(landscape));
         if (captureCanvas) {
           captureCanvas.width = 0;
           captureCanvas.height = 0;
         }
       }
-      window.addEventListener("orientationchange", () => {
-        if (document.body.dataset.appPage !== "capture") return;
+      function handleCaptureOrientationChange() {
         syncCaptureOrientationState();
+        if (document.body.dataset.appPage !== "capture" || !captureStream) return;
         if (mediaRecorder && mediaRecorder.state === "recording") return;
-        window.setTimeout(() => startCamera().catch(() => {}), 180);
-      });
+        const targetLandscape = captureIsLandscapeMode();
+        if (captureStreamLandscape === targetLandscape) return;
+        window.clearTimeout(captureOrientationRestartTimer);
+        captureOrientationRestartTimer = window.setTimeout(() => {
+          const nextLandscape = captureIsLandscapeMode();
+          if (document.body.dataset.appPage !== "capture" || captureStreamLandscape === nextLandscape) return;
+          startCamera().catch((error) => {
+            if (captureCameraStatus) captureCameraStatus.textContent = `카메라 방향을 바꾸지 못했습니다: ${error.message || error}`;
+          });
+        }, 220);
+      }
       function bindPinchZoom(stage, videos, input, label) {
         if (!stage || !videos.length) return;
         let startDistance = 0;
@@ -6941,39 +7486,36 @@ function applyBannerToDom(config) {
         }
         return { drawW, drawH, offX, offY };
       }
-      function captureDrawRect(video, width, height, zoom = captureZoomScale(), rotation = captureRotationDeg()) {
-        const quarterTurn = rotation % 180 !== 0;
+      function captureDrawRect(video, width, height, zoom = captureZoomScale()) {
         const sourceRatio = video.videoWidth / video.videoHeight;
-        const targetRatio = quarterTurn ? height / width : width / height;
+        const boxWidth = width;
+        const boxHeight = height;
+        const targetRatio = boxWidth / boxHeight;
         let drawW, drawH;
-        if (sourceRatio > targetRatio) { drawH = height; drawW = height * sourceRatio; }
-        else { drawW = width; drawH = width / sourceRatio; }
-        drawW *= zoom; drawH *= zoom;
+        if (captureFullFrame) {
+          if (sourceRatio > targetRatio) { drawW = boxWidth; drawH = boxWidth / sourceRatio; }
+          else { drawH = boxHeight; drawW = boxHeight * sourceRatio; }
+        } else if (sourceRatio > targetRatio) {
+          drawH = boxHeight; drawW = boxHeight * sourceRatio;
+        } else {
+          drawW = boxWidth; drawH = boxWidth / sourceRatio;
+        }
         return { drawW, drawH, offX: (width - drawW) / 2, offY: (height - drawH) / 2 };
       }
       function rotateCanvasPoint(point, width, height, rotation) {
-        if (!point || !rotation) return point;
-        const cx = width / 2, cy = height / 2;
-        const x = point.x - cx, y = point.y - cy;
-        const rad = rotation * Math.PI / 180;
-        return { x: cx + x * Math.cos(rad) - y * Math.sin(rad), y: cy + x * Math.sin(rad) + y * Math.cos(rad) };
+        return point;
       }
-      function drawContainVideo(ctx, video, width, height, zoom = captureZoomScale(), rotation = captureRotationDeg()) {
+      function drawContainVideo(ctx, video, width, height, zoom = captureZoomScale()) {
         if (!video.videoWidth || !video.videoHeight) return;
-        const rect = captureDrawRect(video, width, height, zoom, rotation);
-        ctx.save();
-        ctx.translate(width / 2, height / 2);
-        ctx.rotate(rotation * Math.PI / 180);
-        ctx.translate(-width / 2, -height / 2);
-        if (!rect) { ctx.restore(); return; }
+        const rect = captureDrawRect(video, width, height, zoom);
+        if (!rect) return;
         ctx.drawImage(video, rect.offX, rect.offY, rect.drawW, rect.drawH);
-        ctx.restore();
       }
-      function recordingPoint(landmark, video, width, height, zoom = captureZoomScale(), rotation = captureRotationDeg()) {
+      function recordingPoint(landmark, video, width, height, zoom = captureZoomScale()) {
         if (!landmark || !video.videoWidth || !video.videoHeight) return null;
-        const rect = captureDrawRect(video, width, height, zoom, rotation);
+        const rect = captureDrawRect(video, width, height, zoom);
         if (!rect) return null;
-        return rotateCanvasPoint({ x: rect.offX + landmark.x * rect.drawW, y: rect.offY + landmark.y * rect.drawH }, width, height, rotation);
+        return { x: rect.offX + landmark.x * rect.drawW, y: rect.offY + landmark.y * rect.drawH };
       }
       function drawRecordingSkeleton(ctx, video, landmarks, width, height, rotation = captureRotationDeg()) {
         const poseList = Array.isArray(landmarks?.[0]) ? landmarks.slice(0, 3) : [landmarks];
@@ -7008,12 +7550,12 @@ function applyBannerToDom(config) {
         const now = performance.now();
         const colors = { leftHand: "#cd2e3a", rightHand: "#cd2e3a", leftFoot: "#0047a0", rightFoot: "#0047a0" };
         captureTrails.forEach((poseTrail) => Object.entries(poseTrail).forEach(([key, points]) => {
-          const active = points.filter((point) => now - point.t <= 1500);
+          const active = points.filter((point) => now - point.t <= CAPTURE_TRAIL_DURATION_MS).slice(-CAPTURE_TRAIL_MAX_POINTS);
           poseTrail[key] = active;
           if (active.length < 2) return;
-          ctx.strokeStyle = colors[key]; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.lineWidth = Math.max(3, width / 180);
+          ctx.strokeStyle = colors[key]; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.lineWidth = Math.max(6, width / 140);
           for (let i = 1; i < active.length; i += 1) {
-            ctx.globalAlpha = Math.max(0.08, 1 - (now - active[i].t) / 1500) * .85;
+            ctx.globalAlpha = Math.max(0.10, 1 - (now - active[i].t) / CAPTURE_TRAIL_DURATION_MS) * .9;
             const a = recordingPoint(active[i - 1], video, width, height, captureZoomScale(), rotation), b = recordingPoint(active[i], video, width, height, captureZoomScale(), rotation);
             if (!a || !b) continue;
             ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
@@ -7023,11 +7565,7 @@ function applyBannerToDom(config) {
       }
       function captureRecordingSize(landscape = captureIsLandscapeMode()) {
         const high = captureQuality === "high";
-        const longSide = high ? 1440 : 960;
-        const shortSide = high ? 1080 : 720;
-        return landscape
-          ? { width: longSide, height: shortSide }
-          : { width: shortSide, height: longSide };
+        return standardMediaSize(landscape ? 4 : 3, landscape ? 3 : 4, high ? 1440 : 960, landscape ? "landscape" : "portrait");
       }
       function createCaptureRecordingStream(landscape = captureIsLandscapeMode()) {
         if (!HTMLCanvasElement.prototype.captureStream) return captureStream;
@@ -7090,7 +7628,9 @@ function applyBannerToDom(config) {
             const point = pose && pose[index];
             if (!point || (point.visibility != null && point.visibility < .35)) return;
             poseTrail[key].push({ x: point.x, y: point.y, t: now });
-            poseTrail[key] = poseTrail[key].filter((item) => now - item.t <= 1000).slice(-36);
+            poseTrail[key] = poseTrail[key]
+              .filter((item) => now - item.t <= CAPTURE_TRAIL_DURATION_MS)
+              .slice(-CAPTURE_TRAIL_MAX_POINTS);
             const points = poseTrail[key];
             if (points.length < 2) return;
             const color = key.includes("Foot") ? "#0047a0" : "#cd2e3a";
@@ -7099,13 +7639,13 @@ function applyBannerToDom(config) {
             for (let i = 1; i < points.length; i += 1) {
               const prev = points[i - 1];
               const item = points[i];
-              const age = Math.max(0, Math.min(1, (now - item.t) / 1000));
-              const alpha = 0.10 + (1 - age) * 0.70;
+              const age = Math.max(0, Math.min(1, (now - item.t) / CAPTURE_TRAIL_DURATION_MS));
+              const alpha = 0.12 + (1 - age) * 0.76;
               const p1 = rotateCanvasPoint({ x: offX + prev.x * drawW, y: offY + prev.y * drawH }, rect.width, rect.height, captureRotationDeg());
               const p2 = rotateCanvasPoint({ x: offX + item.x * drawW, y: offY + item.y * drawH }, rect.width, rect.height, captureRotationDeg());
               ctx.strokeStyle = color;
               ctx.globalAlpha = alpha;
-              ctx.lineWidth = 2 + (1 - age) * 2.2;
+              ctx.lineWidth = 4.5 + (1 - age) * 3.5;
               ctx.beginPath();
               ctx.moveTo(p1.x, p1.y);
               ctx.lineTo(p2.x, p2.y);
@@ -7142,7 +7682,9 @@ function applyBannerToDom(config) {
           console.warn("Capture pose detection skipped.", error);
           captureLatestLandmarks = [];
           capturePoseState.detectionCount = 0;
+          recordCapturePoseSample(0);
           updateCapturePoseStatus();
+          updateCaptureTeamStatus();
           drawSkeletonFrame(captureCanvas, capturePreview, null);
           return;
         }
@@ -7156,12 +7698,14 @@ function applyBannerToDom(config) {
         const displayedLandmarks = capturePoseMode === "single" ? allLandmarks.slice(0, 1) : allLandmarks;
         captureLatestLandmarks = displayedLandmarks;
         capturePoseState.detectionCount = displayedLandmarks.length;
+        recordCapturePoseSample(displayedLandmarks.length);
         if (displayedLandmarks.length) {
           capturePoseState.lastSuccessMs = Date.now();
           capturePoseState.samples += 1;
           if (capturePoseMode === "single") updateCaptureRom(displayedLandmarks);
         }
         updateCapturePoseStatus();
+        updateCaptureTeamStatus();
         drawSkeletonFrame(captureCanvas, capturePreview, captureSkeletonEnabled ? displayedLandmarks : null);
         if (captureTrajectoryEnabled) {
           const ctx = captureCanvas.getContext("2d");
@@ -7348,8 +7892,11 @@ function applyBannerToDom(config) {
       }
       function setCapturePoseMode(mode) {
         capturePoseMode = mode === "single" ? "single" : "multi";
+        captureSmoothedLandmarks = [];
         captureSinglePose?.classList.toggle("active", capturePoseMode === "single");
         captureMultiPose?.classList.toggle("active", capturePoseMode === "multi");
+        updateCapturePoseStatus();
+        updateCaptureTeamStatus();
       }
       async function requestLandscape() {
         if (!window.matchMedia?.("(max-width: 768px)").matches) return;
@@ -7360,6 +7907,20 @@ function applyBannerToDom(config) {
       }
       startRecordBtn?.addEventListener("click", startRecording);
       bindCaptureCameraPinchZoom(captureStage);
+      captureZoomWide?.addEventListener("click", async () => {
+        if (!captureStream) {
+          await startCamera().catch((error) => {
+            if (captureCameraStatus) captureCameraStatus.textContent = `카메라를 열 수 없습니다: ${error.message || error}`;
+          });
+          return;
+        }
+        await setWidestCaptureCameraZoom();
+      });
+      captureZoomRange?.addEventListener("input", () => {
+        captureFullFrame = true;
+        applyCaptureCameraZoom(captureZoomRange.value);
+        syncCapturePreviewOrientation();
+      });
       captureSkeletonToggle?.addEventListener("click", () => {
         captureSkeletonEnabled = !captureSkeletonEnabled;
         setCaptureChip(captureSkeletonToggle, captureSkeletonEnabled, "스켈레톤");
@@ -7392,8 +7953,9 @@ function applyBannerToDom(config) {
         captureStage?.classList.add("camera-ready");
       });
       capturePreview?.addEventListener("pause", () => captureStage?.classList.remove("camera-ready"));
-      window.addEventListener("resize", syncCaptureOrientationState);
-      window.screen?.orientation?.addEventListener?.("change", syncCaptureOrientationState);
+      window.addEventListener("orientationchange", handleCaptureOrientationChange);
+      window.addEventListener("resize", handleCaptureOrientationChange);
+      window.screen?.orientation?.addEventListener?.("change", handleCaptureOrientationChange);
       let metroTimer = null;
       metronomeBtn?.addEventListener("click", () => {
         if (metroTimer) { clearInterval(metroTimer); metroTimer = null; metronomeBtn.textContent = "메트로놈 60"; return; }
@@ -7563,10 +8125,11 @@ function applyBannerToDom(config) {
         updateCompareReadyState();
         return beforeReady && afterReady;
       }
-      function bindCompareInput(input, videoEl) {
+      function bindCompareInput(input, videoEl, slot) {
         input?.addEventListener("change", () => {
           const file = input.files && input.files[0];
           if (!file || !videoEl) return;
+          compareLinkedAnalysis[slot] = analysisReportByFileKey.get(captureFileKey(file)) || null;
           if (videoEl.dataset.url) URL.revokeObjectURL(videoEl.dataset.url);
           const url = URL.createObjectURL(file);
           videoEl.dataset.url = url;
@@ -7582,10 +8145,10 @@ function applyBannerToDom(config) {
         if (!compareStage) return;
         const source = compareBeforeVideo?.videoWidth ? compareBeforeVideo : compareAfterVideo;
         if (!source?.videoWidth || !source?.videoHeight) return;
-        compareStage.style.aspectRatio = `${source.videoWidth} / ${source.videoHeight}`;
+        applyStandardMediaAspect(source, compareStage, "landscape");
       }
-      bindCompareInput(compareBeforeInput, compareBeforeVideo);
-      bindCompareInput(compareAfterInput, compareAfterVideo);
+      bindCompareInput(compareBeforeInput, compareBeforeVideo, "before");
+      bindCompareInput(compareAfterInput, compareAfterVideo, "after");
       updateCompareReadyState();
       compareToEvalBtn?.addEventListener("click", () => {
         if (!compareVideosSelected()) {
@@ -7669,35 +8232,54 @@ function applyBannerToDom(config) {
         const tip = alignMode === "none"
           ? "발목이나 어깨 기준을 선택하면 더 정확히 겹쳐볼 수 있어요."
           : `${alignLabel}으로 맞췄어요. 다음에는 같은 위치에서 시작해 보세요.`;
+        const beforeAnalysis = compareLinkedAnalysis.before;
+        const afterAnalysis = compareLinkedAnalysis.after;
+        const linkedAnalysisCount = Number(Boolean(beforeAnalysis)) + Number(Boolean(afterAnalysis));
+        const scoreDelta10 = beforeAnalysis && afterAnalysis
+          ? Number(((Number(afterAnalysis.score_10) || 0) - (Number(beforeAnalysis.score_10) || 0)).toFixed(2))
+          : null;
+        const confidenceDelta = beforeAnalysis && afterAnalysis
+          ? Number(((Number(afterAnalysis.analysis_confidence) || 0) - (Number(beforeAnalysis.analysis_confidence) || 0)).toFixed(4))
+          : null;
         return {
           schema: "poomsae-compare-report-v1",
           created_at: new Date().toISOString(),
-          before_file: String(compareBeforeInput?.files?.[0]?.name || "").slice(0, 160),
-          after_file: String(compareAfterInput?.files?.[0]?.name || "").slice(0, 160),
+          before_file: String(compareBeforeInput?.files?.[0]?.name || beforeAnalysis?.source_file || "").slice(0, 160),
+          after_file: String(compareAfterInput?.files?.[0]?.name || afterAnalysis?.source_file || "").slice(0, 160),
           before_duration: Number(beforeDuration.toFixed(3)),
           after_duration: Number(afterDuration.toFixed(3)),
           delta_seconds: Number(delta.toFixed(3)),
           delta_percent: Number(pct.toFixed(2)),
           before_resolution: `${compareBeforeVideo.videoWidth || 0}x${compareBeforeVideo.videoHeight || 0}`,
           after_resolution: `${compareAfterVideo.videoWidth || 0}x${compareAfterVideo.videoHeight || 0}`,
+          output_orientation: standardMediaOrientation(compareBeforeVideo.videoWidth, compareBeforeVideo.videoHeight, "landscape"),
+          output_aspect_ratio: standardMediaAspect(compareBeforeVideo.videoWidth, compareBeforeVideo.videoHeight, "landscape").label,
           opacity: Number(compareOpacity?.value || 0.52),
           align_mode: alignMode,
           align_label: alignLabel,
           align_offset_x: Number((compareAlignOffset.x || 0).toFixed(4)),
           align_offset_y: Number((compareAlignOffset.y || 0).toFixed(4)),
           overlap_score: overlapScore,
+          linked_analysis_count: linkedAnalysisCount,
+          before_analysis: beforeAnalysis,
+          after_analysis: afterAnalysis,
+          score_delta_10: scoreDelta10,
+          confidence_delta: confidenceDelta,
           child_summary: summary,
           child_time_text: durationText,
           child_tip: tip
         };
       }
       function renderCompareReport(report) {
+        const analysisDelta = report.linked_analysis_count === 2
+          ? `<br>분석 점수 변화: ${report.score_delta_10 >= 0 ? "+" : ""}${report.score_delta_10.toFixed(2)}점 · 신뢰도 변화 ${report.confidence_delta >= 0 ? "+" : ""}${Math.round(report.confidence_delta * 100)}%p`
+          : "<br>분석 결과 연결: 비교 영상 중 분석 완료 영상만 자동 연결됨";
         renderCompareResult(`
           <strong>비교 결과</strong><br>
           ${escapeHtml(report.child_summary)}<br>
           시간: ${escapeHtml(report.child_time_text)}<br>
           겹침 점수: ${report.overlap_score}점<br>
-          다음 연습: ${escapeHtml(report.child_tip)}
+          다음 연습: ${escapeHtml(report.child_tip)}${analysisDelta}
         `);
       }
       function sendLatestCompareReportToCloud(report) {
@@ -7744,11 +8326,9 @@ function applyBannerToDom(config) {
           return;
         }
         await updateCompareAlignment();
-        const width = Math.min(1280, Math.max(compareBeforeVideo.videoWidth, compareAfterVideo.videoWidth, 640));
-        const baseRatio = compareBeforeVideo.videoWidth && compareBeforeVideo.videoHeight
-          ? compareBeforeVideo.videoWidth / compareBeforeVideo.videoHeight
-          : 16 / 9;
-        const height = Math.max(360, Math.round(width / baseRatio));
+        const outputSize = standardMediaSize(compareBeforeVideo.videoWidth, compareBeforeVideo.videoHeight, 1280, "landscape");
+        const width = outputSize.width;
+        const height = outputSize.height;
         const canvas = document.createElement("canvas");
         canvas.width = width;
         canvas.height = height;
@@ -8057,6 +8637,70 @@ function applyBannerToDom(config) {
       let lastViewForRun = "front";
       let manualEditMode = false;
       let confirmedThisSession = false; // "정확해요" 확인은 세션(파일 선택)당 1번만.
+      const ANALYSIS_REVIEW_REMINDER = "분석 후 맞으면 꼭 “구간 확인 완료”를 누르고, 틀리면 위치를 고쳐주세요.";
+      const ANALYSIS_REVIEW_REMINDER_PREF_KEY = "poomsae_analysis_review_reminder_pref_v1";
+      function shouldShowAnalysisReviewReminder() {
+        try {
+          const pref = JSON.parse(localStorage.getItem(ANALYSIS_REVIEW_REMINDER_PREF_KEY) || "{}");
+          if (pref.never) return false;
+          const mutedUntil = Number(pref.muted_until || 0);
+          return !Number.isFinite(mutedUntil) || mutedUntil <= Date.now();
+        } catch (e) {
+          return true;
+        }
+      }
+      function saveAnalysisReviewReminderPreference(mode) {
+        try {
+          if (mode === "never") {
+            localStorage.setItem(ANALYSIS_REVIEW_REMINDER_PREF_KEY, JSON.stringify({ never: true }));
+          } else if (mode === "week") {
+            localStorage.setItem(ANALYSIS_REVIEW_REMINDER_PREF_KEY, JSON.stringify({ muted_until: Date.now() + 7 * 24 * 60 * 60 * 1000 }));
+          }
+        } catch (e) { /* 안내 숨김 설정 저장 실패는 분석 흐름에 영향 없음 */ }
+      }
+      function showAnalysisReviewReminder() {
+        if (!shouldShowAnalysisReviewReminder()) return;
+        const modal = document.createElement("div");
+        modal.className = "replay-modal";
+        modal.innerHTML = `
+          <div class="replay-dialog" role="dialog" aria-modal="true" aria-label="분석 완료 후 확인 안내" style="max-width:520px">
+            <div class="replay-dialog-head">
+              <strong>분석 완료</strong>
+              <button class="secondary" type="button" data-reminder-close aria-label="안내창 닫기">닫기</button>
+            </div>
+            <p style="margin:0 0 12px;color:var(--text);font-weight:700">${ANALYSIS_REVIEW_REMINDER}</p>
+            <label class="small" style="display:flex;align-items:center;gap:8px;margin:8px 0;color:var(--muted)">
+              <input type="checkbox" data-reminder-week /> 일주일 동안 띄우지 않기
+            </label>
+            <label class="small" style="display:flex;align-items:center;gap:8px;margin:8px 0 14px;color:var(--muted)">
+              <input type="checkbox" data-reminder-never /> 다시는 띄우지 않기
+            </label>
+            <button class="primary" type="button" data-reminder-ok style="width:100%;min-height:42px">확인</button>
+          </div>`;
+        const close = () => {
+          const never = modal.querySelector("[data-reminder-never]")?.checked;
+          const week = modal.querySelector("[data-reminder-week]")?.checked;
+          if (never) saveAnalysisReviewReminderPreference("never");
+          else if (week) saveAnalysisReviewReminderPreference("week");
+          modal.remove();
+        };
+        modal.addEventListener("click", (event) => {
+          if (event.target === modal || event.target.closest("[data-reminder-close],[data-reminder-ok]")) close();
+        });
+        modal.querySelector("[data-reminder-never]")?.addEventListener("change", (event) => {
+          if (event.target.checked) {
+            const week = modal.querySelector("[data-reminder-week]");
+            if (week) week.checked = false;
+          }
+        });
+        modal.querySelector("[data-reminder-week]")?.addEventListener("change", (event) => {
+          if (event.target.checked) {
+            const never = modal.querySelector("[data-reminder-never]");
+            if (never) never.checked = false;
+          }
+        });
+        document.body.appendChild(modal);
+      }
       function newCorrectionSessionId() {
         try { if (crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID(); }
         catch (e) { /* 구형 브라우저 폴백 */ }
@@ -8275,7 +8919,7 @@ function applyBannerToDom(config) {
           if (!byLocation.has(key)) {
             byLocation.set(key, {
               location: key, poomsae: p, poomsae_name: r.poomsae_name || "",
-              segment_index: r.action === "adjust" || r.action === "confirm" ? r.boundary_index : r.action === "split" ? r.segment_index : r.merged_segment_index,
+              segment_index: r.action === "adjust" || r.action === "cascade_adjust" || r.action === "confirm" ? r.boundary_index : r.action === "split" ? r.segment_index : r.merged_segment_index,
               counts: { merge: 0, split: 0, adjust: 0, confirm: 0 },
               adjust_deltas: [], split_ratios: [], total: 0
             });
@@ -8335,7 +8979,7 @@ function applyBannerToDom(config) {
               type: "boundary_shift", recommend_shift_seconds: loc.adjust_mean_delta,
               reason: `${counts.adjust}건이 이 경계를 평균 ${loc.adjust_mean_delta}s ${loc.adjust_mean_delta > 0 ? "뒤로" : "앞으로"} 옮김(방향 일치율 ${(loc.direction_agreement * 100).toFixed(0)}%). 자동 기본 경계를 그만큼 옮기는 것을 권장.`,
               confidence: loc.confidence, sample_size: counts.adjust,
-              accuracy_rate: loc.accuracy_rate, total_reviews: loc.total
+              accuracy_rate: loc.accuracy_rate, confirm_count: counts.confirm, total_reviews: loc.total
             });
           }
           if (counts.merge >= REPORT_MIN_SAMPLES_RULE && counts.merge > counts.split * 2) {
@@ -8344,7 +8988,7 @@ function applyBannerToDom(config) {
               type: "over_segmentation",
               reason: `합치기 ${counts.merge}건(나누기 ${counts.split}건) — 자동 분석이 한 동작을 둘로 쪼개는 경향. 이 구간 경계 민감도를 낮추거나 최소 구간 길이를 늘리는 것을 권장.`,
               confidence: loc.confidence, sample_size: counts.merge,
-              accuracy_rate: loc.accuracy_rate, total_reviews: loc.total
+              accuracy_rate: loc.accuracy_rate, confirm_count: counts.confirm, total_reviews: loc.total
             });
           }
           if (counts.split >= REPORT_MIN_SAMPLES_RULE && counts.split > counts.merge * 2) {
@@ -8355,7 +8999,7 @@ function applyBannerToDom(config) {
               type: "under_segmentation", recommend_split_ratio: meanRatio,
               reason: `나누기 ${counts.split}건(합치기 ${counts.merge}건) — 자동 분석이 두 동작을 하나로 묶는 경향. 경계 민감도를 높이거나 ${meanRatio != null ? `구간의 ${Math.round(meanRatio * 100)}% 지점에 경계를 추가` : "추가 경계 삽입"}을 권장.`,
               confidence: loc.confidence, sample_size: counts.split,
-              accuracy_rate: loc.accuracy_rate, total_reviews: loc.total
+              accuracy_rate: loc.accuracy_rate, confirm_count: counts.confirm, total_reviews: loc.total
             });
           }
         }
@@ -8399,17 +9043,26 @@ function applyBannerToDom(config) {
           return;
         }
         if (statusEl) statusEl.textContent = `관리자 로그인 확인: ${_fbCurrentAdminUser.email || "이메일 없음"} · 리포트 준비 중...`;
-        if (!_fbDB || !_fbGetDocs) {
-          if (statusEl) statusEl.textContent = "Firebase가 아직 준비되지 않았습니다. 잠시 후 새로고침하세요.";
+        if (!_fbDB || !_fbGetDocs || !_fbCollection) {
+          const missing = [
+            !_fbDB ? "DB" : "",
+            !_fbGetDocs ? "getDocs" : "",
+            !_fbCollection ? "collection" : ""
+          ].filter(Boolean).join(", ");
+          if (statusEl) statusEl.textContent = `Firebase가 아직 준비되지 않았습니다. 누락: ${missing || "알 수 없음"}`;
           return;
         }
-        if (statusEl) statusEl.textContent = "불러오는 중...";
+        if (statusEl) statusEl.textContent = `불러오는 중... (로그인: ${_fbCurrentAdminUser.email || "이메일 없음"})`;
         if (bodyEl) bodyEl.innerHTML = "";
         try {
-          const [snap] = await Promise.all([
-            _fbGetDocs(_fbCollection(_fbDB, "corrections")),
-            loadBoundaryBias() // 관리자 화면이니 최신 게시 상태를 다시 확인.
-          ]);
+          let snap;
+          try {
+            snap = await _fbGetDocs(_fbCollection(_fbDB, "corrections"));
+          } catch (error) {
+            error.reportStep = "corrections 읽기";
+            throw error;
+          }
+          await loadBoundaryBias(); // 관리자 화면이니 최신 게시 상태를 다시 확인.
           const records = [];
           snap.forEach((d) => records.push(d.data()));
           if (!records.length) {
@@ -8428,8 +9081,10 @@ function applyBannerToDom(config) {
           if (bodyEl) {
             const accBadge = (l) => {
               const counts = normalizedCorrectionCounts(l.counts);
-              return l.accuracy_rate != null
-                ? `<span class="small" style="margin-left:6px;color:var(--muted)">정확도 ${(l.accuracy_rate * 100).toFixed(0)}%(확인 ${counts.confirm}/전체 ${l.total})</span>` : "";
+              if (l.accuracy_rate == null) return "";
+              const confirmCount = counts.confirm || l.confirm_count || 0;
+              const totalReviews = l.total ?? l.total_reviews ?? 0;
+              return `<span class="small" style="margin-left:6px;color:var(--muted)">정확도 ${(l.accuracy_rate * 100).toFixed(0)}%(확인 ${confirmCount}/전체 ${totalReviews})</span>`;
             };
             const suggestionHtml = suggestions.length
               ? suggestions.map((s) => {
@@ -8942,6 +9597,11 @@ function applyBannerToDom(config) {
           }
         });
         resultPage.addEventListener("click", (event) => {
+          const compareBtn = event.target.closest("#resultCompareBtn");
+          if (compareBtn) {
+            if (!connectLatestAnalysisToCompare()) alert("먼저 영상을 분석해 주세요.");
+            return;
+          }
           const manualBtn = event.target.closest("#resultManualEditBtn");
           if (manualBtn) {
             if (!canManualEdit()) return;
@@ -9578,16 +10238,34 @@ function applyBannerToDom(config) {
         const eventProfile = latestReport.competition_event || activeCompetitionEventProfile();
         const rulePrimaryTitle = ruleProfile.primary?.title || ruleProfile.primary?.source || "-";
         const ruleCrossTitle = ruleProfile.cross_check?.title || "";
+        const reliability = latestReport.analysis_reliability || analysisReliabilitySummary(latestReport.segments, latestReport.camera_view?.mode || "front");
         const scoreMetric = trainingMode === "exam"
           ? `<div class="metric"><strong>분석 중심</strong><span>동작별 확인</span></div>`
           : `<div class="metric"><strong>${escapeHtml(eventProfile.score_label)}</strong><span>${escapeHtml(latestReport.summary.competition_score_10)} / 10.0</span></div>`;
+        const eventDataMetric = eventProfile.id === "team"
+          ? `<div class="metric"><strong>3명 동시 인식</strong><span>${Math.round((Number(latestReport.team_concurrent?.average_three_pose_ratio) || 0) * 100)}% · 기록 저장됨</span></div>`
+          : eventProfile.id === "individual"
+            ? `<div class="metric"><strong>개인전 데이터</strong><span>${latestReport.segments.length}개 구간 · 기록 저장됨</span></div>`
+            : "";
         resultPageContent.innerHTML = `
           <div class="result-grid">
             <div class="metric"><strong>품새</strong><span>${escapeHtml(latestReport.poomsae?.name || currentPoomsae().name)}</span></div>
             ${scoreMetric}
             ${trainingMode === "competition" ? `<div class="metric"><strong>경기 구분</strong><span>${escapeHtml(eventProfile.label)}</span></div>` : ""}
+            ${eventDataMetric}
             <div class="metric"><strong>Pose 감지율</strong><span>${Math.round(latestReport.summary.detection_rate * 100)}%</span></div>
+            <div class="metric"><strong>분석 신뢰도</strong><span>카메라 ${reliability.camera_count}대 · ${Math.round(reliability.analysis_confidence * 100)}%</span></div>
             <div class="metric"><strong>동작별 장면</strong><span>${latestReport.segments.length}개</span></div>
+          </div>
+          <div class="result-card" style="margin-top:14px;">
+            <div class="result-section-title">
+              <div>
+                <h3>촬영 → 분석 → 비교 연결</h3>
+                <p class="small">촬영 세션과 분석 결과를 같은 연결 ID로 유지합니다. 이전 분석이 있으면 전 영상, 현재 분석은 후 영상으로 자동 배치합니다.</p>
+              </div>
+              <button id="resultCompareBtn" class="secondary" type="button">이전 분석과 비교</button>
+            </div>
+            <p class="small">연결 상태: ${latestReport.capture_session?.session_id ? `촬영 ${escapeHtml(latestReport.capture_session.session_id.slice(0, 18))}… → ` : "업로드 영상 → "}분석 ${escapeHtml(String(latestReport.analysis_link_id || "-").slice(0, 22))}${analysisComparisonHistory.length > 1 ? ` · 비교 가능한 분석 ${analysisComparisonHistory.length}개` : " · 이전 영상 1개를 추가하면 비교 가능"}</p>
           </div>
           <div class="result-card" style="margin-top:14px;">
             <h3>${trainingMode === "exam" ? "이 결과에서 알 수 있는 것" : "판정 범위 및 교차검증 안내"}</h3>
@@ -9709,6 +10387,9 @@ function applyBannerToDom(config) {
         if (trainingMode !== "exam") lines.push(`${(latestReport.competition_event || activeCompetitionEventProfile()).score_label}: ${latestReport.summary.competition_score_10} / 10.0`);
         else lines.push("분석 중심: 첫 동작 시작점과 동작별 구간 확인 및 수정");
         lines.push(`Pose 감지율: ${Math.round(latestReport.summary.detection_rate * 100)}%`);
+        if (latestReport.analysis_reliability) {
+          lines.push(`분석 신뢰도: 카메라 ${latestReport.analysis_reliability.camera_count}대 · ${Math.round(latestReport.analysis_reliability.analysis_confidence * 100)}% (${latestReport.analysis_reliability.label})`);
+        }
         if (latestReport.summary.needed_training?.length) {
           lines.push("");
           lines.push(trainingMode === "competition" ? "[수정 우선순위]" : "[고칠 점 정리]");
@@ -10125,14 +10806,18 @@ function applyBannerToDom(config) {
         try {
           const sourceWidth = video.videoWidth || 640;
           const sourceHeight = video.videoHeight || 360;
-          const targetWidth = 360;
-          const targetHeight = Math.max(1, Math.round(sourceHeight / sourceWidth * targetWidth));
+          const outputSize = standardMediaSize(sourceWidth, sourceHeight, 360, "landscape");
+          const targetWidth = outputSize.width;
+          const targetHeight = outputSize.height;
           const canvas = document.createElement("canvas");
           canvas.width = targetWidth;
           canvas.height = targetHeight;
           const ctx = canvas.getContext("2d");
           if (!ctx) return "";
-          ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+          ctx.fillStyle = "#050505";
+          ctx.fillRect(0, 0, targetWidth, targetHeight);
+          const rect = videoDrawRect(video, targetWidth, targetHeight, "contain");
+          ctx.drawImage(video, rect.x, rect.y, rect.width, rect.height);
           return canvas.toDataURL("image/jpeg", 0.62);
         } catch (error) {
           console.warn("Snapshot capture failed.", error);
@@ -10145,14 +10830,18 @@ function applyBannerToDom(config) {
           await waitForSeek(time, true);
           const sourceWidth = video.videoWidth || 640;
           const sourceHeight = video.videoHeight || 360;
-          const targetWidth = 120;
-          const targetHeight = Math.max(1, Math.round(sourceHeight / sourceWidth * targetWidth));
+          const outputSize = standardMediaSize(sourceWidth, sourceHeight, 120, "landscape");
+          const targetWidth = outputSize.width;
+          const targetHeight = outputSize.height;
           const canvas = document.createElement("canvas");
           canvas.width = targetWidth;
           canvas.height = targetHeight;
           const ctx = canvas.getContext("2d");
           if (!ctx) return null;
-          ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+          ctx.fillStyle = "#050505";
+          ctx.fillRect(0, 0, targetWidth, targetHeight);
+          const rect = videoDrawRect(video, targetWidth, targetHeight, "contain");
+          ctx.drawImage(video, rect.x, rect.y, rect.width, rect.height);
           return { time, dataUrl: canvas.toDataURL("image/jpeg", 0.6) };
         } catch (error) {
           console.warn("Thumbnail capture failed.", error);
@@ -10326,6 +11015,7 @@ function applyBannerToDom(config) {
         }
         replayVideo.src = replaySrc;
         replayVideo.load();
+        applyStandardMediaAspect(replayVideo, replayVideo.closest(".video-stage"), "portrait");
         replayVideo.playbackRate = Number(speedSelect.value || 1);
         replayModal.hidden = false;
         const beginReplay = () => {
@@ -12721,14 +13411,44 @@ function applyBannerToDom(config) {
           const points = [getPoint(pose, 11), getPoint(pose, 12), getPoint(pose, 23), getPoint(pose, 24)].filter(Boolean);
           return points.length ? points.reduce((sum, p) => sum + p.x, 0) / points.length : 0;
         };
+        const poseVisibility = (pose) => {
+          const points = (Array.isArray(pose) ? pose : []).filter((point) => point && Number.isFinite(point.x) && Number.isFinite(point.y));
+          if (!points.length) return 0;
+          return points.reduce((sum, point) => sum + (Number.isFinite(point.visibility) ? point.visibility : 0.5), 0) / points.length;
+        };
+        const mean = (values) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+        const spacingConsistency = (values) => {
+          if (values.length < 3) return null;
+          const avg = mean(values);
+          if (!(avg > 0)) return null;
+          const variance = values.reduce((sum, value) => sum + Math.pow(value - avg, 2), 0) / values.length;
+          return Number(Math.max(0, Math.min(1, 1 - Math.sqrt(variance) / avg)).toFixed(3));
+        };
+        const athleteProfilesFor = (sourceFrames) => [0, 1, 2].map((athleteIndex) => {
+          const detected = sourceFrames.map((frame) => frame.poses[athleteIndex]).filter(Boolean);
+          return {
+            athlete: athleteIndex + 1,
+            sampled_frames: sourceFrames.length,
+            detected_frames: detected.length,
+            detection_ratio: sourceFrames.length ? Number((detected.length / sourceFrames.length).toFixed(3)) : 0,
+            average_visibility: detected.length ? Number(mean(detected.map(poseVisibility)).toFixed(3)) : 0,
+            average_center_x: detected.length ? Number(mean(detected.map(poseCenterX)).toFixed(3)) : 0
+          };
+        });
         const poseFrames = frames.map((frame) => ({
           time: Number(frame.time),
           poses: sortPoses(frame.allLandmarks && frame.allLandmarks.length ? frame.allLandmarks : (frame.landmarks ? [frame.landmarks] : []))
         })).filter((frame) => Number.isFinite(frame.time));
         const detectedCounts = poseFrames.map((frame) => frame.poses.length).filter((n) => n > 0);
         const athleteCount = detectedCounts.length ? Math.max(...detectedCounts) : 0;
-        if (athleteCount < 3 || boundaries.length < 3) {
-          return { enabled: false, detection_mode: "all_three_same_frame", athlete_count: athleteCount, segments: [] };
+        if (boundaries.length < 3) {
+          return {
+            enabled: false,
+            detection_mode: "all_three_same_frame",
+            athlete_count: athleteCount,
+            athlete_profiles: athleteProfilesFor(poseFrames),
+            segments: []
+          };
         }
         const segments = [];
         for (let index = 0; index < boundaries.length - 1; index += 1) {
@@ -12738,22 +13458,31 @@ function applyBannerToDom(config) {
           const framesWithThree = within.filter((frame) => frame.poses.length >= 3).length;
           const framesWithTwo = within.filter((frame) => frame.poses.length >= 2).length;
           const threePoseRatio = within.length ? framesWithThree / within.length : 0;
+          const threePoseFrames = within.filter((frame) => frame.poses.length >= 3);
+          const spacingSamples = threePoseFrames.map((frame) => {
+            const centers = frame.poses.slice(0, 3).map(poseCenterX).sort((a, b) => a - b);
+            return ((centers[1] - centers[0]) + (centers[2] - centers[1])) / 2;
+          }).filter((value) => value > 0);
           segments.push({
             segment: index + 1,
             sampled_frames: within.length,
             frames_with_two: framesWithTwo,
             frames_with_three: framesWithThree,
             three_pose_ratio: Number(threePoseRatio.toFixed(3)),
+            athlete_detection_ratios: athleteProfilesFor(within).map((athlete) => athlete.detection_ratio),
+            average_pair_spacing: spacingSamples.length ? Number(mean(spacingSamples).toFixed(3)) : null,
+            spacing_consistency: spacingConsistency(spacingSamples),
             all_three_same_frame: within.length >= 3 ? threePoseRatio >= 0.7 : null
           });
         }
         const judged = segments.filter((segment) => segment.sampled_frames >= 3);
         return {
-          enabled: judged.length > 0,
+          enabled: athleteCount >= 3 && judged.length > 0,
           detection_mode: "all_three_same_frame",
           athlete_count: athleteCount,
           judged_segments: judged.length,
           concurrent_segments: judged.filter((segment) => segment.all_three_same_frame).length,
+          athlete_profiles: athleteProfilesFor(poseFrames),
           segments,
           average_three_pose_ratio: judged.length ? Number((judged.reduce((sum, segment) => sum + segment.three_pose_ratio, 0) / judged.length).toFixed(3)) : 0
         };
@@ -12912,6 +13641,31 @@ function applyBannerToDom(config) {
         if (trainingMode === "competition") items.push({ type: "caution", text: "영상만으로 실제 타격 힘은 직접 측정할 수 없으므로, 이 평가는 속도와 마무리 안정성 기반의 코칭 지표입니다." });
         return { score100, avg, competitionScore10, accuracyScore4: adjAccuracy4, presentationScore6: adjPresentation6, detectRate, type, label, items, issueCounts, neededTraining };
       }
+      function analysisReliabilitySummary(results, view) {
+        const cameraCount = view === "triple" ? 3 : view === "dual" ? 2 : 1;
+        const rows = Array.isArray(results) ? results.filter(Boolean) : [];
+        const average = (values) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+        const confidences = rows.map((row) => Number(row.movementConfidence)).filter(Number.isFinite);
+        const detectionRates = rows.map((row) => Number(row.detectionRate)).filter(Number.isFinite);
+        const agreements = rows.map((row) => Number(row.viewAgreement)).filter(Number.isFinite);
+        const gains = rows.map((row) => Number(row.fusionConfidenceGain)).filter(Number.isFinite);
+        const recovered = rows.filter((row) => {
+          const from = row.fusedFrom || {};
+          const detections = [from.front_detection, from.side_detection, from.diagonal_detection].filter(Number.isFinite);
+          return detections.length > 1 && Math.min(...detections) < 0.6 && Math.max(...detections) >= 0.75;
+        }).length;
+        const analysisConfidence = clamp(average(confidences) || average(detectionRates), 0, 0.99);
+        return {
+          schema: "poomsae-analysis-reliability-v1",
+          camera_count: cameraCount,
+          analysis_confidence: Number(analysisConfidence.toFixed(3)),
+          average_detection_rate: Number(average(detectionRates).toFixed(3)),
+          view_agreement: cameraCount > 1 ? Number(average(agreements).toFixed(3)) : null,
+          confidence_gain_vs_best_single: cameraCount > 1 ? Number(average(gains).toFixed(3)) : 0,
+          occlusion_recovered_segments: recovered,
+          label: analysisConfidence >= 0.85 ? "높음" : analysisConfidence >= 0.65 ? "보통" : "낮음"
+        };
+      }
       function currentAnalysisCacheKey() {
         if (!selectedFile || !Number.isFinite(video.duration)) return "";
         return [
@@ -13031,6 +13785,13 @@ function applyBannerToDom(config) {
         }
         const fusedView = (analysisEfficiency && (analysisEfficiency.triple_view ? "triple" : analysisEfficiency.dual_view ? "dual" : null)) || cameraView;
         const summary = summarize(results, fusedView, boundaryDetectionForRun ? boundaryDetectionForRun.activeRange : null);
+        const analysisReliability = analysisReliabilitySummary(results, fusedView);
+        summary.items.unshift({
+          type: analysisReliability.analysis_confidence >= 0.85 ? "good" : "caution",
+          text: analysisReliability.camera_count > 1
+            ? `카메라 ${analysisReliability.camera_count}대 융합 신뢰도 ${Math.round(analysisReliability.analysis_confidence * 100)}% (${analysisReliability.label}) · 각도 간 일치도 ${Math.round((analysisReliability.view_agreement || 0) * 100)}% · 단일 각도 대비 신뢰도 +${Math.round(analysisReliability.confidence_gain_vs_best_single * 100)}%p${analysisReliability.occlusion_recovered_segments ? ` · 가림 보완 ${analysisReliability.occlusion_recovered_segments}개 구간` : ""}.`
+            : `카메라 1대 분석 신뢰도 ${Math.round(analysisReliability.analysis_confidence * 100)}% (${analysisReliability.label}). 2~3대 촬영은 가려진 관절을 다른 각도로 교차 확인해 신뢰도를 높입니다.`
+        });
         if (trainingMode === "competition" && competitionEvent === "team") {
           if (teamConcurrent.enabled) {
             const concurrent = teamConcurrent.concurrent_segments;
@@ -13145,8 +13906,10 @@ function applyBannerToDom(config) {
               view: viewForRun
             })
           : null;
+        if (!currentAnalysisLinkId) currentAnalysisLinkId = newFlowLinkId("analysis");
         latestReport = {
           app: "태권도 품새수련 Beta",
+          analysis_link_id: currentAnalysisLinkId,
           created_at: new Date().toISOString(),
           training_mode: trainingMode,
           training_mode_label: modeLabel(),
@@ -13177,6 +13940,9 @@ function applyBannerToDom(config) {
           file: selectedFile ? { name: selectedFile.name, size_bytes: selectedFile.size, type: selectedFile.type } : null,
           camera_view: {
             mode: cameraView,
+            camera_count: analysisReliability.camera_count,
+            orientation: standardMediaOrientation(video.videoWidth, video.videoHeight, "portrait"),
+            aspect_ratio: standardMediaAspect(video.videoWidth, video.videoHeight, "portrait").label,
             label: cameraView === "front" ? "정면 1대"
                  : cameraView === "diagonal" ? "대각선 1대"
                  : cameraView === "dual" ? "정면+측면 융합(두 대)"
@@ -13184,7 +13950,13 @@ function applyBannerToDom(config) {
             second_file: selectedFileB ? { name: selectedFileB.name, size_bytes: selectedFileB.size, type: selectedFileB.type } : null,
             third_file: selectedFileC ? { name: selectedFileC.name, size_bytes: selectedFileC.size, type: selectedFileC.type } : null
           },
-          video: { duration_seconds: Number(video.duration.toFixed(3)), width: video.videoWidth, height: video.videoHeight },
+          video: {
+            duration_seconds: Number(video.duration.toFixed(3)),
+            width: video.videoWidth,
+            height: video.videoHeight,
+            orientation: standardMediaOrientation(video.videoWidth, video.videoHeight, "portrait"),
+            aspect_ratio: standardMediaAspect(video.videoWidth, video.videoHeight, "portrait").label
+          },
           summary: {
             label: summary.label,
             score_100: Number(summary.score100.toFixed(2)),
@@ -13224,11 +13996,20 @@ function applyBannerToDom(config) {
           learning_dataset_candidate: learningDatasetCandidate,
           correction_log: correctionLogSummary(),
           team_concurrent: teamConcurrent,
+          capture_session: selectedCaptureSessionMeta ? JSON.parse(JSON.stringify(selectedCaptureSessionMeta)) : null,
+          analysis_reliability: analysisReliability,
           analysis_efficiency: analysisEfficiency,
           next_step: "관절 속도 피크와 정지점으로 실제 동작 전환점을 자동 감지하고, 지르기/막기/차기별 궤적 정확도 규칙을 연결"
         };
-        // 원본 영상·파일명·프레임은 저장하지 않고, 전역 학습에 필요한 요약만 Firestore에 누적한다.
-        sendLearningReportToCloud(latestReport);
+        // 원본 영상·파일명·프레임은 저장하지 않는다. 새 분석만 로컬 기록과 Firestore 전송
+        // 대기열에 한 번 저장해 모드 탭을 다시 누를 때 같은 단체전 기록이 중복되지 않게 한다.
+        registerAnalysisForComparison(latestReport, selectedFile);
+        if (!cacheHit) {
+          if (trainingMode === "competition" && competitionEvent === "team") saveTeamReportLocally(latestReport);
+          if (trainingMode === "competition" && competitionEvent === "individual") saveIndividualReportLocally(latestReport);
+          sendLearningReportToCloud(latestReport);
+          setTimeout(showAnalysisReviewReminder, 0);
+        }
         // 수동 조정용 캐시 저장: 경계/모션/프레임을 보존해 재추출 없이 구간 재계산.
         if (boundaryDetectionForRun && Array.isArray(boundaryDetectionForRun.boundaries)) {
           lastBoundaryCache = {
@@ -13338,7 +14119,18 @@ function applyBannerToDom(config) {
           row.scrollIntoView({ behavior: "smooth", block: "center" });
           setTimeout(() => row.classList.remove("manual-preview"), 1400);
         }
+        // 수정 직후 메인 영상뿐 아니라 이미 열려 있는 구간 재생창에도 새 시간 범위를
+        // 즉시 전달한다. 특히 유품자 품새 결과 화면에서는 팝업이 기존 범위를 유지해
+        // 시간이 바뀌지 않은 것처럼 보일 수 있었다.
         playRange(seg.startTime, seg.endTime);
+        if (replayModal && !replayModal.hidden && replayVideo) {
+          modalReplayRange = {
+            start: Math.max(0, seg.startTime),
+            end: Math.min(Math.max(seg.endTime, seg.startTime + 0.2), safeMediaDuration(replayVideo) || seg.endTime)
+          };
+          try { replayVideo.currentTime = modalReplayRange.start; } catch (error) { /* noop */ }
+          replayVideo.play().catch(() => {});
+        }
       }
       async function rebuildSegmentsFromBoundaries(newBoundaries, previewSegmentIndex = null, message = "수동 조정이 반영되었습니다.", newMoveIndexBoundaries = null) {
         if (!canManualEdit()) return;
@@ -13920,6 +14712,82 @@ function applyBannerToDom(config) {
         });
         return merged;
       }
+      function fusionReliability(viewResults) {
+        const rows = viewResults.filter(Boolean);
+        if (!rows.length) return { confidence: 0, gain: 0, agreement: 0, base: 0 };
+        const confidences = rows.map((row) => clamp(
+          Number.isFinite(row.movementConfidence)
+            ? row.movementConfidence
+            : (row.viewConfidence ?? 0.9) * (row.detectionRate ?? 0),
+          0,
+          0.99
+        ));
+        const base = Math.max(...confidences);
+        const ordered = confidences.slice().sort((a, b) => b - a);
+        let combined = ordered[0] || 0;
+        ordered.slice(1).forEach((value) => {
+          // 서로 다른 각도의 추가 관측은 폐색을 보완하지만 같은 동작의 상관된 측정이므로
+          // 독립 확률처럼 과대 가산하지 않고 남은 불확실성의 35%까지만 줄인다.
+          combined += (1 - combined) * value * 0.35;
+        });
+        const metricKeys = ["visibilityScore", "velocityScore", "snapScore", "stillnessScore", "stanceScore"];
+        const spreads = metricKeys.map((key) => {
+          const values = rows.map((row) => Number(row[key])).filter(Number.isFinite);
+          return values.length > 1 ? Math.max(...values) - Math.min(...values) : 0;
+        });
+        const agreement = clamp(1 - (spreads.reduce((sum, value) => sum + value, 0) / Math.max(spreads.length, 1)) / 60, 0, 1);
+        // 추가 각도끼리 차이가 커도 가장 잘 보인 단일 각도보다 신뢰도를 낮추지는 않고,
+        // 일치도가 높을 때에만 보강분을 온전히 인정한다.
+        const confidence = clamp(Math.max(base, combined * (0.82 + agreement * 0.18)), 0, 0.99);
+        return {
+          confidence: Number(confidence.toFixed(3)),
+          gain: Number(Math.max(0, confidence - base).toFixed(3)),
+          agreement: Number(agreement.toFixed(3)),
+          base: Number(base.toFixed(3))
+        };
+      }
+      function strongestEvidence(viewResults, key) {
+        return viewResults
+          .filter((row) => row && row[key])
+          .sort((a, b) => (Number(b[key]?.confidence) || 0) - (Number(a[key]?.confidence) || 0))[0]?.[key] || null;
+      }
+      function applyFusedAccuracyAndConfidence(merged, viewResults) {
+        const reliability = fusionReliability(viewResults);
+        const bestAction = viewResults
+          .filter((row) => row?.actionIdentity)
+          .sort((a, b) => (Number(b.actionIdentity.confidence) || 0) - (Number(a.actionIdentity.confidence) || 0))[0];
+        if (bestAction?.actionIdentity) merged.actionIdentity = bestAction.actionIdentity;
+        merged.jointAngle = strongestEvidence(viewResults, "jointAngle") || merged.jointAngle;
+        merged.trajectory = strongestEvidence(viewResults, "trajectory") || merged.trajectory;
+        merged.stanceCheck = strongestEvidence(viewResults, "stanceCheck") || merged.stanceCheck;
+        merged.orientationCheck = strongestEvidence(viewResults, "orientationCheck") || merged.orientationCheck;
+        merged.detected = viewResults.some((row) => row?.detected);
+        merged.detectionRate = Number(Math.max(...viewResults.map((row) => Number(row?.detectionRate) || 0)).toFixed(3));
+        merged.movementConfidenceBase = reliability.base;
+        merged.movementConfidence = reliability.confidence;
+        merged.viewConfidence = reliability.confidence;
+        merged.fusionConfidenceGain = reliability.gain;
+        merged.viewAgreement = reliability.agreement;
+        merged.cameraCount = viewResults.filter(Boolean).length;
+        Object.assign(merged, competitionScoreFromMetrics({
+          visibilityScore: merged.visibilityScore,
+          velocityScore: merged.velocityScore,
+          snapScore: merged.snapScore,
+          stillnessScore: merged.stillnessScore,
+          stanceScore: merged.stanceScore,
+          actionAccuracyScore: merged.actionIdentity?.score,
+          actionAccuracyConfidence: merged.actionIdentity?.confidence
+        }));
+        const fusedMetrics = {
+          visibilityScore: merged.visibilityScore,
+          velocityScore: merged.velocityScore,
+          snapScore: merged.snapScore,
+          stillnessScore: merged.stillnessScore,
+          stanceScore: merged.stanceScore
+        };
+        merged.evidence = evidenceScopeFor(merged, fusedMetrics);
+        merged.referenceDeduction = referenceDeductionFor(fusedMetrics);
+      }
       function fuseSegments(frontResults, sideResults) {
         const n = Math.min(frontResults.length, sideResults.length);
         const fused = [];
@@ -13962,6 +14830,7 @@ function applyBannerToDom(config) {
             merged.stillnessScore * .20 +
             merged.stanceScore * .22
           );
+          applyFusedAccuracyAndConfidence(merged, [f, s]);
           const v = labelFor(merged.powerScore);
           merged.type = v.type;
           merged.label = v.label;
@@ -13969,7 +14838,9 @@ function applyBannerToDom(config) {
           merged.fusedFrom = {
             primary: primaryRes.cameraView,
             front_detection: f.detectionRate,
-            side_detection: s.detectionRate
+            side_detection: s.detectionRate,
+            confidence_gain: merged.fusionConfidenceGain,
+            view_agreement: merged.viewAgreement
           };
           merged.viewAxisNote = "두 각도(정면+측면)를 합쳐, 좌우 대칭은 정면·앞뒤 깊이/보폭/맺음은 측면 기준으로 평가했습니다.";
           fused.push(merged);
@@ -14037,6 +14908,7 @@ function applyBannerToDom(config) {
             merged.stillnessScore * .20 +
             merged.stanceScore * .22
           );
+          applyFusedAccuracyAndConfidence(merged, [f, s, d]);
           const v = labelFor(merged.powerScore);
           merged.type = v.type;
           merged.label = v.label;
@@ -14045,7 +14917,9 @@ function applyBannerToDom(config) {
             primary: primaryRes.cameraView,
             front_detection: f.detectionRate,
             side_detection: s.detectionRate,
-            diagonal_detection: d.detectionRate
+            diagonal_detection: d.detectionRate,
+            confidence_gain: merged.fusionConfidenceGain,
+            view_agreement: merged.viewAgreement
           };
           merged.viewAxisNote = "세 각도(정면+측면+대각선)를 신뢰도 가중으로 합쳐, 대칭은 정면·깊이는 측면·궤적/폐색은 대각선으로 보완해 평가했습니다.";
           fused.push(merged);
@@ -14508,6 +15382,13 @@ function applyBannerToDom(config) {
         showTrainingPage();
         closeReplayModal();
         selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+        selectedCaptureSessionMeta = selectedFile ? (captureSessionMetaByFileKey.get(captureFileKey(selectedFile)) || null) : null;
+        currentAnalysisLinkId = "";
+        if (selectedCaptureSessionMeta?.capture_mode === "team" || selectedCaptureSessionMeta?.capture_mode === "individual") {
+          trainingMode = "competition";
+          competitionEvent = selectedCaptureSessionMeta.capture_mode === "team" ? "team" : "individual";
+          updateTrainingModeUi();
+        }
         lastPoomsaeMismatchKey = "";
         lastHevcWarnKey = "";
         seekProbeChecked = false;
@@ -14541,9 +15422,14 @@ function applyBannerToDom(config) {
         objectUrl = URL.createObjectURL(selectedFile);
         video.src = objectUrl;
         video.load();
-        setProgress(0, "영상 메타데이터를 읽는 중입니다. 준비되면 분석 시작을 눌러 주세요.");
+        setProgress(0, selectedCaptureSessionMeta?.capture_mode === "team"
+          ? "3인 촬영 영상을 단체전 분석에 연결했습니다. 영상 정보를 확인하는 중입니다."
+          : selectedCaptureSessionMeta?.capture_mode === "individual"
+            ? "개인 촬영 영상을 개인전 분석에 연결했습니다. 영상 정보를 확인하는 중입니다."
+            : "영상 메타데이터를 읽는 중입니다. 준비되면 분석 시작을 눌러 주세요.");
       });
       video.addEventListener("loadedmetadata", () => {
+        applyStandardMediaAspect(video, video.closest(".video-stage"), "portrait");
         durationText.textContent = formatDuration(video.duration);
         resolutionText.textContent = `${video.videoWidth}x${video.videoHeight}`;
         video.playbackRate = Number(speedSelect.value || 1);

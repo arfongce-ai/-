@@ -25,6 +25,7 @@ const fns = new Function(
   extractConst("const REPORT_BIAS_THRESHOLD_SEC =") + "\n" +
   extractFn("function expandConfirmRecords(records)") + "\n" +
   extractFn("function reportLocationKey(r)") + "\n" +
+  extractFn("function normalizedCorrectionCounts(counts)") + "\n" +
   extractFn("function analyzeCorrectionRecords(rawRecords)") + "\n" +
   extractFn("function buildCorrectionRuleSuggestions(locations)") + "\n" +
   "return { expandConfirmRecords, reportLocationKey, analyzeCorrectionRecords, buildCorrectionRuleSuggestions };"
@@ -85,7 +86,18 @@ function check(cond, msg) { console.log((cond ? "OK  " : "FAIL ") + msg); if (!c
   const s = suggestions.find((x) => x.location === "taegeuk_4#2");
   check(!!s, "체계적 치우침이 제안으로 생성됨");
   check(s.accuracy_rate != null, "제안 객체에 accuracy_rate 포함됨(화면 배지용)");
+  check(s.confirm_count === 2, `제안 객체에 confirm_count=2 포함(실제: ${s.confirm_count})`);
   check(s.total_reviews === 10, `제안 객체에 total_reviews=10 포함(실제: ${s.total_reviews})`);
+}
+
+// 5-1) 뒤 구간 연쇄 조정(cascade_adjust)도 화면 표시용 위치 번호가 undefined가 아니어야 한다.
+{
+  const { locations } = fns.analyzeCorrectionRecords([
+    { action: "cascade_adjust", boundary_index: 8, poomsae: "taegeuk_1", delta_seconds: -0.173, ts: "a1" }
+  ]);
+  const loc = locations.find((l) => l.location === "taegeuk_1#8");
+  check(!!loc, "cascade_adjust가 boundary_index 기준 위치로 집계됨");
+  check(loc.segment_index === 8, `cascade_adjust 표시 위치 #8 유지(실제: ${loc && loc.segment_index})`);
 }
 
 // 6) Node용 scripts/analyze-corrections.js와 동일 입력에 대해 같은 정확도를 내야 한다

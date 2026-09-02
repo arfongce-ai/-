@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-root-offline-engine-v26-taegeuk-8-security";
+const CACHE_NAME = "poomsae-training-root-camera-fix-v2";
 const APP_URL = "./www/index.html";
 const CORE_ASSETS = [
   "./",

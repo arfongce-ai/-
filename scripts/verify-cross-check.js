@@ -243,7 +243,7 @@ assertContains(readUtf8(capacitorConfigPath), "\"appName\": \"태권도 품새�
 assertContains(webHtml, "--brand-strong", "세련된 통합 브랜드 컬러 토큰 존재");
 assertContains(webHtml, "--shadow", "통합 패널 그림자 토큰 존재");
 assertContains(webHtml, "수련 보조 · Beta", "헤더 베타 목적 배지 적용");
-assertContains(webHtml, "내 품새 영상을 동작별로 쉽게 확인해요 · v4.16", "짧은 헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
+assertContains(webHtml, "내 품새 영상을 동작별로 쉽게 확인해요 · v4.20", "짧은 헤더 설명 문구 적용(버전 표시는 배포마다 갱신 필요)");
 assertContains(webHtml, "data-mode=\"exam\"", "수련품새 모드 버튼 존재");
 assertContains(webHtml, "data-mode=\"competition\"", "경기품새 모드 버튼 존재");
 assertContains(webHtml, "mode-tabs", "훈련 목적 모드 탭 전용 스타일 존재");
@@ -338,7 +338,7 @@ assertContains(readUtf8(path.join(root, "www", "service-worker.js")), "const CAC
 assertContains(rootHtml, "./manifest.webmanifest", "저장소 최상단 배포용 manifest 연결");
 assertContains(rootHtml, "./www/assets/app-icon-1024.png", "저장소 최상단 배포용 아이콘 연결");
 assertContains(readUtf8(rootManifestPath), "\"start_url\": \"./www/index.html\"", "최상단 아이콘 실행 시 실제 프로그램 주소 연결");
-assertContains(readUtf8(rootServiceWorkerPath), "poomsae-training-root-offline-engine-v26-taegeuk-8-security", "최상단 배포용 오프라인 엔진 서비스워커 존재");
+assertContains(readUtf8(rootServiceWorkerPath), "const CACHE_NAME = \"poomsae-training-root-", "최상단 배포용 오프라인 엔진 서비스워커 존재");
 assertContains(webHtml, 'import { buildDatasetCandidate, scoreActionSequence } from "./action-model.mjs"', "별도 동작 시퀀스 모델 모듈 연결");
 assertContains(webHtml, "learning_dataset_candidate", "분석 JSON에 전문가 검수용 관절좌표 시퀀스 포함");
 assertContains(webHtml, "actionAccuracyConfidence >= 0.65", "충분한 신뢰도에서만 동작 모델을 정확도 점수에 적용");
@@ -503,6 +503,10 @@ assertContains(webHtml, "if (cacheKey && savedCorrectionForRun) stableAnalysisCa
 assertContains(webHtml, "function analyzeCorrectionRecords(", "보정 기록 분석 함수(analyze-corrections.js 이식) 존재");
 assertContains(webHtml, "function buildCorrectionRuleSuggestions(", "규칙 개선 제안 생성 함수 존재");
 assertContains(webHtml, "async function loadAndRenderCorrectionReport()", "학습 리포트 조회·렌더 함수 존재");
+assertContains(webHtml, "앱 내부 진단 필요", "학습 리포트 실패 시 코드 없는 예외도 상세 진단으로 표시");
+assertContains(webHtml, "error.reportStep = \"corrections 읽기\"", "corrections 컬렉션 읽기 실패 단계 표시");
+assertContains(webHtml, "누락: ${missing || \"알 수 없음\"}", "Firestore SDK 준비 누락 항목 표시");
+assertContains(webHtml, "불러오는 중... (로그인:", "학습 리포트 조회 시 현재 로그인 이메일 표시");
 assertContains(webHtml, "_fbSignIn = authMod.signInWithEmailAndPassword", "배너·학습 리포트 공용 관리자 이메일/비밀번호 로그인 연동 존재");
 assertContains(webHtml, 'id="adminEmailInput"', "학습 리포트 로그인 폼 존재");
 assertContains(webHtml, 'id="adminReportPanel"', "학습 리포트 패널 존재");
@@ -666,6 +670,11 @@ assertContains(webHtml, "function confirmBoundariesExplicitly(", "사용자가 �
 assertNotContains(webHtml, "function autoConfirmIfUnedited(", "무수정·화면 이탈을 정확함으로 자동 기록하는 오염 경로 제거");
 assertContains(webHtml, "recordCorrection(\"confirm_all\"", "명시적 확인이 confirm_all 액션으로 기록됨");
 assertContains(webHtml, "explicit_review: true", "앱 검수 기록에 명시적 확인 여부가 저장됨");
+assertContains(webHtml, "ANALYSIS_REVIEW_REMINDER", "분석 완료 후 구간 확인·수정 안내창 존재");
+assertContains(webHtml, "분석 후 맞으면 꼭", "분석 완료 후 정확도 향상 안내 문구 존재");
+assertContains(webHtml, "ANALYSIS_REVIEW_REMINDER_PREF_KEY", "분석 완료 안내창 숨김 설정 저장 키 존재");
+assertContains(webHtml, "일주일 동안 띄우지 않기", "분석 완료 안내창 일주일 숨김 체크박스 존재");
+assertContains(webHtml, "다시는 띄우지 않기", "분석 완료 안내창 영구 숨김 체크박스 존재");
 assertContains(webHtml, "./evidence-calibration.mjs", "교본·영상·GPT·앱 검수 가중 보정 모듈 연결");
 assertContains(webHtml, "calibration_reviews", "GPT·지도자 검수 전용 컬렉션 연결");
 assertContains(webHtml, "parsed?.calibration_record", "정답 검수 JSON을 관리자 화면에서 직접 가져오기 지원");

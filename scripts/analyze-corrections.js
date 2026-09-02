@@ -142,7 +142,7 @@ function analyze(records) {
         location: key,
         poomsae: p,
         poomsae_name: r.poomsae_name || "",
-        segment_index: r.action === "adjust" || r.action === "confirm" ? r.boundary_index
+        segment_index: r.action === "adjust" || r.action === "cascade_adjust" || r.action === "confirm" ? r.boundary_index
                       : r.action === "split" ? r.segment_index
                       : r.merged_segment_index,
         counts: { merge: 0, split: 0, adjust: 0, confirm: 0 },
@@ -229,7 +229,10 @@ function buildRuleSuggestions(locations) {
               + `(방향 일치율 ${(loc.direction_agreement * 100).toFixed(0)}%). `
               + `자동 기본 경계를 그만큼 옮기는 것을 권장.`,
         confidence: loc.confidence,
-        sample_size: loc.counts.adjust
+        sample_size: loc.counts.adjust,
+        accuracy_rate: loc.accuracy_rate,
+        confirm_count: loc.counts.confirm,
+        total_reviews: loc.total
       });
     }
 
@@ -244,7 +247,10 @@ function buildRuleSuggestions(locations) {
               + `자동 분석이 한 동작을 둘로 쪼개는 경향 → 이 구간의 경계 민감도(sensitivity)를 낮추거나 `
               + `최소 구간 길이를 늘리는 것을 권장.`,
         confidence: loc.confidence,
-        sample_size: loc.counts.merge
+        sample_size: loc.counts.merge,
+        accuracy_rate: loc.accuracy_rate,
+        confirm_count: loc.counts.confirm,
+        total_reviews: loc.total
       });
     }
 
@@ -263,7 +269,10 @@ function buildRuleSuggestions(locations) {
               + `자동 분석이 두 동작을 하나로 묶는 경향 → 경계 민감도를 높이거나, `
               + (meanRatio != null ? `구간의 ${Math.round(meanRatio * 100)}% 지점에 경계를 추가하는 것을 권장.` : "추가 경계 삽입을 권장."),
         confidence: loc.confidence,
-        sample_size: loc.counts.split
+        sample_size: loc.counts.split,
+        accuracy_rate: loc.accuracy_rate,
+        confirm_count: loc.counts.confirm,
+        total_reviews: loc.total
       });
     }
   }

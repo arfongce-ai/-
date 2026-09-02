@@ -31,12 +31,24 @@ function extractFunction(name) {
 
 const context = {
   console,
+  clamp: (value, min, max) => Math.max(min, Math.min(max, value)),
   stableRound: (value) => Number(Number(value).toFixed(3)),
-  labelFor: (score) => ({ type: score >= 70 ? "good" : "caution", label: score >= 70 ? "좋음" : "주의" })
+  labelFor: (score) => ({ type: score >= 70 ? "good" : "caution", label: score >= 70 ? "좋음" : "주의" }),
+  evidenceScopeFor: () => ({ status: "test" }),
+  referenceDeductionFor: () => ({ amount: null }),
+  competitionScoreFromMetrics: (metrics) => ({
+    accuracyScore4: Number(((metrics.stanceScore * 0.55 + metrics.stillnessScore * 0.3 + metrics.visibilityScore * 0.15) / 25).toFixed(2)),
+    presentationScore6: Number(((metrics.velocityScore + metrics.snapScore + metrics.stillnessScore) * 0.02).toFixed(2)),
+    competitionScore10: 7.5,
+    actionModelApplied: false
+  })
 };
 vm.createContext(context);
 vm.runInContext([
   extractFunction("alignFusedSegmentToFront"),
+  extractFunction("fusionReliability"),
+  extractFunction("strongestEvidence"),
+  extractFunction("applyFusedAccuracyAndConfidence"),
   extractFunction("fuseSegments"),
   extractFunction("fuseSegmentsTriple"),
   "this.alignFusedSegmentToFront = alignFusedSegmentToFront;",
@@ -104,8 +116,13 @@ function assertFrontTimeline(results, label) {
 const dual = context.fuseSegments(front, side);
 assertFrontTimeline(dual, "2대 융합");
 assert(dual[1].velocityScore === side[1].velocityScore, "2대 융합: 측면 속도 강점은 유지");
+assert(dual.every((row) => row.cameraCount === 2), "2대 융합: 카메라 수가 신뢰도 데이터에 기록");
+assert(dual.every((row) => row.movementConfidence >= row.movementConfidenceBase), "2대 융합: 추가 각도가 신뢰도를 낮추지 않음");
+assert(dual.every((row) => Number.isFinite(row.accuracyScore4)), "2대 융합: 융합 메트릭으로 정확성 점수를 다시 계산");
 
 const triple = context.fuseSegmentsTriple(front, side, diagonal);
 assertFrontTimeline(triple, "3대 융합");
+assert(triple.every((row) => row.cameraCount === 3), "3대 융합: 카메라 수가 신뢰도 데이터에 기록");
+assert(triple.reduce((sum, row) => sum + row.movementConfidence, 0) >= dual.reduce((sum, row) => sum + row.movementConfidence, 0), "3대 융합: 세 번째 각도가 평균 신뢰도를 보강");
 
 console.log("\n다중 카메라 융합 시간축 회귀 테스트 통과");

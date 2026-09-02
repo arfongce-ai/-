@@ -67,14 +67,55 @@ service cloud.firestore {
         && d.size() < 30;  // 필드 수 제한(스팸 방지)
     }
     function isValidLearningReport(d) {
-      return d.schema == 'poomsae-learning-report-v1'
+      return d.schema in ['poomsae-learning-report-v1', 'poomsae-learning-report-v2']
         && d.poomsae is string
         && d.training_mode in ['exam', 'competition']
         && d.score_100 is number
         && d.detection_rate is number
+        && (d.schema == 'poomsae-learning-report-v1'
+          || (d.camera_count is number
+            && d.camera_count >= 1
+            && d.camera_count <= 3
+            && d.analysis_confidence is number
+            && d.analysis_confidence >= 0
+            && d.analysis_confidence <= 1))
         && d.issue_counts is list
         && d.needed_training is list
-        && d.size() < 20;
+        && (d.schema == 'poomsae-learning-report-v1'
+          || (isValidTeamLearningData(d) && isValidIndividualLearningData(d)))
+        && d.size() < 22;
+    }
+    function isValidTeamLearningData(d) {
+      return d.competition_event != 'team'
+        || (d.team_data is map
+          && d.team_data.schema == 'poomsae-team-analysis-v1'
+          && d.team_data.expected_athletes == 3
+          && d.team_data.athlete_count is number
+          && d.team_data.athlete_count >= 0
+          && d.team_data.athlete_count <= 3
+          && d.team_data.average_three_pose_ratio is number
+          && d.team_data.average_three_pose_ratio >= 0
+          && d.team_data.average_three_pose_ratio <= 1
+          && d.team_data.athlete_profiles is list
+          && d.team_data.athlete_profiles.size() <= 3
+          && d.team_data.segments is list
+          && d.team_data.segments.size() <= 80
+          && d.team_data.size() < 12);
+    }
+    function isValidIndividualLearningData(d) {
+      return d.competition_event != 'individual'
+        || (d.individual_data is map
+          && d.individual_data.schema == 'poomsae-individual-analysis-v1'
+          && d.individual_data.expected_athletes == 1
+          && d.individual_data.accuracy_score_4 is number
+          && d.individual_data.accuracy_score_4 >= 0
+          && d.individual_data.accuracy_score_4 <= 4
+          && d.individual_data.presentation_score_6 is number
+          && d.individual_data.presentation_score_6 >= 0
+          && d.individual_data.presentation_score_6 <= 6
+          && d.individual_data.segments is list
+          && d.individual_data.segments.size() <= 80
+          && d.individual_data.size() < 10);
     }
     function isValidCompareReport(d) {
       return d.schema == 'poomsae-compare-report-v1'
