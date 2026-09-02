@@ -44,8 +44,11 @@ assertContains(/poomsae-individual-analysis-v1/, "개인전 저장 스키마가 
 assertContains(/saveIndividualReportLocally/, "개인전 로컬 저장 함수가 없습니다.");
 assertContains(/capture_mode === "individual"/, "개인 촬영과 개인전 분석이 자동 연결되지 않습니다.");
 assertContains(/CAPTURE_TRAIL_DURATION_MS\s*=\s*2400/, "촬영 잔상이 2초 이상 유지되지 않습니다.");
-assertContains(/ctx\.lineWidth\s*=\s*4\.5\s*\+/, "실시간 잔상 선 굵기가 확대되지 않았습니다.");
-assertContains(/Math\.max\(6, width \/ 140\)/, "저장 영상 잔상 선 굵기가 확대되지 않았습니다.");
+assertContains(/function captureTrailGradient\(key, age\)/, "촬영 잔상 그라데이션 함수가 없습니다.");
+assertContains(/Math\.pow\(1 - clampedAge, 1\.6\)/, "촬영 잔상이 시간에 따라 부드럽게 사라지지 않습니다.");
+assertContains(/ctx\.lineWidth\s*=\s*4\.5\s*\+\s*gradient\.freshness/, "실시간 잔상 선 굵기 그라데이션이 없습니다.");
+assertContains(/Math\.max\(6, width \/ 140\).*gradient\.freshness/, "저장 영상 잔상 선 굵기 그라데이션이 없습니다.");
+assertContains(/ctx\.shadowBlur\s*=\s*gradient\.freshness/, "촬영 잔상의 최신 위치 강조 효과가 없습니다.");
 assertContains(/analysis_link_id:/, "촬영·분석·비교 연결용 분석 ID가 없습니다.");
 assertContains(/registerAnalysisForComparison/, "분석 결과를 비교 이력에 연결하지 않습니다.");
 assertContains(/id="resultCompareBtn"/, "분석 결과에서 비교로 이동하는 버튼이 없습니다.");

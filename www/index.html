@@ -7588,22 +7588,41 @@ function applyBannerToDom(config) {
         });
         ctx.globalAlpha = 1;
       }
+      function captureTrailGradient(key, age) {
+        const clampedAge = Math.max(0, Math.min(1, age));
+        const freshness = Math.pow(1 - clampedAge, 1.6);
+        const isFoot = key.includes("Foot");
+        const start = isFoot ? [0, 47, 112] : [145, 20, 35];
+        const end = isFoot ? [67, 190, 255] : [255, 103, 119];
+        const channel = (index) => Math.round(start[index] + (end[index] - start[index]) * freshness);
+        const alpha = 0.025 + freshness * 0.94;
+        return {
+          color: `rgba(${channel(0)}, ${channel(1)}, ${channel(2)}, ${alpha.toFixed(3)})`,
+          freshness
+        };
+      }
       function drawRecordingTrails(ctx, video, width, height, rotation = captureRotationDeg()) {
         const now = performance.now();
-        const colors = { leftHand: "#cd2e3a", rightHand: "#cd2e3a", leftFoot: "#0047a0", rightFoot: "#0047a0" };
+        ctx.save();
         captureTrails.forEach((poseTrail) => Object.entries(poseTrail).forEach(([key, points]) => {
           const active = points.filter((point) => now - point.t <= CAPTURE_TRAIL_DURATION_MS).slice(-CAPTURE_TRAIL_MAX_POINTS);
           poseTrail[key] = active;
           if (active.length < 2) return;
-          ctx.strokeStyle = colors[key]; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.lineWidth = Math.max(6, width / 140);
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
           for (let i = 1; i < active.length; i += 1) {
-            ctx.globalAlpha = Math.max(0.10, 1 - (now - active[i].t) / CAPTURE_TRAIL_DURATION_MS) * .9;
+            const age = (now - active[i].t) / CAPTURE_TRAIL_DURATION_MS;
+            const gradient = captureTrailGradient(key, age);
             const a = recordingPoint(active[i - 1], video, width, height, captureZoomScale(), rotation), b = recordingPoint(active[i], video, width, height, captureZoomScale(), rotation);
             if (!a || !b) continue;
+            ctx.strokeStyle = gradient.color;
+            ctx.shadowColor = gradient.color;
+            ctx.shadowBlur = gradient.freshness * Math.max(5, width / 180);
+            ctx.lineWidth = Math.max(6, width / 140) * (0.56 + gradient.freshness * 0.44);
             ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
           }
         }));
-        ctx.globalAlpha = 1;
+        ctx.restore();
       }
       function captureRecordingSize(landscape = captureIsLandscapeMode()) {
         const high = captureQuality === "high";
@@ -7675,19 +7694,19 @@ function applyBannerToDom(config) {
               .slice(-CAPTURE_TRAIL_MAX_POINTS);
             const points = poseTrail[key];
             if (points.length < 2) return;
-            const color = key.includes("Foot") ? "#0047a0" : "#cd2e3a";
             ctx.lineCap = "round";
             ctx.lineJoin = "round";
             for (let i = 1; i < points.length; i += 1) {
               const prev = points[i - 1];
               const item = points[i];
               const age = Math.max(0, Math.min(1, (now - item.t) / CAPTURE_TRAIL_DURATION_MS));
-              const alpha = 0.12 + (1 - age) * 0.76;
+              const gradient = captureTrailGradient(key, age);
               const p1 = rotateCanvasPoint({ x: offX + prev.x * drawW, y: offY + prev.y * drawH }, rect.width, rect.height, captureRotationDeg());
               const p2 = rotateCanvasPoint({ x: offX + item.x * drawW, y: offY + item.y * drawH }, rect.width, rect.height, captureRotationDeg());
-              ctx.strokeStyle = color;
-              ctx.globalAlpha = alpha;
-              ctx.lineWidth = 4.5 + (1 - age) * 3.5;
+              ctx.strokeStyle = gradient.color;
+              ctx.shadowColor = gradient.color;
+              ctx.shadowBlur = gradient.freshness * 7;
+              ctx.lineWidth = 4.5 + gradient.freshness * 3.5;
               ctx.beginPath();
               ctx.moveTo(p1.x, p1.y);
               ctx.lineTo(p2.x, p2.y);
@@ -7695,6 +7714,7 @@ function applyBannerToDom(config) {
             }
           });
         });
+        ctx.shadowBlur = 0;
         ctx.globalAlpha = 1;
       }
       function clearCaptureCanvas() {
