@@ -11,10 +11,13 @@ function assertContains(pattern, message) {
 
 assertContains(/findWidestCaptureCamera/, "초광각 후면 카메라 선택 로직이 없습니다.");
 if (/id="captureZoomWide"/.test(html)) throw new Error("촬영 화면에 최대 축소 버튼이 남아 있습니다.");
-assertContains(/min="0\.5"\s+max="1"/, "카메라 배율 범위가 0.5x~1.0x가 아닙니다.");
+if (/id="captureZoomRange"|id="captureZoomText"|capture-zoom-controls/.test(html)) {
+  throw new Error("촬영 화면에 카메라 배율 HUD가 남아 있습니다.");
+}
 assertContains(/setWidestCaptureCameraZoom/, "카메라 전체 화각 적용 로직이 없습니다.");
 assertContains(/function captureNativeZoomForFactor\(/, "표시 배율을 실제 카메라 줌으로 변환하는 로직이 없습니다.");
 assertContains(/track\.applyConstraints\(\{ advanced: \[\{ zoom: target \}\] \}\)/, "실제 카메라 트랙에 줌 배율을 적용하지 않습니다.");
+assertContains(/bindCaptureCameraPinchZoom\(captureStage\)/, "HUD 없이 카메라 배율을 조절하는 핀치 줌이 없습니다.");
 assertContains(/function captureZoomScale\(\)\s*\{[\s\S]*?return 1;/, "카메라 줌을 화면 요소 크기로 다시 적용하고 있습니다.");
 if (/capturePreview\.style\.transform\s*=\s*`[^`]*scale\(/.test(html)) {
   throw new Error("카메라 미리보기에 CSS 확대/축소가 남아 있습니다.");

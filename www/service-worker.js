@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-camera-fix-v2";
+const CACHE_NAME = "poomsae-training-camera-aspect-v3";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",
