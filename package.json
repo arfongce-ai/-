@@ -37,6 +37,7 @@
     "@capacitor/android": "^7.0.0",
     "@capacitor/cli": "^7.0.0",
     "@capacitor/core": "^7.0.0",
+    "@capacitor/screen-orientation": "^7.0.4",
     "@mediapipe/tasks-vision": "^0.10.22"
   },
   "devDependencies": {}

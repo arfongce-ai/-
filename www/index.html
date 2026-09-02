@@ -3600,7 +3600,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새수련 <span class="header-beta">Beta</span></h1>
-          <p class="small">내 품새 영상을 동작별로 쉽게 확인해요 · v4.20</p>
+          <p class="small">내 품새 영상을 동작별로 쉽게 확인해요 · v4.22</p>
         </div>
         <span class="badge">수련 보조 · Beta</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -3641,8 +3641,9 @@
             <button type="button" id="captureTrajectoryToggle" class="capture-chip">궤적 OFF</button>
           </div>
           <div class="capture-pose-mode" aria-label="스켈레톤 인식 인원">
-            <button type="button" id="captureSinglePose" class="capture-chip">개인</button>
-            <button type="button" id="captureMultiPose" class="capture-chip active">단체</button>
+            <button type="button" id="captureSinglePose" class="capture-chip">개인전 · 1명</button>
+            <button type="button" id="capturePairPose" class="capture-chip">복식전 · 2명</button>
+            <button type="button" id="captureMultiPose" class="capture-chip active">단체전 · 3명</button>
           </div>
           <div id="captureTeamStatus" class="capture-team-status" role="status" aria-live="polite">0/3명 · 세 명을 화면에 맞추세요</div>
           <div class="capture-status" id="captureStatus">
@@ -3724,9 +3725,13 @@
                   <strong>개인전</strong>
                   <span>개인 기술 완성도 중심</span>
                 </button>
+                <button type="button" class="poomsae-tab event-tab" data-event="pair">
+                  <strong>복식전 · 2명</strong>
+                  <span>남녀 혼성 · 개인 수행과 두 선수의 일치</span>
+                </button>
                 <button type="button" class="poomsae-tab event-tab" data-event="team">
-                  <strong>단체전</strong>
-                  <span>동시성·대형·간격까지 확인</span>
+                  <strong>단체전 · 3명</strong>
+                  <span>남자부·여자부 · 동시성·대형·간격 확인</span>
                 </button>
               </div>
             </div>
@@ -3990,6 +3995,11 @@
               <h3>영상 파일 넣기</h3>
             </div>
             <div class="control-grid">
+              <label class="field-label">경기 구분<select id="compareEventSelect" class="compare-select">
+                <option value="individual">개인전 · 1명</option>
+                <option value="pair">복식전 · 2명</option>
+                <option value="team">단체전 · 3명</option>
+              </select></label>
               <label class="field-label">전 영상<input id="compareBeforeInput" type="file" accept="video/mp4,video/*" /></label>
               <label class="field-label">후 영상<input id="compareAfterInput" type="file" accept="video/mp4,video/*" /></label>
             </div>
@@ -4249,6 +4259,8 @@
       const CLOUD_REPORT_QUEUE_MAX = 40;
       const LOCAL_TEAM_REPORT_HISTORY_KEY = "poomsae_team_report_history_v1";
       const LOCAL_TEAM_REPORT_HISTORY_MAX = 50;
+      const LOCAL_PAIR_REPORT_HISTORY_KEY = "poomsae_pair_report_history_v1";
+      const LOCAL_PAIR_REPORT_HISTORY_MAX = 50;
       const LOCAL_INDIVIDUAL_REPORT_HISTORY_KEY = "poomsae_individual_report_history_v1";
       const LOCAL_INDIVIDUAL_REPORT_HISTORY_MAX = 50;
       const CLOUD_COMPARE_REPORT_QUEUE_KEY = "poomsae_cloud_compare_report_queue_v1";
@@ -4335,6 +4347,7 @@
         const event = report.competition_event || null;
         const eventKey = event ? String(event.id || event.key || event.label || "").slice(0, 40) : "";
         const team = report.team_concurrent && typeof report.team_concurrent === "object" ? report.team_concurrent : null;
+        const pair = report.pair_concurrent && typeof report.pair_concurrent === "object" ? report.pair_concurrent : null;
         const captureSession = report.capture_session && typeof report.capture_session === "object" ? report.capture_session : null;
         const captureSessionSummary = captureSession ? {
           session_id: String(captureSession.session_id || "").slice(0, 100),
@@ -4343,6 +4356,8 @@
           duration_ms: Math.max(0, Math.round(Number(captureSession.duration_ms) || 0)),
           sampled_frames: Math.max(0, Math.round(Number(captureSession.sampled_frames) || 0)),
           max_detected_athletes: Math.max(0, Math.min(3, Math.round(Number(captureSession.max_detected_athletes) || 0))),
+          expected_pose_frames: Math.max(0, Math.round(Number(captureSession.expected_pose_frames) || 0)),
+          expected_pose_ratio: Number(captureSession.expected_pose_ratio) || 0,
           three_pose_frames: Math.max(0, Math.round(Number(captureSession.three_pose_frames) || 0)),
           three_pose_ratio: Number(captureSession.three_pose_ratio) || 0,
           camera_zoom: Number(captureSession.camera_zoom) || null,
@@ -4372,6 +4387,34 @@
           correction_count: Math.max(0, Math.round(Number(report.correction_log?.total) || 0)),
           team_concurrent_ratio: team ? Number(team.average_three_pose_ratio) || 0 : null,
           team_concurrent_segments: team ? Math.max(0, Math.round(Number(team.concurrent_segments) || 0)) : null,
+          pair_concurrent_ratio: pair ? Number(pair.average_expected_pose_ratio ?? pair.average_two_pose_ratio) || 0 : null,
+          pair_concurrent_segments: pair ? Math.max(0, Math.round(Number(pair.concurrent_segments) || 0)) : null,
+          pair_data: eventKey === "pair" ? {
+            schema: "poomsae-pair-analysis-v1",
+            expected_athletes: 2,
+            athlete_count: Math.max(0, Math.min(2, Math.round(Number(pair?.athlete_count) || 0))),
+            judged_segments: Math.max(0, Math.round(Number(pair?.judged_segments) || 0)),
+            concurrent_segments: Math.max(0, Math.round(Number(pair?.concurrent_segments) || 0)),
+            average_two_pose_ratio: Number(pair?.average_expected_pose_ratio ?? pair?.average_two_pose_ratio) || 0,
+            average_timing_sync_score: pair?.average_timing_sync_score == null ? null : Number(pair.average_timing_sync_score) || 0,
+            athlete_profiles: (Array.isArray(pair?.athlete_profiles) ? pair.athlete_profiles : []).slice(0, 2).map((athlete) => ({
+              athlete: Math.max(1, Math.min(2, Math.round(Number(athlete.athlete) || 1))),
+              detection_ratio: Number(athlete.detection_ratio) || 0,
+              average_visibility: Number(athlete.average_visibility) || 0,
+              average_center_x: Number(athlete.average_center_x) || 0
+            })),
+            segments: (Array.isArray(pair?.segments) ? pair.segments : []).slice(0, 80).map((segment) => ({
+              segment: Math.max(1, Math.round(Number(segment.segment) || 1)),
+              sampled_frames: Math.max(0, Math.round(Number(segment.sampled_frames) || 0)),
+              frames_with_two: Math.max(0, Math.round(Number(segment.frames_with_two) || 0)),
+              two_pose_ratio: Number(segment.expected_pose_ratio ?? segment.two_pose_ratio) || 0,
+              timing_spread_seconds: segment.timing_spread_seconds == null ? null : Number(segment.timing_spread_seconds) || 0,
+              timing_sync_score: segment.timing_sync_score == null ? null : Number(segment.timing_sync_score) || 0,
+              athlete_detection_ratios: (Array.isArray(segment.athlete_detection_ratios) ? segment.athlete_detection_ratios : []).slice(0, 2).map((value) => Number(value) || 0),
+              spacing_consistency: segment.spacing_consistency == null ? null : Number(segment.spacing_consistency) || 0
+            })),
+            capture_session: captureSessionSummary
+          } : null,
           team_data: eventKey === "team" ? {
             schema: "poomsae-team-analysis-v1",
             expected_athletes: 3,
@@ -4379,6 +4422,7 @@
             judged_segments: Math.max(0, Math.round(Number(team?.judged_segments) || 0)),
             concurrent_segments: Math.max(0, Math.round(Number(team?.concurrent_segments) || 0)),
             average_three_pose_ratio: Number(team?.average_three_pose_ratio) || 0,
+            average_timing_sync_score: team?.average_timing_sync_score == null ? null : Number(team.average_timing_sync_score) || 0,
             athlete_profiles: (Array.isArray(team?.athlete_profiles) ? team.athlete_profiles : []).slice(0, 3).map((athlete) => ({
               athlete: Math.max(1, Math.min(3, Math.round(Number(athlete.athlete) || 1))),
               detection_ratio: Number(athlete.detection_ratio) || 0,
@@ -4390,6 +4434,8 @@
               sampled_frames: Math.max(0, Math.round(Number(segment.sampled_frames) || 0)),
               frames_with_three: Math.max(0, Math.round(Number(segment.frames_with_three) || 0)),
               three_pose_ratio: Number(segment.three_pose_ratio) || 0,
+              timing_spread_seconds: segment.timing_spread_seconds == null ? null : Number(segment.timing_spread_seconds) || 0,
+              timing_sync_score: segment.timing_sync_score == null ? null : Number(segment.timing_sync_score) || 0,
               athlete_detection_ratios: (Array.isArray(segment.athlete_detection_ratios) ? segment.athlete_detection_ratios : []).slice(0, 3).map((value) => Number(value) || 0),
               spacing_consistency: segment.spacing_consistency == null ? null : Number(segment.spacing_consistency) || 0
             })),
@@ -4429,6 +4475,24 @@
           .slice(0, LOCAL_TEAM_REPORT_HISTORY_MAX);
         try {
           localStorage.setItem(LOCAL_TEAM_REPORT_HISTORY_KEY, JSON.stringify(next));
+          return true;
+        } catch (e) { return false; }
+      }
+      function loadLocalPairReportHistory() {
+        try {
+          const rows = JSON.parse(localStorage.getItem(LOCAL_PAIR_REPORT_HISTORY_KEY) || "[]");
+          return Array.isArray(rows) ? rows : [];
+        } catch (e) { return []; }
+      }
+      function savePairReportLocally(report) {
+        const compact = compactLearningReport(report);
+        if (!compact || compact.competition_event !== "pair") return false;
+        const rows = loadLocalPairReportHistory();
+        const recordId = `${compact.created_at}|${compact.poomsae}|${compact.segment_count}`;
+        const next = [{ ...compact, record_id: recordId }, ...rows.filter((row) => row && row.record_id !== recordId)]
+          .slice(0, LOCAL_PAIR_REPORT_HISTORY_MAX);
+        try {
+          localStorage.setItem(LOCAL_PAIR_REPORT_HISTORY_KEY, JSON.stringify(next));
           return true;
         } catch (e) { return false; }
       }
@@ -5465,10 +5529,23 @@ function applyBannerToDom(config) {
       }
 
       function activeCompetitionEventProfile() {
+        if (competitionEvent === "pair") {
+          return {
+            id: "pair",
+            label: "복식전",
+            expected_athletes: 2,
+            score_label: "복식전 참고점수",
+            analysis_focus: "선수별 수행 + 두 선수의 동작 일치",
+            axes: ["복식전 추가 확인: 두 선수의 시작·맺음 타이밍", "복식전 추가 확인: 속도·리듬·방향 일치", "복식전 추가 확인: 선수 간 간격 유지"],
+            summary: "복식전은 두 선수의 개인별 정확성과 표현력에 더해 시작·맺음 타이밍, 속도·리듬·방향과 간격의 일치를 함께 확인합니다.",
+            card_hint: "복식전 적용: 두 선수 각각의 자세 정확성과 함께 동작 시작·맺음, 속도·리듬·방향과 간격이 일치하는지 확인하세요."
+          };
+        }
         if (competitionEvent === "team") {
           return {
             id: "team",
             label: "단체전",
+            expected_athletes: 3,
             score_label: "단체전 참고점수",
             analysis_focus: "개인 수행 + 팀 전체 싱크",
             axes: ["단체전 추가 확인: 동작 타이밍 일치", "단체전 추가 확인: 선수 간 간격·대형 유지", "단체전 추가 확인: 높낮이·속도·방향 통일"],
@@ -5479,6 +5556,7 @@ function applyBannerToDom(config) {
         return {
           id: "individual",
           label: "개인전",
+          expected_athletes: 1,
           score_label: "개인전 참고점수",
           analysis_focus: "개인 기술 완성도",
           axes: ["개인전 적용: 동작 정확성·균형·힘·속도·리듬·시선·기합·연결 완성도 중심"],
@@ -6720,7 +6798,10 @@ function applyBannerToDom(config) {
         if (name === "capture" && window.matchMedia && window.matchMedia("(min-width: 769px)").matches) {
           name = "analysis";
         }
-        if (name !== "capture") releaseCaptureCamera();
+        if (name !== "capture") {
+          releaseCaptureCamera();
+          releaseOrientation();
+        }
         document.body.dataset.appPage = name;
         appTabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.appTab === name));
         Object.entries(appPanels).forEach(([key, panel]) => {
@@ -6728,7 +6809,7 @@ function applyBannerToDom(config) {
         });
         if (name === "analysis") renderWizard();
       }
-      document.addEventListener("click", (event) => {
+      document.addEventListener("click", async (event) => {
         const button = event.target && event.target.closest ? event.target.closest("[data-app-tab], [data-open-tab]") : null;
         if (!button) return;
         let name = button.dataset.appTab || button.dataset.openTab;
@@ -6736,6 +6817,7 @@ function applyBannerToDom(config) {
         if (name === "capture" && window.matchMedia && window.matchMedia("(min-width: 769px)").matches) name = "analysis";
         setAppTab(name);
         if (name === "capture") {
+          await requestLandscape();
           startCamera().catch((error) => {
             if (captureCameraStatus) captureCameraStatus.textContent = `카메라를 열 수 없습니다: ${error.message || error}`;
           });
@@ -6755,6 +6837,7 @@ function applyBannerToDom(config) {
       const captureSkeletonToggle = document.getElementById("captureSkeletonToggle");
       const captureTrajectoryToggle = document.getElementById("captureTrajectoryToggle");
       const captureSinglePose = document.getElementById("captureSinglePose");
+      const capturePairPose = document.getElementById("capturePairPose");
       const captureMultiPose = document.getElementById("captureMultiPose");
       const captureTeamStatus = document.getElementById("captureTeamStatus");
       const captureQualityStandard = document.getElementById("captureQualityStandard");
@@ -6767,6 +6850,7 @@ function applyBannerToDom(config) {
       const analysisZoomOut = document.getElementById("analysisZoomOut");
       const compareBeforeInput = document.getElementById("compareBeforeInput");
       const compareAfterInput = document.getElementById("compareAfterInput");
+      const compareEventSelect = document.getElementById("compareEventSelect");
       const compareUploadLayer = document.getElementById("compareUploadLayer");
       const compareEvalLayer = document.getElementById("compareEvalLayer");
       const compareToEvalBtn = document.getElementById("compareToEvalBtn");
@@ -6897,6 +6981,12 @@ function applyBannerToDom(config) {
         if (!file) return "";
         return [file.name, file.size, file.type, file.lastModified].join("|");
       }
+      function captureExpectedAthletes() {
+        return capturePoseMode === "multi" ? 3 : capturePoseMode === "pair" ? 2 : 1;
+      }
+      function captureCompetitionEvent() {
+        return capturePoseMode === "multi" ? "team" : capturePoseMode === "pair" ? "pair" : "individual";
+      }
       function newFlowLinkId(prefix = "flow") {
         const randomPart = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
         return `${prefix}-${randomPart}`;
@@ -6909,11 +6999,15 @@ function applyBannerToDom(config) {
           source_file: String(file.name || "").slice(0, 160),
           poomsae: String(report.poomsae?.id || "").slice(0, 80),
           poomsae_name: String(report.poomsae?.name || "").slice(0, 120),
+          competition_event: String(report.competition_event?.id || "individual").slice(0, 20),
+          expected_athletes: Math.max(1, Math.min(3, Math.round(Number(report.competition_event?.expected_athletes || report.capture_session?.expected_athletes) || 1))),
           score_10: Number(report.summary?.competition_score_10) || 0,
           score_100: Number(report.summary?.score_100) || 0,
           detection_rate: Number(report.summary?.detection_rate) || 0,
           analysis_confidence: Number(reliability.analysis_confidence) || 0,
           camera_count: Math.max(1, Math.min(3, Math.round(Number(reliability.camera_count) || 1))),
+          group_detection_ratio: Number(report.group_concurrent?.average_expected_pose_ratio) || 0,
+          group_timing_sync_score: report.group_concurrent?.average_timing_sync_score == null ? null : Number(report.group_concurrent.average_timing_sync_score) || 0,
           capture_session_id: String(report.capture_session?.session_id || "").slice(0, 100),
           created_at: String(report.created_at || "").slice(0, 40)
         };
@@ -6928,6 +7022,29 @@ function applyBannerToDom(config) {
         analysisComparisonHistory.push({ key, file, link });
         if (analysisComparisonHistory.length > 4) analysisComparisonHistory.splice(0, analysisComparisonHistory.length - 4);
       }
+      function compareEventType() {
+        const value = compareEventSelect?.value || "individual";
+        return value === "pair" || value === "team" ? value : "individual";
+      }
+      function compareExpectedAthletes() {
+        return expectedAthletesForEvent(compareEventType());
+      }
+      function compareAnalysisCompatibility(beforeAnalysis, afterAnalysis) {
+        if (!beforeAnalysis || !afterAnalysis) return { compatible: true, reason: "" };
+        if (beforeAnalysis.competition_event !== compareEventType() || afterAnalysis.competition_event !== compareEventType()) {
+          return { compatible: false, reason: "선택한 비교 경기 유형과 분석 기록의 경기 유형이 다릅니다." };
+        }
+        if (beforeAnalysis.competition_event !== afterAnalysis.competition_event) {
+          return { compatible: false, reason: "개인전·복식전·단체전 중 같은 경기 유형끼리만 점수를 비교할 수 있습니다." };
+        }
+        if (beforeAnalysis.poomsae !== afterAnalysis.poomsae) {
+          return { compatible: false, reason: "같은 품새의 전·후 분석만 점수로 비교할 수 있습니다." };
+        }
+        if (Number(beforeAnalysis.expected_athletes) !== Number(afterAnalysis.expected_athletes)) {
+          return { compatible: false, reason: "전·후 영상의 참가 인원이 다릅니다." };
+        }
+        return { compatible: true, reason: "" };
+      }
       function setCompareFileSlot(slot, file, linkedAnalysis = null) {
         if (!file) return false;
         const isAfter = slot === "after";
@@ -6935,6 +7052,8 @@ function applyBannerToDom(config) {
         const videoEl = isAfter ? compareAfterVideo : compareBeforeVideo;
         if (!input || !videoEl) return false;
         compareLinkedAnalysis[slot] = linkedAnalysis || analysisReportByFileKey.get(captureFileKey(file)) || null;
+        const linkedEvent = compareLinkedAnalysis[slot]?.competition_event;
+        if (compareEventSelect && ["individual", "pair", "team"].includes(linkedEvent)) compareEventSelect.value = linkedEvent;
         try {
           const transfer = new DataTransfer();
           transfer.items.add(file);
@@ -6953,9 +7072,11 @@ function applyBannerToDom(config) {
       function connectLatestAnalysisToCompare() {
         const current = analysisComparisonHistory[analysisComparisonHistory.length - 1];
         if (!current?.file) return false;
-        const previous = analysisComparisonHistory.length > 1
-          ? analysisComparisonHistory[analysisComparisonHistory.length - 2]
-          : null;
+        const previous = analysisComparisonHistory.slice(0, -1).reverse().find((item) =>
+          item?.link?.competition_event === current.link?.competition_event
+          && item?.link?.poomsae === current.link?.poomsae
+          && Number(item?.link?.expected_athletes) === Number(current.link?.expected_athletes)
+        ) || null;
         if (previous?.file) setCompareFileSlot("before", previous.file, previous.link);
         setCompareFileSlot("after", current.file, current.link);
         showTrainingPage();
@@ -6963,22 +7084,24 @@ function applyBannerToDom(config) {
         const ready = Boolean(previous?.file || compareBeforeInput?.files?.[0]) && Boolean(compareAfterInput?.files?.[0] || compareAfterVideo?.src);
         setCompareLayer(ready ? "eval" : "upload");
         renderCompareResult(ready
-          ? `이전 분석과 현재 분석을 연결했습니다.<br>${escapeHtml(previous?.link?.poomsae_name || "이전 영상")} → ${escapeHtml(current.link?.poomsae_name || "현재 영상")}`
-          : "현재 분석을 ‘후 영상’에 연결했습니다. 비교할 이전 영상을 ‘전 영상’에 넣어 주세요.");
+          ? `${escapeHtml(eventLabel(current.link?.competition_event))}의 이전 분석과 현재 분석을 연결했습니다.<br>${escapeHtml(previous?.link?.poomsae_name || "이전 영상")} → ${escapeHtml(current.link?.poomsae_name || "현재 영상")}`
+          : `현재 ${escapeHtml(eventLabel(current.link?.competition_event))} 분석을 ‘후 영상’에 연결했습니다. 같은 경기 유형·품새의 이전 영상을 ‘전 영상’에 넣어 주세요.`);
         return true;
       }
       function beginCaptureRecordingStats() {
         const landscape = recordingLandscape == null ? captureIsLandscapeMode() : recordingLandscape;
         const standard = standardMediaAspect(landscape ? 4 : 3, landscape ? 3 : 4, landscape ? "landscape" : "portrait");
+        const expectedAthletes = captureExpectedAthletes();
         captureActiveRecordingStats = {
           schema: "poomsae-capture-session-v1",
           session_id: newFlowLinkId("capture"),
-          capture_mode: capturePoseMode === "multi" ? "team" : "individual",
-          expected_athletes: capturePoseMode === "multi" ? 3 : 1,
+          capture_mode: captureCompetitionEvent(),
+          expected_athletes: expectedAthletes,
           started_at: new Date().toISOString(),
           sampled_frames: 0,
           detection_histogram: [0, 0, 0, 0],
           max_detected_athletes: 0,
+          expected_pose_frames: 0,
           three_pose_frames: 0,
           camera_label: String(captureCurrentCameraLabel || "").slice(0, 120),
           camera_zoom: Number(captureStage?.dataset.cameraZoom) || null,
@@ -6989,6 +7112,7 @@ function applyBannerToDom(config) {
       }
       function recordCapturePoseSample(count) {
         const detected = Math.max(0, Math.min(3, Math.round(Number(count) || 0)));
+        const expectedAthletes = captureExpectedAthletes();
         capturePoseState.teamSamples += 1;
         capturePoseState.threePoseSamples += detected >= 3 ? 1 : 0;
         capturePoseState.maxDetected = Math.max(capturePoseState.maxDetected, detected);
@@ -6996,6 +7120,7 @@ function applyBannerToDom(config) {
         captureActiveRecordingStats.sampled_frames += 1;
         captureActiveRecordingStats.detection_histogram[detected] += 1;
         captureActiveRecordingStats.max_detected_athletes = Math.max(captureActiveRecordingStats.max_detected_athletes, detected);
+        if (detected >= expectedAthletes) captureActiveRecordingStats.expected_pose_frames += 1;
         if (detected >= 3) captureActiveRecordingStats.three_pose_frames += 1;
       }
       function finishCaptureRecordingStats(durationMs) {
@@ -7007,6 +7132,7 @@ function applyBannerToDom(config) {
           ...stats,
           duration_ms: Math.max(0, Math.round(Number(durationMs) || 0)),
           finished_at: new Date().toISOString(),
+          expected_pose_ratio: sampled ? Number((stats.expected_pose_frames / sampled).toFixed(4)) : 0,
           three_pose_ratio: sampled ? Number((stats.three_pose_frames / sampled).toFixed(4)) : 0
         };
       }
@@ -7049,16 +7175,18 @@ function applyBannerToDom(config) {
       }
       function updateCaptureTeamStatus() {
         if (!captureTeamStatus) return;
-        const isTeam = capturePoseMode === "multi";
-        captureTeamStatus.hidden = !isTeam;
-        if (!isTeam) return;
+        const expectedAthletes = captureExpectedAthletes();
+        const isGroup = expectedAthletes > 1;
+        captureTeamStatus.hidden = !isGroup;
+        if (!isGroup) return;
         const age = capturePoseState.lastSuccessMs ? Date.now() - capturePoseState.lastSuccessMs : Infinity;
-        const count = age <= 1200 ? Math.max(0, Math.min(3, capturePoseState.detectionCount)) : 0;
-        const stable = count >= 3;
+        const count = age <= 1200 ? Math.max(0, Math.min(expectedAthletes, capturePoseState.detectionCount)) : 0;
+        const stable = count >= expectedAthletes;
+        const subjectText = expectedAthletes === 2 ? "두 명" : "세 명";
         captureTeamStatus.classList.toggle("stable", stable);
         captureTeamStatus.textContent = stable
-          ? "3/3명 · 동시 인식 안정"
-          : `${count}/3명 · ${count ? "서로 겹치지 않게 서세요" : "세 명을 화면에 맞추세요"}`;
+          ? `${expectedAthletes}/${expectedAthletes}명 · 스켈레톤 동시 인식 안정`
+          : `${count}/${expectedAthletes}명 · ${count ? "서로 겹치지 않게 서세요" : `${subjectText}을 화면에 맞추세요`}`;
       }
       function updateRecordingTimer() {
         const elapsed = Date.now() - recordingStartedAt;
@@ -7090,7 +7218,6 @@ function applyBannerToDom(config) {
         ];
         if (!deviceId) {
           attempts.push({ video: true, audio: false });
-          attempts.push({ video: { facingMode: { ideal: "environment" } }, audio: true });
         }
         let lastError = null;
         for (const constraints of attempts) {
@@ -7318,7 +7445,7 @@ function applyBannerToDom(config) {
             recordingLandscape = null;
             return;
           }
-          const eventSlug = captureSession?.capture_mode === "team" ? "team" : "individual";
+          const eventSlug = ["individual", "pair", "team"].includes(captureSession?.capture_mode) ? captureSession.capture_mode : "individual";
           const file = new File([blob], `poomsae-${eventSlug}-recording-${new Date().toISOString().replace(/[:.]/g, "-")}.${ext}`, { type });
           savedRecordings.unshift({ file, durationMs, captureSession });
           if (captureSession) captureSessionMetaByFileKey.set(captureFileKey(file), captureSession);
@@ -7601,6 +7728,12 @@ function applyBannerToDom(config) {
           freshness
         };
       }
+      function expectedAthletesForEvent(event = competitionEvent) {
+        return event === "team" ? 3 : event === "pair" ? 2 : 1;
+      }
+      function eventLabel(event = competitionEvent) {
+        return event === "team" ? "단체전" : event === "pair" ? "복식전" : "개인전";
+      }
       function drawRecordingTrails(ctx, video, width, height, rotation = captureRotationDeg()) {
         const now = performance.now();
         ctx.save();
@@ -7757,7 +7890,7 @@ function applyBannerToDom(config) {
         if (!rawLandmarks.length) {
           captureTrails.forEach((trail) => Object.keys(trail).forEach((key) => { trail[key] = []; }));
         }
-        const displayedLandmarks = capturePoseMode === "single" ? allLandmarks.slice(0, 1) : allLandmarks;
+        const displayedLandmarks = allLandmarks.slice(0, captureExpectedAthletes());
         captureLatestLandmarks = displayedLandmarks;
         capturePoseState.detectionCount = displayedLandmarks.length;
         recordCapturePoseSample(displayedLandmarks.length);
@@ -7897,19 +8030,25 @@ function applyBannerToDom(config) {
       async function collectCaptureLandmarks(landmarker, initialResult) {
         const base = Array.isArray(initialResult?.landmarks) ? initialResult.landmarks : [];
         if (capturePoseMode === "single") return orderCapturePoses(base).slice(0, 1);
+        const expectedAthletes = captureExpectedAthletes();
         const mergedBase = mergeCapturePoseCandidates(base);
-        if (mergedBase.length >= 3) return mergedBase;
-        const crops = [
-          { x: 0, y: 0, w: 0.42, h: 1 },
-          { x: 0.29, y: 0, w: 0.42, h: 1 },
-          { x: 0.58, y: 0, w: 0.42, h: 1 }
-        ];
+        if (mergedBase.length >= expectedAthletes) return mergedBase.slice(0, expectedAthletes);
+        const crops = expectedAthletes === 2
+          ? [
+              { x: 0, y: 0, w: 0.58, h: 1 },
+              { x: 0.42, y: 0, w: 0.58, h: 1 }
+            ]
+          : [
+              { x: 0, y: 0, w: 0.42, h: 1 },
+              { x: 0.29, y: 0, w: 0.42, h: 1 },
+              { x: 0.58, y: 0, w: 0.42, h: 1 }
+            ];
         const cropCandidates = [];
         for (const crop of crops) {
           const detected = await detectCaptureCropPose(landmarker, crop);
           cropCandidates.push(...detected);
         }
-        return mergeCapturePoseCandidates([...mergedBase, ...cropCandidates]);
+        return mergeCapturePoseCandidates([...mergedBase, ...cropCandidates]).slice(0, expectedAthletes);
       }
       function capturePoseDistance(a, b) {
         const dx = capturePoseCenterX(a) - capturePoseCenterX(b);
@@ -7917,11 +8056,12 @@ function applyBannerToDom(config) {
         return Math.hypot(dx, dy);
       }
       function alignCapturePosesToPrevious(poses) {
-        const ordered = orderCapturePoses(poses).slice(0, 3);
+        const expectedAthletes = captureExpectedAthletes();
+        const ordered = orderCapturePoses(poses).slice(0, expectedAthletes);
         if (capturePoseMode === "single" || !captureSmoothedLandmarks.length || ordered.length < 2) return ordered;
         const remaining = ordered.slice();
         const aligned = [];
-        captureSmoothedLandmarks.slice(0, 3).forEach((previousPose) => {
+        captureSmoothedLandmarks.slice(0, expectedAthletes).forEach((previousPose) => {
           if (!previousPose || !remaining.length) return;
           let bestIndex = -1;
           let bestDistance = Infinity;
@@ -7935,7 +8075,7 @@ function applyBannerToDom(config) {
           if (bestIndex >= 0 && bestDistance <= 0.28) aligned.push(remaining.splice(bestIndex, 1)[0]);
         });
         aligned.push(...remaining.sort((a, b) => capturePoseCenterX(a) - capturePoseCenterX(b)));
-        return aligned.slice(0, 3);
+        return aligned.slice(0, expectedAthletes);
       }
       function smoothCapturePoses(poses) {
         return poses.map((pose, poseIndex) => {
@@ -7945,7 +8085,7 @@ function applyBannerToDom(config) {
             const old = previous?.[pointIndex];
             if (!old || !Number.isFinite(old.x) || !Number.isFinite(old.y)) return { ...point };
             const visibility = point.visibility == null ? 1 : point.visibility;
-            const alpha = capturePoseMode === "multi"
+            const alpha = capturePoseMode !== "single"
               ? (visibility >= .65 ? .92 : .78)
               : (visibility >= .65 ? .48 : .28);
             return { ...point, x: old.x + (point.x - old.x) * alpha, y: old.y + (point.y - old.y) * alpha, z: (old.z || 0) + ((point.z || 0) - (old.z || 0)) * alpha };
@@ -7953,19 +8093,41 @@ function applyBannerToDom(config) {
         });
       }
       function setCapturePoseMode(mode) {
-        capturePoseMode = mode === "single" ? "single" : "multi";
+        capturePoseMode = mode === "single" ? "single" : mode === "pair" ? "pair" : "multi";
         captureSmoothedLandmarks = [];
         captureSinglePose?.classList.toggle("active", capturePoseMode === "single");
+        capturePairPose?.classList.toggle("active", capturePoseMode === "pair");
         captureMultiPose?.classList.toggle("active", capturePoseMode === "multi");
         updateCapturePoseStatus();
         updateCaptureTeamStatus();
       }
+      function captureOrientationPlugin() {
+        if (!window.Capacitor?.isPluginAvailable?.("ScreenOrientation")) return null;
+        return window.Capacitor?.Plugins?.ScreenOrientation || null;
+      }
       async function requestLandscape() {
         if (!window.matchMedia?.("(max-width: 768px)").matches) return;
-        try { await screen.orientation?.lock?.("landscape"); } catch (error) { /* 브라우저 정책상 잠금이 거부될 수 있음 */ }
+        if (captureCameraStatus) captureCameraStatus.textContent = "카메라 화면을 가로(90°)로 전환 중입니다...";
+        const plugin = captureOrientationPlugin();
+        try {
+          if (plugin?.lock) await plugin.lock({ orientation: "landscape-primary" });
+          else await screen.orientation?.lock?.("landscape-primary");
+        } catch (primaryError) {
+          try { await screen.orientation?.lock?.("landscape"); }
+          catch (fallbackError) { console.warn("Camera landscape lock unavailable.", primaryError, fallbackError); }
+        }
+        // 네이티브 방향 전환 뒤 레이아웃 폭·높이가 확정된 프레임에서 카메라를 연다.
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        syncCaptureOrientationState();
       }
-      function releaseOrientation() {
-        try { screen.orientation?.unlock?.(); } catch (error) { /* noop */ }
+      async function releaseOrientation() {
+        const plugin = captureOrientationPlugin();
+        try {
+          if (plugin?.unlock) await plugin.unlock();
+          else screen.orientation?.unlock?.();
+        } catch (error) {
+          try { screen.orientation?.unlock?.(); } catch (fallbackError) { /* noop */ }
+        }
       }
       startRecordBtn?.addEventListener("click", startRecording);
       bindCaptureCameraPinchZoom(captureStage);
@@ -7981,6 +8143,7 @@ function applyBannerToDom(config) {
         startCapturePoseLoop();
       });
       captureSinglePose?.addEventListener("click", () => setCapturePoseMode("single"));
+      capturePairPose?.addEventListener("click", () => setCapturePoseMode("pair"));
       captureMultiPose?.addEventListener("click", () => setCapturePoseMode("multi"));
       captureQualityStandard?.addEventListener("click", () => {
         captureQuality = "standard";
@@ -7994,7 +8157,7 @@ function applyBannerToDom(config) {
         captureQualityStandard?.classList.remove("active");
         if (captureStream) startCamera().catch((error) => alert(`카메라를 다시 열지 못했습니다: ${error.message || error}`));
       });
-      captureBackBtn?.addEventListener("click", () => { releaseOrientation(); setAppTab("home"); });
+      captureBackBtn?.addEventListener("click", () => setAppTab("home"));
       capturePreview?.addEventListener("loadedmetadata", syncCaptureOrientationState);
       capturePreview?.addEventListener("playing", () => {
         syncCaptureOrientationState();
@@ -8084,7 +8247,7 @@ function applyBannerToDom(config) {
         compareAlignOffset = { x: 0, y: 0 };
         applyCompareAlignmentOffset();
       }
-      function compareLandmarkCenter(landmarks, mode) {
+      function compareLandmarkCenter(allLandmarks, mode) {
         const groups = {
           ankle: [27, 28],
           shoulder: [11, 12],
@@ -8092,27 +8255,33 @@ function applyBannerToDom(config) {
           hip: [23, 24]
         };
         const indexes = groups[mode] || [];
-        const points = indexes.map((i) => landmarks?.[i]).filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y) && (p.visibility == null || p.visibility >= 0.2));
+        const poses = Array.isArray(allLandmarks?.[0]) ? allLandmarks : (Array.isArray(allLandmarks) ? [allLandmarks] : []);
+        const points = poses.slice(0, compareExpectedAthletes()).flatMap((landmarks) =>
+          indexes.map((i) => landmarks?.[i]).filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y) && (p.visibility == null || p.visibility >= 0.2))
+        );
         if (!points.length) return null;
         return {
           x: points.reduce((sum, p) => sum + p.x, 0) / points.length,
           y: points.reduce((sum, p) => sum + p.y, 0) / points.length
         };
       }
-      async function detectComparePose(videoEl) {
-        if (!videoEl || videoEl.readyState < 2) return null;
+      async function detectComparePoses(videoEl) {
+        if (!videoEl || videoEl.readyState < 2) return [];
         if (!poseLandmarker) await loadModel();
-        if (!poseLandmarker) return null;
+        if (!poseLandmarker) return [];
         let ts = Math.round(performance.now());
         if (ts <= lastDetectTimestampMs) ts = lastDetectTimestampMs + 1;
         lastDetectTimestampMs = ts;
         try {
           const result = poseLandmarker.detectForVideo(videoEl, ts);
           const poses = Array.isArray(result?.landmarks) ? result.landmarks : [];
-          return poses.sort((a, b) => visibleLandmarkScore(b) - visibleLandmarkScore(a))[0] || null;
+          return poses
+            .filter((pose) => visibleLandmarkScore(pose) >= 0.25)
+            .sort((a, b) => capturePoseCenterX(a) - capturePoseCenterX(b))
+            .slice(0, compareExpectedAthletes());
         } catch (error) {
           console.warn("Compare pose alignment skipped.", error);
-          return null;
+          return [];
         }
       }
       async function updateCompareAlignment() {
@@ -8121,9 +8290,15 @@ function applyBannerToDom(config) {
           resetCompareAlignment();
           return;
         }
-        const [beforePose, afterPose] = await Promise.all([detectComparePose(compareBeforeVideo), detectComparePose(compareAfterVideo)]);
-        const beforeCenter = compareLandmarkCenter(beforePose, mode);
-        const afterCenter = compareLandmarkCenter(afterPose, mode);
+        const [beforePoses, afterPoses] = await Promise.all([detectComparePoses(compareBeforeVideo), detectComparePoses(compareAfterVideo)]);
+        const expected = compareExpectedAthletes();
+        if (beforePoses.length < expected || afterPoses.length < expected) {
+          renderCompareResult(`${eventLabel(compareEventType())} 비교에는 전·후 영상에서 ${expected}명이 모두 보여야 합니다. 현재 전 ${beforePoses.length}명 · 후 ${afterPoses.length}명 검출입니다.`);
+          resetCompareAlignment();
+          return;
+        }
+        const beforeCenter = compareLandmarkCenter(beforePoses, mode);
+        const afterCenter = compareLandmarkCenter(afterPoses, mode);
         if (!beforeCenter || !afterCenter) {
           renderCompareResult("겹침 기준점을 찾지 못했습니다. 다른 기준을 선택하거나 영상의 자세가 잘 보이는 지점으로 이동하세요.");
           resetCompareAlignment();
@@ -8198,6 +8373,10 @@ function applyBannerToDom(config) {
       bindCompareInput(compareBeforeInput, compareBeforeVideo, "before");
       bindCompareInput(compareAfterInput, compareAfterVideo, "after");
       updateCompareReadyState();
+      compareEventSelect?.addEventListener("change", () => {
+        resetCompareAlignment();
+        renderCompareResult(`${eventLabel(compareEventType())} ${compareExpectedAthletes()}명 비교로 설정했습니다. 전·후 영상 모두 같은 경기 유형과 품새를 사용하세요.`);
+      });
       compareToEvalBtn?.addEventListener("click", () => {
         if (!compareVideosSelected()) {
           updateCompareReadyState();
@@ -8283,15 +8462,24 @@ function applyBannerToDom(config) {
         const beforeAnalysis = compareLinkedAnalysis.before;
         const afterAnalysis = compareLinkedAnalysis.after;
         const linkedAnalysisCount = Number(Boolean(beforeAnalysis)) + Number(Boolean(afterAnalysis));
-        const scoreDelta10 = beforeAnalysis && afterAnalysis
+        const compatibility = compareAnalysisCompatibility(beforeAnalysis, afterAnalysis);
+        const scoreDelta10 = beforeAnalysis && afterAnalysis && compatibility.compatible
           ? Number(((Number(afterAnalysis.score_10) || 0) - (Number(beforeAnalysis.score_10) || 0)).toFixed(2))
           : null;
-        const confidenceDelta = beforeAnalysis && afterAnalysis
+        const confidenceDelta = beforeAnalysis && afterAnalysis && compatibility.compatible
           ? Number(((Number(afterAnalysis.analysis_confidence) || 0) - (Number(beforeAnalysis.analysis_confidence) || 0)).toFixed(4))
+          : null;
+        const groupDetectionDelta = beforeAnalysis && afterAnalysis && compatibility.compatible && compareExpectedAthletes() > 1
+          ? Number(((Number(afterAnalysis.group_detection_ratio) || 0) - (Number(beforeAnalysis.group_detection_ratio) || 0)).toFixed(4))
+          : null;
+        const groupTimingDelta = beforeAnalysis && afterAnalysis && compatibility.compatible && beforeAnalysis.group_timing_sync_score != null && afterAnalysis.group_timing_sync_score != null
+          ? Number((Number(afterAnalysis.group_timing_sync_score) - Number(beforeAnalysis.group_timing_sync_score)).toFixed(1))
           : null;
         return {
           schema: "poomsae-compare-report-v1",
           created_at: new Date().toISOString(),
+          competition_event: compareEventType(),
+          expected_athletes: compareExpectedAthletes(),
           before_file: String(compareBeforeInput?.files?.[0]?.name || beforeAnalysis?.source_file || "").slice(0, 160),
           after_file: String(compareAfterInput?.files?.[0]?.name || afterAnalysis?.source_file || "").slice(0, 160),
           before_duration: Number(beforeDuration.toFixed(3)),
@@ -8309,21 +8497,29 @@ function applyBannerToDom(config) {
           align_offset_y: Number((compareAlignOffset.y || 0).toFixed(4)),
           overlap_score: overlapScore,
           linked_analysis_count: linkedAnalysisCount,
+          comparison_compatible: compatibility.compatible,
+          comparison_warning: compatibility.reason,
           before_analysis: beforeAnalysis,
           after_analysis: afterAnalysis,
           score_delta_10: scoreDelta10,
           confidence_delta: confidenceDelta,
+          group_detection_delta: groupDetectionDelta,
+          group_timing_delta: groupTimingDelta,
           child_summary: summary,
           child_time_text: durationText,
           child_tip: tip
         };
       }
       function renderCompareReport(report) {
-        const analysisDelta = report.linked_analysis_count === 2
+        const analysisDelta = report.linked_analysis_count === 2 && report.comparison_compatible
           ? `<br>분석 점수 변화: ${report.score_delta_10 >= 0 ? "+" : ""}${report.score_delta_10.toFixed(2)}점 · 신뢰도 변화 ${report.confidence_delta >= 0 ? "+" : ""}${Math.round(report.confidence_delta * 100)}%p`
+            + (report.expected_athletes > 1 && report.group_detection_delta != null ? `<br>${escapeHtml(eventLabel(report.competition_event))} 동시 인식 변화: ${report.group_detection_delta >= 0 ? "+" : ""}${Math.round(report.group_detection_delta * 100)}%p${report.group_timing_delta != null ? ` · 타이밍 일치 ${report.group_timing_delta >= 0 ? "+" : ""}${report.group_timing_delta.toFixed(1)}점` : ""}` : "")
+          : report.linked_analysis_count === 2 && !report.comparison_compatible
+            ? `<br>점수 비교 보류: ${escapeHtml(report.comparison_warning)}`
           : "<br>분석 결과 연결: 비교 영상 중 분석 완료 영상만 자동 연결됨";
         renderCompareResult(`
           <strong>비교 결과</strong><br>
+          경기 구분: ${escapeHtml(eventLabel(report.competition_event))} · ${report.expected_athletes}명<br>
           ${escapeHtml(report.child_summary)}<br>
           시간: ${escapeHtml(report.child_time_text)}<br>
           겹침 점수: ${report.overlap_score}점<br>
@@ -8501,12 +8697,11 @@ function applyBannerToDom(config) {
         renderCompareReport(report);
         sendLatestCompareReportToCloud(report);
       }
-      function analyzeCompareVideos() {
+      async function analyzeCompareVideos() {
         if (!compareVideosReady()) {
-          waitCompareVideosReady().then((ready) => {
-            if (ready) analyzeCompareVideos();
-            else renderCompareResult("전 영상과 후 영상을 모두 선택한 뒤 비교 분석을 누르세요.");
-          });
+          const ready = await waitCompareVideosReady();
+          if (ready) return analyzeCompareVideos();
+          renderCompareResult("전 영상과 후 영상을 모두 선택한 뒤 비교 분석을 누르세요.");
           return;
         }
         const beforeDuration = safeMediaDuration(compareBeforeVideo);
@@ -8514,6 +8709,13 @@ function applyBannerToDom(config) {
         if (!beforeDuration || !afterDuration) {
           renderCompareResult(`시간 변화: 영상 길이 정보를 확인할 수 없습니다.<br>전 영상: ${compareBeforeVideo.videoWidth}x${compareBeforeVideo.videoHeight}<br>후 영상: ${compareAfterVideo.videoWidth}x${compareAfterVideo.videoHeight}`);
           return;
+        }
+        if (compareExpectedAthletes() > 1) {
+          const [beforePoses, afterPoses] = await Promise.all([detectComparePoses(compareBeforeVideo), detectComparePoses(compareAfterVideo)]);
+          if (beforePoses.length < compareExpectedAthletes() || afterPoses.length < compareExpectedAthletes()) {
+            renderCompareResult(`${eventLabel(compareEventType())} 비교 보류: 전·후 영상에 ${compareExpectedAthletes()}명이 모두 보여야 합니다. 현재 전 ${beforePoses.length}명 · 후 ${afterPoses.length}명 검출입니다.`);
+            return;
+          }
         }
         latestCompareReport = buildCompareReport();
         renderCompareReport(latestCompareReport);
@@ -10291,7 +10493,9 @@ function applyBannerToDom(config) {
           ? `<div class="metric"><strong>분석 중심</strong><span>동작별 확인</span></div>`
           : `<div class="metric"><strong>${escapeHtml(eventProfile.score_label)}</strong><span>${escapeHtml(latestReport.summary.competition_score_10)} / 10.0</span></div>`;
         const eventDataMetric = eventProfile.id === "team"
-          ? `<div class="metric"><strong>3명 동시 인식</strong><span>${Math.round((Number(latestReport.team_concurrent?.average_three_pose_ratio) || 0) * 100)}% · 기록 저장됨</span></div>`
+          ? `<div class="metric"><strong>3명 동시 인식</strong><span>${Math.round((Number(latestReport.team_concurrent?.average_expected_pose_ratio) || Number(latestReport.team_concurrent?.average_three_pose_ratio) || 0) * 100)}% · 기록 저장됨</span></div>`
+          : eventProfile.id === "pair"
+            ? `<div class="metric"><strong>2명 동시 인식</strong><span>${Math.round((Number(latestReport.pair_concurrent?.average_expected_pose_ratio) || Number(latestReport.pair_concurrent?.average_two_pose_ratio) || 0) * 100)}% · 기록 저장됨</span></div>`
           : eventProfile.id === "individual"
             ? `<div class="metric"><strong>개인전 데이터</strong><span>${latestReport.segments.length}개 구간 · 기록 저장됨</span></div>`
             : "";
@@ -11133,7 +11337,7 @@ function applyBannerToDom(config) {
       });
       async function configureAnalysisPoseLandmarker() {
         if (!poseLandmarker || typeof poseLandmarker.setOptions !== "function") return;
-        const options = trainingMode === "competition" && competitionEvent === "team"
+        const options = trainingMode === "competition" && competitionEvent !== "individual"
           ? TEAM_ANALYSIS_POSE_OPTIONS
           : STANDARD_ANALYSIS_POSE_OPTIONS;
         try {
@@ -13193,6 +13397,68 @@ function applyBannerToDom(config) {
           feedback: feedbackFor(movement, { visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore })
         };
       }
+      function framesForAthlete(rawFrames, athleteIndex, expectedAthletes) {
+        return (Array.isArray(rawFrames) ? rawFrames : []).map((frame) => {
+          const poses = (Array.isArray(frame.allLandmarks) && frame.allLandmarks.length
+            ? frame.allLandmarks
+            : (frame.landmarks ? [frame.landmarks] : []))
+            .filter((pose) => Array.isArray(pose))
+            .sort((a, b) => capturePoseCenterX(a) - capturePoseCenterX(b))
+            .slice(0, expectedAthletes);
+          return { ...frame, landmarks: poses[athleteIndex] || null };
+        });
+      }
+      function evaluateCompetitionEventSegment(movement, rawFrames, viewMeta) {
+        const expectedAthletes = trainingMode === "competition" ? expectedAthletesForEvent() : 1;
+        if (expectedAthletes === 1) return evaluateSegment(movement, rawFrames, viewMeta);
+        const athleteResults = Array.from({ length: expectedAthletes }, (_, athleteIndex) =>
+          evaluateSegment(movement, framesForAthlete(rawFrames, athleteIndex, expectedAthletes), viewMeta)
+        );
+        const average = (field) => stableRound(athleteResults.reduce((sum, result) => sum + (Number(result[field]) || 0), 0) / expectedAthletes);
+        const base = athleteResults[0];
+        const powerScore = average("powerScore");
+        const verdict = labelFor(powerScore);
+        const deductionRows = athleteResults.map((result, athleteIndex) => ({ athlete: athleteIndex + 1, deduction: result.referenceDeduction }));
+        const hasHold = deductionRows.some((row) => row.deduction?.amount == null);
+        const strongest = deductionRows.reduce((best, row) => Number(row.deduction?.amount) > Number(best.deduction?.amount) ? row : best, deductionRows[0]);
+        const referenceDeduction = hasHold
+          ? { amount: null, label: `${eventLabel()} 일부 선수 판정 보류`, reason: "필요 인원의 관절이 모두 충분히 검출되지 않아 지도자 확인이 필요합니다." }
+          : { ...strongest.deduction, label: `선수 ${strongest.athlete} · ${strongest.deduction.label}` };
+        return {
+          ...base,
+          detected: athleteResults.every((result) => result.detected),
+          detectionRate: Number((athleteResults.reduce((sum, result) => sum + result.detectionRate, 0) / expectedAthletes).toFixed(3)),
+          visibilityScore: average("visibilityScore"),
+          velocityScore: average("velocityScore"),
+          snapScore: average("snapScore"),
+          stillnessScore: average("stillnessScore"),
+          stanceScore: average("stanceScore"),
+          powerScore,
+          accuracyScore4: Number((athleteResults.reduce((sum, result) => sum + result.accuracyScore4, 0) / expectedAthletes).toFixed(2)),
+          presentationScore6: Number((athleteResults.reduce((sum, result) => sum + result.presentationScore6, 0) / expectedAthletes).toFixed(2)),
+          competitionScore10: Number((athleteResults.reduce((sum, result) => sum + result.competitionScore10, 0) / expectedAthletes).toFixed(2)),
+          movementConfidence: Number((athleteResults.reduce((sum, result) => sum + result.movementConfidence, 0) / expectedAthletes).toFixed(2)),
+          referenceDeduction,
+          type: verdict.type,
+          label: verdict.label,
+          groupAnalysis: {
+            event: competitionEvent,
+            expected_athletes: expectedAthletes,
+            detected_athletes: athleteResults.filter((result) => result.detected).length
+          },
+          athleteMetrics: athleteResults.map((result, athleteIndex) => ({
+            athlete: athleteIndex + 1,
+            detected: result.detected,
+            detection_rate: result.detectionRate,
+            score_10: result.competitionScore10,
+            accuracy_score_4: result.accuracyScore4,
+            presentation_score_6: result.presentationScore6,
+            power_score: result.powerScore,
+            stance_score: result.stanceScore,
+            timing_score: stableRound((result.velocityScore + result.snapScore + result.stillnessScore) / 3)
+          }))
+        };
+      }
       function bar(label, value) {
         return `
           <div class="barline">
@@ -13286,8 +13552,13 @@ function applyBannerToDom(config) {
           const connTag = result.connectionTag
             ? `<span class="conn-tag" style="display:inline-block;margin-top:6px;font-size:11px;color:#1d6fa5;background:#e7f2fb;border-radius:10px;padding:2px 8px">↔ ${result.connectionTag} · 앞 동작과 한 자리에서 이어집니다</span>`
             : "";
-          const teamConcurrentTag = (trainingMode === "competition" && competitionEvent === "team" && result.teamConcurrent && result.teamConcurrent.three_pose_ratio != null)
-            ? `<span class="conn-tag" style="display:inline-block;margin-top:6px;font-size:11px;color:${result.teamConcurrent.three_pose_ratio >= 0.7 ? "#176b45" : "#9a3412"};background:${result.teamConcurrent.three_pose_ratio >= 0.7 ? "#e8f7ef" : "#fff1e8"};border-radius:10px;padding:2px 8px">👥 단체전 3명 동시 인식 ${(result.teamConcurrent.three_pose_ratio * 100).toFixed(0)}% · ${result.teamConcurrent.three_pose_ratio >= 0.7 ? "안정" : "확인 필요"}</span>`
+          const groupConcurrent = result.groupConcurrent || result.teamConcurrent;
+          const groupPoseRatio = groupConcurrent?.expected_pose_ratio ?? groupConcurrent?.three_pose_ratio;
+          const groupConcurrentTag = (trainingMode === "competition" && competitionEvent !== "individual" && groupConcurrent && groupPoseRatio != null)
+            ? `<span class="conn-tag" style="display:inline-block;margin-top:6px;font-size:11px;color:${groupPoseRatio >= 0.7 ? "#176b45" : "#9a3412"};background:${groupPoseRatio >= 0.7 ? "#e8f7ef" : "#fff1e8"};border-radius:10px;padding:2px 8px">👥 ${escapeHtml(eventLabel())} ${expectedAthletesForEvent()}명 동시 인식 ${(groupPoseRatio * 100).toFixed(0)}%${groupConcurrent.timing_sync_score != null ? ` · 타이밍 ${groupConcurrent.timing_sync_score}점` : ""} · ${groupPoseRatio >= 0.7 ? "안정" : "확인 필요"}</span>`
+            : "";
+          const athleteMetricsTag = Array.isArray(result.athleteMetrics) && result.athleteMetrics.length > 1
+            ? `<span class="conn-tag" style="display:inline-block;margin-top:6px;font-size:11px;color:#374151;background:#f3f4f6;border-radius:10px;padding:2px 8px">${result.athleteMetrics.map((athlete) => `선수 ${athlete.athlete} ${Number(athlete.score_10 || 0).toFixed(1)}점`).join(" · ")}</span>`
             : "";
           const orientationTag = (result.orientationCheck && result.orientationCheck.mismatch && result.orientationCheck.confidence >= 0.5)
             ? `<span class="conn-tag" style="display:inline-block;margin-top:6px;font-size:11px;color:var(--caution);background:var(--caution-soft);border-radius:10px;padding:2px 8px">⚠ 방향 전환 확인 필요 · ${result.orientationCheck.expectedTurn.hasTurn ? "이 동작은 돌아서야 하는데 회전이 작게 보여요" : "이 동작은 방향을 유지해야 하는데 회전이 크게 보여요"} · 경계 확인 필요</span>`
@@ -13317,7 +13588,8 @@ function applyBannerToDom(config) {
               ${stanceFindTag}
               ${kihapFindTag}
               ${connTag}
-              ${teamConcurrentTag}
+              ${groupConcurrentTag}
+              ${athleteMetricsTag}
               ${scoreBars}
               ${editControls}
             </div>
@@ -13446,15 +13718,16 @@ function applyBannerToDom(config) {
         });
         return Array.from(issueMap.values()).sort((a, b) => b.count - a.count || a.score - b.score);
       }
-      // 단체전 전체 동시 인식: 한 프레임에서 최대 3명의 포즈가 함께 검출되는 비율을 집계한다.
-      // 선수별 시간을 따로 나누거나 시작 시각 차이를 계산하지 않고, 같은 프레임의 3명 상태를
-      // 한 번에 평가한다. 검출 인원은 Pose Landmarker의 최대 3명 설정을 따른다.
-      function buildTeamConcurrentProfile(boundaryDetection) {
+      // 복식·단체 전체 인식과 동작 타이밍: 같은 프레임에서 필요한 인원이 모두 검출되는지와
+      // 선수별 관절 속도 정점의 시간차를 함께 계산한다. 공식 별도 배점이 아니라 훈련 진단 지표다.
+      function buildGroupConcurrentProfile(boundaryDetection, expectedAthletes = expectedAthletesForEvent()) {
+        const expected = Math.max(2, Math.min(3, Math.round(Number(expectedAthletes) || 2)));
         const frames = Array.isArray(boundaryDetection?.frames) ? boundaryDetection.frames : [];
         const boundaries = Array.isArray(boundaryDetection?.boundaries) ? boundaryDetection.boundaries : [];
         const sortPoses = (all) => (Array.isArray(all) ? all : [])
           .filter((pose) => Array.isArray(pose) && pose.length >= 25)
-          .sort((a, b) => poseCenterX(a) - poseCenterX(b));
+          .sort((a, b) => poseCenterX(a) - poseCenterX(b))
+          .slice(0, expected);
         const poseCenterX = (pose) => {
           const points = [getPoint(pose, 11), getPoint(pose, 12), getPoint(pose, 23), getPoint(pose, 24)].filter(Boolean);
           return points.length ? points.reduce((sum, p) => sum + p.x, 0) / points.length : 0;
@@ -13472,7 +13745,7 @@ function applyBannerToDom(config) {
           const variance = values.reduce((sum, value) => sum + Math.pow(value - avg, 2), 0) / values.length;
           return Number(Math.max(0, Math.min(1, 1 - Math.sqrt(variance) / avg)).toFixed(3));
         };
-        const athleteProfilesFor = (sourceFrames) => [0, 1, 2].map((athleteIndex) => {
+        const athleteProfilesFor = (sourceFrames) => Array.from({ length: expected }, (_, athleteIndex) => {
           const detected = sourceFrames.map((frame) => frame.poses[athleteIndex]).filter(Boolean);
           return {
             athlete: athleteIndex + 1,
@@ -13483,6 +13756,33 @@ function applyBannerToDom(config) {
             average_center_x: detected.length ? Number(mean(detected.map(poseCenterX)).toFixed(3)) : 0
           };
         });
+        const poseMotion = (previous, current, dt) => {
+          if (!previous || !current || !(dt > 0)) return null;
+          const indexes = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
+          const values = indexes.map((index) => {
+            const a = previous[index], b = current[index];
+            if (!a || !b || !Number.isFinite(a.x) || !Number.isFinite(a.y) || !Number.isFinite(b.x) || !Number.isFinite(b.y)) return null;
+            return Math.hypot(b.x - a.x, b.y - a.y) / dt;
+          }).filter(Number.isFinite);
+          return values.length ? mean(values) : null;
+        };
+        const timingSyncFor = (sourceFrames) => {
+          const peakTimes = [];
+          for (let athleteIndex = 0; athleteIndex < expected; athleteIndex += 1) {
+            const speeds = [];
+            for (let frameIndex = 1; frameIndex < sourceFrames.length; frameIndex += 1) {
+              const previous = sourceFrames[frameIndex - 1];
+              const current = sourceFrames[frameIndex];
+              const speed = poseMotion(previous.poses[athleteIndex], current.poses[athleteIndex], current.time - previous.time);
+              if (Number.isFinite(speed)) speeds.push({ time: current.time, speed });
+            }
+            if (speeds.length < 2) return { spread: null, score: null };
+            peakTimes.push(speeds.reduce((best, sample) => sample.speed > best.speed ? sample : best).time);
+          }
+          const spread = Math.max(...peakTimes) - Math.min(...peakTimes);
+          const score = Math.round(clamp(1 - spread / 0.35, 0, 1) * 100);
+          return { spread: Number(spread.toFixed(3)), score };
+        };
         const poseFrames = frames.map((frame) => ({
           time: Number(frame.time),
           poses: sortPoses(frame.allLandmarks && frame.allLandmarks.length ? frame.allLandmarks : (frame.landmarks ? [frame.landmarks] : []))
@@ -13492,7 +13792,8 @@ function applyBannerToDom(config) {
         if (boundaries.length < 3) {
           return {
             enabled: false,
-            detection_mode: "all_three_same_frame",
+            expected_athletes: expected,
+            detection_mode: "all_expected_same_frame",
             athlete_count: athleteCount,
             athlete_profiles: athleteProfilesFor(poseFrames),
             segments: []
@@ -13503,37 +13804,55 @@ function applyBannerToDom(config) {
           const start = Number(boundaries[index]);
           const end = Number(boundaries[index + 1]);
           const within = poseFrames.filter((frame) => frame.time >= start && frame.time <= end);
+          const framesWithExpected = within.filter((frame) => frame.poses.length >= expected).length;
           const framesWithThree = within.filter((frame) => frame.poses.length >= 3).length;
           const framesWithTwo = within.filter((frame) => frame.poses.length >= 2).length;
-          const threePoseRatio = within.length ? framesWithThree / within.length : 0;
-          const threePoseFrames = within.filter((frame) => frame.poses.length >= 3);
-          const spacingSamples = threePoseFrames.map((frame) => {
-            const centers = frame.poses.slice(0, 3).map(poseCenterX).sort((a, b) => a - b);
-            return ((centers[1] - centers[0]) + (centers[2] - centers[1])) / 2;
+          const expectedPoseRatio = within.length ? framesWithExpected / within.length : 0;
+          const completeFrames = within.filter((frame) => frame.poses.length >= expected);
+          const spacingSamples = completeFrames.map((frame) => {
+            const centers = frame.poses.slice(0, expected).map(poseCenterX).sort((a, b) => a - b);
+            const gaps = centers.slice(1).map((center, gapIndex) => center - centers[gapIndex]);
+            return mean(gaps);
           }).filter((value) => value > 0);
+          const timingSync = timingSyncFor(completeFrames);
           segments.push({
             segment: index + 1,
             sampled_frames: within.length,
             frames_with_two: framesWithTwo,
             frames_with_three: framesWithThree,
-            three_pose_ratio: Number(threePoseRatio.toFixed(3)),
+            frames_with_expected: framesWithExpected,
+            expected_pose_ratio: Number(expectedPoseRatio.toFixed(3)),
+            two_pose_ratio: expected === 2 ? Number(expectedPoseRatio.toFixed(3)) : Number((within.length ? framesWithTwo / within.length : 0).toFixed(3)),
+            three_pose_ratio: expected === 3 ? Number(expectedPoseRatio.toFixed(3)) : 0,
             athlete_detection_ratios: athleteProfilesFor(within).map((athlete) => athlete.detection_ratio),
             average_pair_spacing: spacingSamples.length ? Number(mean(spacingSamples).toFixed(3)) : null,
             spacing_consistency: spacingConsistency(spacingSamples),
-            all_three_same_frame: within.length >= 3 ? threePoseRatio >= 0.7 : null
+            timing_spread_seconds: timingSync.spread,
+            timing_sync_score: timingSync.score,
+            all_expected_same_frame: within.length >= 3 ? expectedPoseRatio >= 0.7 : null,
+            all_three_same_frame: expected === 3 && within.length >= 3 ? expectedPoseRatio >= 0.7 : null
           });
         }
         const judged = segments.filter((segment) => segment.sampled_frames >= 3);
+        const timingJudged = judged.filter((segment) => segment.timing_sync_score != null);
+        const averageExpectedPoseRatio = judged.length ? Number((judged.reduce((sum, segment) => sum + segment.expected_pose_ratio, 0) / judged.length).toFixed(3)) : 0;
         return {
-          enabled: athleteCount >= 3 && judged.length > 0,
-          detection_mode: "all_three_same_frame",
+          enabled: athleteCount >= expected && judged.length > 0,
+          expected_athletes: expected,
+          detection_mode: "all_expected_same_frame",
           athlete_count: athleteCount,
           judged_segments: judged.length,
-          concurrent_segments: judged.filter((segment) => segment.all_three_same_frame).length,
+          concurrent_segments: judged.filter((segment) => segment.all_expected_same_frame).length,
           athlete_profiles: athleteProfilesFor(poseFrames),
           segments,
-          average_three_pose_ratio: judged.length ? Number((judged.reduce((sum, segment) => sum + segment.three_pose_ratio, 0) / judged.length).toFixed(3)) : 0
+          average_expected_pose_ratio: averageExpectedPoseRatio,
+          average_two_pose_ratio: expected === 2 ? averageExpectedPoseRatio : 0,
+          average_three_pose_ratio: expected === 3 ? averageExpectedPoseRatio : 0,
+          average_timing_sync_score: timingJudged.length ? Math.round(mean(timingJudged.map((segment) => segment.timing_sync_score))) : null
         };
+      }
+      function buildTeamConcurrentProfile(boundaryDetection) {
+        return buildGroupConcurrentProfile(boundaryDetection, 3);
       }
       function neededTrainingFromIssues(issueCounts) {
         const fallback = trainingMode === "exam"
@@ -13551,7 +13870,8 @@ function applyBannerToDom(config) {
             visibility: "촬영 구도를 고치세요. 전신이 항상 프레임에 들어오게 카메라를 멀리 고정하면 판정 정확도가 올라갑니다."
           };
           const base = issueCounts.slice(0, 3).map((item, idx) => `${idx + 1}순위 — ${fixMap[item.key] || fixMap.visibility}`);
-          if (eventProfile.id === "team") base.push("단체전 추가 — 같은 박자에 시작·맺음이 끝나는지, 선수 간 간격과 대형이 동작 전후에 유지되는지 영상으로 함께 확인하세요.");
+          if (eventProfile.id === "team") base.push("단체전 추가 — 세 선수가 같은 박자에 시작·맺음이 끝나는지, 선수 간 간격과 대형이 동작 전후에 유지되는지 함께 확인하세요.");
+          else if (eventProfile.id === "pair") base.push("복식전 추가 — 두 선수의 시작·맺음 시점, 속도·리듬·방향과 간격이 일치하는지 함께 확인하세요.");
           else base.push("개인전 추가 — 개인의 시선, 기합, 연결 동작 완성도와 흔들림을 영상으로 세부 확인하세요.");
           return base;
         }
@@ -13658,6 +13978,8 @@ function applyBannerToDom(config) {
           items.push({ type, text: `경기품새 참고점수 ${competitionScore10.toFixed(2)} / 10.0점입니다. 정확성 추정 ${adjAccuracy4.toFixed(2)} / 4.0, 표현력 추정 ${adjPresentation6.toFixed(2)} / 6.0입니다.` });
           if (eventProfile.id === "team") {
             items.push({ type: "caution", text: "단체전 추가 평가: 동작 타이밍 일치, 선수 간 간격, 대형 유지, 높낮이·속도·방향 통일을 함께 확인합니다. 현재 자동 점수는 영상에서 잡힌 관절 기준의 참고값이며 팀 전체 싱크 확정은 지도자 확인이 필요합니다." });
+          } else if (eventProfile.id === "pair") {
+            items.push({ type: "caution", text: "복식전 추가 평가: 두 선수의 시작·맺음 타이밍, 속도·리듬·방향과 간격의 일치를 함께 확인합니다. 동시성 지표는 훈련용 참고값이며 공식 별도 배점이 아닙니다." });
           } else {
             items.push({ type: "caution", text: "개인전 평가: 개인 실수, 흔들림, 동작 오류, 균형, 힘·속도 표현, 시선·기합·연결 동작 완성도를 중심으로 보완점을 적용합니다." });
           }
@@ -13756,9 +14078,15 @@ function applyBannerToDom(config) {
         const boundaryDetectionForRun = context.boundaryDetection || null;
         const movementsForRun = context.movements || lastMovementsCache || buildGenericMovements(selectedPoomsaeKey);
         const viewForRun = context.viewForRun || lastViewForRun || cameraView || "front";
-        const teamConcurrent = context.teamConcurrent || buildTeamConcurrentProfile(boundaryDetectionForRun);
-        if (teamConcurrent && Array.isArray(teamConcurrent.segments)) {
-          results.forEach((result, index) => { result.teamConcurrent = teamConcurrent.segments[index] || null; });
+        const isGroupEvent = trainingMode === "competition" && competitionEvent !== "individual";
+        const groupConcurrent = isGroupEvent
+          ? (context.groupConcurrent || context.teamConcurrent || buildGroupConcurrentProfile(boundaryDetectionForRun, expectedAthletesForEvent()))
+          : null;
+        if (groupConcurrent && Array.isArray(groupConcurrent.segments)) {
+          results.forEach((result, index) => {
+            result.groupConcurrent = groupConcurrent.segments[index] || null;
+            if (competitionEvent === "team") result.teamConcurrent = result.groupConcurrent;
+          });
         }
         renderSegments(results);
         // ── 기합(음성) 검출: 기합 구간이 있으면 영상 오디오에서 함성을 확인한다 ──
@@ -13840,18 +14168,20 @@ function applyBannerToDom(config) {
             ? `카메라 ${analysisReliability.camera_count}대 융합 신뢰도 ${Math.round(analysisReliability.analysis_confidence * 100)}% (${analysisReliability.label}) · 각도 간 일치도 ${Math.round((analysisReliability.view_agreement || 0) * 100)}% · 단일 각도 대비 신뢰도 +${Math.round(analysisReliability.confidence_gain_vs_best_single * 100)}%p${analysisReliability.occlusion_recovered_segments ? ` · 가림 보완 ${analysisReliability.occlusion_recovered_segments}개 구간` : ""}.`
             : `카메라 1대 분석 신뢰도 ${Math.round(analysisReliability.analysis_confidence * 100)}% (${analysisReliability.label}). 2~3대 촬영은 가려진 관절을 다른 각도로 교차 확인해 신뢰도를 높입니다.`
         });
-        if (trainingMode === "competition" && competitionEvent === "team") {
-          if (teamConcurrent.enabled) {
-            const concurrent = teamConcurrent.concurrent_segments;
-            const judged = teamConcurrent.judged_segments;
+        if (isGroupEvent) {
+          if (groupConcurrent?.enabled) {
+            const concurrent = groupConcurrent.concurrent_segments;
+            const judged = groupConcurrent.judged_segments;
+            const expected = expectedAthletesForEvent();
+            const poseRatio = Number(groupConcurrent.average_expected_pose_ratio) || 0;
             summary.items.unshift({
-              type: teamConcurrent.average_three_pose_ratio >= 0.7 ? "good" : "caution",
-              text: `단체전 전체 동시 인식: 같은 프레임에서 최대 ${teamConcurrent.athlete_count}명 검출 · ${concurrent}/${judged}개 구간 안정 · 3명 동시 검출 평균 ${(teamConcurrent.average_three_pose_ratio * 100).toFixed(0)}%.`
+              type: poseRatio >= 0.7 ? "good" : "caution",
+              text: `${eventLabel()} 전체 분석: 같은 프레임에서 최대 ${groupConcurrent.athlete_count}명 검출 · ${concurrent}/${judged}개 구간 안정 · ${expected}명 동시 검출 평균 ${(poseRatio * 100).toFixed(0)}%${groupConcurrent.average_timing_sync_score != null ? ` · 동작 타이밍 일치 ${groupConcurrent.average_timing_sync_score}점` : ""}.`
             });
           } else {
             summary.items.unshift({
               type: "caution",
-              text: `단체전 전체 동시 인식 판정 보류: 같은 프레임에서 3명을 충분히 검출하지 못했습니다. 선수 전원이 겹치지 않게 보이도록 촬영해 주세요.`
+              text: `${eventLabel()} 전체 분석 보류: 같은 프레임에서 ${expectedAthletesForEvent()}명을 충분히 검출하지 못했습니다. 선수 전원이 겹치지 않게 보이도록 촬영해 주세요.`
             });
           }
         }
@@ -14043,7 +14373,9 @@ function applyBannerToDom(config) {
           frame_samples: frameSamples,
           learning_dataset_candidate: learningDatasetCandidate,
           correction_log: correctionLogSummary(),
-          team_concurrent: teamConcurrent,
+          pair_concurrent: competitionEvent === "pair" ? groupConcurrent : null,
+          team_concurrent: competitionEvent === "team" ? groupConcurrent : null,
+          group_concurrent: groupConcurrent,
           capture_session: selectedCaptureSessionMeta ? JSON.parse(JSON.stringify(selectedCaptureSessionMeta)) : null,
           analysis_reliability: analysisReliability,
           analysis_efficiency: analysisEfficiency,
@@ -14054,6 +14386,7 @@ function applyBannerToDom(config) {
         registerAnalysisForComparison(latestReport, selectedFile);
         if (!cacheHit) {
           if (trainingMode === "competition" && competitionEvent === "team") saveTeamReportLocally(latestReport);
+          if (trainingMode === "competition" && competitionEvent === "pair") savePairReportLocally(latestReport);
           if (trainingMode === "competition" && competitionEvent === "individual") saveIndividualReportLocally(latestReport);
           sendLearningReportToCloud(latestReport);
           setTimeout(showAnalysisReviewReminder, 0);
@@ -14273,7 +14606,7 @@ function applyBannerToDom(config) {
             const sampleCount = chooseSampleCount(segLen);
             const reusable = selectReusableSegmentFrames(bc.frames || [], segStart, segEnd, sampleCount);
             const frames = reusable.length ? reusable : (bc.frames || []).filter((f) => f.time >= segStart && f.time < segEnd);
-            const metrics = evaluateSegment(primary, frames, { view: lastViewForRun });
+            const metrics = evaluateCompetitionEventSegment(primary, frames, { view: lastViewForRun });
             // 수동 시간 수정에서는 화면에 보이는 영상을 구간마다 다시 탐색하지 않는다.
             // 기존 분석의 가장 가까운 대표 사진을 재사용해 최대 20여 번의 seek와 재생 끊김을 없앤다.
             const compTime = (segStart + segLen * 0.82);
@@ -15223,7 +15556,7 @@ function applyBannerToDom(config) {
           // 스냅샷은 화면 참고용이라 정밀 페인트 대기 없이 빠른 seek로 충분(필름스트립과 동일 방식).
           const snapshotTime = await waitForSeek(completionTime, true);
           snapshot = captureVideoSnapshot();
-          const metrics = evaluateSegment(primary, frames, { view: viewForRun });
+          const metrics = evaluateCompetitionEventSegment(primary, frames, { view: viewForRun });
           // 영상-분석 통일: 표시 번호는 구간 순번이 아니라 실제 동작 번호(moveNo)를 쓴다.
           // 준비(moveNo 0)는 "준비", 기합은 "기합", 번호동작은 그 moveNo.
           const numLabelOf = (m) => {
@@ -15432,9 +15765,9 @@ function applyBannerToDom(config) {
         selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
         selectedCaptureSessionMeta = selectedFile ? (captureSessionMetaByFileKey.get(captureFileKey(selectedFile)) || null) : null;
         currentAnalysisLinkId = "";
-        if (selectedCaptureSessionMeta?.capture_mode === "team" || selectedCaptureSessionMeta?.capture_mode === "individual") {
+        if (["team", "pair", "individual"].includes(selectedCaptureSessionMeta?.capture_mode)) {
           trainingMode = "competition";
-          competitionEvent = selectedCaptureSessionMeta.capture_mode === "team" ? "team" : "individual";
+          competitionEvent = selectedCaptureSessionMeta.capture_mode;
           updateTrainingModeUi();
         }
         lastPoomsaeMismatchKey = "";
@@ -15472,6 +15805,8 @@ function applyBannerToDom(config) {
         video.load();
         setProgress(0, selectedCaptureSessionMeta?.capture_mode === "team"
           ? "3인 촬영 영상을 단체전 분석에 연결했습니다. 영상 정보를 확인하는 중입니다."
+          : selectedCaptureSessionMeta?.capture_mode === "pair"
+            ? "2인 촬영 영상을 복식전 분석에 연결했습니다. 영상 정보를 확인하는 중입니다."
           : selectedCaptureSessionMeta?.capture_mode === "individual"
             ? "개인 촬영 영상을 개인전 분석에 연결했습니다. 영상 정보를 확인하는 중입니다."
             : "영상 메타데이터를 읽는 중입니다. 준비되면 분석 시작을 눌러 주세요.");
@@ -15576,7 +15911,7 @@ function applyBannerToDom(config) {
             await completeAnalysis(cloneStableData(latestReport.segments), cloneStableData(latestReport.frame_samples || []), true, cloneStableData(latestReport.analysis_efficiency || null), {
               movements: lastMovementsCache || movements,
               viewForRun: lastViewForRun,
-              teamConcurrent: latestReport.team_concurrent || null
+              groupConcurrent: latestReport.group_concurrent || latestReport.pair_concurrent || latestReport.team_concurrent || null
             });
           } else {
             renderReport([{ type: "caution", text: `${modeLabel()} 모드를 선택했습니다. 품새와 영상을 준비한 뒤 분석 시작을 누르세요.` }]);

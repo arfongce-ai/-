@@ -82,8 +82,8 @@ service cloud.firestore {
         && d.issue_counts is list
         && d.needed_training is list
         && (d.schema == 'poomsae-learning-report-v1'
-          || (isValidTeamLearningData(d) && isValidIndividualLearningData(d)))
-        && d.size() < 22;
+          || (isValidTeamLearningData(d) && isValidPairLearningData(d) && isValidIndividualLearningData(d)))
+        && d.size() < 26;
     }
     function isValidTeamLearningData(d) {
       return d.competition_event != 'team'
@@ -117,6 +117,23 @@ service cloud.firestore {
           && d.individual_data.segments.size() <= 80
           && d.individual_data.size() < 10);
     }
+    function isValidPairLearningData(d) {
+      return d.competition_event != 'pair'
+        || (d.pair_data is map
+          && d.pair_data.schema == 'poomsae-pair-analysis-v1'
+          && d.pair_data.expected_athletes == 2
+          && d.pair_data.athlete_count is number
+          && d.pair_data.athlete_count >= 0
+          && d.pair_data.athlete_count <= 2
+          && d.pair_data.average_two_pose_ratio is number
+          && d.pair_data.average_two_pose_ratio >= 0
+          && d.pair_data.average_two_pose_ratio <= 1
+          && d.pair_data.athlete_profiles is list
+          && d.pair_data.athlete_profiles.size() <= 2
+          && d.pair_data.segments is list
+          && d.pair_data.segments.size() <= 80
+          && d.pair_data.size() < 12);
+    }
     function isValidCompareReport(d) {
       return d.schema == 'poomsae-compare-report-v1'
         && d.before_duration is number
@@ -128,7 +145,7 @@ service cloud.firestore {
         && d.child_summary is string
         && d.child_time_text is string
         && d.child_tip is string
-        && d.size() < 30;
+        && d.size() < 36;
     }
     function isValidCalibrationReview(d) {
       return d.action in ['merge', 'split', 'adjust', 'cascade_adjust', 'confirm_all']

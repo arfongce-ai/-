@@ -31,9 +31,20 @@ assertContains(/--capture-overlay-row-1:[\s\S]*?--capture-overlay-row-2:[\s\S]*?
 assertContains(/\.capture-focus-ring\s*\{\s*display:\s*none;/, "녹화 버튼과 겹치는 장식 오버레이가 남아 있습니다.");
 assertContains(/numPoses:\s*3/, "Pose Landmarker가 3인 검출로 설정되지 않았습니다.");
 assertContains(/collectCaptureLandmarks/, "분할 화면 3인 보강 검출이 없습니다.");
-assertContains(/3\/3명 · 동시 인식 안정/, "3인 동시 인식 상태 표시가 없습니다.");
-assertContains(/capture_mode:\s*capturePoseMode === "multi" \? "team"/, "단체 촬영 메타데이터가 기록되지 않습니다.");
-assertContains(/competitionEvent\s*=\s*selectedCaptureSessionMeta\.capture_mode/, "개인·단체 촬영과 경기 분석이 자동 연결되지 않습니다.");
+assertContains(/id="capturePairPose"[^>]*>복식전 · 2명/, "복식전 2인 촬영 선택이 없습니다.");
+assertContains(/capturePoseMode\s*=\s*mode === "single" \? "single" : mode === "pair" \? "pair" : "multi"/, "복식전 촬영 모드가 연결되지 않았습니다.");
+assertContains(/captureExpectedAthletes\(\)/, "촬영 경기 유형별 기대 인원 계산이 없습니다.");
+assertContains(/스켈레톤 동시 인식 안정/, "복식·단체 스켈레톤 동시 인식 상태 표시가 없습니다.");
+assertContains(/capture_mode:\s*captureCompetitionEvent\(\)/, "개인·복식·단체 촬영 메타데이터가 기록되지 않습니다.");
+assertContains(/competitionEvent\s*=\s*selectedCaptureSessionMeta\.capture_mode/, "개인·복식·단체 촬영과 경기 분석이 자동 연결되지 않습니다.");
+assertContains(/data-event="pair"/, "경기 분석에 복식전 선택이 없습니다.");
+assertContains(/buildGroupConcurrentProfile/, "복식·단체 동시 인식 분석이 없습니다.");
+assertContains(/timing_sync_score/, "복식·단체 동작 타이밍 일치 분석이 없습니다.");
+assertContains(/athleteMetrics/, "복식·단체 선수별 분석 결과가 없습니다.");
+assertContains(/poomsae-pair-analysis-v1/, "복식전 저장 스키마가 없습니다.");
+assertContains(/LOCAL_PAIR_REPORT_HISTORY_KEY/, "복식전 로컬 기록 저장소가 없습니다.");
+assertContains(/pair_data:/, "클라우드 학습 리포트에 복식전 데이터가 없습니다.");
+assertContains(/savePairReportLocally/, "복식전 분석 기록 저장 함수가 없습니다.");
 assertContains(/poomsae-team-analysis-v1/, "단체전 저장 스키마가 없습니다.");
 assertContains(/LOCAL_TEAM_REPORT_HISTORY_KEY/, "단체전 로컬 기록 저장소가 없습니다.");
 assertContains(/team_data:/, "클라우드 학습 리포트에 단체전 데이터가 없습니다.");
@@ -54,14 +65,18 @@ assertContains(/registerAnalysisForComparison/, "분석 결과를 비교 이력�
 assertContains(/id="resultCompareBtn"/, "분석 결과에서 비교로 이동하는 버튼이 없습니다.");
 assertContains(/before_analysis:/, "비교 리포트에 이전 분석 연결 정보가 없습니다.");
 assertContains(/after_analysis:/, "비교 리포트에 현재 분석 연결 정보가 없습니다.");
+assertContains(/id="compareEventSelect"/, "비교 화면에 개인·복식·단체 선택이 없습니다.");
+assertContains(/detectComparePoses/, "비교 화면에서 복수 선수 스켈레톤을 확인하지 않습니다.");
+assertContains(/compareAnalysisCompatibility/, "서로 다른 경기 유형이나 품새의 비교 차단이 없습니다.");
 assertContains(/analysisReliabilitySummary/, "다중 카메라 분석 신뢰도 요약이 없습니다.");
 assertContains(/confidence_gain_vs_best_single/, "카메라 증가에 따른 신뢰도 향상값이 없습니다.");
 assertContains(/function previewAdjustedSegment\(/, "수동 시간 수정 후 구간 미리보기 갱신이 없습니다.");
 assertContains(/modalReplayRange\s*=\s*\{/, "수동 시간 수정 후 팝업 재생 범위 갱신이 없습니다.");
 if (!rules.includes("poomsae-learning-report-v2")
   || !rules.includes("poomsae-team-analysis-v1")
+  || !rules.includes("poomsae-pair-analysis-v1")
   || !rules.includes("poomsae-individual-analysis-v1")) {
-  throw new Error("Firestore 규칙이 개인전·단체전 v2 저장 스키마를 허용하지 않습니다.");
+  throw new Error("Firestore 규칙이 개인전·복식전·단체전 v2 저장 스키마를 허용하지 않습니다.");
 }
 if (!rules.includes("d.camera_count is number") || !rules.includes("d.analysis_confidence is number")) {
   throw new Error("Firestore 규칙이 카메라 수와 분석 신뢰도 저장을 검증하지 않습니다.");
@@ -75,4 +90,4 @@ inlineScripts.forEach((source, index) => {
   catch (error) { throw new Error(`인라인 스크립트 ${index + 1} 문법 오류: ${error.message}`); }
 });
 
-console.log("Team capture checks passed.");
+console.log("Individual, pair, and team capture checks passed.");
