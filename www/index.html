@@ -3600,7 +3600,7 @@
       <div class="wrap">
         <div>
           <h1>태권도 품새수련 <span class="header-beta">Beta</span></h1>
-          <p class="small">내 품새 영상을 동작별로 쉽게 확인해요 · v4.22</p>
+          <p class="small">내 품새 영상을 동작별로 쉽게 확인해요 · v4.23</p>
         </div>
         <span class="badge">수련 보조 · Beta</span>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="밝게/어둡게 전환" title="밝게/어둡게 전환">☾</button>
@@ -4197,6 +4197,8 @@
           });
           _fbReady = true;
           flushPendingCloudCorrections(); // 오프라인 때 쌓인 기록을 연결 즉시 재전송.
+          flushPendingCloudReports();
+          flushPendingCompareReports();
           initPartnerBanner(); // 공개 화면에서는 캐시만 적용해 불필요한 Firestore 읽기를 막는다.
         } catch (e) {
           _fbReady = false; // 조용히 실패. 로컬 기록은 계속 동작.
@@ -4263,6 +4265,8 @@
       const LOCAL_PAIR_REPORT_HISTORY_MAX = 50;
       const LOCAL_INDIVIDUAL_REPORT_HISTORY_KEY = "poomsae_individual_report_history_v1";
       const LOCAL_INDIVIDUAL_REPORT_HISTORY_MAX = 50;
+      const LOCAL_EVENT_REPORT_HISTORY_KEY = "poomsae_event_report_history_v1";
+      const LOCAL_EVENT_REPORT_HISTORY_MAX = 150;
       const CLOUD_COMPARE_REPORT_QUEUE_KEY = "poomsae_cloud_compare_report_queue_v1";
       const CLOUD_COMPARE_REPORT_QUEUE_MAX = 80;
       let _cloudCorrectionFlushPromise = null;
@@ -4342,12 +4346,62 @@
         try { return await _cloudReportFlushPromise; }
         finally { _cloudReportFlushPromise = null; }
       }
+      function buildEventDataQuality(report, eventKey, pair, team) {
+        const expected = eventKey === "team" ? 3 : eventKey === "pair" ? 2 : 1;
+        const group = eventKey === "team" ? team : eventKey === "pair" ? pair : null;
+        const segments = Array.isArray(report?.segments) ? report.segments : [];
+        const average = (values) => values.length
+          ? values.reduce((sum, value) => sum + value, 0) / values.length
+          : 0;
+        const clamp01 = (value) => Math.max(0, Math.min(1, Number(value) || 0));
+        const recognitionRate = group
+          ? clamp01(group.average_expected_pose_ratio)
+          : clamp01(report?.summary?.detection_rate);
+        const groupProfiles = Array.isArray(group?.athlete_profiles) ? group.athlete_profiles : [];
+        const averageVisibility = groupProfiles.length
+          ? clamp01(average(groupProfiles.map((profile) => Number(profile.average_visibility) || 0)))
+          : clamp01(average(segments.map((segment) => (Number(segment.visibilityScore) || 0) / 100)));
+        const trackStability = groupProfiles.length
+          ? clamp01(average(groupProfiles.map((profile) => Number(profile.track_stability) || 0)))
+          : recognitionRate;
+        const segmentConfidence = clamp01(average(segments.map((segment) => Number(segment.movementConfidence) || 0)));
+        const baseConfidence = clamp01(report?.analysis_reliability?.analysis_confidence || segmentConfidence);
+        // 신뢰도는 높여 보이기 위한 값이 아니라 검출·가시성·추적 연속성을 함께 만족할 때만
+        // 올라가는 보수적 품질 게이트다. 낮은 데이터는 저장하되 학습 후보에서는 제외한다.
+        const calibratedConfidence = clamp01(
+          baseConfidence * 0.45
+          + recognitionRate * 0.30
+          + averageVisibility * 0.15
+          + trackStability * 0.10
+        );
+        const level = recognitionRate >= 0.85 && calibratedConfidence >= 0.80
+          ? "high"
+          : recognitionRate >= 0.65 && calibratedConfidence >= 0.60
+            ? "medium"
+            : "low";
+        return {
+          schema: "poomsae-event-quality-v1",
+          event: eventKey,
+          expected_athletes: expected,
+          participant_composition: eventKey === "pair" ? "mixed_male_female" : eventKey === "team" ? "same_gender_male_or_female" : "individual",
+          recognition_rate: Number(recognitionRate.toFixed(3)),
+          base_analysis_confidence: Number(baseConfidence.toFixed(3)),
+          calibrated_confidence: Number(calibratedConfidence.toFixed(3)),
+          average_visibility: Number(averageVisibility.toFixed(3)),
+          track_stability: Number(trackStability.toFixed(3)),
+          quality_level: level,
+          usable_for_learning: level !== "low",
+          crop_rescue_frames: Math.max(0, Math.round(Number(report?.analysis_efficiency?.crop_rescue_frames) || 0)),
+          crop_rescue_poses: Math.max(0, Math.round(Number(report?.analysis_efficiency?.crop_rescue_poses) || 0))
+        };
+      }
       function compactLearningReport(report) {
         if (!report || typeof report !== "object") return null;
         const event = report.competition_event || null;
         const eventKey = event ? String(event.id || event.key || event.label || "").slice(0, 40) : "";
         const team = report.team_concurrent && typeof report.team_concurrent === "object" ? report.team_concurrent : null;
         const pair = report.pair_concurrent && typeof report.pair_concurrent === "object" ? report.pair_concurrent : null;
+        const quality = buildEventDataQuality(report, eventKey, pair, team);
         const captureSession = report.capture_session && typeof report.capture_session === "object" ? report.capture_session : null;
         const captureSessionSummary = captureSession ? {
           session_id: String(captureSession.session_id || "").slice(0, 100),
@@ -4358,6 +4412,9 @@
           max_detected_athletes: Math.max(0, Math.min(3, Math.round(Number(captureSession.max_detected_athletes) || 0))),
           expected_pose_frames: Math.max(0, Math.round(Number(captureSession.expected_pose_frames) || 0)),
           expected_pose_ratio: Number(captureSession.expected_pose_ratio) || 0,
+          athlete_detection_ratios: (Array.isArray(captureSession.athlete_detection_ratios) ? captureSession.athlete_detection_ratios : []).slice(0, 3).map((value) => Number(value) || 0),
+          average_pose_quality: Number(captureSession.average_pose_quality) || 0,
+          track_stability: Number(captureSession.track_stability) || 0,
           three_pose_frames: Math.max(0, Math.round(Number(captureSession.three_pose_frames) || 0)),
           three_pose_ratio: Number(captureSession.three_pose_ratio) || 0,
           camera_zoom: Number(captureSession.camera_zoom) || null,
@@ -4366,17 +4423,21 @@
           aspect_ratio: String(captureSession.aspect_ratio || "").slice(0, 10)
         } : null;
         return {
-          schema: "poomsae-learning-report-v2",
+          schema: "poomsae-learning-report-v3",
           created_at: report.created_at || new Date().toISOString(),
           poomsae: String(report.poomsae?.id || "").slice(0, 80),
           poomsae_name: String(report.poomsae?.name || "").slice(0, 120),
           training_mode: String(report.training_mode || "").slice(0, 40),
           competition_event: eventKey,
+          expected_athletes: quality.expected_athletes,
           score_100: Number(report.summary?.score_100) || 0,
           competition_score_10: Number(report.summary?.competition_score_10) || 0,
           detection_rate: Number(report.summary?.detection_rate) || 0,
           camera_count: Math.max(1, Math.min(3, Math.round(Number(report.analysis_reliability?.camera_count) || 1))),
           analysis_confidence: Number(report.analysis_reliability?.analysis_confidence) || 0,
+          recognition_rate: quality.recognition_rate,
+          data_quality_level: quality.quality_level,
+          usable_for_learning: quality.usable_for_learning,
           segment_count: Array.isArray(report.segments) ? report.segments.length : 0,
           issue_counts: (Array.isArray(report.summary?.issue_counts) ? report.summary.issue_counts : []).slice(0, 20).map((item) => ({
             key: String(item.key || "").slice(0, 80),
@@ -4389,6 +4450,39 @@
           team_concurrent_segments: team ? Math.max(0, Math.round(Number(team.concurrent_segments) || 0)) : null,
           pair_concurrent_ratio: pair ? Number(pair.average_expected_pose_ratio ?? pair.average_two_pose_ratio) || 0 : null,
           pair_concurrent_segments: pair ? Math.max(0, Math.round(Number(pair.concurrent_segments) || 0)) : null,
+          event_data: {
+            ...quality,
+            athlete_profiles: (quality.expected_athletes > 1
+              ? (Array.isArray((eventKey === "team" ? team : pair)?.athlete_profiles) ? (eventKey === "team" ? team : pair).athlete_profiles : [])
+              : [{
+                  athlete: 1,
+                  detection_ratio: quality.recognition_rate,
+                  average_visibility: quality.average_visibility,
+                  track_stability: quality.track_stability
+                }]
+            ).slice(0, quality.expected_athletes).map((athlete, athleteIndex) => ({
+              athlete: athleteIndex + 1,
+              detection_ratio: Number(athlete.detection_ratio) || 0,
+              average_visibility: Number(athlete.average_visibility) || 0,
+              track_stability: Number(athlete.track_stability) || 0,
+              large_track_jumps: Math.max(0, Math.round(Number(athlete.large_track_jumps) || 0))
+            })),
+            segments: (Array.isArray(report.segments) ? report.segments : []).slice(0, 80).map((segment) => ({
+              segment: Math.max(1, Math.round(Number(segment.order) || 1)),
+              detected: segment.detected === true,
+              detection_rate: Number(segment.detectionRate) || 0,
+              movement_confidence: Number(segment.movementConfidence) || 0,
+              athlete_metrics: (Array.isArray(segment.athleteMetrics) && segment.athleteMetrics.length
+                ? segment.athleteMetrics
+                : [{ athlete: 1, detected: segment.detected === true, detection_rate: segment.detectionRate, movement_confidence: segment.movementConfidence }]
+              ).slice(0, quality.expected_athletes).map((athlete) => ({
+                athlete: Math.max(1, Math.min(3, Math.round(Number(athlete.athlete) || 1))),
+                detected: athlete.detected === true,
+                detection_rate: Number(athlete.detection_rate) || 0,
+                movement_confidence: Number(athlete.movement_confidence) || 0
+              }))
+            }))
+          },
           pair_data: eventKey === "pair" ? {
             schema: "poomsae-pair-analysis-v1",
             expected_athletes: 2,
@@ -4401,7 +4495,9 @@
               athlete: Math.max(1, Math.min(2, Math.round(Number(athlete.athlete) || 1))),
               detection_ratio: Number(athlete.detection_ratio) || 0,
               average_visibility: Number(athlete.average_visibility) || 0,
-              average_center_x: Number(athlete.average_center_x) || 0
+              average_center_x: Number(athlete.average_center_x) || 0,
+              track_stability: Number(athlete.track_stability) || 0,
+              large_track_jumps: Math.max(0, Math.round(Number(athlete.large_track_jumps) || 0))
             })),
             segments: (Array.isArray(pair?.segments) ? pair.segments : []).slice(0, 80).map((segment) => ({
               segment: Math.max(1, Math.round(Number(segment.segment) || 1)),
@@ -4427,7 +4523,9 @@
               athlete: Math.max(1, Math.min(3, Math.round(Number(athlete.athlete) || 1))),
               detection_ratio: Number(athlete.detection_ratio) || 0,
               average_visibility: Number(athlete.average_visibility) || 0,
-              average_center_x: Number(athlete.average_center_x) || 0
+              average_center_x: Number(athlete.average_center_x) || 0,
+              track_stability: Number(athlete.track_stability) || 0,
+              large_track_jumps: Math.max(0, Math.round(Number(athlete.large_track_jumps) || 0))
             })),
             segments: (Array.isArray(team?.segments) ? team.segments : []).slice(0, 80).map((segment) => ({
               segment: Math.max(1, Math.round(Number(segment.segment) || 1)),
@@ -4511,6 +4609,24 @@
           .slice(0, LOCAL_INDIVIDUAL_REPORT_HISTORY_MAX);
         try {
           localStorage.setItem(LOCAL_INDIVIDUAL_REPORT_HISTORY_KEY, JSON.stringify(next));
+          return true;
+        } catch (e) { return false; }
+      }
+      function loadLocalEventReportHistory() {
+        try {
+          const rows = JSON.parse(localStorage.getItem(LOCAL_EVENT_REPORT_HISTORY_KEY) || "[]");
+          return Array.isArray(rows) ? rows : [];
+        } catch (e) { return []; }
+      }
+      function saveEventReportLocally(report) {
+        const compact = compactLearningReport(report);
+        if (!compact || !["individual", "pair", "team"].includes(compact.competition_event)) return false;
+        const rows = loadLocalEventReportHistory();
+        const recordId = `${compact.created_at}|${compact.competition_event}|${compact.poomsae}|${compact.segment_count}`;
+        const next = [{ ...compact, record_id: recordId }, ...rows.filter((row) => row && row.record_id !== recordId)]
+          .slice(0, LOCAL_EVENT_REPORT_HISTORY_MAX);
+        try {
+          localStorage.setItem(LOCAL_EVENT_REPORT_HISTORY_KEY, JSON.stringify(next));
           return true;
         } catch (e) { return false; }
       }
@@ -7100,6 +7216,12 @@ function applyBannerToDom(config) {
           started_at: new Date().toISOString(),
           sampled_frames: 0,
           detection_histogram: [0, 0, 0, 0],
+          athlete_detected_frames: Array(expectedAthletes).fill(0),
+          pose_quality_sum: 0,
+          pose_quality_samples: 0,
+          last_centers: Array(expectedAthletes).fill(null),
+          track_transitions: 0,
+          large_track_jumps: 0,
           max_detected_athletes: 0,
           expected_pose_frames: 0,
           three_pose_frames: 0,
@@ -7110,8 +7232,9 @@ function applyBannerToDom(config) {
           aspect_ratio: standard.label
         };
       }
-      function recordCapturePoseSample(count) {
-        const detected = Math.max(0, Math.min(3, Math.round(Number(count) || 0)));
+      function recordCapturePoseSample(value) {
+        const poses = Array.isArray(value) ? value.filter((pose) => Array.isArray(pose)) : [];
+        const detected = Math.max(0, Math.min(3, poses.length || Math.round(Number(value) || 0)));
         const expectedAthletes = captureExpectedAthletes();
         capturePoseState.teamSamples += 1;
         capturePoseState.threePoseSamples += detected >= 3 ? 1 : 0;
@@ -7122,18 +7245,42 @@ function applyBannerToDom(config) {
         captureActiveRecordingStats.max_detected_athletes = Math.max(captureActiveRecordingStats.max_detected_athletes, detected);
         if (detected >= expectedAthletes) captureActiveRecordingStats.expected_pose_frames += 1;
         if (detected >= 3) captureActiveRecordingStats.three_pose_frames += 1;
+        poses.slice(0, expectedAthletes).forEach((pose, athleteIndex) => {
+          captureActiveRecordingStats.athlete_detected_frames[athleteIndex] += 1;
+          const quality = poseQualitySummary(pose);
+          captureActiveRecordingStats.pose_quality_sum += quality.score;
+          captureActiveRecordingStats.pose_quality_samples += 1;
+          const center = { x: capturePoseCenterX(pose), y: capturePoseCenterY(pose) };
+          const previous = captureActiveRecordingStats.last_centers[athleteIndex];
+          if (previous) {
+            captureActiveRecordingStats.track_transitions += 1;
+            if (Math.hypot(center.x - previous.x, center.y - previous.y) > 0.22) captureActiveRecordingStats.large_track_jumps += 1;
+          }
+          captureActiveRecordingStats.last_centers[athleteIndex] = center;
+        });
       }
       function finishCaptureRecordingStats(durationMs) {
         const stats = captureActiveRecordingStats;
         captureActiveRecordingStats = null;
         if (!stats) return null;
         const sampled = Math.max(0, Number(stats.sampled_frames) || 0);
+        const {
+          pose_quality_sum: poseQualitySum,
+          pose_quality_samples: poseQualitySamples,
+          last_centers: _lastCenters,
+          track_transitions: trackTransitions,
+          large_track_jumps: largeTrackJumps,
+          ...persistedStats
+        } = stats;
         return {
-          ...stats,
+          ...persistedStats,
           duration_ms: Math.max(0, Math.round(Number(durationMs) || 0)),
           finished_at: new Date().toISOString(),
           expected_pose_ratio: sampled ? Number((stats.expected_pose_frames / sampled).toFixed(4)) : 0,
-          three_pose_ratio: sampled ? Number((stats.three_pose_frames / sampled).toFixed(4)) : 0
+          three_pose_ratio: sampled ? Number((stats.three_pose_frames / sampled).toFixed(4)) : 0,
+          athlete_detection_ratios: stats.athlete_detected_frames.map((count) => sampled ? Number((count / sampled).toFixed(4)) : 0),
+          average_pose_quality: poseQualitySamples ? Number((poseQualitySum / poseQualitySamples).toFixed(4)) : 0,
+          track_stability: trackTransitions ? Number(Math.max(0, 1 - largeTrackJumps / trackTransitions).toFixed(4)) : 0
         };
       }
       function captureRangeText(range) {
@@ -7893,7 +8040,7 @@ function applyBannerToDom(config) {
         const displayedLandmarks = allLandmarks.slice(0, captureExpectedAthletes());
         captureLatestLandmarks = displayedLandmarks;
         capturePoseState.detectionCount = displayedLandmarks.length;
-        recordCapturePoseSample(displayedLandmarks.length);
+        recordCapturePoseSample(displayedLandmarks);
         if (displayedLandmarks.length) {
           capturePoseState.lastSuccessMs = Date.now();
           capturePoseState.samples += 1;
@@ -7943,6 +8090,41 @@ function applyBannerToDom(config) {
         });
         return score;
       }
+      const POSE_IDENTITY_INDEXES = Object.freeze([0, 5, 6, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]);
+      function poseScaleEstimate(landmarks) {
+        if (!Array.isArray(landmarks)) return 0;
+        const point = (index) => {
+          const value = landmarks[index];
+          return value && Number.isFinite(value.x) && Number.isFinite(value.y) ? value : null;
+        };
+        const leftShoulder = point(11), rightShoulder = point(12), leftHip = point(23), rightHip = point(24);
+        const shoulderWidth = leftShoulder && rightShoulder ? Math.hypot(leftShoulder.x - rightShoulder.x, leftShoulder.y - rightShoulder.y) : 0;
+        const torsoLength = leftShoulder && rightShoulder && leftHip && rightHip
+          ? Math.hypot((leftShoulder.x + rightShoulder.x - leftHip.x - rightHip.x) / 2, (leftShoulder.y + rightShoulder.y - leftHip.y - rightHip.y) / 2)
+          : 0;
+        return Math.max(shoulderWidth, torsoLength);
+      }
+      function poseQualitySummary(landmarks) {
+        if (!Array.isArray(landmarks)) return { score: 0, visible_ratio: 0, average_visibility: 0, body_scale: 0 };
+        const observed = POSE_IDENTITY_INDEXES.map((index) => landmarks[index]).filter((point) =>
+          point && Number.isFinite(point.x) && Number.isFinite(point.y)
+          && point.x >= -0.05 && point.x <= 1.05 && point.y >= -0.05 && point.y <= 1.05
+        );
+        const visible = observed.filter((point) => (point.visibility == null ? 0.5 : point.visibility) >= 0.25);
+        const visibleRatio = observed.length ? visible.length / POSE_IDENTITY_INDEXES.length : 0;
+        const averageVisibility = visible.length
+          ? visible.reduce((sum, point) => sum + (point.visibility == null ? 0.5 : point.visibility), 0) / visible.length
+          : 0;
+        const bodyScale = poseScaleEstimate(landmarks);
+        const scaleQuality = Math.max(0, Math.min(1, bodyScale / 0.11));
+        const score = Math.max(0, Math.min(1, visibleRatio * 0.45 + averageVisibility * 0.35 + scaleQuality * 0.20));
+        return {
+          score: Number(score.toFixed(3)),
+          visible_ratio: Number(visibleRatio.toFixed(3)),
+          average_visibility: Number(averageVisibility.toFixed(3)),
+          body_scale: Number(bodyScale.toFixed(4))
+        };
+      }
       function capturePoseCenterX(landmarks) {
         if (!Array.isArray(landmarks)) return 0.5;
         let sum = 0;
@@ -7959,10 +8141,10 @@ function applyBannerToDom(config) {
       function orderCapturePoses(poses) {
         const list = Array.isArray(poses) ? poses.slice() : [];
         if (capturePoseMode === "single") {
-          return list.sort((a, b) => visibleLandmarkScore(b) - visibleLandmarkScore(a));
+          return list.sort((a, b) => poseQualitySummary(b).score - poseQualitySummary(a).score);
         }
         return list
-          .filter((pose) => visibleLandmarkScore(pose) >= 0.35)
+          .filter((pose) => poseQualitySummary(pose).score >= 0.18)
           .sort((a, b) => capturePoseCenterX(a) - capturePoseCenterX(b));
       }
       function capturePoseCenterY(landmarks) {
@@ -7978,8 +8160,19 @@ function applyBannerToDom(config) {
         });
         return count ? sum / count : 0.5;
       }
-      function mergeCapturePoseCandidates(candidates) {
-        const sorted = orderCapturePoses(candidates).sort((a, b) => visibleLandmarkScore(b) - visibleLandmarkScore(a));
+      function poseLandmarkDistance(a, b) {
+        const values = POSE_IDENTITY_INDEXES.map((index) => {
+          const first = a?.[index], second = b?.[index];
+          if (!first || !second || !Number.isFinite(first.x) || !Number.isFinite(first.y) || !Number.isFinite(second.x) || !Number.isFinite(second.y)) return null;
+          return Math.hypot(first.x - second.x, first.y - second.y);
+        }).filter(Number.isFinite);
+        return values.length >= 5 ? values.reduce((sum, value) => sum + value, 0) / values.length : Infinity;
+      }
+      function mergePoseCandidates(candidates, expectedAthletes = 3) {
+        const expected = Math.max(1, Math.min(3, Math.round(Number(expectedAthletes) || 1)));
+        const sorted = (Array.isArray(candidates) ? candidates : [])
+          .filter((pose) => Array.isArray(pose) && pose.length >= 29 && poseQualitySummary(pose).score >= 0.18)
+          .sort((a, b) => poseQualitySummary(b).score - poseQualitySummary(a).score);
         const unique = [];
         for (const pose of sorted) {
           const cx = capturePoseCenterX(pose);
@@ -7987,12 +8180,18 @@ function applyBannerToDom(config) {
           const duplicate = unique.some((old) => {
             const dx = capturePoseCenterX(old) - cx;
             const dy = capturePoseCenterY(old) - cy;
-            return Math.hypot(dx, dy) < 0.10;
+            const centerDistance = Math.hypot(dx, dy);
+            const scale = Math.max(0.04, (poseScaleEstimate(old) + poseScaleEstimate(pose)) / 2);
+            return centerDistance < Math.max(0.045, scale * 0.34)
+              && poseLandmarkDistance(old, pose) < Math.max(0.07, scale * 0.60);
           });
           if (!duplicate) unique.push(pose);
-          if (unique.length >= 3) break;
+          if (unique.length >= expected) break;
         }
         return unique.sort((a, b) => capturePoseCenterX(a) - capturePoseCenterX(b));
+      }
+      function mergeCapturePoseCandidates(candidates) {
+        return mergePoseCandidates(candidates, captureExpectedAthletes());
       }
       function remapCropPose(pose, crop) {
         return (pose || []).map((point) => point ? ({
@@ -9285,6 +9484,37 @@ function applyBannerToDom(config) {
           if (statusEl) statusEl.textContent = "정답 검수 JSON을 읽거나 저장하지 못했습니다.";
         }
       }
+      function summarizeLearningReportsByEvent(records) {
+        const labels = { individual: "개인전 · 1명", pair: "복식전 · 혼성 2명", team: "단체전 · 남/여 3명" };
+        return ["individual", "pair", "team"].map((event) => {
+          const rows = (Array.isArray(records) ? records : []).filter((row) => row?.competition_event === event);
+          const average = (key) => rows.length
+            ? rows.reduce((sum, row) => sum + (Number(row[key]) || Number(row.event_data?.[key]) || 0), 0) / rows.length
+            : 0;
+          const usable = rows.filter((row) => row.usable_for_learning === true || row.event_data?.usable_for_learning === true).length;
+          return {
+            event,
+            label: labels[event],
+            total: rows.length,
+            usable,
+            recognition_rate: average("recognition_rate"),
+            analysis_confidence: average("analysis_confidence"),
+            calibrated_confidence: average("calibrated_confidence")
+          };
+        });
+      }
+      function learningQualityDashboardHtml(records) {
+        const rows = summarizeLearningReportsByEvent(records);
+        return `
+          <h4 style="margin:4px 0 8px;font-size:14px">개인·복식·단체 학습 데이터 품질</h4>
+          <div style="display:grid;gap:8px;margin-bottom:14px">
+            ${rows.map((row) => `
+              <div style="border:1px solid #dbe4ee;border-radius:8px;padding:9px 10px">
+                <strong>${escapeHtml(row.label)}</strong>
+                <p class="small" style="margin:5px 0 0">저장 ${row.total}건 · 학습 사용 가능 ${row.usable}건 · 인식률 ${Math.round(row.recognition_rate * 100)}% · 분석 신뢰도 ${Math.round(row.analysis_confidence * 100)}%</p>
+              </div>`).join("")}
+          </div>`;
+      }
       async function loadAndRenderCorrectionReport() {
         const statusEl = document.getElementById("reportStatus");
         const bodyEl = document.getElementById("reportBody");
@@ -9306,17 +9536,26 @@ function applyBannerToDom(config) {
         if (bodyEl) bodyEl.innerHTML = "";
         try {
           let snap;
+          let learningSnap;
           try {
             snap = await _fbGetDocs(_fbCollection(_fbDB, "corrections"));
           } catch (error) {
             error.reportStep = "corrections 읽기";
             throw error;
           }
+          try {
+            learningSnap = await _fbGetDocs(_fbCollection(_fbDB, "learning_reports"));
+          } catch (error) {
+            error.reportStep = "learning_reports 읽기";
+            throw error;
+          }
           await loadBoundaryBias(); // 관리자 화면이니 최신 게시 상태를 다시 확인.
           const records = [];
           snap.forEach((d) => records.push(d.data()));
-          if (!records.length) {
-            if (statusEl) statusEl.textContent = "아직 쌓인 보정 기록이 없습니다.";
+          const learningRecords = [];
+          learningSnap.forEach((d) => learningRecords.push(d.data()));
+          if (!records.length && !learningRecords.length) {
+            if (statusEl) statusEl.textContent = "아직 쌓인 분석·보정 기록이 없습니다.";
             return;
           }
           const { locations, byPoomsae } = analyzeCorrectionRecords(records);
@@ -9326,7 +9565,7 @@ function applyBannerToDom(config) {
           const reviewedTotal = locations.reduce((n, l) => n + l.total, 0);
           const overallAccuracy = reviewedTotal > 0 ? Math.round((confirmTotal / reviewedTotal) * 100) : null;
           if (statusEl) {
-            statusEl.textContent = `총 ${records.length}건(확인 ${confirmTotal}·수정 ${reviewedTotal - confirmTotal}) · 전체 정확도 ${overallAccuracy != null ? overallAccuracy + "%" : "-"} · 품새 ${Object.keys(byPoomsae).length}개 · 제안 ${suggestions.length}건 · 적용 중 ${Object.keys(activeBias).length}건`;
+            statusEl.textContent = `분석 데이터 ${learningRecords.length}건 · 보정 ${records.length}건(확인 ${confirmTotal}·수정 ${reviewedTotal - confirmTotal}) · 전체 정확도 ${overallAccuracy != null ? overallAccuracy + "%" : "-"} · 품새 ${Object.keys(byPoomsae).length}개 · 제안 ${suggestions.length}건 · 적용 중 ${Object.keys(activeBias).length}건`;
           }
           if (bodyEl) {
             const accBadge = (l) => {
@@ -9388,7 +9627,7 @@ function applyBannerToDom(config) {
                 <p class="small" style="color:var(--muted);margin:0 0 6px">버튼을 안 눌러도, 이 계정으로 로그인된 채 앱을 쓸 때마다 12시간에 한 번씩 조용히 확인해 안전 기준을 넘는 항목을 자동 반영합니다.</p>`
                 + autoLog.slice(0, 10).map((a) => `<p class="small" style="margin:2px 0">· ${escapeHtml(a.location)} → ${a.shift}초 (${new Date(a.ts).toLocaleString("ko-KR")})</p>`).join("")
               : "";
-            bodyEl.innerHTML = suggestionHtml + noisyHtml + activeHtml + autoLogHtml;
+            bodyEl.innerHTML = learningQualityDashboardHtml(learningRecords) + suggestionHtml + noisyHtml + activeHtml + autoLogHtml;
           }
           // 적용/제거 버튼은 매번 새로 그려지므로 bodyEl에 위임(한 번만 바인딩).
           if (!bodyEl.dataset.biasDelegated) {
@@ -10489,6 +10728,12 @@ function applyBannerToDom(config) {
         const rulePrimaryTitle = ruleProfile.primary?.title || ruleProfile.primary?.source || "-";
         const ruleCrossTitle = ruleProfile.cross_check?.title || "";
         const reliability = latestReport.analysis_reliability || analysisReliabilitySummary(latestReport.segments, latestReport.camera_view?.mode || "front");
+        const dataQuality = latestReport.event_data_quality || buildEventDataQuality(
+          latestReport,
+          eventProfile.id || "individual",
+          latestReport.pair_concurrent,
+          latestReport.team_concurrent
+        );
         const scoreMetric = trainingMode === "exam"
           ? `<div class="metric"><strong>분석 중심</strong><span>동작별 확인</span></div>`
           : `<div class="metric"><strong>${escapeHtml(eventProfile.score_label)}</strong><span>${escapeHtml(latestReport.summary.competition_score_10)} / 10.0</span></div>`;
@@ -10507,6 +10752,7 @@ function applyBannerToDom(config) {
             ${eventDataMetric}
             <div class="metric"><strong>Pose 감지율</strong><span>${Math.round(latestReport.summary.detection_rate * 100)}%</span></div>
             <div class="metric"><strong>분석 신뢰도</strong><span>카메라 ${reliability.camera_count}대 · ${Math.round(reliability.analysis_confidence * 100)}%</span></div>
+            ${trainingMode === "competition" ? `<div class="metric"><strong>학습 데이터 품질</strong><span>${dataQuality.quality_level === "high" ? "높음" : dataQuality.quality_level === "medium" ? "보통" : "낮음"} · 인식 ${Math.round(dataQuality.recognition_rate * 100)}%${dataQuality.usable_for_learning ? " · 학습 후보 저장" : " · 추가 촬영 권장"}</span></div>` : ""}
             <div class="metric"><strong>동작별 장면</strong><span>${latestReport.segments.length}개</span></div>
           </div>
           <div class="result-card" style="margin-top:14px;">
@@ -11127,10 +11373,15 @@ function applyBannerToDom(config) {
       // 분석이 중단되므로, 모든 검출을 단조 증가 타임스탬프로 감싸 그 오류를 차단한다.
       // (제안 타임스탬프를 존중하되, 직전 값 이하이면 +1ms 보정한다.)
       let lastDetectTimestampMs = -1;
-      function detectPoseAt(suggestedTimestampMs) {
+      let analysisCropCanvas = null;
+      function nextAnalysisDetectTimestamp(suggestedTimestampMs) {
         let ts = Math.round(Number.isFinite(suggestedTimestampMs) ? suggestedTimestampMs : 0);
         if (ts <= lastDetectTimestampMs) ts = lastDetectTimestampMs + 1;
         lastDetectTimestampMs = ts;
+        return ts;
+      }
+      function detectPoseAt(suggestedTimestampMs) {
+        const ts = nextAnalysisDetectTimestamp(suggestedTimestampMs);
         try {
           return poseLandmarker.detectForVideo(video, ts);
         } catch (error) {
@@ -11138,6 +11389,60 @@ function applyBannerToDom(config) {
           console.warn("Pose detection skipped for one frame.", error);
           return { landmarks: [] };
         }
+      }
+      function analysisPoseCrops(expectedAthletes) {
+        return expectedAthletes === 2
+          ? [{ x: 0, y: 0, w: 0.60, h: 1 }, { x: 0.40, y: 0, w: 0.60, h: 1 }]
+          : [{ x: 0, y: 0, w: 0.44, h: 1 }, { x: 0.28, y: 0, w: 0.44, h: 1 }, { x: 0.56, y: 0, w: 0.44, h: 1 }];
+      }
+      function detectAnalysisCropPoses(crop) {
+        if (!video?.videoWidth || !video?.videoHeight || !poseLandmarker) return [];
+        const sourceW = video.videoWidth;
+        const sourceH = video.videoHeight;
+        const sx = Math.max(0, Math.round(crop.x * sourceW));
+        const sy = Math.max(0, Math.round(crop.y * sourceH));
+        const sw = Math.min(sourceW - sx, Math.round(crop.w * sourceW));
+        const sh = Math.min(sourceH - sy, Math.round(crop.h * sourceH));
+        if (sw <= 0 || sh <= 0) return [];
+        const canvas = analysisCropCanvas || document.createElement("canvas");
+        canvas.width = 288;
+        canvas.height = Math.max(320, Math.round(canvas.width * sh / sw));
+        analysisCropCanvas = canvas;
+        const ctx = canvas.getContext("2d", { alpha: false });
+        if (!ctx) return [];
+        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        try {
+          const result = poseLandmarker.detectForVideo(canvas, nextAnalysisDetectTimestamp(lastDetectTimestampMs + 1));
+          return Array.isArray(result?.landmarks) ? result.landmarks.map((pose) => remapCropPose(pose, crop)) : [];
+        } catch (error) {
+          console.warn("Analysis crop pose detection skipped.", error);
+          return [];
+        }
+      }
+      function detectAnalysisPosesAt(suggestedTimestampMs, enableCropRescue = false) {
+        const expected = trainingMode === "competition" ? expectedAthletesForEvent() : 1;
+        const baseResult = detectPoseAt(suggestedTimestampMs);
+        const base = Array.isArray(baseResult?.landmarks) ? baseResult.landmarks : [];
+        let candidates = mergePoseCandidates(base, expected);
+        let cropRescueUsed = false;
+        const beforeRescue = candidates.length;
+        if (enableCropRescue && expected > 1 && candidates.length < expected) {
+          const rescued = [];
+          for (const crop of analysisPoseCrops(expected)) rescued.push(...detectAnalysisCropPoses(crop));
+          candidates = mergePoseCandidates([...candidates, ...rescued], expected);
+          cropRescueUsed = true;
+        }
+        return {
+          landmarks: candidates[0] || null,
+          allLandmarks: candidates,
+          detectionMeta: {
+            expected_athletes: expected,
+            detected_athletes: candidates.length,
+            crop_rescue_used: cropRescueUsed,
+            crop_rescue_added: Math.max(0, candidates.length - beforeRescue),
+            pose_quality: candidates.map((pose) => poseQualitySummary(pose).score)
+          }
+        };
       }
 
       // 페인트 완료를 보장하기 위한 double-rAF (rVFC 미지원 WebView 폴백)
@@ -11321,25 +11626,33 @@ function applyBannerToDom(config) {
           return createPoseLandmarker(PoseLandmarker, vision, modelUrl, "CPU", options);
         }
       }
-      const STANDARD_ANALYSIS_POSE_OPTIONS = Object.freeze({
-        numPoses: 3,
-        minPoseDetectionConfidence: 0.5,
-        minPosePresenceConfidence: 0.5,
-        minTrackingConfidence: 0.5
+      const INDIVIDUAL_ANALYSIS_POSE_OPTIONS = Object.freeze({
+        numPoses: 1,
+        minPoseDetectionConfidence: 0.45,
+        minPosePresenceConfidence: 0.45,
+        minTrackingConfidence: 0.45
+      });
+      const PAIR_ANALYSIS_POSE_OPTIONS = Object.freeze({
+        numPoses: 2,
+        minPoseDetectionConfidence: 0.32,
+        minPosePresenceConfidence: 0.28,
+        minTrackingConfidence: 0.25
       });
       const TEAM_ANALYSIS_POSE_OPTIONS = Object.freeze({
         numPoses: 3,
         // 뒤쪽 선수처럼 화면에서 작게 보이는 인물의 후보를 먼저 살리고,
         // 아래 집단 동시 검증에서 여러 프레임에 걸쳐 반복 검출되는 경우만 인정한다.
-        minPoseDetectionConfidence: 0.3,
-        minPosePresenceConfidence: 0.25,
-        minTrackingConfidence: 0.25
+        minPoseDetectionConfidence: 0.24,
+        minPosePresenceConfidence: 0.20,
+        minTrackingConfidence: 0.18
       });
       async function configureAnalysisPoseLandmarker() {
         if (!poseLandmarker || typeof poseLandmarker.setOptions !== "function") return;
-        const options = trainingMode === "competition" && competitionEvent !== "individual"
-          ? TEAM_ANALYSIS_POSE_OPTIONS
-          : STANDARD_ANALYSIS_POSE_OPTIONS;
+        const options = trainingMode !== "competition" || competitionEvent === "individual"
+          ? INDIVIDUAL_ANALYSIS_POSE_OPTIONS
+          : competitionEvent === "pair"
+            ? PAIR_ANALYSIS_POSE_OPTIONS
+            : TEAM_ANALYSIS_POSE_OPTIONS;
         try {
           await poseLandmarker.setOptions(options);
         } catch (error) {
@@ -11359,11 +11672,11 @@ function applyBannerToDom(config) {
           setProgress(38, "WASM과 Pose Landmarker를 준비하는 중입니다.");
           try {
             const vision = await FilesetResolver.forVisionTasks(LOCAL_WASM_URL);
-            poseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, LOCAL_MODEL_URL, STANDARD_ANALYSIS_POSE_OPTIONS);
+            poseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, LOCAL_MODEL_URL, INDIVIDUAL_ANALYSIS_POSE_OPTIONS);
           } catch (localError) {
             console.warn("Local MediaPipe assets unavailable, trying online fallback.", localError);
             const vision = await FilesetResolver.forVisionTasks(REMOTE_WASM_URL);
-            poseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, REMOTE_MODEL_URL, STANDARD_ANALYSIS_POSE_OPTIONS);
+            poseLandmarker = await createPoseLandmarkerWithFallback(PoseLandmarker, vision, REMOTE_MODEL_URL, INDIVIDUAL_ANALYSIS_POSE_OPTIONS);
           }
           setPill(modelStatus, "good", "모델 준비 완료");
           setProgress(100, "모델 준비 완료. 품새와 영상을 확인한 뒤 분석 시작을 누르세요.");
@@ -11451,6 +11764,67 @@ function applyBannerToDom(config) {
           });
           prev = smoothed.map((p) => ({ ...p }));
           return { time: frame.time, landmarks: smoothed };
+        });
+      }
+      function poseTrackingCost(previous, current) {
+        if (!previous || !current) return Infinity;
+        const centerDistance = capturePoseDistance(previous, current);
+        const previousScale = poseScaleEstimate(previous);
+        const currentScale = poseScaleEstimate(current);
+        const scaleDistance = previousScale > 0 && currentScale > 0
+          ? Math.abs(Math.log(currentScale / previousScale))
+          : 0.5;
+        const shapeDistance = poseLandmarkDistance(previous, current);
+        const shapeTerm = Number.isFinite(shapeDistance) ? Math.min(shapeDistance, 0.5) : 0.35;
+        return centerDistance * 0.62 + scaleDistance * 0.16 + shapeTerm * 0.22;
+      }
+      function stabilizeAnalysisPoseTracks(frames, expectedAthletes = 1) {
+        const expected = Math.max(1, Math.min(3, Math.round(Number(expectedAthletes) || 1)));
+        const sortedFrames = (Array.isArray(frames) ? frames : []).slice().sort((a, b) => Number(a.time) - Number(b.time));
+        let previousTracks = Array(expected).fill(null);
+        return sortedFrames.map((frame) => {
+          const candidates = mergePoseCandidates(
+            Array.isArray(frame.allLandmarks) ? frame.allLandmarks : (frame.landmarks ? [frame.landmarks] : []),
+            expected
+          );
+          const tracks = Array(expected).fill(null);
+          const usedCandidates = new Set();
+          const possibleMatches = [];
+          previousTracks.forEach((previous, trackIndex) => {
+            if (!previous) return;
+            candidates.forEach((candidate, candidateIndex) => {
+              possibleMatches.push({ trackIndex, candidateIndex, cost: poseTrackingCost(previous, candidate) });
+            });
+          });
+          possibleMatches.sort((a, b) => a.cost - b.cost);
+          const usedTracks = new Set();
+          possibleMatches.forEach((match) => {
+            if (match.cost > 0.42 || usedTracks.has(match.trackIndex) || usedCandidates.has(match.candidateIndex)) return;
+            tracks[match.trackIndex] = candidates[match.candidateIndex];
+            usedTracks.add(match.trackIndex);
+            usedCandidates.add(match.candidateIndex);
+          });
+          const availableTracks = tracks.map((pose, index) => pose ? null : index).filter(Number.isFinite);
+          candidates.forEach((candidate, candidateIndex) => {
+            if (usedCandidates.has(candidateIndex) || !availableTracks.length) return;
+            const center = capturePoseCenterX(candidate);
+            const best = availableTracks
+              .map((trackIndex) => {
+                const previous = previousTracks[trackIndex];
+                const anchor = (trackIndex + 0.5) / expected;
+                return { trackIndex, cost: previous ? poseTrackingCost(previous, candidate) : Math.abs(center - anchor) };
+              })
+              .sort((a, b) => a.cost - b.cost)[0];
+            tracks[best.trackIndex] = candidate;
+            availableTracks.splice(availableTracks.indexOf(best.trackIndex), 1);
+          });
+          previousTracks = tracks.map((pose, index) => pose || previousTracks[index]);
+          return {
+            ...frame,
+            poseTracks: tracks,
+            landmarks: tracks.find(Boolean) || null,
+            allLandmarks: candidates
+          };
         });
       }
       function stdDev(values) {
@@ -11550,11 +11924,17 @@ function applyBannerToDom(config) {
         // 상한만 8→6으로 낮춰 긴 구간의 과도한 샘플링을 줄인다.
         return clamp(Math.round(segmentLength * 1.3), 4, 6);
       }
-      function selectReusableSegmentFrames(scanFrames, segmentStart, segmentEnd, sampleCount, maxGap = 0.28) {
+      function selectReusableSegmentFrames(scanFrames, segmentStart, segmentEnd, sampleCount, maxGap = 0.28, expectedAthletes = 1) {
         const segmentLength = segmentEnd - segmentStart;
         if (!(segmentLength > 0) || !Array.isArray(scanFrames) || !scanFrames.length) return [];
+        const expected = Math.max(1, Math.min(3, Math.round(Number(expectedAthletes) || 1)));
         const candidates = scanFrames
-          .filter((frame) => frame.landmarks && frame.time >= segmentStart && frame.time <= segmentEnd)
+          .filter((frame) => {
+            const detected = Array.isArray(frame.poseTracks)
+              ? frame.poseTracks.filter(Boolean).length
+              : (frame.landmarks ? 1 : 0);
+            return detected >= expected && frame.time >= segmentStart && frame.time <= segmentEnd;
+          })
           .slice()
           .sort((a, b) => a.time - b.time);
         const selected = [];
@@ -12094,11 +12474,15 @@ function applyBannerToDom(config) {
         for (let index = 0; index < sampleCount; index += 1) {
           const requestedTime = startSec + span * (index / Math.max(sampleCount - 1, 1));
           const actualTime = await waitForSeek(requestedTime, true);
-          const result = detectPoseAt(timestampBaseMs + Math.round(actualTime * 1000));
+          // 복식·단체는 전체 프레임에서 인원을 놓친 경우 교차 프레임마다 좌·중·우 크롭을
+          // 추가 확인한다. 전체 스캔 시간을 과도하게 늘리지 않으면서 작은 선수를 복구한다.
+          const enableCropRescue = trainingMode === "competition" && expectedAthletesForEvent() > 1 && index % 2 === 0;
+          const result = detectAnalysisPosesAt(timestampBaseMs + Math.round(actualTime * 1000), enableCropRescue);
           frames.push({
             time: actualTime,
-            landmarks: result.landmarks && result.landmarks[0] ? result.landmarks[0] : null,
-            allLandmarks: Array.isArray(result.landmarks) ? result.landmarks.slice(0, 3) : []
+            landmarks: result.landmarks,
+            allLandmarks: result.allLandmarks,
+            poseDetectionMeta: result.detectionMeta
           });
           if (index % 8 === 0) {
             setProgress(progressBase + Math.round((index / sampleCount) * progressSpan), `동작 전환점 탐색 중... ${index + 1}/${sampleCount}`);
@@ -12519,7 +12903,8 @@ function applyBannerToDom(config) {
         const scanCount = clamp(Math.round(duration * 2.6), Math.round(count * 4.5), 260);
 
         // 영상 전체를 초당 약 3.5회 밀도로 한 번에 정밀 스캔한다(안정성 우선).
-        const frames = await collectScanFrames(0, Math.max(duration - 0.04, 0), scanCount, timestampBaseMs, 5, 12);
+        const rawFrames = await collectScanFrames(0, Math.max(duration - 0.04, 0), scanCount, timestampBaseMs, 5, 12);
+        const frames = stabilizeAnalysisPoseTracks(rawFrames, trainingMode === "competition" ? expectedAthletesForEvent() : 1);
         const motionSamples = buildMotionSamples(frames);
 
         const activeRange = detectActiveMotionRange(duration, motionSamples);
@@ -13399,6 +13784,9 @@ function applyBannerToDom(config) {
       }
       function framesForAthlete(rawFrames, athleteIndex, expectedAthletes) {
         return (Array.isArray(rawFrames) ? rawFrames : []).map((frame) => {
+          if (Array.isArray(frame.poseTracks)) {
+            return { ...frame, landmarks: frame.poseTracks[athleteIndex] || null };
+          }
           const poses = (Array.isArray(frame.allLandmarks) && frame.allLandmarks.length
             ? frame.allLandmarks
             : (frame.landmarks ? [frame.landmarks] : []))
@@ -13444,7 +13832,9 @@ function applyBannerToDom(config) {
           groupAnalysis: {
             event: competitionEvent,
             expected_athletes: expectedAthletes,
-            detected_athletes: athleteResults.filter((result) => result.detected).length
+            detected_athletes: athleteResults.filter((result) => result.detected).length,
+            minimum_detection_rate: Number(Math.min(...athleteResults.map((result) => Number(result.detectionRate) || 0)).toFixed(3)),
+            average_movement_confidence: Number((athleteResults.reduce((sum, result) => sum + (Number(result.movementConfidence) || 0), 0) / expectedAthletes).toFixed(3))
           },
           athleteMetrics: athleteResults.map((result, athleteIndex) => ({
             athlete: athleteIndex + 1,
@@ -13455,7 +13845,9 @@ function applyBannerToDom(config) {
             presentation_score_6: result.presentationScore6,
             power_score: result.powerScore,
             stance_score: result.stanceScore,
-            timing_score: stableRound((result.velocityScore + result.snapScore + result.stillnessScore) / 3)
+            timing_score: stableRound((result.velocityScore + result.snapScore + result.stillnessScore) / 3),
+            visibility_score: result.visibilityScore,
+            movement_confidence: Number(result.movementConfidence) || 0
           }))
         };
       }
@@ -13747,13 +14139,26 @@ function applyBannerToDom(config) {
         };
         const athleteProfilesFor = (sourceFrames) => Array.from({ length: expected }, (_, athleteIndex) => {
           const detected = sourceFrames.map((frame) => frame.poses[athleteIndex]).filter(Boolean);
+          let trackTransitions = 0;
+          let largeTrackJumps = 0;
+          for (let frameIndex = 1; frameIndex < sourceFrames.length; frameIndex += 1) {
+            const previous = sourceFrames[frameIndex - 1].poses[athleteIndex];
+            const current = sourceFrames[frameIndex].poses[athleteIndex];
+            if (!previous || !current) continue;
+            trackTransitions += 1;
+            const scale = Math.max(0.05, (poseScaleEstimate(previous) + poseScaleEstimate(current)) / 2);
+            if (capturePoseDistance(previous, current) > Math.max(0.20, scale * 1.8)) largeTrackJumps += 1;
+          }
+          const trackStability = trackTransitions ? Math.max(0, 1 - largeTrackJumps / trackTransitions) : 0;
           return {
             athlete: athleteIndex + 1,
             sampled_frames: sourceFrames.length,
             detected_frames: detected.length,
             detection_ratio: sourceFrames.length ? Number((detected.length / sourceFrames.length).toFixed(3)) : 0,
             average_visibility: detected.length ? Number(mean(detected.map(poseVisibility)).toFixed(3)) : 0,
-            average_center_x: detected.length ? Number(mean(detected.map(poseCenterX)).toFixed(3)) : 0
+            average_center_x: detected.length ? Number(mean(detected.map(poseCenterX)).toFixed(3)) : 0,
+            track_stability: Number(trackStability.toFixed(3)),
+            large_track_jumps: largeTrackJumps
           };
         });
         const poseMotion = (previous, current, dt) => {
@@ -13783,11 +14188,16 @@ function applyBannerToDom(config) {
           const score = Math.round(clamp(1 - spread / 0.35, 0, 1) * 100);
           return { spread: Number(spread.toFixed(3)), score };
         };
-        const poseFrames = frames.map((frame) => ({
+        const stableFrames = frames.some((frame) => Array.isArray(frame.poseTracks))
+          ? frames
+          : stabilizeAnalysisPoseTracks(frames, expected);
+        const poseFrames = stableFrames.map((frame) => ({
           time: Number(frame.time),
-          poses: sortPoses(frame.allLandmarks && frame.allLandmarks.length ? frame.allLandmarks : (frame.landmarks ? [frame.landmarks] : []))
+          poses: Array.isArray(frame.poseTracks)
+            ? frame.poseTracks.slice(0, expected)
+            : sortPoses(frame.allLandmarks && frame.allLandmarks.length ? frame.allLandmarks : (frame.landmarks ? [frame.landmarks] : []))
         })).filter((frame) => Number.isFinite(frame.time));
-        const detectedCounts = poseFrames.map((frame) => frame.poses.length).filter((n) => n > 0);
+        const detectedCounts = poseFrames.map((frame) => frame.poses.filter(Boolean).length).filter((n) => n > 0);
         const athleteCount = detectedCounts.length ? Math.max(...detectedCounts) : 0;
         if (boundaries.length < 3) {
           return {
@@ -13804,11 +14214,11 @@ function applyBannerToDom(config) {
           const start = Number(boundaries[index]);
           const end = Number(boundaries[index + 1]);
           const within = poseFrames.filter((frame) => frame.time >= start && frame.time <= end);
-          const framesWithExpected = within.filter((frame) => frame.poses.length >= expected).length;
-          const framesWithThree = within.filter((frame) => frame.poses.length >= 3).length;
-          const framesWithTwo = within.filter((frame) => frame.poses.length >= 2).length;
+          const framesWithExpected = within.filter((frame) => frame.poses.filter(Boolean).length >= expected).length;
+          const framesWithThree = within.filter((frame) => frame.poses.filter(Boolean).length >= 3).length;
+          const framesWithTwo = within.filter((frame) => frame.poses.filter(Boolean).length >= 2).length;
           const expectedPoseRatio = within.length ? framesWithExpected / within.length : 0;
-          const completeFrames = within.filter((frame) => frame.poses.length >= expected);
+          const completeFrames = within.filter((frame) => frame.poses.filter(Boolean).length >= expected);
           const spacingSamples = completeFrames.map((frame) => {
             const centers = frame.poses.slice(0, expected).map(poseCenterX).sort((a, b) => a - b);
             const gaps = centers.slice(1).map((center, gapIndex) => center - centers[gapIndex]);
@@ -13836,6 +14246,7 @@ function applyBannerToDom(config) {
         const judged = segments.filter((segment) => segment.sampled_frames >= 3);
         const timingJudged = judged.filter((segment) => segment.timing_sync_score != null);
         const averageExpectedPoseRatio = judged.length ? Number((judged.reduce((sum, segment) => sum + segment.expected_pose_ratio, 0) / judged.length).toFixed(3)) : 0;
+        const athleteProfiles = athleteProfilesFor(poseFrames);
         return {
           enabled: athleteCount >= expected && judged.length > 0,
           expected_athletes: expected,
@@ -13843,11 +14254,12 @@ function applyBannerToDom(config) {
           athlete_count: athleteCount,
           judged_segments: judged.length,
           concurrent_segments: judged.filter((segment) => segment.all_expected_same_frame).length,
-          athlete_profiles: athleteProfilesFor(poseFrames),
+          athlete_profiles: athleteProfiles,
           segments,
           average_expected_pose_ratio: averageExpectedPoseRatio,
           average_two_pose_ratio: expected === 2 ? averageExpectedPoseRatio : 0,
           average_three_pose_ratio: expected === 3 ? averageExpectedPoseRatio : 0,
+          average_track_stability: athleteProfiles.length ? Number(mean(athleteProfiles.map((profile) => profile.track_stability)).toFixed(3)) : 0,
           average_timing_sync_score: timingJudged.length ? Math.round(mean(timingJudged.map((segment) => segment.timing_sync_score))) : null
         };
       }
@@ -14011,7 +14423,7 @@ function applyBannerToDom(config) {
         if (trainingMode === "competition") items.push({ type: "caution", text: "영상만으로 실제 타격 힘은 직접 측정할 수 없으므로, 이 평가는 속도와 마무리 안정성 기반의 코칭 지표입니다." });
         return { score100, avg, competitionScore10, accuracyScore4: adjAccuracy4, presentationScore6: adjPresentation6, detectRate, type, label, items, issueCounts, neededTraining };
       }
-      function analysisReliabilitySummary(results, view) {
+      function analysisReliabilitySummary(results, view, groupConcurrent = null) {
         const cameraCount = view === "triple" ? 3 : view === "dual" ? 2 : 1;
         const rows = Array.isArray(results) ? results.filter(Boolean) : [];
         const average = (values) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
@@ -14024,12 +14436,34 @@ function applyBannerToDom(config) {
           const detections = [from.front_detection, from.side_detection, from.diagonal_detection].filter(Number.isFinite);
           return detections.length > 1 && Math.min(...detections) < 0.6 && Math.max(...detections) >= 0.75;
         }).length;
-        const analysisConfidence = clamp(average(confidences) || average(detectionRates), 0, 0.99);
+        const baseConfidence = clamp(average(confidences) || average(detectionRates), 0, 0.99);
+        const recognitionRate = groupConcurrent
+          ? clamp(Number(groupConcurrent.average_expected_pose_ratio) || 0, 0, 1)
+          : clamp(average(detectionRates), 0, 1);
+        const groupProfiles = Array.isArray(groupConcurrent?.athlete_profiles) ? groupConcurrent.athlete_profiles : [];
+        const averageVisibility = groupProfiles.length
+          ? clamp(average(groupProfiles.map((profile) => Number(profile.average_visibility) || 0)), 0, 1)
+          : clamp(average(rows.map((row) => (Number(row.visibilityScore) || 0) / 100)), 0, 1);
+        const trackStability = groupProfiles.length
+          ? clamp(average(groupProfiles.map((profile) => Number(profile.track_stability) || 0)), 0, 1)
+          : recognitionRate;
+        const analysisConfidence = clamp(
+          baseConfidence * 0.50
+          + recognitionRate * 0.30
+          + averageVisibility * 0.10
+          + trackStability * 0.10,
+          0,
+          0.99
+        );
         return {
-          schema: "poomsae-analysis-reliability-v1",
+          schema: "poomsae-analysis-reliability-v2",
           camera_count: cameraCount,
           analysis_confidence: Number(analysisConfidence.toFixed(3)),
+          base_movement_confidence: Number(baseConfidence.toFixed(3)),
           average_detection_rate: Number(average(detectionRates).toFixed(3)),
+          expected_athlete_recognition_rate: Number(recognitionRate.toFixed(3)),
+          average_visibility: Number(averageVisibility.toFixed(3)),
+          track_stability: Number(trackStability.toFixed(3)),
           view_agreement: cameraCount > 1 ? Number(average(agreements).toFixed(3)) : null,
           confidence_gain_vs_best_single: cameraCount > 1 ? Number(average(gains).toFixed(3)) : 0,
           occlusion_recovered_segments: recovered,
@@ -14161,13 +14595,19 @@ function applyBannerToDom(config) {
         }
         const fusedView = (analysisEfficiency && (analysisEfficiency.triple_view ? "triple" : analysisEfficiency.dual_view ? "dual" : null)) || cameraView;
         const summary = summarize(results, fusedView, boundaryDetectionForRun ? boundaryDetectionForRun.activeRange : null);
-        const analysisReliability = analysisReliabilitySummary(results, fusedView);
+        const analysisReliability = analysisReliabilitySummary(results, fusedView, groupConcurrent);
         summary.items.unshift({
           type: analysisReliability.analysis_confidence >= 0.85 ? "good" : "caution",
           text: analysisReliability.camera_count > 1
             ? `카메라 ${analysisReliability.camera_count}대 융합 신뢰도 ${Math.round(analysisReliability.analysis_confidence * 100)}% (${analysisReliability.label}) · 각도 간 일치도 ${Math.round((analysisReliability.view_agreement || 0) * 100)}% · 단일 각도 대비 신뢰도 +${Math.round(analysisReliability.confidence_gain_vs_best_single * 100)}%p${analysisReliability.occlusion_recovered_segments ? ` · 가림 보완 ${analysisReliability.occlusion_recovered_segments}개 구간` : ""}.`
             : `카메라 1대 분석 신뢰도 ${Math.round(analysisReliability.analysis_confidence * 100)}% (${analysisReliability.label}). 2~3대 촬영은 가려진 관절을 다른 각도로 교차 확인해 신뢰도를 높입니다.`
         });
+        if (trainingMode === "competition") {
+          summary.items.unshift({
+            type: analysisReliability.expected_athlete_recognition_rate >= 0.8 && analysisReliability.track_stability >= 0.8 ? "good" : "caution",
+            text: `${eventLabel()} 데이터 품질: 필요한 ${expectedAthletesForEvent()}명 인식률 ${Math.round(analysisReliability.expected_athlete_recognition_rate * 100)}% · 관절 가시성 ${Math.round(analysisReliability.average_visibility * 100)}% · 추적 안정성 ${Math.round(analysisReliability.track_stability * 100)}%.${Number(analysisEfficiency?.crop_rescue_poses) > 0 ? ` 작은 선수 크롭 재검출로 ${analysisEfficiency.crop_rescue_poses}개 포즈를 추가 복구했습니다.` : ""}`
+          });
+        }
         if (isGroupEvent) {
           if (groupConcurrent?.enabled) {
             const concurrent = groupConcurrent.concurrent_segments;
@@ -14381,10 +14821,17 @@ function applyBannerToDom(config) {
           analysis_efficiency: analysisEfficiency,
           next_step: "관절 속도 피크와 정지점으로 실제 동작 전환점을 자동 감지하고, 지르기/막기/차기별 궤적 정확도 규칙을 연결"
         };
+        latestReport.event_data_quality = buildEventDataQuality(
+          latestReport,
+          trainingMode === "competition" ? competitionEvent : "",
+          latestReport.pair_concurrent,
+          latestReport.team_concurrent
+        );
         // 원본 영상·파일명·프레임은 저장하지 않는다. 새 분석만 로컬 기록과 Firestore 전송
         // 대기열에 한 번 저장해 모드 탭을 다시 누를 때 같은 단체전 기록이 중복되지 않게 한다.
         registerAnalysisForComparison(latestReport, selectedFile);
         if (!cacheHit) {
+          if (trainingMode === "competition") saveEventReportLocally(latestReport);
           if (trainingMode === "competition" && competitionEvent === "team") saveTeamReportLocally(latestReport);
           if (trainingMode === "competition" && competitionEvent === "pair") savePairReportLocally(latestReport);
           if (trainingMode === "competition" && competitionEvent === "individual") saveIndividualReportLocally(latestReport);
@@ -15497,9 +15944,10 @@ function applyBannerToDom(config) {
         if (cached) {
           await completeAnalysis(cloneStableData(cached.results), cloneStableData(cached.frameSamples), true, cloneStableData(cached.analysisEfficiency || null), {
             movements,
-            viewForRun
+            viewForRun,
+            boundaryDetection: cloneStableData(cached.boundaryDetection || null)
           });
-          return { results: cloneStableData(cached.results), frameSamples: cloneStableData(cached.frameSamples), analysisEfficiency: cloneStableData(cached.analysisEfficiency || null), view: viewForRun, movements: movements.slice() };
+          return { results: cloneStableData(cached.results), frameSamples: cloneStableData(cached.frameSamples), analysisEfficiency: cloneStableData(cached.analysisEfficiency || null), view: viewForRun, boundaryDetection: cloneStableData(cached.boundaryDetection || null), movements: movements.slice() };
         }
         setProgress(5, "동작 전환점을 먼저 찾아 구간 경계를 보정합니다.");
         const boundaryDetection = await detectMotionBoundaries(timestampBaseMs);
@@ -15508,6 +15956,8 @@ function applyBannerToDom(config) {
         const frameSamples = [];
         let reusedPoseFrames = 0;
         let precisePoseFrames = 0;
+        let cropRescueFrames = boundaryDetection.frames.filter((frame) => frame.poseDetectionMeta?.crop_rescue_used).length;
+        let cropRescuePoses = boundaryDetection.frames.reduce((sum, frame) => sum + (Number(frame.poseDetectionMeta?.crop_rescue_added) || 0), 0);
         const allocation = boundaryDetection.allocation || [];
         const segmentCount = boundaryDetection.boundaries.length - 1;
         let mergedSegments = 0;
@@ -15535,7 +15985,14 @@ function applyBannerToDom(config) {
           let snapshot = "";
           // 구간 길이에 비례해 샘플 수를 4~8개로 제한해 저사양 기기 부하를 줄인다.
           const sampleCount = chooseSampleCount(segmentLength);
-          const reusableFrames = selectReusableSegmentFrames(boundaryDetection.frames, segmentStart, segmentEnd, sampleCount);
+          const reusableFrames = selectReusableSegmentFrames(
+            boundaryDetection.frames,
+            segmentStart,
+            segmentEnd,
+            sampleCount,
+            0.28,
+            trainingMode === "competition" ? expectedAthletesForEvent() : 1
+          );
           if (reusableFrames.length === sampleCount) {
             frames.push(...reusableFrames);
             reusedPoseFrames += reusableFrames.length;
@@ -15546,12 +16003,26 @@ function applyBannerToDom(config) {
               const requestedTime = segmentStart + segmentLength * ratio;
               // 속도 최적화: 포즈 검출은 화면 페인트 완료를 기다릴 필요가 없으므로 빠른 seek 경로 사용.
               const actualTime = await waitForSeek(requestedTime, true);
-              const result = detectPoseAt(segmentTimestampBaseMs + Math.round(actualTime * 1000));
-              const landmarks = result.landmarks && result.landmarks[0] ? result.landmarks[0] : null;
-              frames.push({ time: actualTime, landmarks, allLandmarks: Array.isArray(result.landmarks) ? result.landmarks.slice(0, 3) : [] });
+              const result = detectAnalysisPosesAt(
+                segmentTimestampBaseMs + Math.round(actualTime * 1000),
+                trainingMode === "competition" && expectedAthletesForEvent() > 1
+              );
+              frames.push({
+                time: actualTime,
+                landmarks: result.landmarks,
+                allLandmarks: result.allLandmarks,
+                poseDetectionMeta: result.detectionMeta
+              });
+              if (result.detectionMeta?.crop_rescue_used) cropRescueFrames += 1;
+              cropRescuePoses += Number(result.detectionMeta?.crop_rescue_added) || 0;
               precisePoseFrames += 1;
             }
           }
+          const stabilizedSegmentFrames = stabilizeAnalysisPoseTracks(
+            frames,
+            trainingMode === "competition" ? expectedAthletesForEvent() : 1
+          );
+          frames.splice(0, frames.length, ...stabilizedSegmentFrames);
           const completionTime = boundaryDetection.completionTimes[i] ?? segmentStart + segmentLength * 0.82;
           // 스냅샷은 화면 참고용이라 정밀 페인트 대기 없이 빠른 seek로 충분(필름스트립과 동일 방식).
           const snapshotTime = await waitForSeek(completionTime, true);
@@ -15593,6 +16064,15 @@ function applyBannerToDom(config) {
             merged_movements: segmentMovements.length,
             times: frames.map((f) => Number(f.time.toFixed(3))),
             detected_frames: frames.filter((f) => f.landmarks).length,
+            expected_athletes: trainingMode === "competition" ? expectedAthletesForEvent() : 1,
+            all_expected_detected_frames: frames.filter((f) => {
+              const detected = Array.isArray(f.poseTracks) ? f.poseTracks.filter(Boolean).length : (f.landmarks ? 1 : 0);
+              return detected >= (trainingMode === "competition" ? expectedAthletesForEvent() : 1);
+            }).length,
+            average_pose_quality: Number((frames.reduce((sum, f) => {
+              const values = Array.isArray(f.poseDetectionMeta?.pose_quality) ? f.poseDetectionMeta.pose_quality : [];
+              return sum + (values.length ? values.reduce((part, value) => part + value, 0) / values.length : 0);
+            }, 0) / Math.max(frames.length, 1)).toFixed(3)),
             boundary_method: boundaryDetection.method,
             boundary_sensitivity: boundaryDetection.sensitivity,
             sample_source: reusableFrames.length === sampleCount ? "boundary_scan_reused" : "precise_fallback",
@@ -15610,6 +16090,8 @@ function applyBannerToDom(config) {
           boundary_pose_detections: boundaryDetection.scanCount,
           reused_pose_frames: reusedPoseFrames,
           precise_pose_detections: precisePoseFrames,
+          crop_rescue_frames: cropRescueFrames,
+          crop_rescue_poses: cropRescuePoses,
           avoided_pose_detections: reusedPoseFrames,
           total_elapsed_ms: Math.round(performance.now() - analysisStartedAt),
           natural_segments: segmentCount,
@@ -15623,7 +16105,7 @@ function applyBannerToDom(config) {
           compound_scenes: compoundScenes,
           reliability_guard: "reuse only when every target has a unique detected frame within 0.18 seconds; otherwise precise fallback"
         };
-        if (cacheKey) stableAnalysisCache.set(cacheKey, cloneStableData({ results, frameSamples, analysisEfficiency }));
+        if (cacheKey) stableAnalysisCache.set(cacheKey, cloneStableData({ results, frameSamples, analysisEfficiency, boundaryDetection }));
         if (skipComplete) {
           return { results, frameSamples, analysisEfficiency, view: viewForRun, boundaryDetection, movements: movements.slice() };
         }

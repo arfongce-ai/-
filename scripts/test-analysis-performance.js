@@ -31,12 +31,19 @@ function assert(condition, message) {
   console.log(`OK  ${message}`);
 }
 
-function simulate(duration, movementCount, missingEvery = 0) {
+function simulate(duration, movementCount, missingEvery = 0, expectedAthletes = 1) {
   const scanCount = context.clamp(Math.round(duration * 3.5), movementCount * 5, 320);
-  const scanFrames = Array.from({ length: scanCount }, (_, index) => ({
-    time: (duration - 0.04) * (index / Math.max(scanCount - 1, 1)),
-    landmarks: missingEvery && index % missingEvery === 0 ? null : { detected: true },
-  }));
+  const scanFrames = Array.from({ length: scanCount }, (_, index) => {
+    const missing = missingEvery && index % missingEvery === 0;
+    const poseTracks = Array.from({ length: expectedAthletes }, (_, athleteIndex) =>
+      missing && athleteIndex === expectedAthletes - 1 ? null : { detected: true, athlete: athleteIndex + 1 }
+    );
+    return {
+      time: (duration - 0.04) * (index / Math.max(scanCount - 1, 1)),
+      landmarks: poseTracks[0],
+      poseTracks,
+    };
+  });
   let legacySegmentDetections = 0;
   let preciseFallbackDetections = 0;
   let reused = 0;
@@ -46,7 +53,7 @@ function simulate(duration, movementCount, missingEvery = 0) {
     const end = duration * ((index + 1) / movementCount);
     const sampleCount = context.chooseSampleCount(end - start);
     legacySegmentDetections += sampleCount;
-    const selected = context.selectReusableSegmentFrames(scanFrames, start, end, sampleCount);
+    const selected = context.selectReusableSegmentFrames(scanFrames, start, end, sampleCount, 0.28, expectedAthletes);
     if (selected.length === sampleCount) {
       reused += sampleCount;
       selected.forEach((frame, sampleIndex) => {
@@ -81,6 +88,11 @@ assert(commonCases.every((item) => item.reduction >= 0.20), "normal videos avoid
 const missingPoseCase = simulate(60, 18, 3);
 assert(missingPoseCase.preciseFallbackDetections > 0, "missing scan poses trigger precise fallback");
 assert(missingPoseCase.reused + missingPoseCase.preciseFallbackDetections === missingPoseCase.legacySegmentDetections, "reuse and fallback preserve the requested segment sample count");
+
+const completePairCase = simulate(60, 18, 0, 2);
+const missingPairAthleteCase = simulate(60, 18, 3, 2);
+assert(completePairCase.preciseFallbackDetections === 0, "complete pair frames remain reusable");
+assert(missingPairAthleteCase.preciseFallbackDetections > 0, "a missing pair athlete triggers precise crop-rescue fallback");
 
 const averageReduction = commonCases.reduce((sum, item) => sum + item.reduction, 0) / commonCases.length;
 console.log(`Estimated pose-detection reduction across common cases: ${(averageReduction * 100).toFixed(1)}%`);

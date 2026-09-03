@@ -41,6 +41,12 @@ assertContains(/data-event="pair"/, "경기 분석에 복식전 선택이 없습
 assertContains(/buildGroupConcurrentProfile/, "복식·단체 동시 인식 분석이 없습니다.");
 assertContains(/timing_sync_score/, "복식·단체 동작 타이밍 일치 분석이 없습니다.");
 assertContains(/athleteMetrics/, "복식·단체 선수별 분석 결과가 없습니다.");
+assertContains(/INDIVIDUAL_ANALYSIS_POSE_OPTIONS/, "개인전 전용 Pose 신뢰도 설정이 없습니다.");
+assertContains(/PAIR_ANALYSIS_POSE_OPTIONS/, "복식전 전용 Pose 신뢰도 설정이 없습니다.");
+assertContains(/TEAM_ANALYSIS_POSE_OPTIONS/, "단체전 전용 Pose 신뢰도 설정이 없습니다.");
+assertContains(/detectAnalysisPosesAt/, "다인 분석의 작은 선수 크롭 재검출이 없습니다.");
+assertContains(/stabilizeAnalysisPoseTracks/, "복식·단체 선수 추적 순서 안정화가 없습니다.");
+assertContains(/track_stability/, "선수별 추적 안정성 기록이 없습니다.");
 assertContains(/poomsae-pair-analysis-v1/, "복식전 저장 스키마가 없습니다.");
 assertContains(/LOCAL_PAIR_REPORT_HISTORY_KEY/, "복식전 로컬 기록 저장소가 없습니다.");
 assertContains(/pair_data:/, "클라우드 학습 리포트에 복식전 데이터가 없습니다.");
@@ -53,6 +59,11 @@ assertContains(/LOCAL_INDIVIDUAL_REPORT_HISTORY_KEY/, "개인전 로컬 기록 �
 assertContains(/individual_data:/, "클라우드 학습 리포트에 개인전 데이터가 없습니다.");
 assertContains(/poomsae-individual-analysis-v1/, "개인전 저장 스키마가 없습니다.");
 assertContains(/saveIndividualReportLocally/, "개인전 로컬 저장 함수가 없습니다.");
+assertContains(/LOCAL_EVENT_REPORT_HISTORY_KEY/, "세 종목 통합 로컬 데이터 저장소가 없습니다.");
+assertContains(/saveEventReportLocally/, "세 종목 통합 리포트 저장 함수가 없습니다.");
+assertContains(/poomsae-event-quality-v1/, "세 종목 공통 데이터 품질 스키마가 없습니다.");
+assertContains(/usable_for_learning/, "낮은 품질 데이터를 학습에서 제외하는 게이트가 없습니다.");
+assertContains(/flushPendingCloudReports\(\);/, "앱 재실행 시 대기 중인 학습 리포트를 자동 전송하지 않습니다.");
 assertContains(/capture_mode === "individual"/, "개인 촬영과 개인전 분석이 자동 연결되지 않습니다.");
 assertContains(/CAPTURE_TRAIL_DURATION_MS\s*=\s*2400/, "촬영 잔상이 2초 이상 유지되지 않습니다.");
 assertContains(/function captureTrailGradient\(key, age\)/, "촬영 잔상 그라데이션 함수가 없습니다.");
@@ -72,11 +83,12 @@ assertContains(/analysisReliabilitySummary/, "다중 카메라 분석 신뢰도 
 assertContains(/confidence_gain_vs_best_single/, "카메라 증가에 따른 신뢰도 향상값이 없습니다.");
 assertContains(/function previewAdjustedSegment\(/, "수동 시간 수정 후 구간 미리보기 갱신이 없습니다.");
 assertContains(/modalReplayRange\s*=\s*\{/, "수동 시간 수정 후 팝업 재생 범위 갱신이 없습니다.");
-if (!rules.includes("poomsae-learning-report-v2")
+if (!rules.includes("poomsae-learning-report-v3")
+  || !rules.includes("poomsae-event-quality-v1")
   || !rules.includes("poomsae-team-analysis-v1")
   || !rules.includes("poomsae-pair-analysis-v1")
   || !rules.includes("poomsae-individual-analysis-v1")) {
-  throw new Error("Firestore 규칙이 개인전·복식전·단체전 v2 저장 스키마를 허용하지 않습니다.");
+  throw new Error("Firestore 규칙이 개인전·복식전·단체전 v3 저장 스키마를 허용하지 않습니다.");
 }
 if (!rules.includes("d.camera_count is number") || !rules.includes("d.analysis_confidence is number")) {
   throw new Error("Firestore 규칙이 카메라 수와 분석 신뢰도 저장을 검증하지 않습니다.");

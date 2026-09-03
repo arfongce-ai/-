@@ -67,7 +67,7 @@ service cloud.firestore {
         && d.size() < 30;  // 필드 수 제한(스팸 방지)
     }
     function isValidLearningReport(d) {
-      return d.schema in ['poomsae-learning-report-v1', 'poomsae-learning-report-v2']
+      return d.schema in ['poomsae-learning-report-v1', 'poomsae-learning-report-v2', 'poomsae-learning-report-v3']
         && d.poomsae is string
         && d.training_mode in ['exam', 'competition']
         && d.score_100 is number
@@ -83,7 +83,44 @@ service cloud.firestore {
         && d.needed_training is list
         && (d.schema == 'poomsae-learning-report-v1'
           || (isValidTeamLearningData(d) && isValidPairLearningData(d) && isValidIndividualLearningData(d)))
-        && d.size() < 26;
+        && (d.schema != 'poomsae-learning-report-v3' || isValidEventLearningData(d))
+        && d.size() < 32;
+    }
+    function isValidEventLearningData(d) {
+      return d.expected_athletes is number
+        && d.expected_athletes >= 1
+        && d.expected_athletes <= 3
+        && d.recognition_rate is number
+        && d.recognition_rate >= 0
+        && d.recognition_rate <= 1
+        && d.data_quality_level in ['low', 'medium', 'high']
+        && d.usable_for_learning is bool
+        && d.event_data is map
+        && d.event_data.schema == 'poomsae-event-quality-v1'
+        && d.event_data.event == d.competition_event
+        && d.event_data.expected_athletes == d.expected_athletes
+        && d.event_data.recognition_rate is number
+        && d.event_data.recognition_rate >= 0
+        && d.event_data.recognition_rate <= 1
+        && d.event_data.calibrated_confidence is number
+        && d.event_data.calibrated_confidence >= 0
+        && d.event_data.calibrated_confidence <= 1
+        && d.event_data.average_visibility is number
+        && d.event_data.average_visibility >= 0
+        && d.event_data.average_visibility <= 1
+        && d.event_data.track_stability is number
+        && d.event_data.track_stability >= 0
+        && d.event_data.track_stability <= 1
+        && d.event_data.quality_level in ['low', 'medium', 'high']
+        && d.event_data.usable_for_learning is bool
+        && d.event_data.athlete_profiles is list
+        && d.event_data.athlete_profiles.size() <= 3
+        && d.event_data.segments is list
+        && d.event_data.segments.size() <= 80
+        && (d.competition_event != 'individual' || d.expected_athletes == 1)
+        && (d.competition_event != 'pair' || d.expected_athletes == 2)
+        && (d.competition_event != 'team' || d.expected_athletes == 3)
+        && d.event_data.size() < 18;
     }
     function isValidTeamLearningData(d) {
       return d.competition_event != 'team'
