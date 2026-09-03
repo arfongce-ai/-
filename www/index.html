@@ -2813,7 +2813,7 @@
       }
       body[data-app-page="capture"] .capture-stage video {
         /* 카메라 앱처럼 표준 3:4/4:3 프레임을 검은 내부 여백 없이 채운다. */
-        object-fit: cover;
+        object-fit: contain;
       }
       /* 모바일 미디어 쿼리의 기본 위치보다 우선해 보조 버튼을 영상 위에 고정한다. */
       body[data-app-page="capture"] .capture-overlay-toggles {
@@ -3022,7 +3022,7 @@
           z-index: 1;
         }
         body[data-app-page="capture"] .capture-stage video {
-          object-fit: cover;
+          object-fit: contain;
         }
         body[data-app-page="capture"] .capture-stage::after {
           top: calc(var(--capture-top-letterbox) + var(--capture-preview-height) / 2);
@@ -7684,30 +7684,8 @@ function applyBannerToDom(config) {
         return applied;
       }
       function bindCaptureCameraPinchZoom(stage) {
-        if (!stage) return;
-        let startDistance = 0;
-        let startZoom = 1;
-        const distance = (touches) => Math.hypot(
-          touches[0].clientX - touches[1].clientX,
-          touches[0].clientY - touches[1].clientY
-        );
-        stage.addEventListener("touchstart", (event) => {
-          if (event.touches.length !== 2) return;
-          startDistance = distance(event.touches);
-          startZoom = captureZoomFactor;
-        }, { passive: true });
-        stage.addEventListener("touchmove", (event) => {
-          if (event.touches.length !== 2 || !startDistance) return;
-          event.preventDefault();
-          const bounds = captureCameraZoomBounds();
-          if (!bounds) return;
-          const nextZoom = startZoom * (distance(event.touches) / startDistance);
-          captureFullFrame = true;
-          applyCaptureCameraZoom(nextZoom);
-        }, { passive: false });
-        stage.addEventListener("touchend", (event) => {
-          if (event.touches.length < 2) startDistance = 0;
-        }, { passive: true });
+        // 품새 촬영은 줌인을 제공하지 않고, 시작 시 최저 화각만 적용한다.
+        if (stage) stage.dataset.cameraZoomGesture = "disabled";
       }
       function captureRotationDeg(targetLandscape = captureIsLandscapeMode()) {
         // 브라우저/Android WebView의 video 요소가 센서 회전 메타데이터를 이미
@@ -7816,7 +7794,7 @@ function applyBannerToDom(config) {
         return { drawW, drawH, offX, offY };
       }
       function captureDrawRect(video, width, height, zoom = captureZoomScale()) {
-        return videoDrawRect(video, width, height, "cover");
+        return videoDrawRect(video, width, height, "contain");
       }
       function rotateCanvasPoint(point, width, height, rotation) {
         return point;

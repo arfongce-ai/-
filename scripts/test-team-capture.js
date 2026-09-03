@@ -23,7 +23,9 @@ assertContains(/function captureZoomScale\(\)\s*\{[\s\S]*?return 1;/, "카메라
 if (/capturePreview\.style\.transform\s*=\s*`[^`]*scale\(/.test(html)) {
   throw new Error("카메라 미리보기에 CSS 확대/축소가 남아 있습니다.");
 }
-assertContains(/body\[data-app-page="capture"\][\s\S]*?\.capture-stage video[\s\S]*?object-fit:\s*cover/, "촬영 미리보기가 3:4 프레임을 가득 채우지 않습니다.");
+assertContains(/body\[data-app-page="capture"\][\s\S]*?\.capture-stage video[\s\S]*?object-fit:\s*contain/, "촬영 미리보기가 전체 화각을 보존하지 않습니다.");
+assertContains(/cameraZoomGesture\s*=\s*"disabled"/, "촬영 화면에서 줌인 제스처가 비활성화되지 않았습니다.");
+assertContains(/captureZoomFactor\s*=\s*0\.5/, "촬영 시작 시 0.5x 광각 고정이 적용되지 않았습니다.");
 assertContains(/--capture-top-letterbox:\s*clamp\(/, "촬영 화면의 좁은 위쪽 레터박스가 없습니다.");
 assertContains(/--capture-preview-height:\s*calc\(100vw \* 4 \/ 3\)/, "세로 촬영 화면이 3:4 비율이 아닙니다.");
 assertContains(/top:\s*var\(--capture-preview-bottom\)[\s\S]*?background:\s*#000/, "카메라 아래쪽의 넓은 조작 레터박스가 분리되지 않았습니다.");
