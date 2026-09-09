@@ -1,4 +1,4 @@
-const CACHE_NAME = "poomsae-training-trail-gradient-v6";
+const CACHE_NAME = "poomsae-training-exercise-report-v9";
 const APP_URL = "./index.html";
 const CORE_ASSETS = [
   "./",
@@ -27,6 +27,9 @@ const ENGINE_ASSETS = [
   "./models/koryo-textbook-reference.json",
   "./models/koryo-video-reference.json",
   "./action-model.mjs",
+  "./cloud-queue.mjs",
+  "./evidence-calibration.mjs",
+  "./exercise-library.mjs",
   "./textbook-pose-match.mjs",
   "./video-reference-match.mjs",
   "./vendor/mediapipe/tasks-vision/vision_bundle.mjs",

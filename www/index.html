@@ -1673,6 +1673,33 @@
         border: 1px solid var(--panel-line);
         border-radius: var(--radius);
       }
+      .exercise-recommend-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .exercise-recommend-card {
+        min-width: 0;
+        padding: 16px;
+        background: var(--panel-2);
+        border: 1px solid var(--panel-line);
+        border-left: 4px solid var(--brand);
+        border-radius: var(--radius-sm);
+      }
+      .exercise-recommend-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .exercise-recommend-card h4 { margin: 0; color: var(--text); font-size: 16px; }
+      .exercise-recommend-card p { margin: 6px 0 0; }
+      .exercise-recommend-meta { color: var(--muted); font-size: 12px; }
+      @media (max-width: 640px) {
+        .exercise-recommend-grid { grid-template-columns: 1fr; }
+      }
       .result-empty { color: var(--muted); }
       .scene-card {
         background: var(--panel-2);
@@ -4094,6 +4121,9 @@
       <div class="admin-panel">
         <h2 style="margin-top:0">관리자 모드 · 배너 설정</h2>
         <p class="small" id="adminPanelStatus"></p>
+        <p class="small" id="cloudSyncStatus" role="status">학습 데이터 연결 확인 중</p>
+        <button type="button" class="secondary" id="cloudSyncRetryBtn">저장 상태 확인 · 전송 재시도</button>
+        <button type="button" class="secondary" id="adminPanelClose" style="min-height:44px">닫기</button>
 
           <p class="small" id="adminLoginHint">관리자 이메일·비밀번호로 로그인하면 광고 배너를 수정할 수 있습니다.</p>
 
@@ -4114,7 +4144,6 @@
           <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
             <button type="button" class="primary" id="adminBannerSave" style="flex:1;min-height:44px">광고 전체 저장</button>
             <button type="button" class="secondary" id="adminBannerHideNow" style="min-height:44px">즉시 숨기기</button>
-            <button type="button" class="secondary" id="adminPanelClose" style="min-height:44px">닫기</button>
           </div>
         </div>
         <button type="button" class="secondary" id="adminBannerUnlock" style="width:100%;min-height:44px;margin-top:10px">로그인 상태 확인</button>
@@ -4147,9 +4176,11 @@
 
     <script type="module">
       import { buildDatasetCandidate, scoreActionSequence } from "./action-model.mjs";
+      import { createPersistentCloudQueue } from "./cloud-queue.mjs";
       import { compareTextbookPose } from "./textbook-pose-match.mjs";
       import { compareVideoReference } from "./video-reference-match.mjs";
       import { buildTrustedCollectiveProfiles, normalizeCalibrationImport } from "./evidence-calibration.mjs";
+      import { POOMSAE_EXERCISE_LIBRARY_COUNT, buildPoomsaeExerciseRecommendations } from "./exercise-library.mjs";
       // ── Firebase 연동(보정 기록 자동 수집) ──
       // 보정 기록을 사장님 Firestore(momgagym-poomsae-coach)에 자동으로 모은다.
       // 실패해도(오프라인/차단) 앱 본체는 정상 동작하며, 기록은 로컬에도 항상 저장된다(이중 안전).
@@ -4168,7 +4199,8 @@
       let _fbCurrentAdminUser = null;
       const FIREBASE_READ_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
       const BANNER_CACHE_KEY = "poomsae_banner_cache_v1";
-      (async function initFirebase() {
+      let _firebaseInitPromise = null;
+      async function initFirebase() {
         try {
           const appMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
           const fsMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
@@ -4181,7 +4213,7 @@
             messagingSenderId: "160262117171",
             appId: "1:160262117171:web:9889f3534ab201af3f5046"
           };
-          const app = appMod.initializeApp(firebaseConfig);
+          const app = appMod.getApps().length ? appMod.getApp() : appMod.initializeApp(firebaseConfig);
           _fbDB = fsMod.getFirestore(app);
           _fbAddDoc = fsMod.addDoc; _fbCollection = fsMod.collection; _fbServerTs = fsMod.serverTimestamp;
           _fbDoc = fsMod.doc; _fbGetDoc = fsMod.getDoc; _fbSetDoc = fsMod.setDoc; _fbGetDocs = fsMod.getDocs;
@@ -4204,7 +4236,15 @@
           _fbReady = false; // 조용히 실패. 로컬 기록은 계속 동작.
           loadBoundaryBias(); // 오프라인이어도 이전에 캐시된 보정값(localStorage)은 적용.
         }
-      })();
+        updateCloudSyncStatus();
+      }
+      function initializeCloudConnection() {
+        if (_fbReady) return Promise.resolve();
+        if (!_firebaseInitPromise) {
+          _firebaseInitPromise = initFirebase().finally(() => { _firebaseInitPromise = null; });
+        }
+        return _firebaseInitPromise;
+      }
       function describeAdminAuthError(error) {
         const code = error && error.code ? String(error.code) : "";
         if (code === "auth/invalid-email") return "로그인 실패: 이메일 주소 형식을 확인하세요.";
@@ -4269,82 +4309,42 @@
       const LOCAL_EVENT_REPORT_HISTORY_MAX = 150;
       const CLOUD_COMPARE_REPORT_QUEUE_KEY = "poomsae_cloud_compare_report_queue_v1";
       const CLOUD_COMPARE_REPORT_QUEUE_MAX = 80;
-      let _cloudCorrectionFlushPromise = null;
-      let _cloudReportFlushPromise = null;
-      let _cloudCompareReportFlushPromise = null;
-      function loadPendingCloudCorrections() {
-        try {
-          const rows = JSON.parse(localStorage.getItem(CLOUD_CORRECTION_QUEUE_KEY) || "[]");
-          return Array.isArray(rows) ? rows : [];
-        } catch (e) { return []; }
+      function createAppCloudQueue(key, collection, max) {
+        return createPersistentCloudQueue({
+          key, max,
+          storage: { getItem: (key) => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) },
+          getTransport: () => _fbReady && _fbDB && _fbAddDoc && _fbCollection
+            ? (payload) => _fbAddDoc(_fbCollection(_fbDB, collection), { ...payload, created: _fbServerTs() })
+            : null,
+          onStatus: () => updateCloudSyncStatus()
+        });
       }
-      function savePendingCloudCorrections(rows) {
-        try { localStorage.setItem(CLOUD_CORRECTION_QUEUE_KEY, JSON.stringify(rows.slice(-CLOUD_CORRECTION_QUEUE_MAX))); }
-        catch (e) { /* 로컬 보정 로그는 별도로 남아 있으므로 앱은 계속 동작 */ }
+      const correctionCloudQueue = createAppCloudQueue(CLOUD_CORRECTION_QUEUE_KEY, "corrections", CLOUD_CORRECTION_QUEUE_MAX);
+      const learningCloudQueue = createAppCloudQueue(CLOUD_REPORT_QUEUE_KEY, "learning_reports", CLOUD_REPORT_QUEUE_MAX);
+      const compareCloudQueue = createAppCloudQueue(CLOUD_COMPARE_REPORT_QUEUE_KEY, "compare_reports", CLOUD_COMPARE_REPORT_QUEUE_MAX);
+      function loadPendingCloudCorrections() {
+        return correctionCloudQueue.pending();
       }
       function queueCorrectionForCloud(record) {
         const { file, ...safe } = record;
-        const queue = loadPendingCloudCorrections();
-        queue.push(safe);
-        savePendingCloudCorrections(queue);
+        return correctionCloudQueue.enqueue(safe);
       }
       async function flushPendingCloudCorrections() {
-        if (_cloudCorrectionFlushPromise) return _cloudCorrectionFlushPromise;
-        _cloudCorrectionFlushPromise = (async () => {
-          if (!_fbReady || !_fbDB || !_fbAddDoc || !_fbCollection) return 0;
-          const queue = loadPendingCloudCorrections();
-          let sent = 0;
-          while (queue.length) {
-            try {
-              await _fbAddDoc(_fbCollection(_fbDB, "corrections"), { ...queue[0], created: _fbServerTs() });
-              queue.shift();
-              sent += 1;
-              savePendingCloudCorrections(queue);
-            } catch (e) { break; }
-          }
-          return sent;
-        })();
-        try { return await _cloudCorrectionFlushPromise; }
-        finally { _cloudCorrectionFlushPromise = null; }
+        return correctionCloudQueue.flush();
       }
       async function sendCorrectionToCloud(record) {
-        queueCorrectionForCloud(record);
-        const sent = await flushPendingCloudCorrections();
-        return sent > 0;
+        const id = queueCorrectionForCloud(record);
+        await flushPendingCloudCorrections();
+        return !correctionCloudQueue.has(id);
       }
       function loadPendingCloudReports() {
-        try {
-          const rows = JSON.parse(localStorage.getItem(CLOUD_REPORT_QUEUE_KEY) || "[]");
-          return Array.isArray(rows) ? rows : [];
-        } catch (e) { return []; }
-      }
-      function savePendingCloudReports(rows) {
-        try { localStorage.setItem(CLOUD_REPORT_QUEUE_KEY, JSON.stringify(rows.slice(-CLOUD_REPORT_QUEUE_MAX))); }
-        catch (e) { /* 보고서 전송 대기 저장 실패는 앱 동작에 영향을 주지 않음 */ }
+        return learningCloudQueue.pending();
       }
       function queueLearningReportForCloud(report) {
-        const queue = loadPendingCloudReports();
-        queue.push(report);
-        savePendingCloudReports(queue);
+        return learningCloudQueue.enqueue(report);
       }
       async function flushPendingCloudReports() {
-        if (_cloudReportFlushPromise) return _cloudReportFlushPromise;
-        _cloudReportFlushPromise = (async () => {
-          if (!_fbReady || !_fbDB || !_fbAddDoc || !_fbCollection) return 0;
-          const queue = loadPendingCloudReports();
-          let sent = 0;
-          while (queue.length) {
-            try {
-              await _fbAddDoc(_fbCollection(_fbDB, "learning_reports"), { ...queue[0], created: _fbServerTs() });
-              queue.shift();
-              sent += 1;
-              savePendingCloudReports(queue);
-            } catch (e) { break; }
-          }
-          return sent;
-        })();
-        try { return await _cloudReportFlushPromise; }
-        finally { _cloudReportFlushPromise = null; }
+        return learningCloudQueue.flush();
       }
       function buildEventDataQuality(report, eventKey, pair, team) {
         const expected = eventKey === "team" ? 3 : eventKey === "pair" ? 2 : 1;
@@ -4633,49 +4633,24 @@
       async function sendLearningReportToCloud(report) {
         const compact = compactLearningReport(report);
         if (!compact) return false;
-        queueLearningReportForCloud(compact);
-        const sent = await flushPendingCloudReports();
-        return sent > 0;
+        const id = queueLearningReportForCloud(compact);
+        await flushPendingCloudReports();
+        return !learningCloudQueue.has(id);
       }
       function loadPendingCompareReports() {
-        try {
-          const rows = JSON.parse(localStorage.getItem(CLOUD_COMPARE_REPORT_QUEUE_KEY) || "[]");
-          return Array.isArray(rows) ? rows : [];
-        } catch (e) { return []; }
-      }
-      function savePendingCompareReports(rows) {
-        try { localStorage.setItem(CLOUD_COMPARE_REPORT_QUEUE_KEY, JSON.stringify(rows.slice(-CLOUD_COMPARE_REPORT_QUEUE_MAX))); }
-        catch (e) { /* 비교 리포트 전송 대기 저장 실패는 앱 동작에 영향을 주지 않음 */ }
+        return compareCloudQueue.pending();
       }
       function queueCompareReportForCloud(report) {
-        const queue = loadPendingCompareReports();
-        queue.push(report);
-        savePendingCompareReports(queue);
+        return compareCloudQueue.enqueue(report);
       }
       async function flushPendingCompareReports() {
-        if (_cloudCompareReportFlushPromise) return _cloudCompareReportFlushPromise;
-        _cloudCompareReportFlushPromise = (async () => {
-          if (!_fbReady || !_fbDB || !_fbAddDoc || !_fbCollection) return 0;
-          const queue = loadPendingCompareReports();
-          let sent = 0;
-          while (queue.length) {
-            try {
-              await _fbAddDoc(_fbCollection(_fbDB, "compare_reports"), { ...queue[0], created: _fbServerTs() });
-              queue.shift();
-              sent += 1;
-              savePendingCompareReports(queue);
-            } catch (e) { break; }
-          }
-          return sent;
-        })();
-        try { return await _cloudCompareReportFlushPromise; }
-        finally { _cloudCompareReportFlushPromise = null; }
+        return compareCloudQueue.flush();
       }
       async function sendCompareReportToCloud(report) {
         if (!report || typeof report !== "object") return false;
-        queueCompareReportForCloud(report);
-        const sent = await flushPendingCompareReports();
-        return sent > 0;
+        const id = queueCompareReportForCloud(report);
+        await flushPendingCompareReports();
+        return !compareCloudQueue.has(id);
       }
       function compareReportCloudKey(report) {
         if (!report || typeof report !== "object") return "";
@@ -4694,11 +4669,33 @@
           report.after_analysis?.analysis_id || ""
         ].join("|");
       }
-      window.addEventListener("online", () => {
+      function updateCloudSyncStatus() {
+        const element = document.getElementById("cloudSyncStatus");
+        if (!element) return;
+        const states = [correctionCloudQueue.status(), learningCloudQueue.status(), compareCloudQueue.status()];
+        const pending = states.reduce((sum, state) => sum + state.pending, 0);
+        const error = states.find((state) => state.lastError)?.lastError;
+        const memoryOnly = states.some((state) => !state.durable);
+        element.textContent = memoryOnly
+          ? `기기 저장 실패 · 전송 대기 ${pending}건. 전송이 끝날 때까지 이 화면을 닫지 마세요.`
+          : error
+            ? `기기에 보관 중 · 전송 대기 ${pending}건 · 전송 오류: ${error}`
+            : pending
+              ? `기기에 저장됨 · 전송 대기 ${pending}건`
+              : _fbReady
+                ? "연결 준비 완료 · 전송 대기 없음"
+                : "클라우드 연결 대기 · 기기 저장 사용";
+        const reportStatus = document.getElementById("reportCloudSyncStatus");
+        if (reportStatus) reportStatus.textContent = element.textContent;
+      }
+      async function retryCloudSync() {
+        await initializeCloudConnection();
         flushPendingCloudCorrections();
         flushPendingCloudReports();
         flushPendingCompareReports();
-      });
+        updateCloudSyncStatus();
+      }
+      window.addEventListener("online", retryCloudSync);
 
       // ── 학습된 경계 타이밍 보정(원격, 공개 읽기) ──
       // 배경(2026-07-22 사용자 확인): "학습 리포트"가 보여주는 제안은 그동안 관리자 확인 후
@@ -4821,6 +4818,7 @@
       function buildLocalBoundaryBias(records, minSamples = LOCAL_BOUNDARY_BIAS_MIN_SAMPLES, remoteBias = null) {
         const activeRemoteBias = remoteBias || _remoteBoundaryBias || {};
         const grouped = {};
+        let legacyIndex = 0;
         for (const record of Array.isArray(records) ? records : []) {
           if (record.action !== "adjust" && record.action !== "cascade_adjust") continue;
           const delta = Number(record.delta_seconds);
@@ -4836,10 +4834,13 @@
             ? explicitTarget
             : (Number.isFinite(applied) ? applied + delta : delta);
           if (!Number.isFinite(targetTotal) || Math.abs(targetTotal) > BOUNDARY_BIAS_MAX_SHIFT) continue;
-          (grouped[key] ||= []).push(targetTotal);
+          // 같은 영상에서 반복 클릭한 기록은 독립 학습 표본이 아니다. 세션별 최종값만 사용한다.
+          const session = record.review_session_id || `legacy-${legacyIndex++}`;
+          (grouped[key] ||= new Map()).set(session, targetTotal);
         }
         const learned = {};
-        for (const [key, targets] of Object.entries(grouped)) {
+        for (const [key, sessions] of Object.entries(grouped)) {
+          const targets = [...sessions.values()];
           if (targets.length < minSamples) continue;
           const targetCenter = medianNumber(targets);
           const remote = typeof activeRemoteBias[key] === "number" ? clampBiasValue(activeRemoteBias[key]) : 0;
@@ -4853,13 +4854,12 @@
         return learned;
       }
       function refreshLocalBoundaryBias(records) {
-        try {
-          _localBoundaryBias = buildLocalBoundaryBias(records);
-          localStorage.setItem(LOCAL_BOUNDARY_BIAS_KEY, JSON.stringify(_localBoundaryBias));
-        } catch (error) { _localBoundaryBias = {}; }
+        _localBoundaryBias = buildLocalBoundaryBias(records);
+        try { localStorage.setItem(LOCAL_BOUNDARY_BIAS_KEY, JSON.stringify(_localBoundaryBias)); }
+        catch (error) { /* 디스크 저장 실패 시에도 현재 세션의 학습값은 보존한다. */ }
         return _localBoundaryBias;
       }
-      async function loadBoundaryBias() {
+      async function loadBoundaryBias(force = false) {
         let cacheIsFresh = false;
         try {
           const cachedRaw = localStorage.getItem(BOUNDARY_BIAS_CACHE_KEY);
@@ -4872,7 +4872,7 @@
           }
         } catch (e) { /* 캐시 손상은 무시 */ }
         try {
-          if (cacheIsFresh || !_fbReady || !_fbDB || !_fbGetDoc || !_fbDoc) return;
+          if ((!force && cacheIsFresh) || !_fbReady || !_fbDB || !_fbGetDoc || !_fbDoc) return;
           const snap = await _fbGetDoc(_fbDoc(_fbDB, "app_config", "boundary_bias"));
           const data = snap.exists() ? snap.data() : {};
           const clean = {};
@@ -4883,11 +4883,11 @@
           if (Object.keys(profiles).length) clean[COLLECTIVE_PROFILE_FIELD] = profiles;
           _remoteBoundaryBias = clean;
           localStorage.setItem(BOUNDARY_BIAS_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: clean }));
-          // 전역 보정이 새로 내려오면 과거 개인 보정을 '최종 목표값 - 새 전역값'으로 즉시
-          // 다시 계산해 같은 보정이 두 번 더해지지 않게 한다.
-          refreshLocalBoundaryBias(loadCorrectionLog());
         } catch (e) {
           if (_remoteBoundaryBias == null) _remoteBoundaryBias = {}; // 캐시도 없었으면 빈 값으로 안전 폴백.
+        } finally {
+          // 재시작 후 캐시를 읽은 경우에도 새 전역값 기준으로 개인 잔차를 재계산한다.
+          refreshLocalBoundaryBias(loadCorrectionLog());
         }
       }
       function getBoundaryBias(poomsaeKey, boundaryIndex) {
@@ -6990,6 +6990,7 @@ function applyBannerToDom(config) {
       const MAX_RECORDING_MS = 120000;
       const STANDARD_LANDSCAPE_ASPECT = 4 / 3;
       const STANDARD_PORTRAIT_ASPECT = 3 / 4;
+      const CAPTURE_PREFERRED_ZOOM = 0.5;
       const CAPTURE_TRAIL_DURATION_MS = 2400;
       const CAPTURE_TRAIL_MAX_POINTS = 90;
       let captureStream = null;
@@ -7007,7 +7008,7 @@ function applyBannerToDom(config) {
       let captureLatestLandmarks = [];
       let captureSmoothedLandmarks = [];
       let captureFullFrame = true;
-      let captureZoomFactor = 0.5;
+      let captureZoomFactor = CAPTURE_PREFERRED_ZOOM;
       let captureWideCameraId = "";
       let captureCurrentCameraLabel = "";
       let captureStreamLandscape = null;
@@ -7345,23 +7346,34 @@ function applyBannerToDom(config) {
         }
         if (elapsed >= MAX_RECORDING_MS && mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
       }
-      function captureVideoConstraints(deviceId, dimensions = "full", landscape = captureIsLandscapeMode()) {
+      function captureVideoConstraints(deviceId, dimensions = "full", landscape = captureIsLandscapeMode(), exactRear = true) {
         const high = captureQuality === "high";
         const standard = standardMediaSize(landscape ? 4 : 3, landscape ? 3 : 4, high ? 1920 : 1280, landscape ? "landscape" : "portrait");
+        const supported = navigator.mediaDevices?.getSupportedConstraints?.() || {};
         const base = {
           width: { ideal: standard.width },
           height: { ideal: standard.height }
         };
         if (deviceId) base.deviceId = { exact: deviceId };
-        else base.facingMode = { ideal: "environment" };
+        else base.facingMode = exactRear ? { exact: "environment" } : { ideal: "environment" };
         if (dimensions === "full") base.aspectRatio = { ideal: standard.ratio };
+        // 논리형 후면 카메라(0.5x~)는 스트림이 화면에 붙기 전부터 초광각으로 연다.
+        // 지원하지 않는 전용 초광각 렌즈는 자체 최저 배율(보통 1x)을 그대로 쓴다.
+        if (supported.zoom) base.zoom = { ideal: CAPTURE_PREFERRED_ZOOM };
+        // 브라우저의 crop-and-scale로 인한 추가 크롭/비율 변형을 피한다.
+        if (supported.resizeMode) base.resizeMode = { ideal: "none" };
         return base;
       }
       async function openCaptureStreamForDevice(deviceId = "", landscape = captureIsLandscapeMode()) {
-        const attempts = [
+        const attempts = deviceId ? [
           { video: captureVideoConstraints(deviceId, "full", landscape), audio: false },
           { video: captureVideoConstraints(deviceId, "loose", landscape), audio: false },
-          { video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: { ideal: "environment" } }, audio: false }
+          { video: { deviceId: { exact: deviceId } }, audio: false }
+        ] : [
+          { video: captureVideoConstraints("", "full", landscape, true), audio: false },
+          { video: captureVideoConstraints("", "loose", landscape, true), audio: false },
+          { video: captureVideoConstraints("", "full", landscape, false), audio: false },
+          { video: { facingMode: { ideal: "environment" } }, audio: false }
         ];
         if (!deviceId) {
           attempts.push({ video: true, audio: false });
@@ -7444,13 +7456,14 @@ function applyBannerToDom(config) {
         captureStream = await requestCaptureStream(requestedLandscape);
         captureStreamLandscape = requestedLandscape;
         resetCapturePoseState();
+        // 미리보기 첫 프레임이 1x로 잠깐 열리지 않도록 트랙 배율부터 확정한다.
+        const preferredZoomApplied = await setWidestCaptureCameraZoom();
         capturePreview.srcObject = captureStream;
         capturePreview.muted = true;
         await capturePreview.play().catch(() => {});
         syncCaptureOrientationState();
-        await setWidestCaptureCameraZoom();
         startRecordBtn.disabled = false;
-        if (captureCameraStatus) captureCameraStatus.textContent = `카메라 연결됨 · ${captureCurrentCameraLabel || "후면 카메라"} · 최대 화각`;
+        if (captureCameraStatus) captureCameraStatus.textContent = `카메라 연결됨 · ${captureCurrentCameraLabel || "후면 카메라"} · ${preferredZoomApplied ? "0.5x 우선 적용" : "초광각 최대 화각"} · 비율 보정`;
         startCapturePoseLoop();
       }
       function releaseCaptureCamera() {
@@ -7631,8 +7644,7 @@ function applyBannerToDom(config) {
       function captureVideoTrack() {
         return captureStream?.getVideoTracks?.()[0] || null;
       }
-      function captureCameraZoomBounds() {
-        const track = captureVideoTrack();
+      function captureCameraZoomBounds(track = captureVideoTrack()) {
         const caps = track?.getCapabilities?.();
         if (!caps || typeof caps.zoom !== "object") return null;
         const min = Number(caps.zoom.min);
@@ -7654,26 +7666,39 @@ function applyBannerToDom(config) {
           : raw;
         return Math.max(bounds.min, Math.min(bounds.max, Number(stepped.toFixed(6))));
       }
-      async function applyCaptureCameraZoom(value) {
+      function captureZoomWasApplied(track, target, step = 0.1) {
+        const actual = Number(track?.getSettings?.().zoom);
+        if (!Number.isFinite(actual)) return true;
+        return Math.abs(actual - target) <= Math.max(0.001, step / 2);
+      }
+      async function applyCaptureCameraZoom(value, track = captureVideoTrack()) {
         captureZoomFactor = Math.max(0.5, Math.min(1, Number(value) || 0.5));
         if (captureStage) captureStage.dataset.cameraZoom = captureZoomFactor.toFixed(2);
-        const track = captureVideoTrack();
-        const bounds = captureCameraZoomBounds();
+        const bounds = captureCameraZoomBounds(track);
         if (!track || !bounds || !track.applyConstraints) return false;
         const target = captureNativeZoomForFactor(captureZoomFactor, bounds);
-        try {
-          await track.applyConstraints({ advanced: [{ zoom: target }] });
-          if (captureStage) captureStage.dataset.cameraNativeZoom = target.toFixed(2);
-          return true;
-        } catch (error) {
-          console.warn("Camera zoom unavailable.", error);
-          return false;
+        const attempts = [
+          { zoom: { exact: target } },
+          { advanced: [{ zoom: target }] }
+        ];
+        for (const constraints of attempts) {
+          try {
+            await track.applyConstraints(constraints);
+            if (!captureZoomWasApplied(track, target, bounds.step)) continue;
+            const actual = Number(track.getSettings?.().zoom);
+            if (captureStage) captureStage.dataset.cameraNativeZoom = (Number.isFinite(actual) ? actual : target).toFixed(2);
+            return true;
+          } catch (error) {
+            console.warn("Camera zoom attempt unavailable.", error);
+          }
         }
+        return false;
       }
       async function setWidestCaptureCameraZoom() {
         captureFullFrame = true;
-        captureZoomFactor = 0.5;
-        if (capturePreview) capturePreview.style.objectFit = "cover";
+        captureZoomFactor = CAPTURE_PREFERRED_ZOOM;
+        // contain은 센서 프레임을 자르거나 늘이지 않아 0.5x 화각과 원래 비율을 보존한다.
+        if (capturePreview) capturePreview.style.objectFit = "contain";
         if (captureStage) captureStage.dataset.cameraZoom = captureZoomFactor.toFixed(2);
         const bounds = captureCameraZoomBounds();
         if (!bounds) {
@@ -7684,8 +7709,42 @@ function applyBannerToDom(config) {
         return applied;
       }
       function bindCaptureCameraPinchZoom(stage) {
-        // 품새 촬영은 줌인을 제공하지 않고, 시작 시 최저 화각만 적용한다.
-        if (stage) stage.dataset.cameraZoomGesture = "disabled";
+        if (!stage) return;
+        let startDistance = 0;
+        let startZoom = CAPTURE_PREFERRED_ZOOM;
+        let pendingZoom = null;
+        let applyingZoom = false;
+        const distance = (touches) => Math.hypot(
+          touches[0].clientX - touches[1].clientX,
+          touches[0].clientY - touches[1].clientY
+        );
+        const flushZoom = async () => {
+          if (applyingZoom) return;
+          applyingZoom = true;
+          while (pendingZoom != null) {
+            const nextZoom = pendingZoom;
+            pendingZoom = null;
+            await applyCaptureCameraZoom(nextZoom);
+          }
+          applyingZoom = false;
+        };
+        stage.dataset.cameraZoomGesture = "enabled";
+        stage.addEventListener("touchstart", (event) => {
+          if (event.touches.length !== 2) return;
+          startDistance = distance(event.touches);
+          startZoom = captureZoomFactor;
+        }, { passive: true });
+        stage.addEventListener("touchmove", (event) => {
+          if (event.touches.length !== 2 || !startDistance) return;
+          event.preventDefault();
+          pendingZoom = Math.max(0.5, Math.min(1, startZoom * distance(event.touches) / startDistance));
+          flushZoom();
+        }, { passive: false });
+        const finishPinch = (event) => {
+          if (!event.touches || event.touches.length < 2) startDistance = 0;
+        };
+        stage.addEventListener("touchend", finishPinch, { passive: true });
+        stage.addEventListener("touchcancel", finishPinch, { passive: true });
       }
       function captureRotationDeg(targetLandscape = captureIsLandscapeMode()) {
         // 브라우저/Android WebView의 video 요소가 센서 회전 메타데이터를 이미
@@ -9527,7 +9586,7 @@ function applyBannerToDom(config) {
             error.reportStep = "learning_reports 읽기";
             throw error;
           }
-          await loadBoundaryBias(); // 관리자 화면이니 최신 게시 상태를 다시 확인.
+          await loadBoundaryBias(true); // 관리자 화면이니 최신 게시 상태를 다시 확인.
           const records = [];
           snap.forEach((d) => records.push(d.data()));
           const learningRecords = [];
@@ -10690,6 +10749,12 @@ function applyBannerToDom(config) {
         powerScoreText.closest(".metric").querySelector("strong").textContent = trainingMode === "exam" ? "동작별 확인" : activeCompetitionEventProfile().score_label;
         if (!latestReport) powerScoreText.textContent = trainingMode === "exam" ? "시작점·구간" : "-";
       }
+      function reportExerciseRecommendations(report) {
+        const saved = Array.isArray(report?.summary?.recommended_exercises)
+          ? report.summary.recommended_exercises.filter((item) => item && item.id && item.name).slice(0, 4)
+          : [];
+        return saved.length >= 2 ? saved : buildPoomsaeExerciseRecommendations(report);
+      }
       function renderResultPage() {
         if (!resultPageContent) return;
         if (!latestReport) {
@@ -10712,15 +10777,16 @@ function applyBannerToDom(config) {
           latestReport.pair_concurrent,
           latestReport.team_concurrent
         );
+        const exerciseRecommendations = reportExerciseRecommendations(latestReport);
         const scoreMetric = trainingMode === "exam"
           ? `<div class="metric"><strong>분석 중심</strong><span>동작별 확인</span></div>`
           : `<div class="metric"><strong>${escapeHtml(eventProfile.score_label)}</strong><span>${escapeHtml(latestReport.summary.competition_score_10)} / 10.0</span></div>`;
         const eventDataMetric = eventProfile.id === "team"
-          ? `<div class="metric"><strong>3명 동시 인식</strong><span>${Math.round((Number(latestReport.team_concurrent?.average_expected_pose_ratio) || Number(latestReport.team_concurrent?.average_three_pose_ratio) || 0) * 100)}% · 기록 저장됨</span></div>`
+          ? `<div class="metric"><strong>3명 동시 인식</strong><span>${Math.round((Number(latestReport.team_concurrent?.average_expected_pose_ratio) || Number(latestReport.team_concurrent?.average_three_pose_ratio) || 0) * 100)}%</span></div>`
           : eventProfile.id === "pair"
-            ? `<div class="metric"><strong>2명 동시 인식</strong><span>${Math.round((Number(latestReport.pair_concurrent?.average_expected_pose_ratio) || Number(latestReport.pair_concurrent?.average_two_pose_ratio) || 0) * 100)}% · 기록 저장됨</span></div>`
+            ? `<div class="metric"><strong>2명 동시 인식</strong><span>${Math.round((Number(latestReport.pair_concurrent?.average_expected_pose_ratio) || Number(latestReport.pair_concurrent?.average_two_pose_ratio) || 0) * 100)}%</span></div>`
           : eventProfile.id === "individual"
-            ? `<div class="metric"><strong>개인전 데이터</strong><span>${latestReport.segments.length}개 구간 · 기록 저장됨</span></div>`
+            ? `<div class="metric"><strong>${trainingMode === "competition" ? "개인전 데이터" : "분석 데이터"}</strong><span>${latestReport.segments.length}개 구간</span></div>`
             : "";
         resultPageContent.innerHTML = `
           <div class="result-grid">
@@ -10730,7 +10796,8 @@ function applyBannerToDom(config) {
             ${eventDataMetric}
             <div class="metric"><strong>Pose 감지율</strong><span>${Math.round(latestReport.summary.detection_rate * 100)}%</span></div>
             <div class="metric"><strong>분석 신뢰도</strong><span>카메라 ${reliability.camera_count}대 · ${Math.round(reliability.analysis_confidence * 100)}%</span></div>
-            ${trainingMode === "competition" ? `<div class="metric"><strong>학습 데이터 품질</strong><span>${dataQuality.quality_level === "high" ? "높음" : dataQuality.quality_level === "medium" ? "보통" : "낮음"} · 인식 ${Math.round(dataQuality.recognition_rate * 100)}%${dataQuality.usable_for_learning ? " · 학습 후보 저장" : " · 추가 촬영 권장"}</span></div>` : ""}
+            ${trainingMode === "competition" ? `<div class="metric"><strong>학습 데이터 품질</strong><span>${dataQuality.quality_level === "high" ? "높음" : dataQuality.quality_level === "medium" ? "보통" : "낮음"} · 인식 ${Math.round(dataQuality.recognition_rate * 100)}%${dataQuality.usable_for_learning ? " · 학습 후보" : " · 추가 촬영 권장"}</span></div>` : ""}
+            <div class="metric"><strong>학습 전송 상태</strong><span id="reportCloudSyncStatus" role="status">${escapeHtml(document.getElementById("cloudSyncStatus")?.textContent || "저장 상태 확인 중")}</span></div>
             <div class="metric"><strong>동작별 장면</strong><span>${latestReport.segments.length}개</span></div>
           </div>
           <div class="result-card" style="margin-top:14px;">
@@ -10827,6 +10894,29 @@ function applyBannerToDom(config) {
           </div>
           <div class="result-card" style="margin-top:14px;">
             <div class="result-section-title">
+              <div>
+                <h3>4. 추천 보강운동</h3>
+                <p class="small">분석에서 반복된 문제와 약한 동작을 ${POOMSAE_EXERCISE_LIBRARY_COUNT.toLocaleString()}개 품새 보강운동 데이터베이스에 매칭해 대표 운동만 골랐습니다.</p>
+              </div>
+              <span class="badge">${exerciseRecommendations.length}개 · DB ${POOMSAE_EXERCISE_LIBRARY_COUNT}</span>
+            </div>
+            <div class="exercise-recommend-grid">
+              ${exerciseRecommendations.map((exercise) => `
+                <article class="exercise-recommend-card">
+                  <div class="exercise-recommend-head">
+                    <h4>${exercise.priority}. ${escapeHtml(exercise.name)}</h4>
+                    <span class="badge">${escapeHtml(exercise.category)}</span>
+                  </div>
+                  <p><b>추천 이유:</b> ${escapeHtml(exercise.why)}</p>
+                  <p><b>실시:</b> ${escapeHtml(exercise.prescription)}</p>
+                  <p class="exercise-recommend-meta">${escapeHtml(exercise.level)} · ${escapeHtml(exercise.equipment)} · 핵심: ${escapeHtml((exercise.cues || []).join(" · "))}</p>
+                </article>
+              `).join("")}
+            </div>
+            <p class="small">운동은 진단이나 치료가 아닌 수련 보조용입니다. 통증이 있으면 즉시 중단하고 지도자 또는 의료 전문가에게 확인하세요.</p>
+          </div>
+          <div class="result-card" style="margin-top:14px;">
+            <div class="result-section-title">
               <div><h3>동작 하나씩 자세히 보기</h3><p class="small">전체 동작마다 가장 중요한 문제 최대 2개만 표시합니다.</p></div>
               <span class="badge">${latestReport.segments.length}개</span>
             </div>
@@ -10907,6 +10997,14 @@ function applyBannerToDom(config) {
         lines.push("## 3. 지도자 추천 피드백 및 훈련법");
         (latestReport.summary.needed_training || []).forEach((item) => lines.push(`- ${item}`));
         lines.push("- 통증 또는 무릎·발목 정렬 불안이 있으면 반복 수련을 중단하고 지도자 또는 의료 전문가에게 확인하세요.");
+        lines.push("");
+        lines.push(`## 4. 추천 보강운동 (${POOMSAE_EXERCISE_LIBRARY_COUNT.toLocaleString()}개 DB 중 ${reportExerciseRecommendations(latestReport).length}개)`);
+        reportExerciseRecommendations(latestReport).forEach((exercise) => {
+          lines.push(`- **${exercise.priority}. ${exercise.name}** [${exercise.category}]`);
+          lines.push(`  - 추천 이유: ${exercise.why}`);
+          lines.push(`  - 실시: ${exercise.prescription} · 준비물: ${exercise.equipment}`);
+          lines.push(`  - 핵심: ${(exercise.cues || []).join(" · ")}`);
+        });
         return lines.join("\n");
       }
       function showReportOutput() {
@@ -10929,6 +11027,7 @@ function applyBannerToDom(config) {
         const avg = latestReport.summary.competition_score_10;
         const detectRate = Math.round(latestReport.summary.detection_rate * 100);
         const issueCounts = latestReport.summary.issue_counts || [];
+        const exerciseRecommendations = reportExerciseRecommendations(latestReport);
         const topWeak = latestReport.segments
           .slice()
           .sort((a, b) => a.powerScore - b.powerScore)
@@ -10942,7 +11041,11 @@ function applyBannerToDom(config) {
         const weakHeaderH = 60;
         const weakSectionTop = 970;
         const weakSectionH = weakHeaderH + topWeak.length * weakRowH + 24;
-        const noticeTop = weakSectionTop + weakSectionH + 40;
+        const exerciseRowH = 132;
+        const exerciseHeaderH = 72;
+        const exerciseSectionTop = weakSectionTop + weakSectionH + 40;
+        const exerciseSectionH = exerciseHeaderH + exerciseRecommendations.length * exerciseRowH + 24;
+        const noticeTop = exerciseSectionTop + exerciseSectionH + 40;
         const footerY = noticeTop + 170 + 80;
         const canvasHeight = footerY + 60;
 
@@ -11081,6 +11184,18 @@ function applyBannerToDom(config) {
           text(segmentTitle, textX, rowTop, 26, "#111827", "800");
           wrap(compactFeedback(segment.feedback, 96).summary, textX, rowTop + 40, textW, 21, "#6b7280");
           y += weakRowH;
+        });
+
+        rr(70, exerciseSectionTop, 1260, exerciseSectionH, 18, "#ffffff", "#d9dee8");
+        text(`추천 보강운동 · ${POOMSAE_EXERCISE_LIBRARY_COUNT.toLocaleString()}개 DB 중 ${exerciseRecommendations.length}개`, 110, exerciseSectionTop + 36, 30, "#111827", "800");
+        let exerciseY = exerciseSectionTop + exerciseHeaderH + 12;
+        exerciseRecommendations.forEach((exercise, index) => {
+          rr(110, exerciseY, 42, 42, 10, "#eef4ff");
+          text(String(index + 1), 124, exerciseY + 7, 24, "#174ea6", "800");
+          text(`${exercise.name} · ${exercise.category}`, 172, exerciseY, 26, "#111827", "800");
+          wrap(`추천 이유: ${exercise.why}`, 172, exerciseY + 40, 1080, 21, "#374151");
+          wrap(`실시: ${exercise.prescription} · ${exercise.equipment}`, 172, exerciseY + 78, 1080, 20, "#6b7280");
+          exerciseY += exerciseRowH;
         });
 
         rr(70, noticeTop, 1260, 170, 18, "#fff4df", "#f4c56a");
@@ -13182,7 +13297,12 @@ function applyBannerToDom(config) {
         return { amount: 0, label: "자동 감점 징후 적음 · 지도자 확인", reason: "측정 가능한 지표에서는 큰 오류 징후가 적습니다." };
       }
       function keyMotionFeedback(results) {
-        const kickResults = results.filter((item) => /차기|찍기/.test(item.name || ""));
+        const kickResults = results.filter((item) =>
+          item.movementType === "kick"
+          || item.movementType === "kick_punch"
+          || (Array.isArray(item.kickStages) && item.kickStages.length > 0)
+          || /차기|차고|찍기|옆차|앞차/.test(item.name || "")
+        );
         const stanceAvg = results.reduce((sum, item) => sum + item.stanceScore, 0) / Math.max(results.length, 1);
         const kickStability = kickResults.reduce((sum, item) => sum + item.stillnessScore, 0) / Math.max(kickResults.length, 1);
         return [
@@ -14799,6 +14919,7 @@ function applyBannerToDom(config) {
           analysis_efficiency: analysisEfficiency,
           next_step: "관절 속도 피크와 정지점으로 실제 동작 전환점을 자동 감지하고, 지르기/막기/차기별 궤적 정확도 규칙을 연결"
         };
+        latestReport.summary.recommended_exercises = buildPoomsaeExerciseRecommendations(latestReport);
         latestReport.event_data_quality = buildEventDataQuality(
           latestReport,
           trainingMode === "competition" ? competitionEvent : "",
@@ -16117,6 +16238,8 @@ function applyBannerToDom(config) {
         try { fn(); } catch (e) { console.warn("init step failed: " + label, e); }
       }
       safeInit("renderPoomsaeOptions", () => renderPoomsaeOptions(selectedPoomsaeGroup, selectedPoomsaeKey));
+      safeInit("cloudConnection", () => initializeCloudConnection());
+      document.getElementById("cloudSyncRetryBtn")?.addEventListener("click", retryCloudSync);
       safeInit("updatePoomsaeView", () => updatePoomsaeView());
       safeInit("updateTrainingModeUi", () => updateTrainingModeUi());
       safeInit("updateCameraViewUi", () => updateCameraViewUi());
