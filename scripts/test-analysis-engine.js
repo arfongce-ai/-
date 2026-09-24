@@ -112,12 +112,21 @@ const heldDeduction = context.referenceDeductionFor({
 });
 assert(heldDeduction.amount === null, "low pose visibility postpones reference deduction classification");
 const minorDeduction = context.referenceDeductionFor({
-  visibilityScore: 90, velocityScore: 60, snapScore: 80, stillnessScore: 80, stanceScore: 80
+  visibilityScore: 90, velocityScore: 80, snapScore: 80, stillnessScore: 60, stanceScore: 80
 });
-assert(minorDeduction.amount === 0.1, "measurable mild weakness maps to a -0.1 reference possibility");
+assert(minorDeduction.amount === 0.1, "measurable mild finish instability maps to a -0.1 reference possibility");
 const majorDeduction = context.referenceDeductionFor({
-  visibilityScore: 90, velocityScore: 30, snapScore: 80, stillnessScore: 80, stanceScore: 80
+  visibilityScore: 90, velocityScore: 80, snapScore: 80, stillnessScore: 80, stanceScore: 30
 });
-assert(majorDeduction.amount === 0.3, "measurable severe weakness maps to a -0.3 reference possibility");
+assert(majorDeduction.amount === 0.3, "measurable severe balance loss maps to a -0.3 reference possibility");
+// 속도·맺음은 표현력 항목: 느리게 잡힌 지르기에 정확성 감점(-0.3)을 붙이지 않는다.
+const presentationOnly = context.referenceDeductionFor({
+  visibilityScore: 90, velocityScore: 25, snapScore: 40, stillnessScore: 80, stanceScore: 80
+});
+assert(presentationOnly.amount === 0 && /표현력/.test(presentationOnly.label), "slow or soft finish is a presentation note, not an accuracy deduction");
+const uncertainFinish = context.referenceDeductionFor({
+  visibilityScore: 90, velocityScore: 80, snapScore: 30, stillnessScore: 40, stanceScore: 80, finishUncertain: true
+});
+assert(uncertainFinish.amount === null, "unclear finish postpones the deduction size instead of blaming the athlete");
 
 console.log("Analysis engine synthetic checks passed.");
