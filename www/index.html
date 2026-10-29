@@ -951,6 +951,16 @@
       .advanced-fold > summary::before { content: "▸ "; }
       .advanced-fold[open] > summary::before { content: "▾ "; }
       .advanced-fold-body { padding: 0 12px 12px; }
+      /* .upload-slot·.control-grid의 display가 hidden 속성을 덮어 1대 촬영에도 측면·대각선 칸이 보였다. */
+      .upload-slot[hidden], .control-grid[hidden] { display: none !important; }
+      .footer-theme-toggle { min-height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid currentColor; background: transparent; color: inherit; font-weight: 700; cursor: pointer; }
+      .analyze-inline-progress { margin: 8px 0 0; font-weight: 800; color: var(--text); line-height: 1.5; }
+      .scene-praise { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--brand-soft); font-weight: 700; }
+      .privacy-fold > summary { color: var(--text); }
+      .privacy-body p { margin: 0 0 8px; line-height: 1.55; }
+      .privacy-toggle { display: flex; align-items: center; gap: 8px; min-height: 44px; font-weight: 800; cursor: pointer; }
+      .privacy-toggle input { width: 20px; height: 20px; margin: 0; }
+      .privacy-body button { width: 100%; min-height: 44px; margin: 4px 0 8px; }
       .repeat-options label {
         justify-content: center;
         gap: 8px;
@@ -3674,11 +3684,11 @@
             <button type="button" id="captureTrajectoryToggle" class="capture-chip">궤적 OFF</button>
           </div>
           <div class="capture-pose-mode" aria-label="스켈레톤 인식 인원">
-            <button type="button" id="captureSinglePose" class="capture-chip">개인전 · 1명</button>
+            <button type="button" id="captureSinglePose" class="capture-chip active">개인전 · 1명</button>
             <button type="button" id="capturePairPose" class="capture-chip">복식전 · 2명</button>
-            <button type="button" id="captureMultiPose" class="capture-chip active">단체전 · 3명</button>
+            <button type="button" id="captureMultiPose" class="capture-chip">단체전 · 3명</button>
           </div>
-          <div id="captureTeamStatus" class="capture-team-status" role="status" aria-live="polite">0/3명 · 세 명을 화면에 맞추세요</div>
+          <div id="captureTeamStatus" class="capture-team-status" role="status" aria-live="polite" hidden>0/3명 · 세 명을 화면에 맞추세요</div>
           <div class="capture-status" id="captureStatus">
             <span class="record-dot" id="captureRecordDot"></span>
             <span id="captureRecordingTime">00:00</span>
@@ -3691,7 +3701,7 @@
           <div class="capture-controls">
             <button type="button" id="startRecordBtn" class="capture-record-btn" aria-label="녹화">녹화</button>
             <p class="capture-helper">표준 화질 · 세로 화면은 3:4, 가로 화면은 4:3 비율로 저장됩니다. 녹화는 최대 2분까지 가능하며, 종료하면 바로 폰에 저장을 시도합니다.</p>
-            <div id="captureSaveHud" class="capture-save-hud" role="status" aria-live="polite">저장되었습니다.</div>
+            <div id="captureSaveHud" class="capture-save-hud" role="status" aria-live="polite"></div>
             <div id="recordingsList" class="recordings-list"></div>
           </div>
         </div>
@@ -3883,6 +3893,17 @@
               <input id="fileInputC" type="file" accept="video/mp4,video/*" />
               <p class="upload-status" id="uploadStatusC">3번 대각선 영상 대기 중</p>
             </div>
+            <details class="advanced-fold privacy-fold" id="privacyFold">
+              <summary>영상은 이 기기 밖으로 나가지 않아요 · 개인정보 안내</summary>
+              <div class="advanced-fold-body privacy-body">
+                <p class="small">분석은 이 기기 안에서만 합니다. <b>영상과 사진은 서버로 보내지 않습니다.</b></p>
+                <p class="small">앱을 더 정확하게 만들기 위해 점수, 동작 구간 시간, 직접 고친 경계 같은 <b>숫자 기록만</b> 이름·파일명 없이 보냅니다. 끄면 이 기기에만 저장합니다.</p>
+                <label class="privacy-toggle" for="cloudShareToggle"><input type="checkbox" id="cloudShareToggle" checked /> 익명 숫자 기록 보내기</label>
+                <p class="small" id="cloudShareStatus" role="status"></p>
+                <button type="button" class="secondary" id="clearLocalRecordsBtn">이 기기의 분석·보정 기록 지우기</button>
+                <p class="small" style="color:var(--muted)">이미 보낸 숫자 기록은 이름이 없어 사람별로 찾아 지울 수 없습니다. 학생(특히 14세 미만)을 촬영할 때는 보호자에게 먼저 알려 주세요.</p>
+              </div>
+            </details>
             <details class="advanced-fold" id="sensitivityFold">
               <summary>동작이 잘못 나뉘면 여기서 조정 (고급, 보통은 그대로 두세요)</summary>
               <div class="advanced-fold-body">
@@ -3901,6 +3922,7 @@
               <button id="reanalyzeBtn" class="secondary" disabled hidden>재분석(초기화)</button>
               <button id="loadModelBtn" type="button" hidden>모델 준비</button>
             </div>
+            <p id="analyzeInlineProgress" class="small analyze-inline-progress" role="status" aria-live="polite" hidden></p>
             <div class="utility-actions" hidden>
               <button id="downloadBtn" class="secondary icon-action" disabled aria-label="JSON 저장" title="JSON 저장"><span class="ui-icon" aria-hidden="true">⇩</span><span class="button-label">JSON</span></button>
               <button id="jpgBtn" class="secondary icon-action" disabled hidden aria-label="A4 카드 JPG 저장" title="A4 카드 JPG 저장"><span class="ui-icon" aria-hidden="true">▧</span><span class="button-label">JPG</span></button>
@@ -4010,7 +4032,7 @@
         <p id="dataCoverageNote" class="movement-estimate-note" style="display:none"></p>
         <div id="manualEditBar" style="display:none;margin:10px 0 12px;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;background:#fff7ed;border:1px solid #fdba74;border-radius:10px">
           <button type="button" id="manualEditToggle" class="primary" style="font-size:14px;font-weight:700">✏️ 동작 구간 바로잡기</button>
-          <span id="manualEditHint" class="small" style="color:var(--muted)">원본 영상은 바뀌지 않아요. 시작점이나 동작의 시작·끝이 다르면 각 카드의 "🎞 프레임으로 찾기"에서 정확한 장면을 눌러 주세요.</span>
+          <span id="manualEditHint" class="small" style="color:var(--muted)">원본 영상은 바뀌지 않아요. 시작점이나 동작의 시작·끝이 다르면 각 카드의 시작 시각(초)을 고쳐 넣거나, 합치기·나누기를 눌러 주세요.</span>
           <span id="correctionLogStatus" class="small" style="color:var(--muted)"></span>
           <button type="button" id="restoreAutoBtn" class="secondary" style="font-size:12px;display:none">자동 결과로 되돌리기</button>
           <button type="button" id="confirmBoundariesBtn" class="secondary" style="font-size:12px;display:none">구간 확인 완료</button>
@@ -4119,6 +4141,7 @@
           <p>인스타그램: <a href="https://www.instagram.com/posture_gym_official" target="_blank" rel="noopener">@posture_gym_official</a></p>
           <p>블로그: <a href="https://blog.naver.com/posture_gym" target="_blank" rel="noopener">blog.naver.com/posture_gym</a></p>
           <p>문의: <a href="tel:050713660466">0507-1366-0466</a></p>
+          <p><button type="button" id="footerThemeToggle" class="footer-theme-toggle">화면 밝게/어둡게</button></p>
         </div>
       </div>
     </footer>
@@ -4167,6 +4190,11 @@
             <p class="small" id="adminAuthStatus" style="color:var(--muted)"></p>
           </div>
           <div id="adminReportPanel" style="display:none">
+            <div id="adminVerifyBox" hidden style="margin:0 0 10px;padding:10px 12px;border:1px solid var(--brand);border-radius:10px;background:var(--brand-soft)">
+              <p class="small" style="margin:0 0 6px"><strong>관리자 이메일 인증이 필요해요.</strong> 보안 규칙이 인증된 관리자만 학습 기록·배너를 바꿀 수 있게 바뀝니다. 메일의 링크를 누른 뒤 로그아웃했다가 다시 로그인하세요.</p>
+              <button type="button" class="secondary" id="adminSendVerifyBtn" style="width:100%;min-height:40px">인증 메일 보내기</button>
+              <p class="small" id="adminVerifyStatus" style="margin:6px 0 0;color:var(--muted)"></p>
+            </div>
             <p class="small" id="reportStatus"></p>
             <div style="display:flex;gap:8px;margin-bottom:8px">
               <button type="button" class="secondary" id="reportRefreshBtn" style="flex:1;min-height:40px">새로고침</button>
@@ -4201,7 +4229,7 @@
       // corrections 컬렉션은 firestore.rules상 인증된 관리자 계정만 읽을 수 있다(스팸 방지를
       // 위해 익명 읽기는 막혀 있음 — 아래 firestore.rules 주석 참고). 배너 설정도 같은
       // Firebase 관리자 인증으로 저장 전 확인한다.
-      let _fbAuth = null, _fbSignIn = null, _fbSignOut = null, _fbSendPasswordReset = null;
+      let _fbAuth = null, _fbSignIn = null, _fbSignOut = null, _fbSendPasswordReset = null, _fbSendEmailVerification = null;
       let _fbCurrentAdminUser = null;
       const FIREBASE_READ_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
       const BANNER_CACHE_KEY = "poomsae_banner_cache_v1";
@@ -4227,6 +4255,7 @@
           _fbAuth = authMod.getAuth(app);
           _fbSignIn = authMod.signInWithEmailAndPassword;
           _fbSendPasswordReset = authMod.sendPasswordResetEmail;
+          _fbSendEmailVerification = authMod.sendEmailVerification;
           _fbSignOut = authMod.signOut;
           authMod.onAuthStateChanged(_fbAuth, (user) => {
             _fbCurrentAdminUser = user;
@@ -4316,12 +4345,36 @@
       const LOCAL_EVENT_REPORT_HISTORY_MAX = 150;
       const CLOUD_COMPARE_REPORT_QUEUE_KEY = "poomsae_cloud_compare_report_queue_v1";
       const CLOUD_COMPARE_REPORT_QUEUE_MAX = 80;
+      // ── 개인정보: 클라우드로 보내는 범위와 끄기 ──
+      // 영상·사진은 기기 밖으로 보내지 않는다. 보내는 것은 점수·구간 시간 같은 숫자(이름·파일명 없음)뿐이다.
+      // 사용자가 끄면 새 기록을 보내지 않고, 아직 보내지 않은 대기 기록도 지운다.
+      const CLOUD_SHARE_PREF_KEY = "poomsae_cloud_share_pref_v1";
+      const PRIVACY_NOTICE_SEEN_KEY = "poomsae_privacy_notice_seen_v1";
+      function cloudSharingEnabled() {
+        try { return localStorage.getItem(CLOUD_SHARE_PREF_KEY) !== "off"; } catch (e) { return true; }
+      }
+      // 예전 버전이 대기열에 남긴 기록에서도 파일명(학생 이름·나이가 들어갈 수 있음)을 빼고 보낸다.
+      function sanitizeCloudPayload(collection, payload) {
+        const clean = { ...(payload || {}) };
+        delete clean.file;
+        if (collection === "compare_reports") {
+          delete clean.before_file;
+          delete clean.after_file;
+          for (const side of ["before_analysis", "after_analysis"]) {
+            if (clean[side] && typeof clean[side] === "object") {
+              const { source_file: _sourceFile, ...rest } = clean[side];
+              clean[side] = rest;
+            }
+          }
+        }
+        return clean;
+      }
       function createAppCloudQueue(key, collection, max) {
         return createPersistentCloudQueue({
           key, max,
           storage: { getItem: (key) => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) },
-          getTransport: () => _fbReady && _fbDB && _fbAddDoc && _fbCollection
-            ? (payload) => _fbAddDoc(_fbCollection(_fbDB, collection), { ...payload, created: _fbServerTs() })
+          getTransport: () => cloudSharingEnabled() && _fbReady && _fbDB && _fbAddDoc && _fbCollection
+            ? (payload) => _fbAddDoc(_fbCollection(_fbDB, collection), { ...sanitizeCloudPayload(collection, payload), created: _fbServerTs() })
             : null,
           onStatus: () => updateCloudSyncStatus()
         });
@@ -4329,11 +4382,69 @@
       const correctionCloudQueue = createAppCloudQueue(CLOUD_CORRECTION_QUEUE_KEY, "corrections", CLOUD_CORRECTION_QUEUE_MAX);
       const learningCloudQueue = createAppCloudQueue(CLOUD_REPORT_QUEUE_KEY, "learning_reports", CLOUD_REPORT_QUEUE_MAX);
       const compareCloudQueue = createAppCloudQueue(CLOUD_COMPARE_REPORT_QUEUE_KEY, "compare_reports", CLOUD_COMPARE_REPORT_QUEUE_MAX);
+      function updateCloudShareUi() {
+        const enabled = cloudSharingEnabled();
+        const toggle = document.getElementById("cloudShareToggle");
+        const status = document.getElementById("cloudShareStatus");
+        if (toggle) toggle.checked = enabled;
+        if (status) status.textContent = enabled
+          ? "켜짐: 숫자 기록만 이름 없이 보냅니다."
+          : "꺼짐: 새 기록을 보내지 않고 이 기기에만 저장합니다.";
+      }
+      function setCloudSharingEnabled(enabled) {
+        try { localStorage.setItem(CLOUD_SHARE_PREF_KEY, enabled ? "on" : "off"); } catch (e) { /* 저장 실패 시 이번 화면에서만 적용 */ }
+        if (!enabled) {
+          correctionCloudQueue.clear();
+          learningCloudQueue.clear();
+          compareCloudQueue.clear();
+        }
+        updateCloudShareUi();
+        updateCloudSyncStatus();
+      }
+      // 이 기기에 남은 분석·보정 기록을 지운다(화면 설정·배너 캐시는 개인 기록이 아니라 유지).
+      function clearLocalRecords() {
+        if (!confirm("이 기기에 저장된 분석 기록, 구간 보정 기록, 아직 보내지 않은 기록을 지울까요?\n되돌릴 수 없습니다. 영상 파일은 지우지 않습니다.")) return;
+        const keys = [
+          LOCAL_TEAM_REPORT_HISTORY_KEY, LOCAL_PAIR_REPORT_HISTORY_KEY, LOCAL_INDIVIDUAL_REPORT_HISTORY_KEY,
+          LOCAL_EVENT_REPORT_HISTORY_KEY, CORRECTION_LOG_KEY, VIDEO_CORRECTIONS_KEY, LOCAL_BOUNDARY_BIAS_KEY,
+          AUTO_PUBLISH_LOG_KEY
+        ];
+        for (const key of keys) {
+          try { localStorage.removeItem(key); } catch (e) { /* 계속 진행 */ }
+        }
+        correctionCloudQueue.clear();
+        learningCloudQueue.clear();
+        compareCloudQueue.clear();
+        stableAnalysisCache.clear();
+        analysisReportByFileKey.clear();
+        _localBoundaryBias = {};
+        pendingVideoCorrection = null;
+        const status = document.getElementById("cloudShareStatus");
+        if (status) status.textContent = "이 기기의 분석·보정 기록을 지웠습니다.";
+        updateCloudSyncStatus();
+      }
+      function initPrivacyControls() {
+        const fold = document.getElementById("privacyFold");
+        let seen = false;
+        try { seen = localStorage.getItem(PRIVACY_NOTICE_SEEN_KEY) === "1"; } catch (e) { seen = false; }
+        // 처음 한 번은 펼쳐 보여 주고, 영상을 고르거나 직접 접고 펴면 다음부터 접어 둔다.
+        if (fold && !seen) fold.open = true;
+        const markSeen = () => { try { localStorage.setItem(PRIVACY_NOTICE_SEEN_KEY, "1"); } catch (e) { /* 무시 */ } };
+        fold?.addEventListener("toggle", markSeen);
+        document.getElementById("fileInput")?.addEventListener("change", markSeen);
+        document.getElementById("cloudShareToggle")?.addEventListener("change", (event) => {
+          markSeen();
+          setCloudSharingEnabled(Boolean(event.target.checked));
+        });
+        document.getElementById("clearLocalRecordsBtn")?.addEventListener("click", clearLocalRecords);
+        updateCloudShareUi();
+      }
       function loadPendingCloudCorrections() {
         return correctionCloudQueue.pending();
       }
       function queueCorrectionForCloud(record) {
-        const { file, ...safe } = record;
+        if (!cloudSharingEnabled()) return null;
+        const { file: _file, ...safe } = record;
         return correctionCloudQueue.enqueue(safe);
       }
       async function flushPendingCloudCorrections() {
@@ -4341,6 +4452,7 @@
       }
       async function sendCorrectionToCloud(record) {
         const id = queueCorrectionForCloud(record);
+        if (!id) return false;
         await flushPendingCloudCorrections();
         return !correctionCloudQueue.has(id);
       }
@@ -4348,6 +4460,7 @@
         return learningCloudQueue.pending();
       }
       function queueLearningReportForCloud(report) {
+        if (!cloudSharingEnabled()) return null;
         return learningCloudQueue.enqueue(report);
       }
       async function flushPendingCloudReports() {
@@ -4641,6 +4754,7 @@
         const compact = compactLearningReport(report);
         if (!compact) return false;
         const id = queueLearningReportForCloud(compact);
+        if (!id) return false;
         await flushPendingCloudReports();
         return !learningCloudQueue.has(id);
       }
@@ -4648,6 +4762,7 @@
         return compareCloudQueue.pending();
       }
       function queueCompareReportForCloud(report) {
+        if (!cloudSharingEnabled()) return null;
         return compareCloudQueue.enqueue(report);
       }
       async function flushPendingCompareReports() {
@@ -4656,6 +4771,7 @@
       async function sendCompareReportToCloud(report) {
         if (!report || typeof report !== "object") return false;
         const id = queueCompareReportForCloud(report);
+        if (!id) return false;
         await flushPendingCompareReports();
         return !compareCloudQueue.has(id);
       }
@@ -4663,8 +4779,6 @@
         if (!report || typeof report !== "object") return "";
         return [
           report.schema,
-          report.before_file,
-          report.after_file,
           report.before_duration,
           report.after_duration,
           report.opacity,
@@ -4683,7 +4797,9 @@
         const pending = states.reduce((sum, state) => sum + state.pending, 0);
         const error = states.find((state) => state.lastError)?.lastError;
         const memoryOnly = states.some((state) => !state.durable);
-        element.textContent = memoryOnly
+        element.textContent = !cloudSharingEnabled()
+          ? "익명 숫자 기록 보내기 꺼짐 · 이 기기에만 저장"
+          : memoryOnly
           ? `기기 저장 실패 · 전송 대기 ${pending}건. 전송이 끝날 때까지 이 화면을 닫지 마세요.`
           : error
             ? `기기에 보관 중 · 전송 대기 ${pending}건 · 전송 오류: ${error}`
@@ -4985,6 +5101,10 @@
       // 자동으로 반영한다. 동작 분류·명칭·개수에 영향을 주는 제안(과분할/과소분할 등)은 여전히
       // 코드 로직 변경이 필요해 자동 반영 대상이 아니다(사람 판단 필요 — 안전 범위 밖).
       // 매 페이지 로드마다 전체 컬렉션을 읽으면 낭비이므로 12시간에 한 번으로 제한한다.
+      // ※ 현재는 호출하지 않는다(2026-08-25 662c82c에서 Firestore 읽기 절감으로 호출 제거).
+      //   게시값은 학습 리포트에서 관리자가 '적용'을 누를 때만 바뀐다. 다시 켤 때는 익명 기록을
+      //   검토 세션별 마지막 1건으로 묶어(buildCollectiveLearningProfiles처럼) 한 사람의 반복 수정이
+      //   모두의 경계를 움직이지 못하게 해야 한다.
       const AUTO_PUBLISH_LAST_CHECK_KEY = "poomsae_auto_publish_last_check_v2";
       const AUTO_PUBLISH_LOG_KEY = "poomsae_auto_publish_log";
       const AUTO_PUBLISH_MIN_INTERVAL_MS = 12 * 3600 * 1000;
@@ -5527,6 +5647,27 @@ function applyBannerToDom(config) {
             }
           });
         }
+        const adminSendVerifyBtn = document.getElementById("adminSendVerifyBtn");
+        if (adminSendVerifyBtn) {
+          adminSendVerifyBtn.addEventListener("click", async () => {
+            const verifyStatus = document.getElementById("adminVerifyStatus");
+            if (!_fbCurrentAdminUser || !_fbSendEmailVerification) {
+              if (verifyStatus) verifyStatus.textContent = "먼저 관리자 계정으로 로그인하세요.";
+              return;
+            }
+            if (verifyStatus) verifyStatus.textContent = "인증 메일 보내는 중...";
+            try {
+              await _fbSendEmailVerification(_fbCurrentAdminUser);
+              if (verifyStatus) verifyStatus.textContent = `${_fbCurrentAdminUser.email || "관리자 이메일"}로 인증 메일을 보냈습니다. 메일함(스팸함 포함)을 확인하세요.`;
+            } catch (e) {
+              console.warn("Admin email verification failed", e);
+              const code = e && e.code ? String(e.code) : "";
+              if (verifyStatus) verifyStatus.textContent = code === "auth/too-many-requests"
+                ? "잠시 뒤 다시 시도하세요(메일을 너무 자주 보냈습니다)."
+                : `인증 메일을 보내지 못했습니다${code ? `: ${code}` : ""}.`;
+            }
+          });
+        }
         if (reportRefreshBtn) reportRefreshBtn.addEventListener("click", loadAndRenderCorrectionReport);
         if (importCalibrationBtn && calibrationImportInput) {
           importCalibrationBtn.addEventListener("click", () => calibrationImportInput.click());
@@ -5564,6 +5705,10 @@ function applyBannerToDom(config) {
         if (/차기|찍기|꼬아서기|뛰어/.test(name)) return "kick_punch";
         if (/막기|헤쳐|산틀|거들어막기/.test(name)) return "block";
         if (/치기|찌르기|지르기|밀기|꺾기|표적/.test(name)) return "strike";
+        // 이름에 '서기·학다리'가 있어도 기술(돌쩌귀·막고·날개펴기·보주먹)이 들어 있으면 정지 자세가 아니다.
+        // 예전에는 금강 큰돌쩌귀, 태백·지태·한수·평원 작은돌쩌귀, 천권 날개펴기, 태극7장 보주먹이 정지(hold)로
+        // 분류돼 끝 멈춤 측정 없이 '내내 서 있어야 하는 자세'로 채점됐다 → 시범 영상에서도 '수정 필요'·-0.3.
+        if (/막고|돌쩌귀|날개펴기|보주먹/.test(name)) return "block";
         if (/준비|서기|멈추기|학다리/.test(name)) return "hold";
         return "punch";
       }
@@ -6687,14 +6832,55 @@ function applyBannerToDom(config) {
       // 단, 시작의 '준비서기'와 종료 직전 '기본준비서기로 돌아오기'를 모두 잡는다.
       function isReadyStance(name) {
         const n = String(name || "").trim();
-        return /^(준비서기|준비 자세|준비자세|기본준비|기본준비서기|기본준비서기로 돌아오기)$/.test(n);
+        // 품새별 고유 준비자세(평원 겹손준비, 고려 통밀기준비, 일여 보주먹준비 등)도 준비로 본다.
+        // 예전에는 기본준비 이름만 인식해, 평원은 '겹손준비'가 1번 동작으로 들어가 모든 동작명이 한 칸씩 밀렸다.
+        return /^(준비서기|준비 자세|준비자세|기본준비|기본준비서기|기본준비서기로 돌아오기)$/.test(n)
+          || /^(모아서기\s*)?(겹손|통밀기|보주먹)\s*준비(서기)?$/.test(n);
+      }
+      // 품새 데이터의 준비자세 항목(id: ready_stance)은 이름과 관계없이 준비로 처리한다.
+      // 품새별 준비자세 안내(예전 안내는 모든 품새에 '두 주먹을 모아 쥐고'로 고정돼 있었다).
+      const READY_STANCE_FALLBACK = Object.freeze({
+        koryo: "통밀기준비",
+        pyongwon: "모아서기 겹손준비",
+        sipjin: "보주먹준비"
+      });
+      function readyStanceGuide(dataKey) {
+        const data = poomsaeData[dataKey];
+        if (data && data.readyTechnique) {
+          return `이 품새의 준비자세(${data.readyTechnique}${data.readyDetail ? ` · ${data.readyDetail}` : ""})`;
+        }
+        if (READY_STANCE_FALLBACK[dataKey]) return `이 품새의 준비자세(${READY_STANCE_FALLBACK[dataKey]})`;
+        return "기본준비(두 주먹을 아랫배 앞에 모아 쥔 자세)";
+      }
+      function isReadyEntry(raw, name) {
+        return !!(raw && raw.id === "ready_stance") || isReadyStance(name);
+      }
+      // 국기원 품새에서 '천천히' 하는 동작(공식 동작 번호). 이 동작은 속도·맺음(빠르게 들어와 끊는 정도)을
+      // 판정하지 않고 끝 정지·서기만 본다. 근거: 태극6장 10번 나란히서기 아래헤쳐막기(시범 영상 약 6초),
+      // 태극7장 11번 보주먹, 천권 1번 날개펴기·25·26번 태산밀기(교본 대조 메모),
+      // 천권 23·24번 편손외산틀막기(시범 영상 각 약 5초, 2026-10-29 사용자 확인). 확인되는 대로 추가한다.
+      const SLOW_MOVEMENT_NUMBERS = Object.freeze({
+        taegeuk_6: [10],
+        taegeuk_7: [11],
+        cheonkwon: [1, 23, 24, 25, 26]
+      });
+      // normal: 일반 동작 · slow: 천천히 하는 동작 · hold: 자세를 유지하는 정지 동작(예: 일여 두 주먹 허리)
+      function movementTempo(dataKey, moveNo, type) {
+        if (type === "hold") return "hold";
+        const slow = SLOW_MOVEMENT_NUMBERS[dataKey];
+        return Array.isArray(slow) && slow.includes(moveNo) ? "slow" : "normal";
+      }
+      // 천천히·정지 동작은 속도와 맺음(속도 대비)을 판정하지 않는다.
+      function tempoSkipsSpeed(item) {
+        const tempo = item && item.tempo;
+        return tempo === "slow" || tempo === "hold";
       }
       // 품새의 '본동작'(번호 매겨지는 기술 동작) 목록을 만든다. 준비서기·메모는 제외.
       function coreMovementNames(dataKey) {
         const data = poomsaeData[dataKey];
         let names;
         if (data.movements) {
-          names = data.movements.map((m) => m.name);
+          names = data.movements.filter((m) => !isReadyEntry(m, m && m.name)).map((m) => m.name);
         } else if (data.techniques) {
           names = data.techniques.slice(0, data.count);
         } else {
@@ -6719,23 +6905,24 @@ function applyBannerToDom(config) {
         if (rawNames) {
           // 교본·영상 기준 파일은 poomsaeData의 원래 ID(ready_stance, taegeuk_2_m1 …)로 저장돼 있다.
           // 분석용 ID는 그대로 두고(보정 기록·캐시 호환), 기준 비교용 referenceId만 따로 보존한다.
-          const rawPrep = rawMovements ? rawMovements.find((m) => m && isReadyStance(m.name)) : null;
-          const prep = { id: `${dataKey}_prep`, referenceId: rawPrep?.id || null, name: "준비서기", type: "hold", isPrep: true, moveNo: 0 };
+          const rawPrep = rawMovements ? rawMovements.find((m) => m && isReadyEntry(m, m.name)) : null;
+          const prep = { id: `${dataKey}_prep`, referenceId: rawPrep?.id || null, name: "준비서기", type: "hold", isPrep: true, moveNo: 0, tempo: "hold" };
           const out = [prep];
           let moveNo = 0;
           for (let i = 0; i < rawNames.length; i += 1) {
             const name = rawNames[i];
             const raw = rawMovements ? rawMovements[i] : null;
-            if (isMemoTechnique(name) || isReadyStance(name)) continue;       // 메모·준비 제외
+            if (isMemoTechnique(name) || isReadyEntry(raw, name)) continue;   // 메모·준비 제외
             if (isKihapName(name)) {
               // 기합은 음성. 번호를 매기지 않고 직전 동작 뒤에 음성 구간으로 표시.
               out.push({ id: `${dataKey}_kihap_${out.length}`, name: "기합(소리)", type: "kihap", isKihap: true, moveNo: null });
               continue;
             }
             moveNo += 1;
+            const type = inferMovementType(name);
             out.push({
               id: `${dataKey}_movement_${moveNo}`, referenceId: raw && raw.id ? raw.id : null,
-              name, type: inferMovementType(name), isPrep: false, moveNo,
+              name, type, isPrep: false, moveNo, tempo: movementTempo(dataKey, moveNo, type),
               position: raw && raw.position ? raw.position : null,
               stepType: raw && raw.stepType ? raw.stepType : null,
               gaze: raw && raw.gaze ? raw.gaze : null
@@ -6948,9 +7135,7 @@ function applyBannerToDom(config) {
         setAppTab(name);
         if (name === "capture") {
           await requestLandscape();
-          startCamera().catch((error) => {
-            if (captureCameraStatus) captureCameraStatus.textContent = `카메라를 열 수 없습니다: ${error.message || error}`;
-          });
+          startCamera().catch((error) => showCameraError(error));
         }
       });
       const capturePreview = document.getElementById("capturePreview");
@@ -7016,7 +7201,8 @@ function applyBannerToDom(config) {
       let captureSkeletonEnabled = false;
       let captureTrajectoryEnabled = false;
       let captureQuality = "standard";
-      let capturePoseMode = "multi";
+      // 기본은 개인전 1명(대부분의 촬영). 단체전·복식전은 버튼으로 고른다.
+      let capturePoseMode = "single";
       let capturePoseLoopStarted = false;
       let captureLastDetectMs = -1;
       let captureLatestLandmarks = [];
@@ -7127,7 +7313,6 @@ function applyBannerToDom(config) {
         const reliability = report.analysis_reliability || {};
         return {
           analysis_id: String(report.analysis_link_id || "").slice(0, 100),
-          source_file: String(file.name || "").slice(0, 160),
           poomsae: String(report.poomsae?.id || "").slice(0, 80),
           poomsae_name: String(report.poomsae?.name || "").slice(0, 120),
           competition_event: String(report.competition_event?.id || "individual").slice(0, 20),
@@ -7499,12 +7684,25 @@ function applyBannerToDom(config) {
         ];
         return types.find((type) => window.MediaRecorder && MediaRecorder.isTypeSupported(type)) || "";
       }
-      function showCaptureSaveHud(message = "저장되었습니다.") {
+      function showCaptureSaveHud(message = "저장되었습니다.", durationMs = 1400) {
         if (!captureSaveHud) return;
         captureSaveHud.textContent = message;
         captureSaveHud.classList.add("show");
         clearTimeout(captureSaveHud._hideTimer);
-        captureSaveHud._hideTimer = setTimeout(() => captureSaveHud.classList.remove("show"), 1400);
+        captureSaveHud._hideTimer = setTimeout(() => captureSaveHud.classList.remove("show"), durationMs);
+      }
+      // 카메라 상태 문구(#captureCameraStatus)는 화면에서 숨겨진 보조 문구라, 실패하면 화면 아래 알림으로도 보여 준다.
+      function cameraErrorText(error) {
+        const name = String(error && error.name || "");
+        if (name === "NotAllowedError" || name === "SecurityError") return "카메라 권한이 꺼져 있어요. 브라우저·앱 설정에서 카메라를 허용해 주세요.";
+        if (name === "NotFoundError" || name === "OverconstrainedError") return "이 기기에서 카메라를 찾지 못했어요.";
+        if (name === "NotReadableError" || name === "AbortError") return "다른 앱이 카메라를 쓰고 있어요. 그 앱을 닫고 다시 열어 주세요.";
+        return `카메라를 열 수 없습니다: ${(error && error.message) || error}`;
+      }
+      function showCameraError(error) {
+        const text = cameraErrorText(error);
+        if (captureCameraStatus) captureCameraStatus.textContent = text;
+        showCaptureSaveHud(text, 7000);
       }
       function renderRecordings() {
         if (!recordingsList) return;
@@ -8730,8 +8928,6 @@ function applyBannerToDom(config) {
           created_at: new Date().toISOString(),
           competition_event: compareEventType(),
           expected_athletes: compareExpectedAthletes(),
-          before_file: String(compareBeforeInput?.files?.[0]?.name || beforeAnalysis?.source_file || "").slice(0, 160),
-          after_file: String(compareAfterInput?.files?.[0]?.name || afterAnalysis?.source_file || "").slice(0, 160),
           before_duration: Number(beforeDuration.toFixed(3)),
           after_duration: Number(afterDuration.toFixed(3)),
           delta_seconds: Number(delta.toFixed(3)),
@@ -9033,13 +9229,14 @@ function applyBannerToDom(config) {
         try { saved = localStorage.getItem("poomsae-theme"); } catch (e) { /* noop */ }
         // 도장 다크를 기본 정체성으로. 사용자가 명시적으로 라이트를 고른 경우에만 라이트.
         apply(saved === "light" ? "light" : "dark");
-        if (toggle) {
-          toggle.addEventListener("click", () => {
-            const next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
-            apply(next);
-            try { localStorage.setItem("poomsae-theme", next); } catch (e) { /* noop */ }
-          });
-        }
+        const flip = () => {
+          const next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+          apply(next);
+          try { localStorage.setItem("poomsae-theme", next); } catch (e) { /* noop */ }
+        };
+        if (toggle) toggle.addEventListener("click", flip);
+        // 헤더(원래 토글 위치)는 디자인상 숨겨져 있어 아래쪽 안내 영역에도 같은 버튼을 둔다.
+        document.getElementById("footerThemeToggle")?.addEventListener("click", flip);
       })();
 
       const analyzeBtn = document.getElementById("analyzeBtn");
@@ -9070,6 +9267,21 @@ function applyBannerToDom(config) {
       const jpgPreviewBox = document.getElementById("jpgPreviewBox");
       const jpgPreview = document.getElementById("jpgPreview");
       const jpgOpenLink = document.getElementById("jpgOpenLink");
+      // 크롬은 data: 주소를 새 탭으로 여는 것을 막는다 → Blob 주소(blob:)로 연다.
+      let jpgOpenObjectUrl = null;
+      function setJpgOpenLinkFromCanvas(canvas) {
+        if (jpgOpenObjectUrl) { URL.revokeObjectURL(jpgOpenObjectUrl); jpgOpenObjectUrl = null; }
+        jpgOpenLink.href = "#";
+        try {
+          canvas.toBlob((blob) => {
+            if (!blob) return;
+            jpgOpenObjectUrl = URL.createObjectURL(blob);
+            jpgOpenLink.href = jpgOpenObjectUrl;
+          }, "image/jpeg", 0.92);
+        } catch (error) {
+          console.warn("JPG open link failed.", error);
+        }
+      }
       const segmentsEl = document.getElementById("segments");
       const segmentTitle = document.getElementById("segmentTitle");
       const segmentDescription = document.getElementById("segmentDescription");
@@ -9710,6 +9922,8 @@ function applyBannerToDom(config) {
       function updateAdminReportUi() {
         const authFields = document.getElementById("adminAuthFields");
         const reportPanel = document.getElementById("adminReportPanel");
+        const verifyBox = document.getElementById("adminVerifyBox");
+        if (verifyBox) verifyBox.hidden = !(_fbCurrentAdminUser && _fbCurrentAdminUser.emailVerified === false);
         if (_fbCurrentAdminUser) {
           if (authFields) authFields.style.display = "none";
           if (reportPanel) reportPanel.style.display = "block";
@@ -9753,6 +9967,15 @@ function applyBannerToDom(config) {
       function setProgress(value, text) {
         progress.value = value;
         progressText.textContent = text;
+        // 폰에서는 위쪽 진행률이 화면 밖이라, 분석 버튼 바로 아래에도 같은 내용을 보여 준다.
+        const inline = document.getElementById("analyzeInlineProgress");
+        if (!inline) return;
+        if (isAnalyzing) {
+          inline.hidden = false;
+          inline.textContent = `${Math.round(Number(value) || 0)}% · ${text}`;
+        } else if (!inline.hidden) {
+          inline.textContent = text;
+        }
       }
       function currentPoomsae() {
         return poomsaeData[selectedPoomsaeKey];
@@ -9817,10 +10040,12 @@ function applyBannerToDom(config) {
       // 고려)의 간격 변동계수 0.26~0.49를 정상 흐름으로 보고, 그보다 크게 흔들릴 때만 낮춘다.
       // 반환: { score, regularity, contrast, confidence, hesitations, note } — 신뢰도 낮으면 score=null.
       function computeRhythm(results) {
-        // 준비서기·정지(hold)·기합만 있는 구간은 뺀다. 준비서기 대기 3~6초가 간격 하나를 차지해
-        // 시범 영상도 박자 15~57점(표현력 최대 -0.21)이 나오던 문제.
+        // 준비서기·기합 구간은 뺀다. 준비서기 대기 3~6초가 간격 하나를 차지해 시범 영상도 박자 15~57점
+        // (표현력 최대 -0.21)이 나오던 문제. 정지형 번호 동작(보주먹 등)은 빼지 않는다 — 빼면 그 자리에
+        // 7초짜리 가짜 공백이 생겨 '흐름이 끊겼습니다'가 떴다(태극7장 시범 영상).
         const techniques = results
-          .filter((r) => Number.isFinite(r.startTime) && r.movementType !== "hold" && r.movementType !== "kihap"
+          .filter((r) => Number.isFinite(r.startTime) && r.movementType !== "kihap"
+            && r.orderLabel !== "준비" && r.orderLabel !== "기합"
             && !/^(준비|바로)/.test(String(r.name || r.movementName || "")))
           .slice()
           .sort((a, b) => a.startTime - b.startTime);
@@ -9829,9 +10054,12 @@ function applyBannerToDom(config) {
         }
         const gaps = [];
         for (let i = 1; i < techniques.length; i += 1) {
-          gaps.push({ seconds: techniques[i].startTime - techniques[i - 1].startTime, after: techniques[i - 1] });
+          gaps.push({ seconds: techniques[i].startTime - techniques[i - 1].startTime, after: techniques[i - 1], next: techniques[i] });
         }
-        const values = gaps.map((item) => item.seconds);
+        // 천천히·정지 동작이 낀 간격은 원래 길다 — 흐름 판정(변동계수·머뭇거림)에서 뺀다.
+        const isTempoGap = (item) => tempoSkipsSpeed(item.after) || tempoSkipsSpeed(item.next);
+        const regularGaps = gaps.filter((item) => !isTempoGap(item));
+        const values = (regularGaps.length >= 3 ? regularGaps : gaps).map((item) => item.seconds);
         const mean = values.reduce((a, b) => a + b, 0) / values.length;
         if (mean <= 0) return { score: null, regularity: null, contrast: null, confidence: 0, hesitations: [], note: "박자 간격을 계산할 수 없습니다." };
         const sd = Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length);
@@ -9842,7 +10070,7 @@ function applyBannerToDom(config) {
         const sorted = values.slice().sort((a, b) => a - b);
         const middle = sorted[Math.floor(sorted.length / 2)];
         const hesitations = gaps
-          .filter((item) => item.seconds > middle * 3 && item.seconds - middle > 2)
+          .filter((item) => !isTempoGap(item) && item.seconds > middle * 3 && item.seconds - middle > 2)
           .map((item) => ({ after: String(item.after.orderLabel ?? item.after.order ?? ""), seconds: Number(item.seconds.toFixed(2)) }));
         // 강유 대비는 참고값으로만 남긴다. 구간 표본이 적어 시범 영상도 '유'가 과반으로 분류되고,
         // 흐름이 없는 합성 영상과도 구분되지 않아 점수에는 넣지 않는다.
@@ -9995,11 +10223,20 @@ function applyBannerToDom(config) {
         return "";
       }
       function easyExplainFeedbackText(text) {
-        const value = String(text || "");
-        if (/서기|발끝|무릎|중심/.test(value)) return "발과 무릎 방향을 먼저 맞추고, 몸이 흔들리지 않게 서 보세요.";
-        if (/맺음|정지|마무리|흔들림/.test(value)) return "동작 끝에서 하나, 둘 세듯이 잠깐 멈추면 더 또렷해져요.";
+        const full = String(text || "");
+        // 동작 이름·자세 설명('앞서기', '무릎' 등)에 걸려 모든 카드에 같은 팁이 나오던 문제:
+        // '우선 연습 포인트:' 뒤의 약점 문장만 보고 고른다.
+        const marker = "우선 연습 포인트:";
+        if (!full.includes(marker)) {
+          return /안정적으로 보입니다/.test(full)
+            ? "지금처럼 동작 끝을 또렷하게 멈추며 이어 가면 돼요."
+            : "가장 낮게 나온 부분 하나만 먼저 고치면 다음 영상에서 더 좋아져요.";
+        }
+        const value = full.slice(full.lastIndexOf(marker) + marker.length);
+        if (/가려져|촬영 거리|화면에서 자주 벗어|프레임|관절/.test(value)) return "손과 발이 화면 밖으로 나가지 않게 카메라를 조금 더 멀리 두세요.";
+        if (/발·골반|발끝|무릎|중심|서기/.test(value)) return "발과 무릎 방향을 먼저 맞추고, 몸이 흔들리지 않게 서 보세요.";
+        if (/맺음|멈춤|멈춘|정지|마무리|흔들/.test(value)) return "동작 끝에서 하나, 둘 세듯이 잠깐 멈추면 더 또렷해져요.";
         if (/속도|리듬|완급|강약/.test(value)) return "천천히 준비하고, 마지막은 짧고 분명하게 끝내 보세요.";
-        if (/촬영|화면|프레임|관절/.test(value)) return "손과 발이 화면 밖으로 나가지 않게 카메라를 조금 더 멀리 두세요.";
         if (/시선|고개|방향/.test(value)) return "눈과 몸이 같은 방향을 보도록 천천히 확인해 보세요.";
         return "가장 낮게 나온 부분 하나만 먼저 고치면 다음 영상에서 더 좋아져요.";
       }
@@ -10014,7 +10251,7 @@ function applyBannerToDom(config) {
       }
       function reportItemHtml(text) {
         const easy = easyExplainReportText(text);
-        return `${escapeHtml(text)}${easy ? `<span class="report-easy">쉽게 말하면: ${escapeHtml(easy.replace(/^쉽게 말하면,?\\s*/, ""))}</span>` : ""}`;
+        return `${escapeHtml(text)}${easy ? `<span class="report-easy">쉽게 말하면: ${escapeHtml(easy.replace(/^쉽게 말하면,?\s*/, ""))}</span>` : ""}`;
       }
       function escapeHtml(value) {
         return String(value ?? "")
@@ -10203,8 +10440,18 @@ function applyBannerToDom(config) {
         history.replaceState({ appView: "training" }, "", location.href);
         history.pushState({ appView: "training-guard" }, "", location.href);
         window.addEventListener("popstate", () => {
-          if (resultPage && !resultPage.hidden) showTrainingPage();
-          history.pushState({ appView: "training-guard" }, "", location.href);
+          if (replayModal && !replayModal.hidden) {
+            closeReplayModal();
+            history.pushState({ appView: "training-guard" }, "", location.href);
+            return;
+          }
+          if (resultPage && !resultPage.hidden) {
+            showTrainingPage();
+            history.pushState({ appView: "training-guard" }, "", location.href);
+            return;
+          }
+          // 닫을 화면이 없으면 뒤로가기를 막지 않는다(예전엔 매번 다시 막아 앱을 벗어날 수 없었다).
+          history.back();
         });
       }
       function scrollToTrainingElement(element) {
@@ -10265,7 +10512,7 @@ function applyBannerToDom(config) {
           { key: "snap", score: segment.snapScore, label: "맺음", fix: "동작 끝에서 힘을 한 점에 모아 0.5초 정지하고 반대손 회수를 맞추면 표현성 감점이 줄어듭니다." },
           { key: "stillness", score: segment.stillnessScore, label: "마무리 안정", fix: "동작 후 발바닥 압력과 골반 높이를 고정해 정지 자세를 안정시키면 균형 감점이 줄어듭니다." },
           { key: "stance", score: segment.stanceScore, label: "서기 정렬", fix: "발끝·무릎 방향을 일치시키고 중심 높이를 일정하게 유지하면 자세 항목 감점이 줄어듭니다." }
-        ].filter((it) => Number.isFinite(it.score));
+        ].filter((it) => Number.isFinite(it.score) && !(tempoSkipsSpeed(segment) && (it.key === "velocity" || it.key === "snap")));
         if (!items.length) return null;
         items.sort((a, b) => a.score - b.score);
         return items[0];
@@ -10384,6 +10631,7 @@ function applyBannerToDom(config) {
               <div class="scene-meta">
                 <span>${segment.startTime.toFixed(1)}-${segment.endTime.toFixed(1)}초</span>
                 <span>${escapeHtml(segment.label)}</span>
+                ${segment.tempo === "slow" ? `<span class="status good">천천히 하는 동작 · 속도 판정 제외</span>` : ""}
                 ${merged
                   ? `<span class="status caution">${escapeHtml(segment.mergedMovementNumbers || "")} 동작 묶음</span>`
                   : `<span>${escapeHtml(segment.mergedMovementNumbers || "")} · 동작명 자동 추정</span>`}
@@ -10410,7 +10658,9 @@ function applyBannerToDom(config) {
                     : `<span class="status caution">참고용</span>`}
                 </p>` : ""}
               ${connectionExtra}${compoundExtra}${examExtra}${competitionExtra}${gangyuExtra}
-              <div class="scene-issues">${issueMarkup}</div>
+              <div class="scene-issues">${issueMarkup || `<p class="scene-praise">${trainingMode === "competition"
+                ? `보완이 필요한 항목이 없어요(모든 지표 ${ISSUE_SCORE_THRESHOLD} 이상).`
+                : `잘했어요! 크게 아쉬운 점이 없어요(모든 항목 ${ISSUE_SCORE_THRESHOLD}점 이상).`}</p>`}</div>
               <p class="movement-estimate-note"><b>확인 가능:</b> ${escapeHtml((segment.evidence?.observable || []).join(", "))} · <b>추정:</b> ${escapeHtml((segment.evidence?.estimated || []).join(", "))} · <b>지도자 확인 필요:</b> ${escapeHtml((segment.evidence?.coachRequired || []).join(", "))}</p>
             </div>
           </article>
@@ -10497,6 +10747,7 @@ function applyBannerToDom(config) {
               : `끝 멈춤 미확인 · 가장 느려진 지점 ${Number(finish.holdStart).toFixed(2)}초에서도 속도가 ${drop}%만 줄었습니다(구간 경계 확인 필요)`
         };
       }
+      const ISSUE_SCORE_THRESHOLD = 80;
       function segmentIssueDetails(segment, limit = 2) {
         const technique = segmentTechniqueCopy(segment);
         const evidence = finishEvidence(segment);
@@ -10512,7 +10763,7 @@ function applyBannerToDom(config) {
             fix: "머리·양손·양발이 프레임에서 잘리는 구간이 있습니다. 카메라를 한 걸음 뒤로 빼고 높이를 가슴선에 맞춰 전신이 항상 들어오게 고치세요."
           },
           {
-            label: "속도·완급", score: segment.velocityScore,
+            label: "속도·완급", score: segment.velocityScore, speedMetric: true,
             problem: "준비와 실행의 속도 차이가 작아 동작 전환과 힘의 표현이 흐립니다.",
             improvement: "준비는 여유 있게 연결하고 기술의 마지막 구간은 짧고 분명하게 마무리하세요.",
             practice: "느리게 2회, 정상 속도 2회로 같은 구간을 반복해 완급 차이를 만드세요.",
@@ -10526,7 +10777,7 @@ function applyBannerToDom(config) {
                 : ""
           },
           {
-            label: "맺음", score: segment.snapScore, finishMetric: true,
+            label: "맺음", score: segment.snapScore, finishMetric: true, speedMetric: true,
             problem: "기술의 목표 지점에서 힘이 모이지 않고 다음 동작으로 흘러갑니다.",
             improvement: "손발 목표점과 반대손 회수를 동시에 맞추고 끝 지점을 선명하게 만드세요.",
             practice: "구간 끝 자세를 0.5초 유지하는 정지 반복을 5회 실시하세요.",
@@ -10560,7 +10811,12 @@ function applyBannerToDom(config) {
             evidence: evidence ? `멈춘 뒤 발·골반 흔들림: ${evidence.lowerBody}` : ""
           }
         ];
-        const ranked = issues.filter((issue) => Number.isFinite(issue.score)).sort((a, b) => a.score - b.score);
+        // 천천히·정지 동작은 속도·맺음을 판정하지 않는다(일부러 느리게 하는 동작을 '느리다'고 하지 않기 위함).
+        // 80점 이상인 항목은 '아쉬운 점'으로 들지 않는다(95~100점 동작에도 2개씩 지적하던 문제).
+        const skipSpeed = tempoSkipsSpeed(segment);
+        const ranked = issues
+          .filter((issue) => Number.isFinite(issue.score) && issue.score < ISSUE_SCORE_THRESHOLD && !(skipSpeed && issue.speedMetric))
+          .sort((a, b) => a.score - b.score);
         if (!finishUncertain) return ranked.slice(0, limit);
         // 끝 멈춤을 구간 안에서 확인하지 못했으면 맺음·정지·서기 세 항목을 "확인 필요" 하나로 묶는다.
         // (같은 원인을 세 번 지적하거나, 구간 경계 오류를 선수 잘못으로 단정하지 않기 위함)
@@ -11126,6 +11382,7 @@ function applyBannerToDom(config) {
             lines.push(`  - 동작이 잘 보이나요: ${c.tag} (${c.kid})`);
             const issue = segmentIssueDetails(segment, 1)[0];
             if (issue) lines.push(`  - 무엇이 아쉬운지: ${issue.kidProblem} / 이렇게 고쳐요: ${issue.kidFix}`);
+            else lines.push(`  - 무엇이 아쉬운지: 크게 아쉬운 점 없음(모든 항목 ${ISSUE_SCORE_THRESHOLD}점 이상)`);
             const finishText = finishEvidence(segment)?.summary;
             if (finishText) lines.push(`  - 끝 멈춤 측정: ${finishText}`);
           } else {
@@ -11136,7 +11393,9 @@ function applyBannerToDom(config) {
             lines.push(`  - 가감점(참고): ${dedText}`);
             const kf = keyFixPoint(segment);
             if (kf) lines.push(`  - 핵심 수정: [${kf.label}] ${kf.fix}`);
-            lines.push(`   속도 ${segment.velocityScore} / 맺음 ${segment.snapScore} / 정지 ${segment.stillnessScore} / 서기 ${segment.stanceScore}`);
+            lines.push(tempoSkipsSpeed(segment)
+              ? `   ${segment.tempo === "slow" ? "천천히 하는 동작" : "정지 동작"}이라 속도·맺음은 판정하지 않음 / 정지 ${segment.stillnessScore} / 서기 ${segment.stanceScore}`
+              : `   속도 ${segment.velocityScore} / 맺음 ${segment.snapScore} / 정지 ${segment.stillnessScore} / 서기 ${segment.stanceScore}`);
             const finishText = finishEvidence(segment)?.summary;
             if (finishText) lines.push(`  - 끝 멈춤 측정: ${finishText}`);
             if (mergeTag) lines.push(`  - 참고: 이 구간은 동작이 이어져 함께 평가됨. 감점은 동작별로 지도자 확인 권장.`);
@@ -11360,7 +11619,7 @@ function applyBannerToDom(config) {
 
         const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
         jpgPreview.src = dataUrl;
-        jpgOpenLink.href = dataUrl;
+        setJpgOpenLinkFromCanvas(canvas);
         jpgPreviewBox.style.display = "grid";
 
         try {
@@ -11562,8 +11821,11 @@ function applyBannerToDom(config) {
           if (!ctx) return "";
           ctx.fillStyle = "#050505";
           ctx.fillRect(0, 0, targetWidth, targetHeight);
+          // videoDrawRect는 {offX, offY, drawW, drawH}를 돌려준다. 예전 x/y/width/height로 그리면
+          // 좌표가 NaN이 되어 아무것도 안 그려져 모든 장면 사진이 검게 나왔다(09-02 e6ec790부터).
           const rect = videoDrawRect(video, targetWidth, targetHeight, "contain");
-          ctx.drawImage(video, rect.x, rect.y, rect.width, rect.height);
+          if (!rect) return "";
+          ctx.drawImage(video, rect.offX, rect.offY, rect.drawW, rect.drawH);
           return canvas.toDataURL("image/jpeg", 0.62);
         } catch (error) {
           console.warn("Snapshot capture failed.", error);
@@ -11587,7 +11849,8 @@ function applyBannerToDom(config) {
           ctx.fillStyle = "#050505";
           ctx.fillRect(0, 0, targetWidth, targetHeight);
           const rect = videoDrawRect(video, targetWidth, targetHeight, "contain");
-          ctx.drawImage(video, rect.x, rect.y, rect.width, rect.height);
+          if (!rect) return null;
+          ctx.drawImage(video, rect.offX, rect.offY, rect.drawW, rect.drawH);
           return { time, dataUrl: canvas.toDataURL("image/jpeg", 0.6) };
         } catch (error) {
           console.warn("Thumbnail capture failed.", error);
@@ -12847,6 +13110,184 @@ function applyBannerToDom(config) {
         };
         return boundaries;
       }
+      // 천천히 하는 동작(SLOW_MOVEMENT_NUMBERS)이 있는 품새: 그 동작의 긴 저속 구간을 먼저 찾아 고정한 뒤
+      // 앞뒤 구간을 각각 기존 방식으로 나눈다. 기존 방식(깊은 정지 순으로 경계 선택)은 빠른 복합동작
+      // (차고 막고 지르기) 안의 짧은 정지를 경계로 먼저 써 버려, 태극6장 10번(약 6초)이 13번으로 표시되고
+      // 뒤 동작이 모두 밀렸다. 저속 구간을 확신할 수 없으면 기존 방식 그대로 쓴다(일반 품새는 영향 없음).
+      function refineSegmentBoundariesWithTempo(duration, segmentMovements, motionSamples, sensitivity, activeStart, activeEnd) {
+        const count = segmentMovements.length;
+        const slowIndexes = segmentMovements.map((m, i) => (m && m.tempo === "slow" ? i : -1)).filter((i) => i >= 0);
+        const global = refineSegmentBoundaries(duration, count, motionSamples, sensitivity, activeStart, activeEnd);
+        const globalConfidence = refineSegmentBoundaries.lastConfidence;
+        const plain = () => {
+          refineSegmentBoundaries.lastConfidence = globalConfidence;
+          return global;
+        };
+        if (!slowIndexes.length || count < 3) return plain();
+        const samples = (motionSamples || [])
+          .filter((s) => s.valid !== false && Number.isFinite(s.time) && Number.isFinite(s.motion) && s.time >= activeStart && s.time <= activeEnd)
+          .slice()
+          .sort((a, b) => a.time - b.time);
+        if (samples.length < count * 2) return plain();
+        const span = activeEnd - activeStart;
+        const sortedMotion = samples.map((s) => s.motion).sort((a, b) => a - b);
+        const quantile = (p) => sortedMotion[Math.min(sortedMotion.length - 1, Math.max(0, Math.round(p * (sortedMotion.length - 1))))];
+        const lowThreshold = quantile(0.3);
+        const riseThreshold = quantile(0.6);
+        const bumpThreshold = quantile(0.5); // 천천히 동작 앞 이동(돌기·딛기)으로 볼 최소 움직임
+        // 1) 저속 구간 찾기: 낮은 움직임이 2.2초 이상 이어지는 구간(한 샘플짜리 튐은 무시).
+        const runs = [];
+        let runStart = -1;
+        let lastLow = -1;
+        let blips = 0;
+        for (let i = 0; i < samples.length; i += 1) {
+          if (samples[i].motion <= lowThreshold) {
+            if (runStart < 0) runStart = i;
+            lastLow = i;
+            blips = 0;
+          } else if (runStart >= 0) {
+            blips += 1;
+            if (blips > 1) {
+              runs.push([runStart, lastLow]);
+              runStart = -1;
+              blips = 0;
+            }
+          }
+        }
+        if (runStart >= 0) runs.push([runStart, lastLow]);
+        const longRuns = runs
+          .map(([a, b]) => ({ a, b, start: samples[a].time, end: samples[b].time }))
+          .filter((run) => run.end - run.start >= 2.2);
+        const weights = segmentMovements.map((m) => (m && m.tempo === "slow" ? 3 : 1));
+        const totalWeight = weights.reduce((a, b) => a + b, 0);
+        const slowExpected = (span / totalWeight) * 3;
+        // 힘을 주며 천천히 하는 동작(천권 23·24번 편손외산틀막기, 뒤로 돌아 하는 동작)은 관절 흔들림까지 섞여
+        // 위 기준만큼 낮게 내려가지 않는다. 3점 중앙값으로 흔들림을 누르고 중간값(60%) 이하가 2.6초 넘게
+        // 이어지는 구간을 보조 후보로 쓴다(너무 긴 구간은 여러 동작이 섞인 것이라 제외).
+        const smoothMotion = samples.map((_, i) => {
+          const win = samples.slice(Math.max(0, i - 1), i + 2).map((s) => s.motion).sort((a, b) => a - b);
+          return win[Math.floor(win.length / 2)];
+        });
+        const lenientThreshold = quantile(0.6);
+        const lenientRuns = [];
+        for (let i = 0, start = -1; i <= samples.length; i += 1) {
+          const low = i < samples.length && smoothMotion[i] <= lenientThreshold;
+          if (low && start < 0) start = i;
+          if (!low && start >= 0) {
+            const run = { a: start, b: i - 1, start: samples[start].time, end: samples[i - 1].time };
+            if (run.end - run.start >= 2.6 && run.end - run.start <= slowExpected * 2) lenientRuns.push(run);
+            start = -1;
+          }
+        }
+        // 2) 동작별 예상 위치(천천히 동작은 일반 동작의 약 3배 길이로 가정) 가까이(전체의 10% 또는 6초 안)에서
+        //    저속 구간을 고른다. 멀리 있는 구간을 잡으면 뒤의 다른 천천히 동작 자리를 빼앗는다.
+        const centerOf = (run) => (run.start + run.end) / 2;
+        const lowest = (list) => list.reduce((best, s) => (!best || s.motion < best.motion ? s : best), null);
+        // 천천히 동작은 대개 자세를 바꾸는 이동(돌기·딛기, 큰 팔 원)으로 시작한 뒤 느려진다
+        // (교본 예: 천권 25-1 '왼발을 돌아 두 발 모아서기'). 저속 구간에서 거꾸로 짚어 가며, 그 사이
+        // 최고 움직임의 60% 이하로 내려간 첫 국소 최저점(= 앞 동작의 멈춤)을 시작점으로 삼는다.
+        // 그 바로 앞(1.5초 안)에 훨씬 깊은 멈춤이 있으면 그쪽이 앞 동작의 끝이다(중간의 짧은 숨 고르기 제외).
+        // 5초 안에 없으면 저속 구간 시작 근처 최저점.
+        const isLocalMin = (i) => (i === 0 || samples[i].motion <= samples[i - 1].motion) && samples[i].motion <= samples[i + 1].motion;
+        const transitionStart = (run, notBefore) => {
+          const from = Math.max(notBefore, run.start - 5);
+          let peak = samples[run.a].motion;
+          for (let i = run.a - 1; i >= 0 && samples[i].time >= from; i -= 1) {
+            const m = samples[i].motion;
+            if (isLocalMin(i) && peak >= bumpThreshold && m <= peak * 0.6) {
+              // 더 깊은 멈춤으로 건너뛰는 것은, 그 사이 움직임이 천천히 동작의 큰 움직임보다 작을 때만
+              // (= 돌기·딛기 같은 이 동작의 준비). 그보다 크면 그건 앞 동작 자체라 건너뛰지 않는다.
+              let pick = i;
+              let between = 0;
+              for (let j = i - 1; j >= 0 && samples[j].time >= Math.max(notBefore, samples[i].time - 1.5); j -= 1) {
+                if (isLocalMin(j) && samples[j].motion <= samples[pick].motion * 0.6 && between < peak) pick = j;
+                between = Math.max(between, samples[j].motion);
+              }
+              return { time: samples[pick].time, confident: true };
+            }
+            peak = Math.max(peak, m);
+          }
+          const valley = lowest(samples.filter((s) => s.time >= Math.max(notBefore, run.start - 2.5) && s.time <= run.start));
+          return { time: valley ? valley.time : run.start, confident: false };
+        };
+        const nearWindow = Math.max(span * 0.1, 6);
+        const anchors = [];
+        let usedUntil = activeStart;
+        for (const index of slowIndexes) {
+          if (index === count - 1) continue; // 마지막 동작은 끝 검출과 겹쳐 고정하지 않는다.
+          const before = weights.slice(0, index).reduce((a, b) => a + b, 0);
+          const expectedCenter = activeStart + span * (before + weights[index] / 2) / totalWeight;
+          let startTime;
+          let endTime;
+          let startConfident = false;
+          if (index === 0) {
+            // 첫 동작이 천천히: 준비 이후 처음 크게 움직이기 직전까지를 1번으로 본다.
+            const rise = samples.find((s) => s.time > activeStart + 1.5 && s.motion >= riseThreshold);
+            if (!rise) continue;
+            const valley = lowest(samples.filter((s) => s.time >= rise.time - 2 && s.time < rise.time));
+            startTime = activeStart;
+            endTime = valley ? valley.time : rise.time;
+            if (endTime - startTime < 2.2 || Math.abs((startTime + endTime) / 2 - expectedCenter) > span * 0.25) continue;
+          } else {
+            const near = (list) => list.filter((run) => run.start > usedUntil && Math.abs(centerOf(run) - expectedCenter) <= nearWindow);
+            const candidates = near(longRuns).length ? near(longRuns) : near(lenientRuns);
+            if (!candidates.length) continue;
+            const run = candidates.reduce((best, r) => (!best || Math.abs(centerOf(r) - expectedCenter) < Math.abs(centerOf(best) - expectedCenter) ? r : best), null);
+            const found = transitionStart(run, usedUntil);
+            startTime = found.time;
+            startConfident = found.confident;
+            const next = samples[run.b + 1];
+            endTime = next ? (samples[run.b].time + next.time) / 2 : run.end;
+          }
+          if (!(startTime >= usedUntil - 1e-6) || !(endTime > startTime)) continue;
+          anchors.push({ index, start: startTime, end: endTime, startConfident });
+          usedUntil = endTime;
+        }
+        if (!anchors.length) return plain();
+        // 3) 고정한 천천히 동작 사이를 나눈다. 전체를 한 번에 나눈 기존 결과가 그 사이에 정확히
+        //    필요한 개수의 경계를 갖고 있으면 그대로 쓰고(기존과 동일), 아니면 그 구간만 다시 나눈다.
+        const piece = (segCount, from, to) => {
+          const inner = global.slice(1, -1).filter((t) => t > from + 0.2 && t < to - 0.2);
+          if (inner.length === segCount - 1) return [from, ...inner, to];
+          return refineSegmentBoundaries(duration, segCount, motionSamples, sensitivity, from, to);
+        };
+        const boundaries = [activeStart];
+        let cursorIndex = 0;
+        let cursorTime = activeStart;
+        for (const anchor of anchors) {
+          const segCount = anchor.index - cursorIndex;
+          // 앞 구간 시간이 동작 수에 비해 너무 짧으면(동작당 0.45초 미만) 고정을 포기한다.
+          if (segCount > 0 && (anchor.start - cursorTime) / segCount < 0.45) return plain();
+          if (segCount === 0) {
+            // 천천히 동작이 연달아 오면(천권 23~26번) 앞 동작 저속 구간 끝과 뒤 동작 시작 사이가 비는데,
+            // 뒤 동작 앞 멈춤을 확실히 찾았으면 그 지점을, 아니면 앞 동작 끝을 경계로 쓴다.
+            const prevStart = boundaries.length >= 2 ? boundaries[boundaries.length - 2] : activeStart;
+            if (anchor.startConfident && anchor.start > prevStart + 0.5 && boundaries.length >= 2) {
+              boundaries[boundaries.length - 1] = anchor.start;
+            } else {
+              anchor.start = cursorTime;
+            }
+          }
+          if (segCount > 0) boundaries.push(...piece(segCount, cursorTime, anchor.start).slice(1));
+          boundaries.push(anchor.end);
+          cursorIndex = anchor.index + 1;
+          cursorTime = anchor.end;
+        }
+        const restCount = count - cursorIndex;
+        if (restCount <= 0) {
+          boundaries[boundaries.length - 1] = activeEnd;
+        } else {
+          if ((activeEnd - cursorTime) / restCount < 0.45) return plain();
+          boundaries.push(...piece(restCount, cursorTime, activeEnd).slice(1));
+        }
+        if (boundaries.length !== count + 1) return plain();
+        for (let i = 1; i < boundaries.length; i += 1) if (!(boundaries[i] > boundaries[i - 1])) return plain();
+        refineSegmentBoundaries.lastConfidence = {
+          ...(globalConfidence || {}),
+          tempoAnchors: anchors.map((a) => ({ index: a.index, start: Number(a.start.toFixed(3)), end: Number(a.end.toFixed(3)) }))
+        };
+        return boundaries;
+      }
       // 주어진 구간을 sampleCount개로 스캔해 원시 프레임(time, landmarks)을 수집한다.
       // 빠른 seek 경로(waitForSeek fast=true)를 사용한다: seeked 직후 페인트 대기 없이
       // 바로 검출하므로 정확도를 유지하면서 프레임당 대기 시간을 줄인다.
@@ -13366,12 +13807,12 @@ function applyBannerToDom(config) {
           const prepStart = trustedJunbiMatch
             ? clamp(trustedJunbiMatch.time, 0, onset)
             : 0;
-          const moveCount = count - 1;
-          const moveBoundaries = refineSegmentBoundaries(duration, moveCount, motionSamples, sensitivity, onset, activeRange.end);
+          // 천천히 하는 동작(태극6·7장, 천권)은 긴 저속 구간을 먼저 고정한 뒤 앞뒤를 나눈다(그 외 품새는 기존과 동일).
+          const moveBoundaries = refineSegmentBoundariesWithTempo(duration, movements.slice(1), motionSamples, sensitivity, onset, activeRange.end);
           boundaries = [prepStart, ...moveBoundaries];
           detectMotionBoundaries.lastOnset = onset;
         } else {
-          boundaries = refineSegmentBoundaries(duration, count, motionSamples, sensitivity, activeRange.start, activeRange.end);
+          boundaries = refineSegmentBoundariesWithTempo(duration, movements, motionSamples, sensitivity, activeRange.start, activeRange.end);
         }
         // 여러 기기에서 같은 품새를 확정한 경계 모양을 먼저 약하게 섞고, 위치별 초 단위
         // 보정을 마지막에 적용한다. 프로필과 현재 경계 개수가 다르면 집단값은 쓰지 않는다.
@@ -13644,7 +14085,8 @@ function applyBannerToDom(config) {
       function weakestMetric(metrics, movement) {
         const candidates = [];
         if (metrics.visibilityScore < 70) candidates.push({ score: metrics.visibilityScore, text: "전신이 화면에서 자주 벗어납니다. 머리, 손, 발이 모두 보이도록 촬영 거리를 조정하세요." });
-        if (movement.type !== "hold") {
+        const skipSpeed = tempoSkipsSpeed(metrics) || tempoSkipsSpeed(movement);
+        if (movement.type !== "hold" && !skipSpeed) {
           candidates.push({
             score: metrics.velocityScore,
             text: metrics.speedUncertain
@@ -13654,7 +14096,7 @@ function applyBannerToDom(config) {
         }
         // 끝 멈춤을 구간 안에서 확인하지 못했으면 "맺음이 약하다"고 단정하지 않고 확인을 먼저 권한다.
         const uncertainFinishText = "동작 끝 멈춤이 이 구간 안에서 뚜렷하게 잡히지 않았습니다. 구간 경계가 맞는지 영상으로 확인하고, 맞다면 끝 자세에서 0.3초 이상 멈춰 보세요.";
-        candidates.push({ score: metrics.snapScore, text: metrics.finishUncertain ? uncertainFinishText : "맺음이 약합니다. 기술 끝에서 속도를 한 번에 줄이고 0.3~0.5초 자세를 고정해 보세요." });
+        if (!skipSpeed) candidates.push({ score: metrics.snapScore, text: metrics.finishUncertain ? uncertainFinishText : "맺음이 약합니다. 기술 끝에서 속도를 한 번에 줄이고 0.3~0.5초 자세를 고정해 보세요." });
         candidates.push({ score: metrics.stillnessScore, text: metrics.finishUncertain ? uncertainFinishText : "멈춘 뒤 손·팔이 계속 움직입니다. 기술이 끝나면 주먹과 반대손 위치를 그대로 잠깐 고정하세요." });
         candidates.push({ score: metrics.stanceScore, text: metrics.finishUncertain ? uncertainFinishText : "멈춘 뒤 발·골반이 흔들립니다. 무릎과 발끝 방향, 중심 높이를 먼저 맞추고 발바닥으로 바닥을 눌러 고정하세요." });
         candidates.sort((a, b) => a.score - b.score);
@@ -13663,7 +14105,8 @@ function applyBannerToDom(config) {
       function feedbackFor(movement, metrics) {
         const cues = movementCue(movement);
         const weakest = weakestMetric(metrics, movement);
-        const cueText = cues.map((cue) => `${cue.label}: ${cue.text}`).join(" / ");
+        // 동작 이름과 같은 이름표는 다시 붙이지 않는다("준비서기: 준비서기: …" 중복 방지).
+        const cueText = cues.map((cue) => (cue.label === movement.name ? cue.text : `${cue.label}: ${cue.text}`)).join(" / ");
         const ruleCue = trainingMode === "competition" ? ` ${competitionRuleCue(movement)}` : "";
         if (weakest.score >= 78) {
           return `${movement.name}: ${cueText}${ruleCue} 현재 영상에서는 큰 흔들림 없이 안정적으로 보입니다.`;
@@ -14090,9 +14533,16 @@ function applyBannerToDom(config) {
         // 없으면(준비·기합 구간, 예전 캐시, 외부 호출) 기존 구간 전체 방식으로 계산한다.
         const aspect = Number(viewMeta?.aspect) > 0 ? Number(viewMeta.aspect) : 1;
         const finishSourceFrames = Array.isArray(viewMeta?.finishFrames) ? viewMeta.finishFrames : [];
-        const finish = movement.type !== "hold" && movement.type !== "kihap" && finishSourceFrames.length
+        const tempo = movement.isPrep ? "hold" : (movement.tempo || "normal");
+        const finish = !movement.isPrep && movement.type !== "kihap" && finishSourceFrames.length
           ? measureFinishWindow(finishSourceFrames, movement.type, aspect, Number.isFinite(viewMeta?.finishAnchor) ? viewMeta.finishAnchor : null)
           : { available: false, reason: finishSourceFrames.length ? "not_a_technique_segment" : "no_finish_frames" };
+        if (finish.available && tempoSkipsSpeed({ tempo })) {
+          // 천천히·정지 동작은 '빠르게 들어와 끊는' 대비가 원래 작다. 끝에서 멈췄는지(정지 속도)와
+          // 다리가 움직이지 않았는지만으로 끝 멈춤을 판정한다.
+          finish.clearStop = finish.holdSpeed < 0.45 && !finish.legsMoving;
+          finish.tempo = tempo;
+        }
         let velocityScore = scoreVelocity(peakSpeed, movement.type);
         let snapScore = scoreSnap(peakSpeed, finalSpeed, movement.type);
         let stillnessScore = scoreStillness(finalSpeed, endJitter, movement.type);
@@ -14115,6 +14565,12 @@ function applyBannerToDom(config) {
           stillnessScore = scoreFinishStillness(finish);
           const finishStance = scoreFinishStance(finish);
           if (Number.isFinite(finishStance)) stanceScore = finishStance;
+        }
+        if (tempoSkipsSpeed({ tempo }) && !movement.isPrep) {
+          // 속도·맺음은 판정 대상이 아니므로 정지·서기 평균으로 채워 총점에 득도 실도 주지 않는다.
+          const neutral = stableRound((stillnessScore + stanceScore) / 2);
+          velocityScore = neutral;
+          snapScore = neutral;
         }
         const visibilityScore = stableRound(visibility * 100);
         const actionIdentity = scoreActionSequence(actionQualityModel, movement.id, frames, view);
@@ -14178,6 +14634,9 @@ function applyBannerToDom(config) {
         // 끝 멈춤을 구간 안에서 확인하지 못한 경우(finish.available && !clearStop)는 감점 크기를 추정하지 않고,
         // 구간 라벨도 "수정 필요"까지 내리지 않는다(구간 경계·다음 동작 준비와 겹친 측정 한계일 수 있음).
         const finishUncertain = finish.available && !finish.clearStop;
+        const prepDeduction = movement.isPrep
+          ? { amount: 0, label: "준비자세 · 자동 감점 대상 아님", reason: "준비 구간에는 시작 전 움직임이 섞여 있어 동작 오류로 판정하지 않습니다. 준비자세는 지도자가 확인하세요." }
+          : null;
         const measuredVerdict = labelFor(powerScore);
         const verdict = finishUncertain && measuredVerdict.type === "bad" ? { type: "caution", label: "주의" } : measuredVerdict;
         const competitionScores = competitionScoreFromMetrics({
@@ -14186,7 +14645,7 @@ function applyBannerToDom(config) {
           actionAccuracyConfidence: actionIdentity.confidence
         });
         const evidence = evidenceScopeFor(movement, { visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore });
-        const referenceDeduction = referenceDeductionFor({ visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore, finishUncertain });
+        const referenceDeduction = prepDeduction || referenceDeductionFor({ visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore, finishUncertain });
         const stanceCheck = checkStanceMatch(movement, rawFrames, view);
         const orientationCheck = checkOrientationChange(movement, rawFrames, view);
         return {
@@ -14246,7 +14705,8 @@ function applyBannerToDom(config) {
           viewAxisNote: profile.axisNote,
           type: verdict.type,
           label: verdict.label,
-          feedback: feedbackFor(movement, { visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore, finishUncertain, speedUncertain: !!finish.speedUncertain })
+          tempo,
+          feedback: feedbackFor(movement, { visibilityScore, velocityScore, snapScore, stillnessScore, stanceScore, finishUncertain, speedUncertain: !!finish.speedUncertain, tempo })
         };
       }
       function framesForAthlete(rawFrames, athleteIndex, expectedAthletes) {
@@ -14566,7 +15026,7 @@ function applyBannerToDom(config) {
           { key: "snap", label: "맺음", score: result.snapScore, practice: "각 동작 끝에서 0.5초 정도 멈춰 자세가 무너지지 않게 하세요." },
           { key: "stillness", label: "마무리 흔들림", score: result.stillnessScore, practice: "동작 후 발바닥 압력과 상체 중심을 유지하세요." },
           { key: "stance", label: "서기 안정성", score: result.stanceScore, practice: "무릎 방향, 발끝 방향, 중심 높이를 먼저 고정한 뒤 손기술을 연결하세요." }
-        ];
+        ].filter((item) => !(tempoSkipsSpeed(result) && (item.key === "velocity" || item.key === "snap")));
         metrics.sort((a, b) => a.score - b.score);
         // 끝 멈춤이 구간 안에서 확인되지 않은 경우는 선수 문제로 단정하지 않고 "확인 필요"로 따로 센다.
         const finish = result.finishMetrics;
@@ -14840,7 +15300,7 @@ function applyBannerToDom(config) {
           if (jm && Number.isFinite(jm.time)) {
             items.push({ type: "good", text: `준비자세 인식: ${jm.time.toFixed(2)}초 지점부터 분석을 시작했어요.` });
           } else {
-            items.push({ type: "caution", text: "준비자세를 뚜렷하게 인식하지 못해 영상 맨 앞부터 분석했어요. 이미지1처럼 두 주먹을 모아 쥐고 서 있는 준비자세가 화면에 잘 보이는지 확인해보세요." });
+            items.push({ type: "caution", text: `준비자세를 뚜렷하게 인식하지 못해 영상 맨 앞부터 분석했어요. ${readyStanceGuide(selectedPoomsaeKey)}로 2~3초 멈춰 선 모습이 화면에 잘 보이는지 확인해보세요.` });
           }
           if (Number.isFinite(rangeInfo.start)) {
             const checked = rangeInfo.onsetMethod === "motion_peak_cross_check";
@@ -15371,6 +15831,7 @@ function applyBannerToDom(config) {
           return;
         }
         warnIfFilenamePoomsaeMismatch();
+        const reportBeforeRun = latestReport;
         await loadBoundaryBias();
         if (!poseLandmarker) {
           await loadModel();
@@ -15393,6 +15854,8 @@ function applyBannerToDom(config) {
             await analyzePower({ view: cameraView });
           }
         }
+        // 분석이 끝나면 결과 화면으로 넘어간다(폰에서는 결과가 버튼보다 약 1,600px 아래라 끝난 줄 몰랐다).
+        if (latestReport && latestReport !== reportBeforeRun && !isAnalyzing) showResultPage();
       }
       async function reanalyzeFromStart() {
         if (isAnalyzing) {
@@ -15544,7 +16007,7 @@ function applyBannerToDom(config) {
             // 원래 분석에서 뽑아 둔 동작 끝 샘플을 새 경계 기준으로 다시 사용한다(추가 seek 없음).
             const manualAnchor = manualCompletionTimes[i];
             const cachedFinish = (bc.finishFrames || []).filter((f) => f && f.time >= segStart - 0.7 && f.time <= segEnd + 0.8);
-            const manualFinishFrames = cachedFinish.length && primary && !primary.isPrep && primary.type !== "hold" && primary.type !== "kihap"
+            const manualFinishFrames = cachedFinish.length && primary && !primary.isPrep && primary.type !== "kihap"
               ? stabilizeAnalysisPoseTracks(
                 frames.map((frame) => ({ ...frame, finishSample: false })).concat(cachedFinish.map((frame) => ({ ...frame, finishSample: true }))),
                 trainingMode === "competition" ? expectedAthletesForEvent() : 1
@@ -15721,20 +16184,24 @@ function applyBannerToDom(config) {
         if (i < 0 || i > b.length - 1) return;
         // 0번 경계(준비자세 인식 지점 = 준비 시작)는 앞에 다른 경계가 없어 하한이 0초.
         const lo = i === 0 ? 0 : b[i - 1] + 0.1;
-        let userTime = Math.max(Number(newTime), lo);
-        const autoTime = b[i];
-        const delta = userTime - autoTime;
         const duration = video.duration;
-        // 뒤로 밀 때(delta>0) 영상 길이를 넘지 않도록, 필요하면 delta 자체를 줄인다
-        // (이동량은 줄어들 수 있지만 방향과 "전부 같이 민다"는 원칙은 유지).
         const lastIndex = b.length - 1;
-        const maxDelta = Number.isFinite(duration) ? duration - b[lastIndex] : Infinity;
-        const safeDelta = delta > 0 ? Math.min(delta, Math.max(maxDelta, 0)) : delta;
-        userTime = autoTime + safeDelta;
+        // 뒤로 밀 때는 영상 끝(duration)을 넘을 수 없다. 예전에는 끝 경계가 영상 끝에 닿아 있으면(꼼꼼히 자른
+        // 영상) 이동량이 0으로 줄어 "+0.00초"로 아무것도 안 바뀌었다. 이제 입력한 시간은 그대로 지키고,
+        // 뒤 경계들은 같이 밀되 영상 끝에 닿는 만큼은 끝 쪽 구간을 줄여(최소 0.1초) 반영한다.
+        const ceiling = Number.isFinite(duration) && duration > 0 ? duration - 0.1 * (lastIndex - i) : Infinity;
+        const userTime = Math.min(Math.max(Number(newTime), lo), i === lastIndex && Number.isFinite(duration) ? duration : ceiling);
+        const autoTime = b[i];
+        const safeDelta = userTime - autoTime;
         const appliedBias = getBoundaryBias(selectedPoomsaeKey, i);
-        const shiftedBoundaries = b.map((value, index) =>
-          index >= i ? Number((value + safeDelta).toFixed(3)) : value
-        );
+        const shiftedBoundaries = b.map((value, index) => {
+          if (index < i) return value;
+          const moved = value + safeDelta;
+          if (!Number.isFinite(duration) || duration <= 0) return Number(moved.toFixed(3));
+          const cap = index === lastIndex ? duration : duration - 0.1 * (lastIndex - index);
+          return Number(Math.min(moved, cap).toFixed(3));
+        });
+        if (Math.abs(safeDelta) < 0.001) return;
         recordCorrection("cascade_adjust", {
           boundary_index: i,
           auto_time: Number(autoTime.toFixed(3)),
@@ -15745,9 +16212,10 @@ function applyBannerToDom(config) {
           shifted_count: b.length - i,
           result_boundary_ratios: normalizeBoundaryShape(shiftedBoundaries)
         });
-        for (let k = i; k <= lastIndex; k += 1) b[k] = Number((b[k] + safeDelta).toFixed(3));
+        const endClamped = Number.isFinite(duration) && b[lastIndex] + safeDelta > duration + 1e-6;
+        for (let k = i; k <= lastIndex; k += 1) b[k] = shiftedBoundaries[k];
         const label = i === 0 ? "준비자세 지점(준비 시작)부터" : `${i}번 경계부터`;
-        await rebuildSegmentsFromBoundaries(b, i, `${label} 뒤 구간 전체를 ${safeDelta >= 0 ? "+" : ""}${safeDelta.toFixed(2)}초 만큼 함께 옮겼습니다.`);
+        await rebuildSegmentsFromBoundaries(b, i, `${label} 뒤 구간 전체를 ${safeDelta >= 0 ? "+" : ""}${safeDelta.toFixed(2)}초 만큼 함께 옮겼습니다.${endClamped ? " 영상 끝에 닿아 마지막 구간은 줄어듭니다." : ""}`);
       }
       // 수집된 보정 기록을 화면에 요약/내보내기 위한 헬퍼.
       function correctionLogSummary() {
@@ -16539,7 +17007,8 @@ function applyBannerToDom(config) {
           const expectedForSegment = trainingMode === "competition" ? expectedAthletesForEvent() : 1;
           let finishFrames = [];
           let finishExtended = false;
-          if (primary && !primary.isPrep && primary.type !== "hold" && primary.type !== "kihap") {
+          // 정지(hold)형 번호 동작(예: 일여 두 주먹 허리)도 끝 정지를 측정한다. 준비자세·기합만 제외.
+          if (primary && !primary.isPrep && primary.type !== "kihap") {
             const burstFrames = [];
             const collectFinishFrames = async (offsets) => {
               for (const offset of offsets) {
@@ -16580,8 +17049,8 @@ function applyBannerToDom(config) {
             }
             allFinishFrames.push(...finishFrames.filter((frame) => frame.finishSample));
           }
-          // 스냅샷은 화면 참고용이라 정밀 페인트 대기 없이 빠른 seek로 충분(필름스트립과 동일 방식).
-          const snapshotTime = await waitForSeek(completionTime, true);
+          // 장면 사진은 그 시각 프레임이 실제로 준비된 뒤 찍는다(빠른 seek는 이전 프레임이 찍힐 수 있음).
+          const snapshotTime = await waitForSeek(completionTime);
           snapshot = captureVideoSnapshot();
           const metrics = evaluateCompetitionEventSegment(primary, frames, {
             view: viewForRun,
@@ -16708,6 +17177,7 @@ function applyBannerToDom(config) {
       }
       safeInit("renderPoomsaeOptions", () => renderPoomsaeOptions(selectedPoomsaeGroup, selectedPoomsaeKey));
       safeInit("cloudConnection", () => initializeCloudConnection());
+      safeInit("privacyControls", () => initPrivacyControls());
       document.getElementById("cloudSyncRetryBtn")?.addEventListener("click", retryCloudSync);
       safeInit("updatePoomsaeView", () => updatePoomsaeView());
       safeInit("updateTrainingModeUi", () => updateTrainingModeUi());
@@ -16836,6 +17306,18 @@ function applyBannerToDom(config) {
         correctionRevision = 0;
         pendingVideoCorrection = null;
         latestReport = null;
+        // 이전 영상의 구간 정보(시작점 잠금·스켈레톤 프레임·수동 조정 기준)는 새 영상에 쓰면 안 된다.
+        // 남아 있으면 timeupdate가 새 영상을 이전 영상의 시작점 앞으로 못 가게 되돌려, 준비 점검 seek가
+        // 흐트러지고 "분석 시작을 누르세요"인데 버튼이 꺼진 채로 남았다(2026-10-28 재현).
+        lastBoundaryCache = null;
+        lastMovementsCache = null;
+        const inlineProgress = document.getElementById("analyzeInlineProgress");
+        if (inlineProgress) inlineProgress.hidden = true;
+        renderManualEditPanel(); // 수동 조정 바를 숨기고 조정 모드를 끈다(이전 영상 기준).
+        const manualEditToggleBtn = document.getElementById("manualEditToggle");
+        if (manualEditToggleBtn) manualEditToggleBtn.textContent = "구간 수동 조정";
+        const manualEditHintEl = document.getElementById("manualEditHint");
+        if (manualEditHintEl) manualEditHintEl.style.display = "none";
         clearReplayRange();
         downloadBtn.disabled = true;
         showReportBtn.disabled = true;
@@ -16911,6 +17393,13 @@ function applyBannerToDom(config) {
           }
         }
         updateAnalyzeButtonState();
+      });
+      // 준비 점검이 끝난 뒤 다른 seek(재생 위치 복원 등)로 readyState가 잠깐 낮아졌다 회복되는 경우,
+      // 그 순간의 판정으로 버튼이 꺼진 채 남지 않도록 다시 계산한다(분석 중에는 isAnalyzing으로 계속 꺼짐).
+      ["canplay", "seeked"].forEach((eventName) => {
+        video.addEventListener(eventName, () => {
+          if (!isAnalyzing && seekProbeChecked) updateAnalyzeButtonState();
+        });
       });
       // 영상 디코딩 실패(HEVC 미지원 등)를 직접 잡아 사용자에게 명확히 안내한다.
       video.addEventListener("error", () => {

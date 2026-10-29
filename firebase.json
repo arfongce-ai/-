@@ -4,5 +4,8 @@
       "database": "(default)",
       "rules": "firebase/firestore.rules"
     }
-  ]
+  ],
+  "storage": {
+    "rules": "firebase/storage.rules"
+  }
 }

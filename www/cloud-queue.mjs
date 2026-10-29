@@ -63,6 +63,13 @@ export function createPersistentCloudQueue({ key, storage, getTransport, onStatu
     return row.__queue_id;
   }
   function has(recordId) { return read().some(row => row.__queue_id === recordId); }
+  // User opted out of sharing or erased this device's records: drop everything not yet sent.
+  function clear() {
+    const ok = write([]);
+    lastError = '';
+    notify();
+    return ok;
+  }
   function flush() {
     if (flight) return flight;
     flight = Promise.resolve().then(async () => {
@@ -93,5 +100,5 @@ export function createPersistentCloudQueue({ key, storage, getTransport, onStatu
     }).finally(() => { flight = null; });
     return flight;
   }
-  return { enqueue, flush, pending, has, status };
+  return { enqueue, flush, pending, has, status, clear };
 }

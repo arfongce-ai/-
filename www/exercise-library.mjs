@@ -640,9 +640,14 @@ function collectNeeds(report) {
     if (label && !need.labels.includes(label)) need.labels.push(label);
     needs.set(key, need);
   };
+  const velocityByFamily = new Map();
+  const speedJudgedByFamily = new Map();
   segments.forEach((segment) => {
     const type = String(segment?.movementType || "");
-    if (type === "hold" || type === "kihap" || /준비|기합/.test(String(segment?.name || "")) && !lastTechniqueFamily(segment?.name, type)) return;
+    if (type === "kihap" || segment?.orderLabel === "준비" || segment?.orderLabel === "기합"
+      || /준비|기합/.test(String(segment?.name || "")) && !lastTechniqueFamily(segment?.name, type)) return;
+    // 천천히·정지 동작은 속도·맺음을 판정하지 않는다(앱의 tempoSkipsSpeed와 같은 기준).
+    const skipSpeed = segment?.tempo === "slow" || segment?.tempo === "hold" || type === "hold";
     const family = lastTechniqueFamily(segment?.name, type);
     const stance = stanceOf(segment?.name);
     const finish = segment?.finishMetrics;
@@ -652,25 +657,41 @@ function collectNeeds(report) {
     const snap = severity(segment?.snapScore);
     const still = severity(segment?.stillnessScore);
     const stanceSeverity = severity(segment?.stanceScore);
-    const velocity = severity(segment?.velocityScore);
     if (uncertain) {
       // 끝 멈춤을 확인하지 못한 구간은 선수 약점으로 단정하지 않는다(가중치를 크게 낮춤).
       add("finish_check", Math.max(snap, still) * 0.3, segment, "finish_check");
     } else {
-      if (snap > 0) add(`snap:${family || "any"}`, snap * 1.2, segment, "snap", family);
+      if (snap > 0 && !skipSpeed) add(`snap:${family || "any"}`, snap * 1.2, segment, "snap", family);
       if (still > 0) add(hasKick ? "stillness:kick" : "stillness:hand", still, segment, "stillness", family);
       if (stanceSeverity > 0) add(`stance:${stance || "any"}`, stanceSeverity, segment, "stance", stance);
     }
-    // 손목·발목이 가려져 속도를 재지 못한 구간은 속도 약점으로 보지 않는다.
-    if (velocity > 0 && !finish?.speedUncertain) {
-      const key = `velocity:${family || "any"}`;
-      add(key, velocity * 0.8, segment, "velocity", family);
+    // 속도 약점은 같은 계열 동작의 절반 이상(최소 2곳)이 55점 미만일 때만 본다(아래에서 합산).
+    // 동작 하나만 낮아도 추천하던 예전 기준으로는 시범 영상 15개 중 11개에 '속도가 느려요'가 붙었다
+    // (유단자 품새는 힘을 주며 천천히 하는 동작이 많아 시범 선수도 20~40% 동작이 55점 미만).
+    // 손목·발목이 가려져 속도를 재지 못한 구간과 천천히·정지 동작은 제외한다.
+    const slowSpeed = Number.isFinite(Number(segment?.velocityScore)) ? Math.max(0, 55 - Number(segment.velocityScore)) / 55 : 0;
+    const speedKey = `velocity:${family || "any"}`;
+    if (!finish?.speedUncertain && !skipSpeed && Number.isFinite(Number(segment?.velocityScore))) {
+      speedJudgedByFamily.set(speedKey, (speedJudgedByFamily.get(speedKey) || 0) + 1);
+    }
+    if (slowSpeed > 0 && !finish?.speedUncertain && !skipSpeed) {
+      const key = speedKey;
+      const entry = velocityByFamily.get(key) || { weight: 0, segments: [], speedTarget: 0, family };
+      entry.weight += slowSpeed * 0.8;
+      entry.segments.push(segment);
       // 앱의 속도 점수 기준과 같은 목표값(발차기 포함 구간 1.8, 그 외 1.4)을 성공 기준에 쓴다.
-      const need = needs.get(key);
-      if (need) need.speedTarget = Math.max(need.speedTarget || 0, type === "kick_punch" ? 1.8 : 1.4);
+      entry.speedTarget = Math.max(entry.speedTarget, type === "kick_punch" ? 1.8 : 1.4);
+      velocityByFamily.set(key, entry);
     }
     // 끝 멈춤을 확인하지 못한 차기 구간은 점수가 측정 한계로 낮아진 것일 수 있어 차기 약점으로 보지 않는다.
     if (hasKick && !uncertain && numberOr(segment?.powerScore, 100) < 72) add(`kick:${kickNameOf(segment?.name) || "any"}`, severity(segment?.powerScore) + 0.2, segment, "kick", kickNameOf(segment?.name));
+  });
+  velocityByFamily.forEach((entry, key) => {
+    const judged = speedJudgedByFamily.get(key) || entry.segments.length;
+    if (entry.segments.length < 2 || entry.segments.length < judged * 0.5) return;
+    entry.segments.forEach((segment, index) => add(key, index === 0 ? entry.weight : 0.0001, segment, "velocity", entry.family));
+    const need = needs.get(key);
+    if (need) need.speedTarget = entry.speedTarget;
   });
   // 앱과 같은 조건(신뢰도 0.6 이상)에서, 앱이 '좋음'으로 보는 기준(박자 70·대칭 75) 미만일 때만 보강한다.
   const axes = report?.summary?.extra_axes || {};
@@ -684,8 +705,11 @@ function collectNeeds(report) {
     hesitations.forEach((item) => { if (item?.after && !need.labels.includes(String(item.after))) need.labels.push(String(item.after)); });
   }
   if (symmetry < 75) add("symmetry", (75 - symmetry) / 40, null, "symmetry");
-  // 예전 형식 리포트(구간 점수 없이 issue_counts만 있는 경우)도 지원한다.
-  const issueCounts = Array.isArray(report?.summary?.issue_counts) ? report.summary.issue_counts : [];
+  // 예전 형식 리포트(구간 점수 없이 issue_counts만 있는 경우)만 issue_counts로 보완한다.
+  // 구간 점수가 있으면 위 구간별 판단이 우선 — 예전에는 이 보완이 '번호 없는 속도 약점'을 다시 만들었다.
+  const hasSegmentScores = segments.some((segment) => ["velocityScore", "snapScore", "stillnessScore", "stanceScore"]
+    .some((field) => Number.isFinite(Number(segment?.[field]))));
+  const issueCounts = !hasSegmentScores && Array.isArray(report?.summary?.issue_counts) ? report.summary.issue_counts : [];
   issueCounts.forEach((issue) => {
     const key = String(issue?.key || "");
     const count = Math.max(1, numberOr(issue?.count, 1));

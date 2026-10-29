@@ -61,10 +61,47 @@ service cloud.firestore {
     // 그 외 모든 경로는 차단(기존 momgagym-cms 데이터 보호).
     // ※ 기존에 다른 컬렉션 규칙이 있으면 이 블록과 합쳐서 쓰세요.
 
+    // 누구나 쓸 수 있는 기록이라 앱이 실제로 보내는 필드만 허용하고(파일명 등 거부),
+    // 글자 수·목록 길이를 묶어 스팸·무료 할당량 소진을 막는다. 출처 신뢰(trusted_provenance)는 주장할 수 없다.
     function isValidCorrection(d) {
       return d.action in ['merge', 'split', 'adjust', 'cascade_adjust', 'confirm_all']
-        && d.poomsae is string
+        && d.keys().hasOnly(['ts', 'poomsae', 'poomsae_name', 'video_duration', 'auto_method',
+          'review_session_id', 'correction_revision', 'action', 'trusted_provenance', 'created',
+          'removed_boundary_time', 'merged_segment_index', 'auto_segment_count', 'result_segment_count',
+          'result_boundary_ratios', 'segment_index', 'segment_start', 'segment_end', 'split_at',
+          'split_ratio', 'boundary_index', 'auto_time', 'user_time', 'delta_seconds',
+          'applied_bias_seconds', 'target_total_bias_seconds', 'shifted_count', 'boundary_count',
+          'explicit_review'])
+        && d.poomsae is string && d.poomsae.size() <= 80
+        && optString(d, 'poomsae_name', 120)
+        && optString(d, 'auto_method', 80)
+        && optString(d, 'review_session_id', 100)
+        && optString(d, 'ts', 40)
+        && optNumber(d, 'video_duration') && optNumber(d, 'correction_revision')
+        && optNumber(d, 'removed_boundary_time') && optNumber(d, 'merged_segment_index')
+        && optNumber(d, 'auto_segment_count') && optNumber(d, 'result_segment_count')
+        && optNumber(d, 'segment_index') && optNumber(d, 'segment_start') && optNumber(d, 'segment_end')
+        && optNumber(d, 'split_at') && optNumber(d, 'split_ratio') && optNumber(d, 'boundary_index')
+        && optNumber(d, 'auto_time') && optNumber(d, 'user_time') && optNumber(d, 'delta_seconds')
+        && optNumber(d, 'applied_bias_seconds') && optNumber(d, 'target_total_bias_seconds')
+        && optNumber(d, 'shifted_count') && optNumber(d, 'boundary_count')
+        && (d.get('result_boundary_ratios', null) == null
+          || (d.result_boundary_ratios is list && d.result_boundary_ratios.size() <= 64))
+        && d.get('trusted_provenance', false) == false
+        && (d.get('explicit_review', true) is bool)
+        && serverCreated(d)
         && d.size() < 30;  // 필드 수 제한(스팸 방지)
+    }
+    function optString(d, key, maxLength) {
+      return d.get(key, null) == null || (d[key] is string && d[key].size() <= maxLength);
+    }
+    // 숫자 칸은 숫자 또는 null만(숫자 칸에 긴 글을 넣는 우회 차단).
+    function optNumber(d, key) {
+      return d.get(key, null) == null || d[key] is number;
+    }
+    // 생성 시각은 서버 시간만(과거 날짜로 위조 금지). 예전 테스트처럼 없는 것도 허용.
+    function serverCreated(d) {
+      return !('created' in d) || d.created == request.time;
     }
     function isValidLearningReport(d) {
       return d.schema in ['poomsae-learning-report-v1', 'poomsae-learning-report-v2', 'poomsae-learning-report-v3']
@@ -79,8 +116,11 @@ service cloud.firestore {
             && d.analysis_confidence is number
             && d.analysis_confidence >= 0
             && d.analysis_confidence <= 1))
-        && d.issue_counts is list
-        && d.needed_training is list
+        && d.poomsae.size() <= 80
+        && d.issue_counts is list && d.issue_counts.size() <= 20
+        && d.needed_training is list && d.needed_training.size() <= 20
+        && !('file' in d)
+        && serverCreated(d)
         && (d.schema == 'poomsae-learning-report-v1'
           || (isValidTeamLearningData(d) && isValidPairLearningData(d) && isValidIndividualLearningData(d)))
         && (d.schema != 'poomsae-learning-report-v3' || isValidEventLearningData(d))
@@ -179,10 +219,17 @@ service cloud.firestore {
         && d.delta_percent is number
         && d.overlap_score is number
         && d.align_mode in ['none', 'ankle', 'shoulder', 'head', 'hip']
-        && d.child_summary is string
-        && d.child_time_text is string
-        && d.child_tip is string
+        && d.child_summary is string && d.child_summary.size() <= 600
+        && d.child_time_text is string && d.child_time_text.size() <= 300
+        && d.child_tip is string && d.child_tip.size() <= 300
+        // 영상 파일명(학생 이름·나이가 들어갈 수 있음)은 받지 않는다.
+        && !('before_file' in d) && !('after_file' in d)
+        && noSourceFile(d.get('before_analysis', null)) && noSourceFile(d.get('after_analysis', null))
+        && serverCreated(d)
         && d.size() < 36;
+    }
+    function noSourceFile(link) {
+      return link == null || (link is map && !('source_file' in link) && link.size() < 24);
     }
     function isValidCalibrationReview(d) {
       return d.action in ['merge', 'split', 'adjust', 'cascade_adjust', 'confirm_all']
@@ -204,9 +251,12 @@ service cloud.firestore {
         && d.endAt is number
         && d.startAt < d.endAt;
     }
+    // 이메일 인증까지 마친 관리자 계정만. 규칙을 게시하기 전에 앱 관리자 화면에서
+    // '인증 메일 보내기' → 메일의 링크를 누르고 다시 로그인해야 한다(안 하면 관리자 기능이 막힘).
     function isAdmin() {
       return request.auth != null
         && request.auth.token.email is string
+        && request.auth.token.email_verified == true
         && request.auth.token.email in ADMIN_EMAILS();
     }
     // 학습 리포트를 읽을 수 있는 관리자 이메일 목록. 배포 전 실제 이메일로 교체할 것.
